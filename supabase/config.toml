@@ -1,1 +1,4 @@
 project_id = "ipsmcagnhrtnhuekzcny"
+
+[functions.generate-oficio]
+verify_jwt = false

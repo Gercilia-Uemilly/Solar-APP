@@ -1,15 +1,18 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardList, FileText, MessageSquare, Bell, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, FileText, MessageSquare, Bell, LogOut, FolderOpen } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/" },
   { label: "Demandas", icon: ClipboardList, path: "/demandas" },
   { label: "Ofícios", icon: FileText, path: "/oficios" },
+  { label: "Meus Ofícios", icon: FolderOpen, path: "/meus-oficios" },
   { label: "Scripts", icon: MessageSquare, path: "/scripts" },
 ];
 
 export default function AppSidebar() {
   const location = useLocation();
+  const { signOut } = useAuth();
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-[160px] bg-sidebar flex flex-col border-r border-sidebar-border z-50">
@@ -52,7 +55,7 @@ export default function AppSidebar() {
           <Bell size={16} />
           Notificações
         </button>
-        <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full">
+        <button onClick={() => signOut()} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full">
           <LogOut size={16} />
           Sair
         </button>
