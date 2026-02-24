@@ -34,7 +34,7 @@ export default function AppSidebar({ collapsed, onToggle }: Props) {
             exit={{ opacity: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div className="text-sm font-bold text-foreground leading-tight">Gabinete Digital</div>
+            <div className="text-sm font-medium text-foreground leading-tight">Gabinete Digital</div>
             <div className="text-[10px] text-muted-foreground">Vereador Fabão</div>
           </motion.div>
         )}
@@ -56,7 +56,7 @@ export default function AppSidebar({ collapsed, onToggle }: Props) {
               title={collapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                  ? "bg-primary text-primary-foreground font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               }`}
             >
