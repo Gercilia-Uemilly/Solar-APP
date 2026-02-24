@@ -47,8 +47,8 @@ export default function Dashboard() {
         transition={{ duration: 0.4 }}
       >
         <p className="text-sm text-muted-foreground">{dataFormatada}</p>
-        <h1 className="text-2xl font-bold text-foreground mt-1">
-          Bem-vindo, {user?.user_metadata?.full_name || "Assessor"}
+        <h1 className="text-2xl font-semibold text-foreground mt-1" style={{ textShadow: 'none', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
+          Bem-vindo, {user?.user_metadata?.full_name || user?.email || "Assessor"}
         </h1>
         <p className="text-sm text-muted-foreground">Gabinete Digital · Vereador Fabão · Câmara Municipal de Uberlândia</p>
       </motion.div>
@@ -63,8 +63,8 @@ export default function Dashboard() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: i * 0.08 }}
           >
-            <p className="text-sm text-primary-foreground/80">{card.label}</p>
-            <p className="text-3xl font-bold text-primary-foreground mt-2">{card.value}</p>
+            <p className="text-sm font-normal text-primary-foreground/80">{card.label}</p>
+            <p className="text-3xl font-semibold text-primary-foreground mt-2">{card.value}</p>
           </motion.div>
         ))}
       </div>
