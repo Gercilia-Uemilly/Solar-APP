@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2 } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,27 @@ import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 
 const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido", "Arquivado"];
+
+const tiposServico = [
+  { label: "Operação Tapa-Buracos / Pavimentação", secretaria: "Secretaria Municipal de Infraestrutura Urbana" },
+  { label: "Iluminação Pública", secretaria: "Secretaria Municipal de Serviços Urbanos" },
+  { label: "Sinalização / Semáforos / Trânsito", secretaria: "Secretaria Municipal de Trânsito e Transportes" },
+  { label: "Transporte Público / Ônibus", secretaria: "Secretaria Municipal de Trânsito e Transportes" },
+  { label: "Limpeza Urbana / Capina / Roçada", secretaria: "Secretaria Municipal de Serviços Urbanos" },
+  { label: "Saúde / UBS / UAI", secretaria: "Secretaria Municipal de Saúde" },
+  { label: "Educação / Escolas", secretaria: "Secretaria Municipal de Educação" },
+  { label: "Água / Esgoto / DMAE", secretaria: "DMAE" },
+  { label: "Assistência Social / CRAS", secretaria: "Secretaria Municipal de Desenvolvimento Social" },
+  { label: "Meio Ambiente / Poda / Praças", secretaria: "Secretaria Municipal de Gestão Ambiental e Sustentabilidade" },
+  { label: "Habitação / Casas Populares", secretaria: "Secretaria Municipal de Habitação" },
+  { label: "Segurança / Videomonitoramento", secretaria: "Secretaria Municipal de Segurança Integrada" },
+  { label: "Esporte / Poliesportivos / FUTEL", secretaria: "FUTEL" },
+  { label: "Cultura / Turismo / Eventos", secretaria: "Secretaria Municipal de Cultura e Turismo" },
+  { label: "Fiscalização de Obras", secretaria: "Secretaria Municipal de Planejamento Urbano" },
+  { label: "Agronegócio / Estradas Rurais", secretaria: "Secretaria Municipal de Agronegócio" },
+  { label: "PROCON / Defesa do Consumidor", secretaria: "PROCON" },
+  { label: "Outro", secretaria: "" },
+];
 
 interface AIResult {
   oficio: string;
@@ -35,6 +56,12 @@ interface OficioRow {
   resposta_cidadao: string | null;
   author_id: string;
   created_at: string;
+  cargo_destinatario: string | null;
+  local_demanda: string | null;
+  bairro: string | null;
+  solicitante: string | null;
+  contato_solicitante: string | null;
+  data_geracao: string | null;
 }
 
 export default function Oficios() {
@@ -52,13 +79,19 @@ export default function Oficios() {
 
   // Form state
   const [numero, setNumero] = useState("");
+  const [dataGeracao, setDataGeracao] = useState(new Date().toISOString().split("T")[0]);
+  const [tipoServico, setTipoServico] = useState("");
   const [assunto, setAssunto] = useState("");
+  const [secretaria, setSecretaria] = useState("");
   const [destinatario, setDestinatario] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [tipo, setTipo] = useState("Solicitação");
-  const [solicitante, setSolicitante] = useState("");
+  const [cargoDestinatario, setCargoDestinatario] = useState("");
+  const [localDemanda, setLocalDemanda] = useState("");
   const [bairro, setBairro] = useState("");
+  const [solicitante, setSolicitante] = useState("");
+  const [contatoSolicitante, setContatoSolicitante] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState("Normal");
+  const [formTab, setFormTab] = useState("dados");
 
   // AI state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -74,7 +107,15 @@ export default function Oficios() {
     setLoading(false);
   };
 
-  useState(() => { fetchOficios(); });
+  useEffect(() => { fetchOficios(); }, []);
+
+  // Auto-fill secretaria when tipo_servico changes
+  useEffect(() => {
+    const found = tiposServico.find(t => t.label === tipoServico);
+    if (found && found.secretaria) {
+      setSecretaria(found.secretaria);
+    }
+  }, [tipoServico]);
 
   const filtered = oficios.filter(o => {
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
@@ -94,14 +135,15 @@ export default function Oficios() {
     setAiResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("generate-oficio", {
-        body: { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade },
+        body: { assunto, destinatario, descricao, tipo: tipoServico || "Solicitação", solicitante, bairro, prioridade, local: localDemanda },
       });
       if (error) throw error;
       setAiResult(data);
       setEditedOficio(data.oficio || "");
       setEditedResposta(data.resposta_cidadao || "");
       if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
-      if (data.tipo_demanda && tipo === "Solicitação") setTipo(data.tipo_demanda);
+      if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
+      setFormTab("texto");
       toast({ title: "Ofício gerado!", description: "Revise e edite o texto antes de salvar." });
     } catch (e: any) {
       toast({ title: "Erro ao gerar", description: e.message || "Tente novamente.", variant: "destructive" });
@@ -119,10 +161,16 @@ export default function Oficios() {
       status: aiResult ? "Gerado" : "Rascunho",
       conteudo: editedOficio || null,
       resposta_cidadao: editedResposta || null,
-      secretaria_identificada: aiResult?.secretaria_identificada || null,
-      tipo_demanda: aiResult?.tipo_demanda || tipo,
+      secretaria_identificada: aiResult?.secretaria_identificada || secretaria || null,
+      tipo_demanda: aiResult?.tipo_demanda || tipoServico || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       author_id: user.id,
+      cargo_destinatario: cargoDestinatario || null,
+      local_demanda: localDemanda || null,
+      bairro: bairro || null,
+      solicitante: solicitante || null,
+      contato_solicitante: contatoSolicitante || null,
+      data_geracao: dataGeracao || null,
     });
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
@@ -136,13 +184,19 @@ export default function Oficios() {
   const resetForm = () => {
     setShowDialog(false);
     setNumero("");
+    setDataGeracao(new Date().toISOString().split("T")[0]);
+    setTipoServico("");
     setAssunto("");
+    setSecretaria("");
     setDestinatario("");
-    setDescricao("");
-    setTipo("Solicitação");
-    setSolicitante("");
+    setCargoDestinatario("");
+    setLocalDemanda("");
     setBairro("");
+    setSolicitante("");
+    setContatoSolicitante("");
+    setDescricao("");
     setPrioridade("Normal");
+    setFormTab("dados");
     setAiResult(null);
     setEditedOficio("");
     setEditedResposta("");
@@ -223,39 +277,99 @@ export default function Oficios() {
         ))}
       </div>
 
-      {/* Create Dialog */}
+      {/* Create Dialog with Tabs */}
       <Dialog open={showDialog} onOpenChange={open => { if (!open) resetForm(); else setShowDialog(true); }}>
         <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <Sparkles size={20} className="text-primary" /> Novo Ofício com IA
-            </DialogTitle>
+            <DialogTitle className="text-foreground">Novo Ofício</DialogTitle>
           </DialogHeader>
 
-          {!aiResult ? (
-            <div className="space-y-4">
-              <Input placeholder="Nº do Ofício (ex: 23)" value={numero} onChange={e => setNumero(e.target.value)} className="bg-secondary border-border" />
+          <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
+            <TabsList className="w-full bg-secondary grid grid-cols-4">
+              <TabsTrigger value="dados" className="text-xs">📋 Dados</TabsTrigger>
+              <TabsTrigger value="texto" className="text-xs">🔥 Texto</TabsTrigger>
+              <TabsTrigger value="preview" className="text-xs">👁️ Visualizar</TabsTrigger>
+              <TabsTrigger value="status" className="text-xs">📊 Status</TabsTrigger>
+            </TabsList>
+
+            {/* TAB: DADOS */}
+            <TabsContent value="dados" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input placeholder="Assunto (opcional - IA identifica)" value={assunto} onChange={e => setAssunto(e.target.value)} className="bg-secondary border-border" />
-                <Input placeholder="Destinatário (opcional - IA identifica)" value={destinatario} onChange={e => setDestinatario(e.target.value)} className="bg-secondary border-border" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício</label>
+                  <Input placeholder="Ex: 23/2026" value={numero} onChange={e => setNumero(e.target.value)} className="bg-secondary border-border" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
+                  <Input type="date" value={dataGeracao} onChange={e => setDataGeracao(e.target.value)} className="bg-secondary border-border" />
+                </div>
               </div>
-              <Textarea
-                placeholder="Descreva a demanda do cidadão... Ex: 'Moradores da Rua Oscar Alvim, Bairro Fundinho, reclamam de buracos que causam acidentes.'"
-                value={descricao}
-                onChange={e => setDescricao(e.target.value)}
-                className="bg-secondary border-border min-h-[120px]"
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input placeholder="Nome do solicitante" value={solicitante} onChange={e => setSolicitante(e.target.value)} className="bg-secondary border-border" />
-                <Input placeholder="Bairro" value={bairro} onChange={e => setBairro(e.target.value)} className="bg-secondary border-border" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Select value={tipo} onValueChange={setTipo}>
-                  <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
+
+              <div>
+                <label className="text-xs font-medium text-primary mb-1 block">Tipo de Serviço <span className="text-primary/70">(preenche secretaria automaticamente)</span></label>
+                <Select value={tipoServico} onValueChange={setTipoServico}>
+                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {["Solicitação", "Reclamação", "Denúncia", "Sugestão", "Informação"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    {tiposServico.map(t => <SelectItem key={t.label} value={t.label}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Assunto *</label>
+                <Input placeholder="Assunto do ofício" value={assunto} onChange={e => setAssunto(e.target.value)} className="bg-secondary border-border" />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Secretaria</label>
+                <Input placeholder="Preenchido automaticamente" value={secretaria} onChange={e => setSecretaria(e.target.value)} className="bg-secondary border-border" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Destinatário *</label>
+                  <Input placeholder="Nome do destinatário" value={destinatario} onChange={e => setDestinatario(e.target.value)} className="bg-secondary border-border" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Cargo do Destinatário</label>
+                  <Input placeholder="Ex: Ilmo(a). Sr(a)..." value={cargoDestinatario} onChange={e => setCargoDestinatario(e.target.value)} className="bg-secondary border-border" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Local</label>
+                  <Input placeholder="Ex: Av. K, Terminal..." value={localDemanda} onChange={e => setLocalDemanda(e.target.value)} className="bg-secondary border-border" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Bairro</label>
+                  <Input placeholder="Bairro" value={bairro} onChange={e => setBairro(e.target.value)} className="bg-secondary border-border" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Solicitante</label>
+                  <Input placeholder="Nome do solicitante" value={solicitante} onChange={e => setSolicitante(e.target.value)} className="bg-secondary border-border" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Contato do Solicitante</label>
+                  <Input placeholder="Telefone / WhatsApp" value={contatoSolicitante} onChange={e => setContatoSolicitante(e.target.value)} className="bg-secondary border-border" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição da demanda</label>
+                <Textarea
+                  placeholder="Descreva a demanda do cidadão... Ex: 'Moradores da Rua Oscar Alvim, Bairro Fundinho, reclamam de buracos que causam acidentes.'"
+                  value={descricao}
+                  onChange={e => setDescricao(e.target.value)}
+                  className="bg-secondary border-border min-h-[100px]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Prioridade</label>
                 <Select value={prioridade} onValueChange={setPrioridade}>
                   <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -264,84 +378,107 @@ export default function Oficios() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleGenerateAI} disabled={isGenerating} className="w-full bg-primary text-primary-foreground">
-                {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
-              </Button>
-              <div className="text-center">
-                <button onClick={handleCreate} className="text-xs text-muted-foreground hover:text-foreground underline">Criar sem IA (rascunho)</button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {aiResult.secretaria_identificada && (
-                  <span className="text-xs px-3 py-1 rounded-full bg-primary/20 text-primary flex items-center gap-1"><Landmark size={12} /> {aiResult.secretaria_identificada}</span>
-                )}
-                {aiResult.tipo_demanda && <span className="text-xs px-3 py-1 rounded-full bg-accent text-accent-foreground">{aiResult.tipo_demanda}</span>}
-                {aiResult.urgencia && (
-                  <span className={`text-xs px-3 py-1 rounded-full flex items-center gap-1 ${aiResult.urgencia === "urgente" ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"}`}>
-                    {aiResult.urgencia === "urgente" ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                    {aiResult.urgencia === "urgente" ? "Urgente" : "Normal"}
-                  </span>
-                )}
-              </div>
-
-              <Tabs defaultValue="oficio" className="w-full">
-                <TabsList className="w-full bg-secondary">
-                  <TabsTrigger value="oficio" className="flex-1">📄 Ofício</TabsTrigger>
-                  <TabsTrigger value="resposta" className="flex-1">💬 Resposta</TabsTrigger>
-                  <TabsTrigger value="preview" className="flex-1">👁️ Visualizar</TabsTrigger>
-                  {aiResult.sugestoes_melhoria?.length > 0 && <TabsTrigger value="sugestoes" className="flex-1">💡 Sugestões</TabsTrigger>}
-                </TabsList>
-
-                <TabsContent value="oficio" className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">Revise e edite o texto antes de salvar</p>
-                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedOficio, "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>
-                  </div>
-                  <Textarea value={editedOficio} onChange={e => setEditedOficio(e.target.value)} className="bg-secondary border-border min-h-[300px] font-mono text-sm leading-relaxed" />
-                </TabsContent>
-
-                <TabsContent value="resposta" className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquare size={12} /> Resposta ao cidadão</p>
-                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedResposta, "Resposta")}><Copy size={14} className="mr-1" /> Copiar</Button>
-                  </div>
-                  <Textarea value={editedResposta} onChange={e => setEditedResposta(e.target.value)} className="bg-secondary border-border min-h-[200px] text-sm" />
-                </TabsContent>
-
-                <TabsContent value="preview" className="space-y-3">
-                  <div className="flex gap-2 justify-end">
-                    <Button size="sm" variant="outline" onClick={() => exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao })}>
-                      <FileText size={14} className="mr-1" /> Word
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={async () => { if (previewRef.current) await exportToPDF(previewRef.current, numero); }}>
-                      <Download size={14} className="mr-1" /> PDF
-                    </Button>
-                  </div>
-                  <div className="overflow-x-auto border border-border rounded-lg">
-                    <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} />
-                  </div>
-                </TabsContent>
-
-                {aiResult.sugestoes_melhoria?.length > 0 && (
-                  <TabsContent value="sugestoes" className="space-y-2">
-                    {aiResult.sugestoes_melhoria.map((s, i) => (
-                      <div key={i} className="flex items-start gap-2 p-3 bg-secondary rounded-lg">
-                        <span className="text-primary mt-0.5">💡</span>
-                        <p className="text-sm text-foreground">{s}</p>
-                      </div>
-                    ))}
-                  </TabsContent>
-                )}
-              </Tabs>
 
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setAiResult(null)} className="flex-1 border-border">← Voltar</Button>
-                <Button onClick={handleCreate} className="flex-1 bg-primary text-primary-foreground"><CheckCircle2 size={16} className="mr-1" /> Salvar Ofício</Button>
+                <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
+                  {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
+                </Button>
+                <Button variant="outline" onClick={handleCreate} className="border-border">
+                  Salvar Rascunho
+                </Button>
               </div>
-            </div>
-          )}
+            </TabsContent>
+
+            {/* TAB: TEXTO */}
+            <TabsContent value="texto" className="space-y-4 mt-4">
+              {aiResult && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {aiResult.secretaria_identificada && (
+                    <span className="text-xs px-3 py-1 rounded-full bg-primary/20 text-primary flex items-center gap-1"><Landmark size={12} /> {aiResult.secretaria_identificada}</span>
+                  )}
+                  {aiResult.tipo_demanda && <span className="text-xs px-3 py-1 rounded-full bg-accent text-accent-foreground">{aiResult.tipo_demanda}</span>}
+                  {aiResult.urgencia && (
+                    <span className={`text-xs px-3 py-1 rounded-full flex items-center gap-1 ${aiResult.urgencia === "urgente" ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"}`}>
+                      {aiResult.urgencia === "urgente" ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                      {aiResult.urgencia === "urgente" ? "Urgente" : "Normal"}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-muted-foreground">Texto do Ofício</label>
+                  {editedOficio && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedOficio, "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>}
+                </div>
+                <Textarea value={editedOficio} onChange={e => setEditedOficio(e.target.value)} placeholder="O texto será preenchido pela IA ou manualmente..." className="bg-secondary border-border min-h-[250px] font-mono text-sm leading-relaxed" />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MessageSquare size={12} /> Resposta ao Cidadão</label>
+                  {editedResposta && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedResposta, "Resposta")}><Copy size={14} className="mr-1" /> Copiar</Button>}
+                </div>
+                <Textarea value={editedResposta} onChange={e => setEditedResposta(e.target.value)} placeholder="Sugestão de resposta ao cidadão..." className="bg-secondary border-border min-h-[150px] text-sm" />
+              </div>
+
+              {aiResult?.sugestoes_melhoria?.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">💡 Sugestões de melhoria</label>
+                  {aiResult.sugestoes_melhoria.map((s, i) => (
+                    <div key={i} className="flex items-start gap-2 p-3 bg-secondary rounded-lg">
+                      <span className="text-primary mt-0.5">💡</span>
+                      <p className="text-sm text-foreground">{s}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <Button onClick={handleCreate} className="w-full bg-primary text-primary-foreground">
+                <CheckCircle2 size={16} className="mr-1" /> Salvar Ofício
+              </Button>
+            </TabsContent>
+
+            {/* TAB: PREVIEW */}
+            <TabsContent value="preview" className="space-y-3 mt-4">
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="outline" onClick={() => exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao })}>
+                  <FileText size={14} className="mr-1" /> Word
+                </Button>
+                <Button size="sm" variant="outline" onClick={async () => { if (previewRef.current) await exportToPDF(previewRef.current, numero); }}>
+                  <Download size={14} className="mr-1" /> PDF
+                </Button>
+              </div>
+              <div className="overflow-x-auto border border-border rounded-lg">
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} />
+              </div>
+            </TabsContent>
+
+            {/* TAB: STATUS */}
+            <TabsContent value="status" className="space-y-4 mt-4">
+              <div className="bg-secondary rounded-lg p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Informações do Ofício</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">Número:</span> <span className="text-foreground">{numero || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Data:</span> <span className="text-foreground">{dataGeracao}</span></div>
+                  <div><span className="text-muted-foreground">Assunto:</span> <span className="text-foreground">{assunto || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Destinatário:</span> <span className="text-foreground">{destinatario || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Secretaria:</span> <span className="text-foreground">{secretaria || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Prioridade:</span> <span className="text-foreground">{prioridade}</span></div>
+                  <div><span className="text-muted-foreground">Solicitante:</span> <span className="text-foreground">{solicitante || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Bairro:</span> <span className="text-foreground">{bairro || "—"}</span></div>
+                </div>
+                {aiResult && (
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-xs text-primary flex items-center gap-1"><Sparkles size={12} /> Gerado por IA</p>
+                  </div>
+                )}
+              </div>
+              <Button onClick={handleCreate} className="w-full bg-primary text-primary-foreground">
+                <CheckCircle2 size={16} className="mr-1" /> Salvar Ofício
+              </Button>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

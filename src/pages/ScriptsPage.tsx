@@ -1,29 +1,52 @@
-import { useState, useMemo } from "react";
-import { Plus, Search, Star, Copy, Pencil, Trash2 } from "lucide-react";
-import { store } from "@/lib/store";
-import { Script } from "@/types";
+import { useState, useMemo, useEffect } from "react";
+import { Plus, Search, Star, Copy, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+interface ScriptRow {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  categoria: string;
+  tags: string[];
+  favorito: boolean;
+  author_id: string;
+  created_at: string;
+}
 
 export default function ScriptsPage() {
-  const [scripts, setScripts] = useState(() => store.getScripts());
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [scripts, setScripts] = useState<ScriptRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("Todas");
   const [showDialog, setShowDialog] = useState(false);
-  const { toast } = useToast();
 
   // Form
   const [titulo, setTitulo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [categoria, setCategoria] = useState("");
   const [tags, setTags] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const fetchScripts = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("scripts").select("*").order("categoria").order("titulo");
+    setScripts((data as unknown as ScriptRow[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchScripts(); }, []);
 
   const categorias = useMemo(() => {
     const cats = new Set(scripts.map((s) => s.categoria));
-    return Array.from(cats);
+    return Array.from(cats).sort();
   }, [scripts]);
 
   const filtered = useMemo(() => {
@@ -38,20 +61,38 @@ export default function ScriptsPage() {
     });
   }, [scripts, filtroCategoria, search]);
 
-  const handleCreate = () => {
-    const novo: Script = {
-      id: Date.now().toString(),
-      titulo,
-      conteudo,
-      categoria: categoria || "Outros",
-      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-      favorito: false,
-      criadoEm: new Date().toISOString(),
-    };
-    store.addScript(novo);
-    setScripts(store.getScripts());
+  const handleCreate = async () => {
+    if (!user) return;
+    if (editingId) {
+      await supabase.from("scripts").update({
+        titulo,
+        conteudo,
+        categoria: categoria || "Outros",
+        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+      }).eq("id", editingId);
+      toast({ title: "Script atualizado!" });
+    } else {
+      await supabase.from("scripts").insert({
+        titulo,
+        conteudo,
+        categoria: categoria || "Outros",
+        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+        author_id: user.id,
+      });
+      toast({ title: "Script criado!" });
+    }
+    await fetchScripts();
     setShowDialog(false);
-    setTitulo(""); setConteudo(""); setCategoria(""); setTags("");
+    setTitulo(""); setConteudo(""); setCategoria(""); setTags(""); setEditingId(null);
+  };
+
+  const handleEdit = (s: ScriptRow) => {
+    setEditingId(s.id);
+    setTitulo(s.titulo);
+    setConteudo(s.conteudo);
+    setCategoria(s.categoria);
+    setTags(s.tags.join(", "));
+    setShowDialog(true);
   };
 
   const handleCopy = (text: string) => {
@@ -59,14 +100,17 @@ export default function ScriptsPage() {
     toast({ title: "Copiado!", description: "Script copiado para a área de transferência." });
   };
 
-  const handleToggleFav = (id: string) => {
-    store.toggleFavorite(id);
-    setScripts(store.getScripts());
+  const handleToggleFav = async (id: string) => {
+    const script = scripts.find(s => s.id === id);
+    if (!script) return;
+    await supabase.from("scripts").update({ favorito: !script.favorito }).eq("id", id);
+    setScripts(prev => prev.map(s => s.id === id ? { ...s, favorito: !s.favorito } : s));
   };
 
-  const handleDelete = (id: string) => {
-    store.deleteScript(id);
-    setScripts(store.getScripts());
+  const handleDelete = async (id: string) => {
+    await supabase.from("scripts").delete().eq("id", id);
+    setScripts(prev => prev.filter(s => s.id !== id));
+    toast({ title: "Script excluído" });
   };
 
   return (
@@ -76,7 +120,7 @@ export default function ScriptsPage() {
           <h1 className="text-2xl font-bold text-foreground">Scripts de Atendimento</h1>
           <p className="text-sm text-muted-foreground">Respostas prontas para WhatsApp · {scripts.length} script(s)</p>
         </div>
-        <Button onClick={() => setShowDialog(true)} className="bg-primary text-primary-foreground">
+        <Button onClick={() => { setEditingId(null); setTitulo(""); setConteudo(""); setCategoria(""); setTags(""); setShowDialog(true); }} className="bg-primary text-primary-foreground">
           <Plus size={16} className="mr-1" /> Novo Script
         </Button>
       </div>
@@ -109,11 +153,15 @@ export default function ScriptsPage() {
 
       {/* Scripts List */}
       <div className="space-y-4">
-        {filtered.map((s) => (
+        {loading ? (
+          <p className="text-center text-muted-foreground py-8"><Loader2 className="inline animate-spin mr-2" size={16} />Carregando...</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Nenhum script encontrado.</p>
+        ) : filtered.map((s) => (
           <div key={s.id} className="bg-card rounded-xl p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <button onClick={() => handleToggleFav(s.id)} className={`${s.favorito ? "text-status-pending" : "text-muted-foreground"} hover:text-status-pending`}>
+                <button onClick={() => handleToggleFav(s.id)} className={`${s.favorito ? "text-yellow-500" : "text-muted-foreground"} hover:text-yellow-500`}>
                   <Star size={16} fill={s.favorito ? "currentColor" : "none"} />
                 </button>
                 <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary font-medium">{s.categoria}</span>
@@ -121,11 +169,11 @@ export default function ScriptsPage() {
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => handleCopy(s.conteudo)} className="p-2 text-muted-foreground hover:text-foreground"><Copy size={14} /></button>
-                <button className="p-2 text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
+                <button onClick={() => handleEdit(s)} className="p-2 text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
                 <button onClick={() => handleDelete(s.id)} className="p-2 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
               </div>
             </div>
-            <p className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed">{s.conteudo}</p>
+            <p className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed line-clamp-6">{s.conteudo}</p>
             {s.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-3">
                 {s.tags.map((tag) => (
@@ -141,14 +189,14 @@ export default function ScriptsPage() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Novo Script</DialogTitle>
+            <DialogTitle className="text-foreground">{editingId ? "Editar Script" : "Novo Script"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Título" value={titulo} onChange={(e) => setTitulo(e.target.value)} className="bg-secondary border-border" />
             <Input placeholder="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} className="bg-secondary border-border" />
             <Textarea placeholder="Conteúdo do script..." value={conteudo} onChange={(e) => setConteudo(e.target.value)} className="bg-secondary border-border min-h-[120px]" />
             <Input placeholder="Tags (separadas por vírgula)" value={tags} onChange={(e) => setTags(e.target.value)} className="bg-secondary border-border" />
-            <Button onClick={handleCreate} className="w-full bg-primary text-primary-foreground">Criar Script</Button>
+            <Button onClick={handleCreate} className="w-full bg-primary text-primary-foreground">{editingId ? "Atualizar" : "Criar Script"}</Button>
           </div>
         </DialogContent>
       </Dialog>
