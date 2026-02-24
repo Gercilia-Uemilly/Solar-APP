@@ -1,9 +1,8 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Header, Footer } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Footer, PageNumber, NumberFormat } from "docx";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// Helper to load image as ArrayBuffer
 async function loadImage(src: string): Promise<ArrayBuffer> {
   const resp = await fetch(src);
   return resp.arrayBuffer();
@@ -16,9 +15,12 @@ export async function exportToWord(data: {
   conteudo: string;
   logoCamaraUrl: string;
   logoFabaoUrl: string;
+  cargoDestinatario?: string;
 }) {
-  const { numero, destinatario, assunto, conteudo, logoCamaraUrl, logoFabaoUrl } = data;
-  const hoje = new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+  const { numero, destinatario, assunto, conteudo, logoCamaraUrl, logoFabaoUrl, cargoDestinatario } = data;
+  const hoje = new Date();
+  const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 
   let logoCamara: ArrayBuffer, logoFabao: ArrayBuffer;
   try {
@@ -29,7 +31,6 @@ export async function exportToWord(data: {
   }
 
   const paragraphs = conteudo.split("\n").map(p => p.trim()).filter(Boolean);
-
   const children: Paragraph[] = [];
 
   // Logos
@@ -39,9 +40,9 @@ export async function exportToWord(data: {
         alignment: AlignmentType.CENTER,
         spacing: { after: 200 },
         children: [
-          new ImageRun({ data: logoCamara, transformation: { width: 120, height: 70 }, type: "png" }),
+          new ImageRun({ data: logoCamara, transformation: { width: 120, height: 64 }, type: "png" }),
           new TextRun("          "),
-          new ImageRun({ data: logoFabao, transformation: { width: 120, height: 70 }, type: "png" }),
+          new ImageRun({ data: logoFabao, transformation: { width: 120, height: 64 }, type: "png" }),
         ],
       })
     );
@@ -50,7 +51,7 @@ export async function exportToWord(data: {
   // Separator
   children.push(
     new Paragraph({
-      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "000000" } },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "000000" } },
       spacing: { after: 300 },
     })
   );
@@ -59,8 +60,8 @@ export async function exportToWord(data: {
   children.push(
     new Paragraph({
       alignment: AlignmentType.RIGHT,
-      spacing: { after: 200 },
-      children: [new TextRun({ text: `Uberlândia, ${hoje}.`, font: "Times New Roman", size: 24 })],
+      spacing: { after: 100 },
+      children: [new TextRun({ text: dataFormatada, font: "Times New Roman", size: 24 })],
     })
   );
 
@@ -78,7 +79,7 @@ export async function exportToWord(data: {
       spacing: { after: 100 },
       children: [
         new TextRun({ text: "DESTINATÁRIO: ", bold: true, font: "Times New Roman", size: 24 }),
-        new TextRun({ text: `Ilmo(a). Sr(a). ${destinatario || "___"}`, font: "Times New Roman", size: 24 }),
+        new TextRun({ text: `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`, font: "Times New Roman", size: 24 }),
       ],
     })
   );
@@ -107,7 +108,7 @@ export async function exportToWord(data: {
     children.push(
       new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
-        indent: { firstLine: 709 }, // ~1.25cm
+        indent: { firstLine: 709 },
         spacing: { after: 200, line: 360 },
         children: [new TextRun({ text: p, font: "Times New Roman", size: 24 })],
       })
@@ -139,7 +140,10 @@ export async function exportToWord(data: {
     sections: [
       {
         properties: {
-          page: { margin: { top: 1134, bottom: 1134, left: 1418, right: 1418 } },
+          page: {
+            margin: { top: 1134, bottom: 1134, left: 1701, right: 1701 },
+            pageNumbers: { start: 1 },
+          },
         },
         children,
         footers: {
@@ -147,14 +151,23 @@ export async function exportToWord(data: {
             children: [
               new Paragraph({
                 alignment: AlignmentType.CENTER,
-                border: { top: { style: BorderStyle.SINGLE, size: 2, color: "999999" } },
+                border: { top: { style: BorderStyle.SINGLE, size: 2, color: "000000" } },
+                spacing: { before: 100 },
                 children: [
                   new TextRun({
                     text: "Gabinete Vereador Fabão – Câmara Municipal de Uberlândia – Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, Bairro Santa Mônica, CEP: 38408-144, Uberlândia-MG",
                     font: "Times New Roman",
                     size: 16,
-                    color: "666666",
+                    color: "333333",
                   }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { before: 50 },
+                children: [
+                  new TextRun({ text: "Pág. ", font: "Times New Roman", size: 16, color: "333333" }),
+                  new TextRun({ children: [PageNumber.CURRENT], font: "Times New Roman", size: 16, color: "333333" }),
                 ],
               }),
             ],
@@ -179,14 +192,30 @@ export async function exportToPDF(element: HTMLElement, numero: string) {
 
   let heightLeft = imgHeight;
   let position = 0;
+  let pageNum = 1;
 
   pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  
+  // Add page number if multi-page
+  const totalPages = Math.ceil(imgHeight / pageHeight);
+  if (totalPages > 1) {
+    pdf.setFontSize(8);
+    pdf.setTextColor(51, 51, 51);
+    pdf.text(`Pág. ${pageNum}`, pageWidth - 15, pageHeight - 8);
+  }
+
   heightLeft -= pageHeight;
 
   while (heightLeft > 0) {
     position -= pageHeight;
+    pageNum++;
     pdf.addPage();
     pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    if (totalPages > 1) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(51, 51, 51);
+      pdf.text(`Pág. ${pageNum}`, pageWidth - 15, pageHeight - 8);
+    }
     heightLeft -= pageHeight;
   }
 
