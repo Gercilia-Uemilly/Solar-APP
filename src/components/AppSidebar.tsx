@@ -1,13 +1,17 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 import logoFabao from "@/assets/logo-fabao.png";
 
 const menuItems = [
-  { label: "Painel", icon: LayoutDashboard, path: "/" },
-  { label: "Novo Ofício", icon: FileText, path: "/oficios" },
-  { label: "Meus Ofícios", icon: FolderOpen, path: "/meus-oficios" },
-  { label: "Scripts", icon: MessageSquare, path: "/scripts" },
+  { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
+  { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
+  { label: "Meus Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
+  { label: "Scripts", icon: MessageSquare, path: "/scripts", adminOnly: false },
+  { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
+  { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
+  { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
 ];
 
 interface Props {
@@ -17,6 +21,9 @@ interface Props {
 
 export default function AppSidebar({ collapsed, onToggle }: Props) {
   const location = useLocation();
+  const { isAdmin } = useAuth();
+
+  const visibleItems = menuItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <motion.aside
@@ -26,7 +33,7 @@ export default function AppSidebar({ collapsed, onToggle }: Props) {
     >
       {/* Logo */}
       <div className="p-3 flex items-center gap-3 border-b border-sidebar-border min-h-[56px]">
-        <img src={logoFabao} alt="Fabão" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+        <img src={logoFabao} alt="The Office 30" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
         {!collapsed && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -34,8 +41,8 @@ export default function AppSidebar({ collapsed, onToggle }: Props) {
             exit={{ opacity: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div className="text-sm font-medium text-foreground leading-tight">Gabinete Digital</div>
-            <div className="text-[10px] text-muted-foreground">Vereador Fabão</div>
+            <div className="text-sm font-medium text-foreground leading-tight">The Office 30</div>
+            <div className="text-[10px] text-muted-foreground">Gabinete Vereador Fabão</div>
           </motion.div>
         )}
       </div>
@@ -47,7 +54,7 @@ export default function AppSidebar({ collapsed, onToggle }: Props) {
             Menu
           </div>
         )}
-        {menuItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link

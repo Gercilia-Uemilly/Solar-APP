@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileText, MessageSquare, Zap, FolderOpen, TrendingUp } from "lucide-react";
+import { FileText, MessageSquare, FolderOpen, Users, BarChart3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,9 +37,19 @@ export default function Dashboard() {
     { label: "Enviados", value: enviados, color: "from-emerald-600/80 to-emerald-500" },
   ];
 
+  const quickLinks = [
+    { to: "/oficios", icon: FileText, label: "Novo Ofício", desc: "Criar com IA" },
+    { to: "/meus-oficios", icon: FolderOpen, label: "Meus Ofícios", desc: "Gerenciar documentos" },
+    { to: "/scripts", icon: MessageSquare, label: "Scripts", desc: "Respostas prontas" },
+  ];
+
+  const adminLinks = [
+    { to: "/operadores", icon: Users, label: "Operadores", desc: "Gerenciar equipe" },
+    { to: "/relatorios", icon: BarChart3, label: "Relatórios", desc: "Estatísticas" },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <motion.div
         className="bg-card/60 backdrop-blur-md rounded-2xl p-6 border border-border"
         initial={{ opacity: 0, y: 12 }}
@@ -48,12 +58,11 @@ export default function Dashboard() {
       >
         <p className="text-sm text-muted-foreground">{dataFormatada}</p>
         <h1 className="text-xl font-medium text-foreground mt-1">
-          Bem-vindo, {user?.user_metadata?.full_name || user?.email || "Assessor"}
+          Bem-vindo, {user?.user_metadata?.full_name || user?.email || "Operador"}
         </h1>
-        <p className="text-sm text-muted-foreground">Gabinete Digital · Vereador Fabão · Câmara Municipal de Uberlândia</p>
+        <p className="text-sm text-muted-foreground">The Office 30 · Gabinete Vereador Fabão · Câmara Municipal de Uberlândia</p>
       </motion.div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
           <motion.div
@@ -69,36 +78,35 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link to="/oficios" className="bg-card/60 backdrop-blur-md rounded-2xl p-5 hover:bg-accent/50 transition-all border border-border flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-            <FileText size={20} className="text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Novo Ofício</p>
-            <p className="text-xs text-muted-foreground">Criar com IA</p>
-          </div>
-        </Link>
-        <Link to="/meus-oficios" className="bg-card/60 backdrop-blur-md rounded-2xl p-5 hover:bg-accent/50 transition-all border border-border flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-            <FolderOpen size={20} className="text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Meus Ofícios</p>
-            <p className="text-xs text-muted-foreground">Gerenciar documentos</p>
-          </div>
-        </Link>
-        <Link to="/scripts" className="bg-card/60 backdrop-blur-md rounded-2xl p-5 hover:bg-accent/50 transition-all border border-border flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-            <MessageSquare size={20} className="text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Scripts</p>
-            <p className="text-xs text-muted-foreground">Respostas prontas</p>
-          </div>
-        </Link>
+        {quickLinks.map(link => (
+          <Link key={link.to} to={link.to} className="bg-card/60 backdrop-blur-md rounded-2xl p-5 hover:bg-accent/50 transition-all border border-border flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+              <link.icon size={20} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">{link.label}</p>
+              <p className="text-xs text-muted-foreground">{link.desc}</p>
+            </div>
+          </Link>
+        ))}
       </div>
+
+      {isAdmin && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {adminLinks.map(link => (
+            <Link key={link.to} to={link.to} className="bg-card/60 backdrop-blur-md rounded-2xl p-5 hover:bg-accent/50 transition-all border border-border flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                <link.icon size={20} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">{link.label}</p>
+                <p className="text-xs text-muted-foreground">{link.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -91,7 +91,9 @@ export default function Oficios() {
   const [contatoSolicitante, setContatoSolicitante] = useState("");
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState("Normal");
+  const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
+  const [userPhones, setUserPhones] = useState<string[]>([]);
 
   // AI state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -108,6 +110,19 @@ export default function Oficios() {
   };
 
   useEffect(() => { fetchOficios(); }, []);
+
+  // Fetch user phone lines
+  useEffect(() => {
+    if (!user) return;
+    const fetchPhones = async () => {
+      const { data } = await supabase.from("profiles").select("telefone1, telefone2, telefone3").eq("id", user.id).single();
+      if (data) {
+        const phones = [data.telefone1, data.telefone2, data.telefone3].filter(Boolean) as string[];
+        setUserPhones(phones);
+      }
+    };
+    fetchPhones();
+  }, [user]);
 
   // Auto-fill secretaria when tipo_servico changes
   useEffect(() => {
@@ -165,6 +180,8 @@ export default function Oficios() {
       tipo_demanda: aiResult?.tipo_demanda || tipoServico || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       author_id: user.id,
+      linha_telefonica: linhaTelefonica || null,
+      operador_nome: user.user_metadata?.full_name || user.email || null,
       cargo_destinatario: cargoDestinatario || null,
       local_demanda: localDemanda || null,
       bairro: bairro || null,
@@ -196,6 +213,7 @@ export default function Oficios() {
     setContatoSolicitante("");
     setDescricao("");
     setPrioridade("Normal");
+    setLinhaTelefonica("");
     setFormTab("dados");
     setAiResult(null);
     setEditedOficio("");
@@ -396,6 +414,19 @@ export default function Oficios() {
                 </Button>
               </div>
 
+              {/* Linha Telefônica */}
+              {userPhones.length > 0 && (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1"><Phone size={12} /> Linha Telefônica utilizada</label>
+                  <Select value={linhaTelefonica} onValueChange={setLinhaTelefonica}>
+                    <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione a linha..." /></SelectTrigger>
+                    <SelectContent>
+                      {userPhones.map((phone, i) => <SelectItem key={i} value={phone}>Linha {i + 1}: {phone}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Prioridade</label>
                 <Select value={prioridade} onValueChange={setPrioridade}>
@@ -478,7 +509,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg">
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={user?.user_metadata?.full_name || user?.email || undefined} />
               </div>
             </TabsContent>
 

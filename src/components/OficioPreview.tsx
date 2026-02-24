@@ -8,9 +8,10 @@ interface Props {
   assunto: string;
   conteudo: string;
   cargoDestinatario?: string;
+  operadorNome?: string;
 }
 
-const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario, assunto, conteudo, cargoDestinatario }, ref) => {
+const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario, assunto, conteudo, cargoDestinatario, operadorNome }, ref) => {
   const hoje = new Date();
   const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
@@ -20,7 +21,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
     .map(p => p.trim())
     .filter(Boolean);
 
-  // Estimate if content spans multiple pages (rough heuristic)
   const multiPage = paragraphs.length > 12 || conteudo.length > 2000;
 
   return (
@@ -39,13 +39,34 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         boxSizing: "border-box",
       }}
     >
-      {/* Header: logos side by side, centered */}
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "48px", marginBottom: "8px" }}>
+      {/* Watermark - operator name */}
+      {operadorNome && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%) rotate(-35deg)",
+            fontSize: "48pt",
+            color: "rgba(0,0,0,0.06)",
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+            zIndex: 0,
+            fontFamily: "'Times New Roman', Times, serif",
+            letterSpacing: "4px",
+          }}
+        >
+          Operador: {operadorNome}
+        </div>
+      )}
+
+      {/* Header: logos side by side, centered – NO line above */}
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "48px", marginBottom: "8px", position: "relative", zIndex: 1 }}>
         <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "64px", objectFit: "contain" }} />
         <img src={logoFabao} alt="Vereador Fabão" style={{ height: "64px", objectFit: "contain" }} />
       </div>
 
-      {/* Separator - thin black line */}
+      {/* Separator - thin black line below logos */}
       <hr style={{ border: "none", borderTop: "1px solid #000", margin: "8px 0 24px 0" }} />
 
       {/* Date - right aligned */}
@@ -74,7 +95,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
       </p>
 
       {/* Body - justified with first-line indent of 1.25cm */}
-      <div style={{ textAlign: "justify" }}>
+      <div style={{ textAlign: "justify", position: "relative", zIndex: 1 }}>
         {paragraphs.map((p, i) => (
           <p key={i} style={{ textIndent: "1.25cm", marginBottom: "10px", fontSize: "12pt" }}>
             {p}
@@ -94,7 +115,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         <p style={{ fontSize: "12pt" }}>Vereador</p>
       </div>
 
-      {/* Footer with address and optional page number */}
+      {/* Footer */}
       <div
         style={{
           position: "absolute",

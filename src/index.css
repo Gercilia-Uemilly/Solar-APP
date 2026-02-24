@@ -3,7 +3,62 @@
 @tailwind utilities;
 
 @layer base {
+  /* Light Mode */
   :root {
+    --background: 210 20% 98%;
+    --foreground: 220 30% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 15%;
+
+    --primary: 220 70% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 94%;
+    --secondary-foreground: 220 30% 20%;
+
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 220 15% 92%;
+    --accent-foreground: 220 30% 15%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 220 70% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 20% 96%;
+    --sidebar-foreground: 220 10% 40%;
+    --sidebar-primary: 220 70% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 92%;
+    --sidebar-accent-foreground: 220 30% 15%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 220 70% 50%;
+
+    --status-total: 220 60% 45%;
+    --status-pending: 25 80% 50%;
+    --status-progress: 30 60% 40%;
+    --status-done: 280 50% 50%;
+    --status-success: 145 60% 40%;
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 25 80% 50%;
+    --chart-3: 145 60% 40%;
+    --chart-4: 280 50% 50%;
+    --chart-5: 30 60% 40%;
+  }
+
+  /* Dark Mode */
+  .dark {
     --background: 220 30% 10%;
     --foreground: 210 40% 95%;
 
@@ -32,8 +87,6 @@
     --input: 220 25% 20%;
     --ring: 220 70% 50%;
 
-    --radius: 0.75rem;
-
     --sidebar-background: 220 30% 8%;
     --sidebar-foreground: 215 20% 65%;
     --sidebar-primary: 220 70% 50%;
@@ -43,7 +96,6 @@
     --sidebar-border: 220 25% 16%;
     --sidebar-ring: 220 70% 50%;
 
-    /* Custom status colors */
     --status-total: 220 60% 45%;
     --status-pending: 25 80% 50%;
     --status-progress: 30 60% 40%;
