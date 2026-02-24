@@ -21,7 +21,6 @@ export default function Auth() {
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
-  // Forgot password
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -73,31 +72,22 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
-          <img src={logoFabao} alt="Logo Fabão" className="h-16 mx-auto mb-4" />
-          <CardTitle className="text-foreground">Gabinete Digital</CardTitle>
-          <CardDescription className="text-muted-foreground">Vereador Fabão · Sistema de Gestão</CardDescription>
+          <img src={logoFabao} alt="The Office 30" className="h-16 mx-auto mb-4" />
+          <CardTitle className="text-foreground">The Office 30</CardTitle>
+          <CardDescription className="text-muted-foreground">Gabinete Digital · Vereador Fabão</CardDescription>
         </CardHeader>
         <CardContent>
           {showForgot ? (
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Esqueci minha senha</h3>
+              <h3 className="text-sm font-medium text-foreground">Esqueci minha senha</h3>
               <p className="text-xs text-muted-foreground">Insira seu e-mail e enviaremos um link de recuperação.</p>
               <form onSubmit={handleForgotPassword} className="space-y-4">
-                <Input
-                  placeholder="Seu e-mail"
-                  type="email"
-                  value={forgotEmail}
-                  onChange={e => setForgotEmail(e.target.value)}
-                  required
-                  className="bg-secondary border-border"
-                />
+                <Input placeholder="Seu e-mail" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required className="bg-secondary border-border" />
                 <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={forgotLoading}>
                   {forgotLoading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Enviar link
                 </Button>
               </form>
-              <button onClick={() => setShowForgot(false)} className="text-xs text-primary hover:underline w-full text-center">
-                ← Voltar ao login
-              </button>
+              <button onClick={() => setShowForgot(false)} className="text-xs text-primary hover:underline w-full text-center">← Voltar ao login</button>
             </div>
           ) : (
             <Tabs defaultValue="login">
@@ -112,9 +102,7 @@ export default function Auth() {
                   <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={loading}>
                     {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Entrar
                   </Button>
-                  <button type="button" onClick={() => setShowForgot(true)} className="text-xs text-primary hover:underline w-full text-center">
-                    Esqueci minha senha
-                  </button>
+                  <button type="button" onClick={() => setShowForgot(true)} className="text-xs text-primary hover:underline w-full text-center">Esqueci minha senha</button>
                 </form>
               </TabsContent>
               <TabsContent value="register">

@@ -26,8 +26,10 @@ export type Database = {
           data_geracao: string | null
           destinatario: string
           id: string
+          linha_telefonica: string | null
           local_demanda: string | null
           numero: string | null
+          operador_nome: string | null
           resposta_cidadao: string | null
           secretaria_identificada: string | null
           solicitante: string | null
@@ -47,8 +49,10 @@ export type Database = {
           data_geracao?: string | null
           destinatario?: string
           id?: string
+          linha_telefonica?: string | null
           local_demanda?: string | null
           numero?: string | null
+          operador_nome?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
@@ -68,8 +72,10 @@ export type Database = {
           data_geracao?: string | null
           destinatario?: string
           id?: string
+          linha_telefonica?: string | null
           local_demanda?: string | null
           numero?: string | null
+          operador_nome?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
@@ -86,18 +92,27 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          telefone1: string | null
+          telefone2: string | null
+          telefone3: string | null
         }
         Insert: {
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
+          telefone1?: string | null
+          telefone2?: string | null
+          telefone3?: string | null
         }
         Update: {
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          telefone1?: string | null
+          telefone2?: string | null
+          telefone3?: string | null
         }
         Relationships: []
       }

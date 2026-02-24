@@ -1,8 +1,9 @@
 import { ReactNode, useState } from "react";
 import AppSidebar from "./AppSidebar";
+import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, LogOut, User } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -23,6 +24,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <Menu size={18} />
           </button>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-foreground">{user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário"}</p>
               <p className="text-[10px] text-muted-foreground">{user?.email}</p>
