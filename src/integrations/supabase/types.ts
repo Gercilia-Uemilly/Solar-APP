@@ -18,13 +18,19 @@ export type Database = {
         Row: {
           assunto: string
           author_id: string
+          bairro: string | null
+          cargo_destinatario: string | null
+          contato_solicitante: string | null
           conteudo: string | null
           created_at: string
+          data_geracao: string | null
           destinatario: string
           id: string
+          local_demanda: string | null
           numero: string | null
           resposta_cidadao: string | null
           secretaria_identificada: string | null
+          solicitante: string | null
           status: string
           tipo_demanda: string | null
           updated_at: string
@@ -33,13 +39,19 @@ export type Database = {
         Insert: {
           assunto?: string
           author_id: string
+          bairro?: string | null
+          cargo_destinatario?: string | null
+          contato_solicitante?: string | null
           conteudo?: string | null
           created_at?: string
+          data_geracao?: string | null
           destinatario?: string
           id?: string
+          local_demanda?: string | null
           numero?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
+          solicitante?: string | null
           status?: string
           tipo_demanda?: string | null
           updated_at?: string
@@ -48,13 +60,19 @@ export type Database = {
         Update: {
           assunto?: string
           author_id?: string
+          bairro?: string | null
+          cargo_destinatario?: string | null
+          contato_solicitante?: string | null
           conteudo?: string | null
           created_at?: string
+          data_geracao?: string | null
           destinatario?: string
           id?: string
+          local_demanda?: string | null
           numero?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
+          solicitante?: string | null
           status?: string
           tipo_demanda?: string | null
           updated_at?: string
@@ -80,6 +98,42 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      scripts: {
+        Row: {
+          author_id: string
+          categoria: string
+          conteudo: string
+          created_at: string
+          favorito: boolean
+          id: string
+          tags: string[] | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          categoria?: string
+          conteudo: string
+          created_at?: string
+          favorito?: boolean
+          id?: string
+          tags?: string[] | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          categoria?: string
+          conteudo?: string
+          created_at?: string
+          favorito?: boolean
+          id?: string
+          tags?: string[] | null
+          titulo?: string
+          updated_at?: string
         }
         Relationships: []
       }

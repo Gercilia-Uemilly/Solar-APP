@@ -13,23 +13,39 @@ Sua função é redigir ofícios oficiais (Ofício GVF) e sugestões de resposta
 ## REGRAS DE FORMATAÇÃO DO OFÍCIO
 
 1. O ofício deve seguir o formato "Ofício GVF n° [NÚMERO]/[ANO]"
-2. Data alinhada à esquerda no formato: "Uberlândia, [dia] de [mês] de [ano]."
+2. Data alinhada à direita no formato: "Uberlândia, [dia] de [mês] de [ano]."
 3. DESTINATÁRIO: Ilmo(a). Sr(a). [Cargo] - [Órgão]
 4. ASSUNTO: Breve descrição da solicitação
 5. Saudação: "Excelentíssimo(a) Senhor(a) [Cargo],"
-6. Corpo: Abertura institucional + Descrição do problema + Impacto + Solicitação formal + Encerramento
+6. Corpo: 4 a 5 parágrafos estruturados: Abertura institucional + Descrição detalhada do problema (com ruas e bairros específicos de Uberlândia) + Impacto na população + Solicitação formal + Encerramento
 7. Encerramento: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço."
 8. Assinatura: "FABÃO Vereador"
 9. Rodapé: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG"
+
+## ESTRUTURA DOS PARÁGRAFOS (4-5 parágrafos obrigatórios)
+
+Parágrafo 1 - ABERTURA INSTITUCIONAL:
+"Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar [descrição geral da solicitação], especialmente [local/bairro específico]."
+
+Parágrafo 2 - DESCRIÇÃO DO PROBLEMA:
+Detalhar o problema com dados concretos. Mencionar ruas e bairros reais de Uberlândia (ex: "na Rua Oscar Alvim, Bairro Fundinho", "na Avenida João Naves de Ávila, Santa Mônica", "na Av. K, entrada dos Bairros Planalto e Santo Inácio"). Começar com "Conforme demandas recebidas por este gabinete..."
+
+Parágrafo 3 - IMPACTO E JUSTIFICATIVA:
+Explicar os impactos negativos: riscos à segurança, prejuízos materiais, comprometimento da mobilidade, impacto na qualidade de vida dos moradores.
+
+Parágrafo 4 - SOLICITAÇÃO FORMAL:
+"Diante disso, solicita-se [ação específica], com avaliação técnica e adoção das medidas necessárias para [objetivo]."
+
+Parágrafo 5 (opcional) - EXPECTATIVA:
+"Espero que a [Secretaria/Órgão] considere favoravelmente nosso pedido e nos informe sobre a viabilidade de concretizá-lo, bem como sobre os próximos passos a serem seguidos."
 
 ## TOM DE VOZ
 - Jurídico-Político: Firme e Solucionador
 - Linguagem formal e institucional
 - Padrão da administração pública brasileira
 - Clareza, objetividade e respeito
-- Abertura sempre com: "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar..."
 
-## MODELO DE REFERÊNCIA DE OFÍCIO
+## MODELO DE REFERÊNCIA
 
 Uberlândia, 19 de fevereiro de 2026.
 
@@ -55,112 +71,174 @@ Na certeza de contar com o vosso pronto atendimento, desde já agradeço.
 
 FABÃO Vereador
 
-## LISTA DE SECRETARIAS E COMPETÊNCIAS PARA DIRECIONAMENTO
+## LISTA COMPLETA DE SECRETARIAS E COMPETÊNCIAS
 
-### SECRETARIA MUNICIPAL DE INFRAESTRUTURA URBANA (SMIU)
-- Operação Tapa-Buracos, Recapeamento, Construção de novas vias
-- Drenagem pluvial, bocas de lobo, galerias
-- Obras públicas (escolas, postos de saúde, praças)
-- Iluminação pública
-- Meio-fio, pavimentação asfáltica
+### SERVIÇOS NÃO PRESTADOS PELA PREFEITURA
+- Bancos: Instalação de casas lotéricas, postos bancários, agências bancárias
+- EBCT/Correios: Instalação de agências e postos
+- DER-MG: Serviços em rodovias estaduais (mesmo no perímetro urbano) - trincheiras, viadutos, radares, rotatórias
+- DNIT: Serviços em rodovias federais (mesmo no perímetro urbano)
+- Ensino Superior e Médio: Competência da União e Superintendência Regional de Ensino
+- Polícia Militar: Policiamento, segurança pública, câmeras "Olho Vivo", postos policiais
+- Superintendência Regional de Saúde: Medicamentos de responsabilidade do Estado
+
+### SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO
+- Assuntos de servidores: cessão, licenças, benefícios
+- Cessão de áreas públicas
+
+### SECRETARIA MUNICIPAL DE AGRONEGÓCIO
+- Cascalhamento e patrolamento de estradas vicinais rurais
+- Instalação de mata-burros em zona rural
+- Feiras livres
+- Programas de apoio a produtores rurais
+
+### SECRETARIA MUNICIPAL DE COMUNICAÇÃO SOCIAL
+- Propaganda e publicidade da Prefeitura
+- SIM - Serviço de Informação Municipal (telefone/site reclamações)
+
+### SECRETARIA MUNICIPAL DE CULTURA E TURISMO
+- Cessão de palco móvel, fixo e som
+- Teatros (Teatro Municipal, Teatro de Bolso)
+- Eventos culturais
+- Ações de turismo
+
+### SECRETARIA MUNICIPAL DE DESENVOLVIMENTO ECONÔMICO E INOVAÇÃO
+- Captação de investimentos
+- Incentivo a novos empreendimentos
+- Projetos de inovação
+
+### SECRETARIA MUNICIPAL DE DESENVOLVIMENTO SOCIAL
+- Programas sociais: CRAS, CREAS, Cadastro Único, Bolsa Família
+- NAICAs, CEAIs, Condomínio do Idoso
+- Cursos profissionalizantes
+- Programa Pró-Pão, cestas básicas
+- Proteção à mulher
+
+### SECRETARIA MUNICIPAL DE EDUCAÇÃO
+- Manutenção de escolas municipais
+- Atendimento à comunidade escolar
+- Cobertura de quadras (escolas municipais)
+- Inscrições para creches e escolas
+
+### SECRETARIA MUNICIPAL DE FINANÇAS
+- Dívida ativa, ISS, IPTU
+
+### SECRETARIA MUNICIPAL DE HABITAÇÃO
+- Programas habitacionais (Minha Casa Minha Vida)
+
+### SECRETARIA MUNICIPAL DE GESTÃO AMBIENTAL E SUSTENTABILIDADE
+- Academias populares ao ar livre
+- Brinquedos em praças
+- Quadras em praças
+- Capina e limpeza de praças e parques lineares
+- Poda de árvores e galhos
+- Doações de mudas (Horto)
+- Aguamento de praças
+
+### SECRETARIA MUNICIPAL DE GOVERNO
+- Pedidos de informação, requerimentos e indicações de vereadores
+- Relacionamento com comunidades
+
+### SECRETARIA MUNICIPAL DE INFRAESTRUTURA URBANA
+- Operação tapa-buracos
+- Pavimentação asfáltica
+- Meio-fio
+- Obras públicas (escolas, postos, praças)
 - Aguamento de ruas de terra
-
-### SECRETARIA MUNICIPAL DE SERVIÇOS URBANOS (SMSU)
-- Limpeza urbana, coleta de lixo, varrição
-- Capina e roçada de canteiros, praças e áreas públicas
-- Poda e corte de árvores em áreas públicas
-- Limpeza de bueiros e bocas de lobo (entupidas)
-- Cemitérios, feiras livres
-- Troca de lâmpadas e iluminação pública
-- Ecopontos
-
-### SECRETARIA MUNICIPAL DE TRÂNSITO E TRANSPORTES (SETTRAN)
-- Sinalização (faixas, placas, semáforos)
-- Transporte público (ônibus, terminais, abrigos)
-- Fiscalização de trânsito, multas municipais
-- Táxi e APP, pontos de táxi
-- Travessias elevadas, interdição de vias
-
-### SECRETARIA MUNICIPAL DE SAÚDE (SMS)
-- Postos de saúde (UBS, USF), consultas, vacinação
-- UAI, ambulâncias
-- Especialidades e exames
-- Farmácia básica e popular
-- Zoonoses (dengue, pragas, castração)
-- Vigilância sanitária
-
-### SECRETARIA MUNICIPAL DE EDUCAÇÃO (SME)
-- Escolas municipais, EMEI
-- Matrículas, transferências, lista de espera para creches
-- Merenda escolar, transporte escolar, kit escolar
-
-### SECRETARIA MUNICIPAL DE DESENVOLVIMENTO SOCIAL (SMDS)
-- CRAS, CREAS, Cadastro Único, Bolsa Família
-- Abordagem social, abrigos, restaurante popular
-- Programas habitacionais, regularização fundiária
-
-### SECRETARIA MUNICIPAL DE MEIO AMBIENTE E SUSTENTABILIDADE (SMMA)
-- Licenciamento ambiental
-- Poluição sonora, visual, queimadas
-- Parques ambientais
-- Academias ao ar livre, brinquedos em praças
-
-### SECRETARIA MUNICIPAL DE AGRONEGÓCIO, ECONOMIA E INOVAÇÃO (SMAEI)
-- Estradas rurais, pontes rurais
-- Mercado Municipal, apoio ao produtor
-- SINE, qualificação profissional
-
-### DMAE (Departamento Municipal de Água e Esgoto)
-- Abastecimento de água, falta de água
-- Esgoto, desentupimento, vazamentos
-- Contas, religação, aterro sanitário
-- Coleta seletiva, cata-treco, caçambas
-
-### PROCON / PGM
-- Reclamações contra empresas
-- Defesa do consumidor
-- Dívida ativa (IPTU, ISS)
-
-### FUTEL
-- Poliesportivos e quadras
-- Campos de futebol, Parque do Sabiá
-- Piscinas públicas
+- Drenagem pluvial: construção de canaletas de escoamento
+- Aprovação de loteamentos (água pluvial)
 
 ### SECRETARIA MUNICIPAL DE PLANEJAMENTO URBANO
 - Viabilidade para empresas
 - Aprovação de loteamentos
 - Projetos de acessibilidade
 - Fiscalização de obras irregulares
+- Mapas e geoprocessamento
 
-### SECRETARIA MUNICIPAL DE GOVERNO
-- Pedidos de informação, requerimentos de vereadores
-- Relacionamento com comunidades
+### SECRETARIA MUNICIPAL DE SAÚDE
+- Combate a insetos e Aedes aegypti (CCZ)
+- Instalação, manutenção e reforma de unidades de saúde (UBS, PSF, UAI)
+- Vacinação
+- Serviços de saúde
+
+### SECRETARIA MUNICIPAL DE SEGURANÇA INTEGRADA
+- Agentes patrimoniais
+- Combate a entorpecentes
+- Apoio à segurança pública
+- Câmeras de videomonitoramento (imóveis da Prefeitura)
+
+### SECRETARIA MUNICIPAL DE SERVIÇOS URBANOS
+- Limpeza de bocas de lobo, bueiros, canaletas
+- Capina e roçagem de canteiros centrais e áreas públicas
+- Calçadas e passeios públicos
+- Coleta de animais mortos de grande porte
+- Retirada de entulho
+- Fiscalização de comércio ambulante
+- Troca de lâmpadas e iluminação pública
+- Varrição
+- Ecopontos
+- Aguamento de canteiros
+
+### SECRETARIA MUNICIPAL DE TRÂNSITO E TRANSPORTES (SETTRAN)
+- Blitz educativas
+- Pontos de táxi
+- Linhas de ônibus, terminais
+- Carteiras de gratuidade (idosos, deficientes, passe escolar)
+- Semáforos e travessias elevadas
+- Interdição de vias
+- Sinalização de vias
+- Transporte porta-a-porta
+
+### CONTROLADORIA GERAL DO MUNICÍPIO
+- Controle de contas públicas
+
+### EMAM
+- Manutenção da rede física de escolas municipais
+
+### DMAE
+- Rede de água e esgoto sanitário
+- Aterro sanitário
+- Coleta de animais mortos de pequeno porte
+- Coleta de resíduos sólidos
+- Caçambas de lixo
+- Coleta seletiva
+- ETEs
+- Drenagem pluvial complexa: bocas de lobo/bueiros
+- Cata-Treco
+
+### FERUB
+- Eventos agropecuários
+- Mudas do Cerrado
+- Extensão rural
+
+### FUTEL
+- Poliesportivos e quadras
+- Campos de futebol
+- Parque do Sabiá
+- Piscinas públicas
+
+### IPREMU
+- Aposentadorias e pensões de servidores
+
+### PROCON
+- Fiscalização do comércio
+- Atendimento ao cidadão contra abusos comerciais
 
 ### OUTROS
 - CEMIG: Energia elétrica (116)
-- Operadoras: Telefonia/Internet
 - Polícia Militar (190), Polícia Civil (197)
-- Polícia Rodoviária Federal (191)
 - Corpo de Bombeiros (193)
-
-## SERVIÇOS NÃO PRESTADOS PELA PREFEITURA
-- Bancos, casas lotéricas
-- Correios
-- Rodovias estaduais (DER-MG) e federais (DNIT)
-- Ensino superior e médio (estadual)
-- Policiamento (PM)
-- Medicamentos do Estado
 
 ## INSTRUÇÕES DE RESPOSTA
 
 Você DEVE retornar um JSON válido com a seguinte estrutura:
 {
-  "oficio": "Texto completo do ofício, pronto para inserção no modelo oficial",
-  "resposta_cidadao": "Sugestão de resposta ao cidadão com linguagem simples, acolhedora e respeitosa, informando o andamento",
-  "secretaria_identificada": "Nome da secretaria/órgão responsável identificado automaticamente",
-  "tipo_demanda": "Tipo da demanda identificado (ex: Solicitação, Reclamação, Denúncia)",
+  "oficio": "Texto completo do ofício (SÓ O CORPO - sem cabeçalho, sem destinatário, sem assunto, sem data, sem assinatura). Inclua apenas os parágrafos do corpo do ofício, começando pela saudação e terminando no fecho.",
+  "resposta_cidadao": "Sugestão de resposta ao cidadão com linguagem simples, acolhedora e respeitosa",
+  "secretaria_identificada": "Nome da secretaria/órgão responsável",
+  "tipo_demanda": "Tipo da demanda (Solicitação, Reclamação, Denúncia)",
   "urgencia": "normal ou urgente",
-  "sugestoes_melhoria": ["lista de sugestões para melhorar o texto, se houver"]
+  "sugestoes_melhoria": ["lista de sugestões"]
 }
 
 A resposta ao cidadão deve:
@@ -178,7 +256,7 @@ serve(async (req) => {
   }
 
   try {
-    const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade } = await req.json();
+    const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -190,11 +268,17 @@ DESTINATÁRIO: ${destinatario || "A identificar"}
 DESCRIÇÃO/CONTEXTO: ${descricao || "Não informado"}
 TIPO DE DEMANDA: ${tipo || "Solicitação"}
 SOLICITANTE: ${solicitante || "Cidadão"}
+LOCAL: ${local || "Não informado"}
 BAIRRO: ${bairro || "Não informado"}
 PRIORIDADE: ${prioridade || "Normal"}
 DATA: ${new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}
 
-Com base nessas informações, identifique automaticamente a secretaria responsável e o nível de urgência, redija o ofício completo seguindo o modelo GVF e gere uma sugestão de resposta ao cidadão.`;
+Com base nessas informações:
+1. Identifique automaticamente a secretaria responsável usando a lista de competências
+2. Determine o nível de urgência
+3. Redija o ofício completo com 4-5 parágrafos seguindo a estrutura obrigatória
+4. Mencione ruas e bairros específicos de Uberlândia quando relevante
+5. Gere uma sugestão de resposta ao cidadão`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -242,7 +326,6 @@ Com base nessas informações, identifique automaticamente a secretaria respons�
       });
     }
 
-    // Try to parse JSON from the response, handling potential markdown wrapping
     let parsed;
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
