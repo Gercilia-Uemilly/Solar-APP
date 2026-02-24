@@ -7,11 +7,11 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./components/AppLayout";
-import Demandas from "./pages/Demandas";
 import Oficios from "./pages/Oficios";
 import ScriptsPage from "./pages/ScriptsPage";
 import MeusOficios from "./pages/MeusOficios";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -34,8 +34,8 @@ function PublicOnlyRoute({ children }: { children: ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-    <Route path="/demandas" element={<ProtectedRoute><AppLayout><Demandas /></AppLayout></ProtectedRoute>} />
     <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
     <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
     <Route path="/scripts" element={<ProtectedRoute><AppLayout><ScriptsPage /></AppLayout></ProtectedRoute>} />

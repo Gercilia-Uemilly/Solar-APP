@@ -1,65 +1,81 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardList, FileText, MessageSquare, Bell, LogOut, FolderOpen } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { motion } from "framer-motion";
+import logoFabao from "@/assets/logo-fabao.png";
 
 const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/" },
-  { label: "Demandas", icon: ClipboardList, path: "/demandas" },
-  { label: "Ofícios", icon: FileText, path: "/oficios" },
+  { label: "Novo Ofício", icon: FileText, path: "/oficios" },
   { label: "Meus Ofícios", icon: FolderOpen, path: "/meus-oficios" },
   { label: "Scripts", icon: MessageSquare, path: "/scripts" },
 ];
 
-export default function AppSidebar() {
+interface Props {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export default function AppSidebar({ collapsed, onToggle }: Props) {
   const location = useLocation();
-  const { signOut } = useAuth();
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[160px] bg-sidebar flex flex-col border-r border-sidebar-border z-50">
+    <motion.aside
+      className="fixed left-0 top-0 bottom-0 bg-sidebar/95 backdrop-blur-xl flex flex-col border-r border-sidebar-border z-50"
+      animate={{ width: collapsed ? 64 : 220 }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
+    >
       {/* Logo */}
-      <div className="p-4 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-          GVF
-        </div>
-        <div>
-          <div className="text-sm font-semibold text-foreground">GVF</div>
-          <div className="text-[10px] text-muted-foreground">Gabinete do Vereador</div>
-        </div>
+      <div className="p-3 flex items-center gap-3 border-b border-sidebar-border min-h-[56px]">
+        <img src={logoFabao} alt="Fabão" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+        {!collapsed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="text-sm font-bold text-foreground leading-tight">Gabinete Digital</div>
+            <div className="text-[10px] text-muted-foreground">Vereador Fabão</div>
+          </motion.div>
+        )}
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 px-2 mt-2">
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 mb-2">Menu</div>
+      <nav className="flex-1 px-2 mt-4 space-y-1">
+        {!collapsed && (
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mb-2 font-medium">
+            Menu
+          </div>
+        )}
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors ${
+              title={collapsed ? item.label : undefined}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
                 isActive
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               }`}
             >
-              <item.icon size={16} />
-              {item.label}
+              <item.icon size={18} className="flex-shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom */}
+      {/* Collapse toggle */}
       <div className="p-2 border-t border-sidebar-border">
-        <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full">
-          <Bell size={16} />
-          Notificações
-        </button>
-        <button onClick={() => signOut()} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full">
-          <LogOut size={16} />
-          Sair
+        <button
+          onClick={onToggle}
+          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+        >
+          {collapsed ? <ChevronRight size={16} /> : <><ChevronLeft size={16} /> <span>Recolher</span></>}
         </button>
       </div>
-    </aside>
+    </motion.aside>
   );
 }

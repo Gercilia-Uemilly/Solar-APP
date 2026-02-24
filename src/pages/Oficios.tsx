@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -366,6 +366,34 @@ export default function Oficios() {
                   onChange={e => setDescricao(e.target.value)}
                   className="bg-secondary border-border min-h-[100px]"
                 />
+               </div>
+
+              {/* Simulated audio/image upload buttons */}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 border-border text-sm"
+                  onClick={() => {
+                    const transcricao = "Solicitação de reparo na Rua Oscar Alvim, Bairro Fundinho. Moradores relatam buracos que estão causando acidentes com motociclistas e pedestres.";
+                    setDescricao(prev => prev ? prev + "\n\n" + transcricao : transcricao);
+                    toast({ title: "🎤 Áudio transcrito!", description: "Texto inserido na descrição." });
+                  }}
+                >
+                  <Mic size={14} className="mr-1" /> Anexar Áudio (WhatsApp)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 border-border text-sm"
+                  onClick={() => {
+                    const extracao = "Imagem analisada: contém referência à Av. João Naves de Ávila, próximo ao Terminal Santa Luzia. Situação de buraco na via com risco de acidente.";
+                    setDescricao(prev => prev ? prev + "\n\n" + extracao : extracao);
+                    toast({ title: "📷 Imagem analisada!", description: "Informações inseridas na descrição." });
+                  }}
+                >
+                  <ImagePlus size={14} className="mr-1" /> Anexar Imagem
+                </Button>
               </div>
 
               <div>
@@ -442,7 +470,7 @@ export default function Oficios() {
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
               <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="outline" onClick={() => exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao })}>
+                <Button size="sm" variant="outline" onClick={() => exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario })}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => { if (previewRef.current) await exportToPDF(previewRef.current, numero); }}>
@@ -450,7 +478,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg">
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} />
               </div>
             </TabsContent>
 
