@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import logoCamara from "@/assets/logo-camara.png";
-import logoFabao from "@/assets/logo-fabao-oficial.svg";
+import logoFabao from "@/assets/logo-fabao-cor.png";
 
 interface Props {
   numero: string;
