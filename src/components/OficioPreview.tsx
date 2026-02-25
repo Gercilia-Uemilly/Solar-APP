@@ -46,13 +46,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
             src={logoCamara}
             className="camara"
             alt="Câmara Municipal de Uberlândia"
-            style={{ height: "82px", width: "auto", display: "block", objectFit: "contain" }}
+            style={{ height: "72px", width: "auto", display: "block", objectFit: "contain" }}
           />
           <img
             src={logoFabao}
             className="fabao"
             alt="Vereador Fabão"
-            style={{ height: "96px", width: "auto", display: "block", objectFit: "contain", marginLeft: "18px" }}
+            style={{ height: "90px", width: "auto", display: "block", objectFit: "contain", marginLeft: "24px" }}
           />
         </div>
       </div>
