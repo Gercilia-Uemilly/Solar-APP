@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Footer, PageNumber, NumberFormat } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Footer, Header, PageNumber, NumberFormat } from "docx";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -7,6 +7,9 @@ async function loadImage(src: string): Promise<ArrayBuffer> {
   const resp = await fetch(src);
   return resp.arrayBuffer();
 }
+
+// Convert cm to twips (1 cm = 567 twips)
+const cmToTwips = (cm: number) => Math.round(cm * 567);
 
 export async function exportToWord(data: {
   numero: string;
@@ -33,33 +36,16 @@ export async function exportToWord(data: {
   const paragraphs = conteudo.split("\n").map(p => p.trim()).filter(Boolean);
   const children: Paragraph[] = [];
 
-  // Logos
-  if (logoCamara.byteLength > 0 && logoFabao.byteLength > 0) {
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 400 },
-        children: [
-          new ImageRun({ data: logoCamara, transformation: { width: 160, height: 80 }, type: "png" }),
-          new TextRun("          "),
-          new ImageRun({ data: logoFabao, transformation: { width: 140, height: 72 }, type: "png" }),
-        ],
-      })
-    );
-  }
-
-  // NO separator line
-
-  // Date
+  // Date - right aligned
   children.push(
     new Paragraph({
       alignment: AlignmentType.RIGHT,
-      spacing: { after: 100 },
+      spacing: { after: 200 },
       children: [new TextRun({ text: dataFormatada, font: "Times New Roman", size: 24 })],
     })
   );
 
-  // Number
+  // Number - left aligned, bold
   children.push(
     new Paragraph({
       spacing: { after: 300 },
@@ -97,7 +83,7 @@ export async function exportToWord(data: {
     })
   );
 
-  // Body paragraphs
+  // Body paragraphs - justified, first-line indent, line spacing 1.5 (360 twips)
   paragraphs.forEach(p => {
     children.push(
       new Paragraph({
@@ -154,14 +140,38 @@ export async function exportToWord(data: {
     new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Vereador", font: "Times New Roman", size: 24 })] })
   );
 
+  // Build header with logos (repeats on every page)
+  const headerChildren: Paragraph[] = [];
+  if (logoCamara.byteLength > 0 && logoFabao.byteLength > 0) {
+    headerChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+        children: [
+          new ImageRun({ data: logoCamara, transformation: { width: 160, height: 80 }, type: "png" }),
+          new TextRun("          "),
+          new ImageRun({ data: logoFabao, transformation: { width: 140, height: 72 }, type: "png" }),
+        ],
+      })
+    );
+  }
+
   const doc = new Document({
     sections: [
       {
         properties: {
           page: {
-            margin: { top: 1134, bottom: 1134, left: 1701, right: 1701 },
+            margin: {
+              top: cmToTwips(3),
+              bottom: cmToTwips(2),
+              left: cmToTwips(3),
+              right: cmToTwips(2),
+            },
             pageNumbers: { start: 1 },
           },
+        },
+        headers: {
+          default: new Header({ children: headerChildren }),
         },
         children,
         footers: {
@@ -181,7 +191,7 @@ export async function exportToWord(data: {
                 ],
               }),
               new Paragraph({
-                alignment: AlignmentType.RIGHT,
+                alignment: AlignmentType.CENTER,
                 spacing: { before: 50 },
                 children: [
                   new TextRun({ text: "Pág. ", font: "Times New Roman", size: 16, color: "333333" }),
@@ -213,13 +223,12 @@ export async function exportToPDF(element: HTMLElement, numero: string) {
   let pageNum = 1;
 
   pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-  
-  // Add page number if multi-page
+
   const totalPages = Math.ceil(imgHeight / pageHeight);
   if (totalPages > 1) {
     pdf.setFontSize(8);
     pdf.setTextColor(51, 51, 51);
-    pdf.text(`Pág. ${pageNum}`, pageWidth - 15, pageHeight - 8);
+    pdf.text(`Pág. ${pageNum}`, pageWidth / 2, pageHeight - 8, { align: "center" });
   }
 
   heightLeft -= pageHeight;
@@ -232,7 +241,7 @@ export async function exportToPDF(element: HTMLElement, numero: string) {
     if (totalPages > 1) {
       pdf.setFontSize(8);
       pdf.setTextColor(51, 51, 51);
-      pdf.text(`Pág. ${pageNum}`, pageWidth - 15, pageHeight - 8);
+      pdf.text(`Pág. ${pageNum}`, pageWidth / 2, pageHeight - 8, { align: "center" });
     }
     heightLeft -= pageHeight;
   }
