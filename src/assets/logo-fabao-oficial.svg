@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 120">
-  <rect x="8" y="8" width="364" height="104" fill="none" stroke="#E33B33" stroke-width="10"></rect>
+  <rect x="8" y="8" width="364" height="104" fill="none" stroke="#E35B47" stroke-width="10" />
 
-  <text x="50%" y="60" text-anchor="middle" font-family="Arial" font-weight="700" font-size="56" fill="#E33B33">
-    FABÃO
+  <text x="50%" y="62" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="58" fill="#E35B47">
+    FABAO
   </text>
 
-  <text x="50%" y="98" text-anchor="middle" font-family="Arial" font-size="28" fill="#0F6A7B">
-    vereador
+  <text x="50%" y="98" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="38" fill="#3E84B9">
+    - vereador -
   </text>
 </svg>
