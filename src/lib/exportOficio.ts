@@ -228,6 +228,14 @@ export async function exportToWord(data: {
                   }),
                 ],
               }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 80 },
+                children: [
+                  new TextRun({ text: "Pág. ", font: "Times New Roman", size: 16, color: "333333" }),
+                  new TextRun({ children: [PageNumber.CURRENT], font: "Times New Roman", size: 16, color: "333333" }),
+                ],
+              }),
             ],
           }),
         },
@@ -248,16 +256,23 @@ export async function exportToPDF(element: HTMLElement, numero: string) {
   const imgWidth = pageWidth;
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
+  const totalPages = Math.ceil(imgHeight / pageHeight);
   let heightLeft = imgHeight;
   let position = 0;
 
-  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-
-  while (heightLeft > 0) {
-    position -= pageHeight;
-    pdf.addPage();
+  for (let page = 1; page <= totalPages; page++) {
+    if (page > 1) {
+      pdf.addPage();
+      position -= pageHeight;
+    }
     pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+
+    // Page number footer
+    pdf.setFont("times", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(51, 51, 51);
+    pdf.text(`Pág. ${page}`, pageWidth / 2, pageHeight - 5, { align: "center" });
+
     heightLeft -= pageHeight;
   }
 
