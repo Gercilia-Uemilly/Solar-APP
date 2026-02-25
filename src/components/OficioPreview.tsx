@@ -52,7 +52,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
 
       {/* Numbering - bold */}
       <p style={{ marginBottom: "24px", fontWeight: "bold", fontSize: "12pt" }}>
-        Ofício GVF n° {numero || "___"}/2026
+        Ofício GVF n° {numero || "___"}{!numero?.includes("/") ? `/${hoje.getFullYear()}` : ""}
       </p>
 
       {/* Destinatário - bold label */}
