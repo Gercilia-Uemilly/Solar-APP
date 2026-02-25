@@ -42,7 +42,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
       {/* Header: logos side by side, centered – NO separator line */}
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", marginBottom: "20px", position: "relative", zIndex: 1 }}>
         <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ maxHeight: "65px", width: "auto", display: "block" }} />
-        <img src={logoFabao} alt="Vereador Fabão" style={{ maxHeight: "63px", width: "auto", display: "block" }} />
+        <img src={logoFabao} alt="Vereador Fabão" style={{ maxHeight: "75px", width: "auto", display: "block" }} />
       </div>
 
       {/* Date - right aligned */}
