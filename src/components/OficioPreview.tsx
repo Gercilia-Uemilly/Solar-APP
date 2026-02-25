@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import logoCamara from "@/assets/logo-camara.png";
-import logoFabao from "@/assets/logo-fabao-cor.png";
+import logoFabao from "@/assets/logo-fabao-oficial.svg";
 
 interface Props {
   numero: string;
@@ -40,25 +40,25 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
       }}
     >
       {/* Header: exact replica of official PDF */}
-      <div style={{ textAlign: "center", marginBottom: "16px" }}>
+      <div style={{ textAlign: "center", marginBottom: "12px" }}>
         <div className="header" style={{ display: "inline-flex", alignItems: "center" }}>
           <img
             src={logoCamara}
             className="camara"
             alt="Câmara Municipal de Uberlândia"
-            style={{ height: "70px", width: "auto", display: "block", objectFit: "contain" }}
+            style={{ height: "82px", width: "auto", display: "block", objectFit: "contain" }}
           />
           <img
             src={logoFabao}
             className="fabao"
             alt="Vereador Fabão"
-            style={{ height: "70px", width: "auto", display: "block", objectFit: "contain", marginLeft: "14px" }}
+            style={{ height: "96px", width: "auto", display: "block", objectFit: "contain", marginLeft: "18px" }}
           />
         </div>
       </div>
 
       {/* Date - right aligned */}
-      <p style={{ textAlign: "right", marginBottom: "16px", fontSize: "12pt" }}>
+      <p style={{ textAlign: "right", marginBottom: "28px", fontSize: "12pt" }}>
         {dataFormatada}
       </p>
 
