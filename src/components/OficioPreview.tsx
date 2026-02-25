@@ -52,7 +52,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
             src={logoFabao}
             className="fabao"
             alt="Vereador Fabão"
-            style={{ height: "92px", width: "auto", display: "block", objectFit: "contain", marginLeft: "14px" }}
+            style={{ height: "70px", width: "auto", display: "block", objectFit: "contain", marginLeft: "14px" }}
           />
         </div>
       </div>
