@@ -39,26 +39,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         boxSizing: "border-box",
       }}
     >
-      {/* Watermark - operator name */}
-      {operadorNome && (
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%) rotate(-35deg)",
-            fontSize: "48pt",
-            color: "rgba(0,0,0,0.06)",
-            whiteSpace: "nowrap",
-            pointerEvents: "none",
-            zIndex: 0,
-            fontFamily: "'Times New Roman', Times, serif",
-            letterSpacing: "4px",
-          }}
-        >
-          Operador: {operadorNome}
-        </div>
-      )}
+      {/* Watermark - operator name (tiny, bottom-right, nearly invisible) */}
 
       {/* Header: logos side by side, centered – NO line above */}
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "48px", marginBottom: "8px", position: "relative", zIndex: 1 }}>
@@ -104,8 +85,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
       </div>
 
       {/* Closing */}
-      <p style={{ textIndent: "1.25cm", marginTop: "24px", marginBottom: "48px", textAlign: "justify", fontSize: "12pt" }}>
+      <p style={{ textIndent: "1.25cm", marginTop: "24px", marginBottom: "16px", textAlign: "justify", fontSize: "12pt" }}>
         Na certeza de contar com o vosso pronto atendimento, desde já agradeço.
+      </p>
+
+      <p style={{ marginTop: "16px", marginBottom: "48px", fontSize: "12pt" }}>
+        Atenciosamente,
       </p>
 
       {/* Signature - centered */}
@@ -132,7 +117,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         }}
       >
         <span>Gabinete Vereador Fabão – Câmara Municipal de Uberlândia – Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, Bairro Santa Mônica, CEP: 38408-144, Uberlândia-MG</span>
-        {multiPage && <span style={{ marginLeft: "16px", whiteSpace: "nowrap" }}>Pág. 1</span>}
+        <span style={{ display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap" }}>
+          {multiPage && <span>Pág. 1</span>}
+          {operadorNome && (
+            <span style={{ fontSize: "5pt", color: "rgba(0,0,0,0.05)", fontFamily: "'Times New Roman', Times, serif" }}>
+              {operadorNome}
+            </span>
+          )}
+        </span>
       </div>
     </div>
   );
