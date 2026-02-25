@@ -1,6 +1,5 @@
 import { forwardRef } from "react";
-import logoCamara from "@/assets/logo-camara.png";
-import logoFabao from "@/assets/logo-fabao-cor.png";
+import oficioHeaderOficial from "@/assets/oficio-header-oficial.svg";
 
 interface Props {
   numero: string;
@@ -39,22 +38,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         boxSizing: "border-box",
       }}
     >
-      {/* Header: exact replica of official PDF */}
+      {/* Header oficial (imagem única) */}
       <div style={{ textAlign: "center", marginBottom: "12px" }}>
-        <div className="header" style={{ display: "inline-flex", alignItems: "center" }}>
-          <img
-            src={logoCamara}
-            className="camara"
-            alt="Câmara Municipal de Uberlândia"
-            style={{ height: "72px", width: "auto", display: "block", objectFit: "contain" }}
-          />
-          <img
-            src={logoFabao}
-            className="fabao"
-            alt="Vereador Fabão"
-            style={{ height: "90px", width: "auto", display: "block", objectFit: "contain", marginLeft: "24px" }}
-          />
-        </div>
+        <img
+          src={oficioHeaderOficial}
+          alt="Cabeçalho oficial do Gabinete"
+          style={{
+            display: "inline-block",
+            width: "420px",
+            maxWidth: "100%",
+            height: "auto",
+            objectFit: "contain",
+          }}
+        />
       </div>
 
       {/* Date - right aligned */}

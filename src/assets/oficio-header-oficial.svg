@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="160" viewBox="0 0 900 160">
+
+  <!-- Logo Câmara (lado esquerdo) -->
+  <g transform="translate(0,0)">
+    <image href="camara.png" x="0" y="10" height="120"></image>
+  </g>
+
+  <!-- Logo Fabão (lado direito) -->
+  <g transform="translate(540,0)">
+    <image href="fabao.png" x="0" y="0" height="150"></image>
+  </g>
+
+</svg>
