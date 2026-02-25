@@ -18,8 +18,9 @@ export async function exportToWord(data: {
   logoCamaraUrl: string;
   logoFabaoUrl: string;
   cargoDestinatario?: string;
+  assinaturaUrl?: string;
 }) {
-  const { numero, destinatario, assunto, conteudo, logoCamaraUrl, logoFabaoUrl, cargoDestinatario } = data;
+  const { numero, destinatario, assunto, conteudo, logoCamaraUrl, logoFabaoUrl, cargoDestinatario, assinaturaUrl } = data;
   const hoje = new Date();
   const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
@@ -30,6 +31,15 @@ export async function exportToWord(data: {
   } catch {
     logoCamara = new ArrayBuffer(0);
     logoFabao = new ArrayBuffer(0);
+  }
+
+  let assinatura: ArrayBuffer = new ArrayBuffer(0);
+  if (assinaturaUrl) {
+    try {
+      assinatura = await loadImage(assinaturaUrl);
+    } catch {
+      // signature image unavailable
+    }
   }
 
   const paragraphs = conteudo.split("\n").map(p => p.trim()).filter(Boolean);
@@ -65,7 +75,7 @@ export async function exportToWord(data: {
   children.push(
     new Paragraph({
       spacing: { after: 300 },
-      children: [new TextRun({ text: `Ofício GVF n° ${numero || "___"}/2026`, bold: true, font: "Times New Roman", size: 24 })],
+      children: [new TextRun({ text: `Ofício GVF n° ${numero || "___"}/${hoje.getFullYear()}`, bold: true, font: "Times New Roman", size: 24 })],
     })
   );
 
@@ -124,16 +134,48 @@ export async function exportToWord(data: {
   children.push(
     new Paragraph({
       indent: { firstLine: 709 },
-      spacing: { after: 600 },
+      spacing: { after: 400 },
       children: [new TextRun({ text: "Atenciosamente,", font: "Times New Roman", size: 24 })],
     })
   );
+
+  // Digital signature image
+  if (assinatura.byteLength > 0) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 200, after: 0 },
+        children: [
+          new ImageRun({ data: assinatura, transformation: { width: 100, height: 60 }, type: "png" }),
+          new TextRun("   "),
+          new TextRun({ text: "Assinado de forma digital", font: "Times New Roman", size: 14, color: "333333" }),
+        ],
+      })
+    );
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 0 },
+        children: [
+          new TextRun({ text: "por FABIO DIAS QUEIROZ ZAVITOSKI:27500005806", font: "Times New Roman", size: 14, color: "333333" }),
+        ],
+      })
+    );
+    const ts = `Dados: ${hoje.getFullYear()}.${String(hoje.getMonth() + 1).padStart(2, '0')}.${String(hoje.getDate()).padStart(2, '0')} ${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}:${String(hoje.getSeconds()).padStart(2, '0')} -03'00'`;
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 100 },
+        children: [new TextRun({ text: ts, font: "Times New Roman", size: 14, color: "333333", italics: true })],
+      })
+    );
+  }
 
   // Signature line
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { before: 400, after: 200 },
+      spacing: { before: 200, after: 200 },
       children: [new TextRun({ text: "__________________________________", font: "Times New Roman", size: 24 })],
     })
   );

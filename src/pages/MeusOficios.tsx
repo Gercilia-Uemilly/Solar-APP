@@ -12,6 +12,7 @@ import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, exportToCSV } from "@/lib/exportOficio";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
+import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
 interface OficioRow {
   id: string;
@@ -147,6 +148,7 @@ export default function MeusOficios() {
                             conteudo: o.conteudo,
                             logoCamaraUrl: logoCamara,
                             logoFabaoUrl: logoFabao,
+                            assinaturaUrl: assinaturaFabao,
                           });
                         }
                       }}
@@ -183,6 +185,7 @@ export default function MeusOficios() {
                         conteudo: viewOficio.conteudo,
                         logoCamaraUrl: logoCamara,
                         logoFabaoUrl: logoFabao,
+                        assinaturaUrl: assinaturaFabao,
                       });
                     }
                   }}
