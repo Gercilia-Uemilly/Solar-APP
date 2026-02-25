@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import oficioHeaderOficial from "@/assets/oficio-header-oficial.png";
+import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
 interface Props {
   numero: string;
@@ -36,7 +37,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         boxSizing: "border-box",
       }}
     >
-      {/* Header oficial - centered, compact, original proportions */}
+      {/* Header oficial */}
       <div style={{ textAlign: "center", marginBottom: "16px" }}>
         <img
           src={oficioHeaderOficial}
@@ -91,13 +92,46 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
       </p>
 
       {/* Atenciosamente */}
-      <p style={{ textIndent: "1.25cm", marginBottom: "48px", fontSize: "12pt" }}>
+      <p style={{ textIndent: "1.25cm", marginBottom: "32px", fontSize: "12pt" }}>
         Atenciosamente,
       </p>
 
-      {/* Signature - simple line + name + title (matching official PDF) */}
-      <div style={{ textAlign: "center", marginTop: "24px" }}>
-        <div style={{ width: "240px", borderBottom: "1px solid #000", margin: "0 auto 12px auto" }} />
+      {/* Digital signature block - matching official template */}
+      <div style={{ textAlign: "center", marginTop: "16px" }}>
+        {/* Signature image + certificate info side by side */}
+        <div style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "4px",
+        }}>
+          <img
+            src={assinaturaFabao}
+            alt="Assinatura digital"
+            style={{
+              width: "120px",
+              height: "auto",
+              objectFit: "contain",
+            }}
+          />
+          <div style={{
+            fontSize: "8pt",
+            textAlign: "left",
+            color: "#333",
+            borderLeft: "1px solid #999",
+            paddingLeft: "8px",
+            lineHeight: "1.3",
+          }}>
+            <div>Assinado de forma digital</div>
+            <div>por FABIO DIAS QUEIROZ</div>
+            <div>ZAVITOSKI:27500005806</div>
+            <div><em>Dados:</em> {hoje.getFullYear()}.{String(hoje.getMonth() + 1).padStart(2, '0')}.{String(hoje.getDate()).padStart(2, '0')} {String(hoje.getHours()).padStart(2, '0')}:{String(hoje.getMinutes()).padStart(2, '0')}:{String(hoje.getSeconds()).padStart(2, '0')}</div>
+            <div>-03'00'</div>
+          </div>
+        </div>
+
+        {/* Signature line */}
+        <div style={{ width: "280px", borderBottom: "1px solid #000", margin: "0 auto 12px auto" }} />
         <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "2px" }}>FABÃO</p>
         <p style={{ fontSize: "12pt" }}>Vereador</p>
       </div>
