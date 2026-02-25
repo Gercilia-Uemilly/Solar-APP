@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Footer, Header, PageNumber, PageBreak } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Footer, Header, PageNumber } from "docx";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -34,7 +34,7 @@ export async function exportToWord(data: {
 
   const paragraphs = conteudo.split("\n").map(p => p.trim()).filter(Boolean);
 
-  // Build header with logos (repeats on every page)
+  // Header with logos (repeats on every page)
   const headerChildren: Paragraph[] = [];
   if (logoCamara.byteLength > 0 && logoFabao.byteLength > 0) {
     headerChildren.push(
@@ -50,38 +50,10 @@ export async function exportToWord(data: {
     );
   }
 
-  const sectionProps = {
-    page: {
-      margin: {
-        top: cmToTwips(3),
-        bottom: cmToTwips(2),
-        left: cmToTwips(3),
-        right: cmToTwips(2),
-      },
-      pageNumbers: { start: 1 },
-    },
-  };
+  const children: Paragraph[] = [];
 
-  const defaultHeader = new Header({ children: headerChildren });
-
-  const defaultFooter = new Footer({
-    children: [
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 50 },
-        children: [
-          new TextRun({ text: "Pág. ", font: "Times New Roman", size: 16, color: "333333" }),
-          new TextRun({ children: [PageNumber.CURRENT], font: "Times New Roman", size: 16, color: "333333" }),
-        ],
-      }),
-    ],
-  });
-
-  // --- Section 1: Main content ---
-  const mainChildren: Paragraph[] = [];
-
-  // Date
-  mainChildren.push(
+  // Date - right aligned
+  children.push(
     new Paragraph({
       alignment: AlignmentType.RIGHT,
       spacing: { after: 200 },
@@ -89,8 +61,8 @@ export async function exportToWord(data: {
     })
   );
 
-  // Number
-  mainChildren.push(
+  // Number - left, bold
+  children.push(
     new Paragraph({
       spacing: { after: 300 },
       children: [new TextRun({ text: `Ofício GVF n° ${numero || "___"}/2026`, bold: true, font: "Times New Roman", size: 24 })],
@@ -98,18 +70,18 @@ export async function exportToWord(data: {
   );
 
   // Destinatário
-  mainChildren.push(
+  children.push(
     new Paragraph({
       spacing: { after: 100 },
       children: [
         new TextRun({ text: "DESTINATÁRIO: ", bold: true, font: "Times New Roman", size: 24 }),
-        new TextRun({ text: `${cargoDestinatario || "Ilmo. Sr."} ${destinatario || "___"}`, bold: true, font: "Times New Roman", size: 24 }),
+        new TextRun({ text: `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`, bold: true, font: "Times New Roman", size: 24 }),
       ],
     })
   );
 
   // Assunto
-  mainChildren.push(
+  children.push(
     new Paragraph({
       spacing: { after: 300 },
       children: [
@@ -120,16 +92,16 @@ export async function exportToWord(data: {
   );
 
   // Greeting
-  mainChildren.push(
+  children.push(
     new Paragraph({
       spacing: { after: 200 },
-      children: [new TextRun({ text: "Excelentíssimo Senhor Secretário,", font: "Times New Roman", size: 24 })],
+      children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a),", font: "Times New Roman", size: 24 })],
     })
   );
 
-  // Body paragraphs
+  // Body paragraphs - justified, first-line indent, line spacing 1.5
   paragraphs.forEach(p => {
-    mainChildren.push(
+    children.push(
       new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
         indent: { firstLine: 709 },
@@ -140,74 +112,51 @@ export async function exportToWord(data: {
   });
 
   // Closing
-  mainChildren.push(
+  children.push(
     new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
       indent: { firstLine: 709 },
-      spacing: { before: 300, after: 200 },
+      spacing: { before: 300, after: 100 },
       children: [new TextRun({ text: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço.", font: "Times New Roman", size: 24 })],
     })
   );
 
   // Atenciosamente
-  mainChildren.push(
+  children.push(
     new Paragraph({
-      spacing: { before: 200, after: 600 },
+      indent: { firstLine: 709 },
+      spacing: { after: 600 },
       children: [new TextRun({ text: "Atenciosamente,", font: "Times New Roman", size: 24 })],
     })
   );
 
-  // Digital signature
-  const sigDate = `${new Date().toISOString().split("T")[0].replace(/-/g, ".")} ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
-  mainChildren.push(
+  // Signature line
+  children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { before: 400 },
-      children: [new TextRun({ text: "FABIO DIAS QUEIROZ ZAVITOSKI:27500005806", font: "Courier New", size: 18 })],
+      spacing: { before: 400, after: 200 },
+      children: [new TextRun({ text: "__________________________________", font: "Times New Roman", size: 24 })],
     })
-  );
-  mainChildren.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 100 },
-      children: [new TextRun({ text: `Assinado de forma digital por FABIO DIAS QUEIROZ ZAVITOSKI:27500005806 — Dados: ${sigDate} -03'00'`, font: "Courier New", size: 14, color: "666666" })],
-    })
-  );
-  mainChildren.push(
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200 }, children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })] })
-  );
-  mainChildren.push(
-    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Vereador", font: "Times New Roman", size: 24 })] })
   );
 
-  // --- Section 2: Final institutional page ---
-  const finalChildren: Paragraph[] = [];
-  // Spacer to center content vertically
-  for (let i = 0; i < 12; i++) {
-    finalChildren.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
-  }
-  finalChildren.push(
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 28 })] })
-  );
-  finalChildren.push(
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [new TextRun({ text: "Vereador", font: "Times New Roman", size: 24 })] })
-  );
-  finalChildren.push(
+  // Name
+  children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 100 },
-      children: [new TextRun({ text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia - MG", font: "Times New Roman", size: 18, color: "333333", italics: true })],
+      spacing: { after: 50 },
+      children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })],
+    })
+  );
+
+  // Title
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: "Vereador", font: "Times New Roman", size: 24 })],
     })
   );
 
   const doc = new Document({
     sections: [
-      {
-        properties: sectionProps,
-        headers: { default: defaultHeader },
-        footers: { default: defaultFooter },
-        children: mainChildren,
-      },
       {
         properties: {
           page: {
@@ -217,11 +166,29 @@ export async function exportToWord(data: {
               left: cmToTwips(3),
               right: cmToTwips(2),
             },
+            pageNumbers: { start: 1 },
           },
         },
-        headers: { default: defaultHeader },
-        footers: { default: defaultFooter },
-        children: finalChildren,
+        headers: { default: new Header({ children: headerChildren }) },
+        children,
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 100 },
+                children: [
+                  new TextRun({
+                    text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
+                    font: "Times New Roman",
+                    size: 16,
+                    color: "333333",
+                  }),
+                ],
+              }),
+            ],
+          }),
+        },
       },
     ],
   });
@@ -241,24 +208,14 @@ export async function exportToPDF(element: HTMLElement, numero: string) {
 
   let heightLeft = imgHeight;
   let position = 0;
-  let pageNum = 1;
 
   pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-  const totalPages = Math.ceil(imgHeight / pageHeight);
-  pdf.setFontSize(8);
-  pdf.setTextColor(51, 51, 51);
-  pdf.text(`Pág. ${pageNum}`, pageWidth / 2, pageHeight - 8, { align: "center" });
-
   heightLeft -= pageHeight;
 
   while (heightLeft > 0) {
     position -= pageHeight;
-    pageNum++;
     pdf.addPage();
     pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    pdf.setFontSize(8);
-    pdf.setTextColor(51, 51, 51);
-    pdf.text(`Pág. ${pageNum}`, pageWidth / 2, pageHeight - 8, { align: "center" });
     heightLeft -= pageHeight;
   }
 
