@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus } from "lucide-react";
+import { useRef, useState, useEffect, ChangeEvent } from "react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,13 @@ export default function Oficios() {
   const [editedOficio, setEditedOficio] = useState("");
   const [editedResposta, setEditedResposta] = useState("");
 
+  // File processing state
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [processedFileText, setProcessedFileText] = useState("");
+  const [processedFileType, setProcessedFileType] = useState<"image" | "audio" | null>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   // Fetch oficios
   const fetchOficios = async () => {
     setLoading(true);
@@ -198,6 +205,49 @@ export default function Oficios() {
     toast({ title: "Ofício salvo!" });
   };
 
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: "image" | "audio") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessingFile(true);
+    setProcessedFileText("");
+    setProcessedFileType(type);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", type);
+
+      const { data, error } = await supabase.functions.invoke("process-file", {
+        body: formData,
+      });
+
+      if (error) throw error;
+
+      const extractedText = data.text || "";
+      setProcessedFileText(extractedText);
+      toast({
+        title: type === "image" ? "📷 Imagem processada!" : "🎤 Áudio transcrito!",
+        description: "Revise o conteúdo extraído antes de gerar o ofício.",
+      });
+    } catch (err: any) {
+      toast({ title: "Erro ao processar arquivo", description: err.message || "Tente novamente.", variant: "destructive" });
+      setProcessedFileType(null);
+    } finally {
+      setIsProcessingFile(false);
+      // Reset input
+      if (type === "audio" && audioInputRef.current) audioInputRef.current.value = "";
+      if (type === "image" && imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
+  const confirmProcessedText = () => {
+    setDescricao(prev => prev ? prev + "\n\n" + processedFileText : processedFileText);
+    setProcessedFileText("");
+    setProcessedFileType(null);
+    toast({ title: "Conteúdo inserido na descrição!" });
+  };
+
   const resetForm = () => {
     setShowDialog(false);
     setNumero("");
@@ -218,6 +268,8 @@ export default function Oficios() {
     setAiResult(null);
     setEditedOficio("");
     setEditedResposta("");
+    setProcessedFileText("");
+    setProcessedFileType(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -386,33 +438,60 @@ export default function Oficios() {
                 />
                </div>
 
-              {/* Simulated audio/image upload buttons */}
+              {/* Real file upload buttons */}
               <div className="flex gap-2">
+                <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={e => handleFileUpload(e, "audio")} />
+                <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileUpload(e, "image")} />
                 <Button
                   type="button"
                   variant="outline"
                   className="flex-1 border-border text-sm"
-                  onClick={() => {
-                    const transcricao = "Solicitação de reparo na Rua Oscar Alvim, Bairro Fundinho. Moradores relatam buracos que estão causando acidentes com motociclistas e pedestres.";
-                    setDescricao(prev => prev ? prev + "\n\n" + transcricao : transcricao);
-                    toast({ title: "🎤 Áudio transcrito!", description: "Texto inserido na descrição." });
-                  }}
+                  disabled={isProcessingFile}
+                  onClick={() => audioInputRef.current?.click()}
                 >
-                  <Mic size={14} className="mr-1" /> Anexar Áudio (WhatsApp)
+                  <Mic size={14} className="mr-1" /> Anexar Áudio
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   className="flex-1 border-border text-sm"
-                  onClick={() => {
-                    const extracao = "Imagem analisada: contém referência à Av. João Naves de Ávila, próximo ao Terminal Santa Luzia. Situação de buraco na via com risco de acidente.";
-                    setDescricao(prev => prev ? prev + "\n\n" + extracao : extracao);
-                    toast({ title: "📷 Imagem analisada!", description: "Informações inseridas na descrição." });
-                  }}
+                  disabled={isProcessingFile}
+                  onClick={() => imageInputRef.current?.click()}
                 >
                   <ImagePlus size={14} className="mr-1" /> Anexar Imagem
                 </Button>
               </div>
+
+              {/* Processing indicator */}
+              {isProcessingFile && (
+                <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <Loader2 size={16} className="animate-spin text-primary" />
+                  <span className="text-sm text-primary font-medium">
+                    {processedFileType === "image" ? "Analisando imagem (OCR)..." : "Transcrevendo áudio..."}
+                  </span>
+                </div>
+              )}
+
+              {/* Processed content preview */}
+              {processedFileText && !isProcessingFile && (
+                <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground flex items-center gap-1">
+                      {processedFileType === "image" ? <Image size={12} /> : <FileAudio size={12} />}
+                      Conteúdo extraído
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setProcessedFileText(""); setProcessedFileType(null); }}>
+                      <X size={14} />
+                    </Button>
+                  </div>
+                  <div className="max-h-[150px] overflow-y-auto text-sm text-muted-foreground bg-background/50 p-2 rounded border border-border whitespace-pre-wrap">
+                    {processedFileText}
+                  </div>
+                  <Button size="sm" onClick={confirmProcessedText} className="w-full bg-primary text-primary-foreground">
+                    <CheckCircle2 size={14} className="mr-1" /> Inserir na descrição
+                  </Button>
+                </div>
+              )}
 
               {/* Linha Telefônica */}
               {userPhones.length > 0 && (

@@ -2,3 +2,6 @@ project_id = "ipsmcagnhrtnhuekzcny"
 
 [functions.generate-oficio]
 verify_jwt = false
+
+[functions.process-file]
+verify_jwt = false
