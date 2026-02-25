@@ -118,6 +118,21 @@ export default function Oficios() {
 
   useEffect(() => { fetchOficios(); }, []);
 
+  // Auto-generate next sequential number
+  const generateNextNumero = () => {
+    const year = new Date().getFullYear();
+    const existingNumbers = oficios
+      .map(o => o.numero)
+      .filter(Boolean)
+      .map(n => {
+        const match = n!.match(/^(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+    const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    return `${nextNum}/${year}`;
+  };
+
   // Fetch user phone lines
   useEffect(() => {
     if (!user) return;
@@ -290,7 +305,7 @@ export default function Oficios() {
           <h1 className="text-2xl font-bold text-foreground">Ofícios</h1>
           <p className="text-sm text-muted-foreground">{oficios.length} ofício(s)</p>
         </div>
-        <Button onClick={() => setShowDialog(true)} className="bg-primary text-primary-foreground">
+        <Button onClick={() => { setNumero(generateNextNumero()); setShowDialog(true); }} className="bg-primary text-primary-foreground">
           <Plus size={16} className="mr-1" /> Novo Ofício
         </Button>
       </div>

@@ -120,8 +120,16 @@ export async function exportToWord(data: {
     new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: { firstLine: 709 },
-      spacing: { before: 300, after: 600 },
+      spacing: { before: 300, after: 200 },
       children: [new TextRun({ text: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço.", font: "Times New Roman", size: 24 })],
+    })
+  );
+
+  // Atenciosamente
+  children.push(
+    new Paragraph({
+      spacing: { before: 200, after: 600 },
+      children: [new TextRun({ text: "Atenciosamente,", font: "Times New Roman", size: 24 })],
     })
   );
 
