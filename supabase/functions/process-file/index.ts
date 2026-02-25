@@ -26,8 +26,14 @@ serve(async (req) => {
       });
     }
 
-    const bytes = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(bytes)));
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    // Chunked base64 to avoid stack overflow on large files
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64 = btoa(binary);
     const mimeType = file.type || (fileType === "audio" ? "audio/ogg" : "image/jpeg");
 
     let prompt: string;
