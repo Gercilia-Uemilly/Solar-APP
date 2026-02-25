@@ -20,26 +20,25 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
     .map(p => p.trim())
     .filter(Boolean);
 
-  const multiPage = paragraphs.length > 12 || conteudo.length > 2000;
-
   return (
     <div
       ref={ref}
       style={{
         width: "210mm",
         minHeight: "297mm",
-        padding: "20mm 30mm 30mm 30mm",
+        /* Margins: top 3cm, bottom 2cm, left 3cm, right 2cm */
+        padding: "30mm 20mm 20mm 30mm",
         fontFamily: "'Times New Roman', Times, serif",
         fontSize: "12pt",
-        lineHeight: "1.8",
+        lineHeight: "1.5",
         color: "#000",
         backgroundColor: "#fff",
         position: "relative",
         boxSizing: "border-box",
       }}
     >
-      {/* Header oficial (imagem única) */}
-      <div style={{ textAlign: "center", marginBottom: "12px" }}>
+      {/* Header oficial (imagem única) - centered, compact, original proportions */}
+      <div style={{ textAlign: "center", marginBottom: "16px" }}>
         <img
           src={oficioHeaderOficial}
           alt="Cabeçalho oficial do Gabinete"
@@ -54,21 +53,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
       </div>
 
       {/* Date - right aligned */}
-      <p style={{ textAlign: "right", marginBottom: "28px", fontSize: "12pt" }}>
+      <p style={{ textAlign: "right", marginBottom: "24px", fontSize: "12pt" }}>
         {dataFormatada}
       </p>
 
-      {/* Numbering - bold */}
-      <p style={{ marginBottom: "24px", fontWeight: "bold", fontSize: "12pt" }}>
+      {/* Numbering - bold, left aligned */}
+      <p style={{ marginBottom: "20px", fontWeight: "bold", fontSize: "12pt" }}>
         Ofício GVF n° {numero || "___"}{!numero?.includes("/") ? `/${hoje.getFullYear()}` : ""}
       </p>
 
-      {/* Destinatário - bold label */}
+      {/* Destinatário - bold */}
       <p style={{ marginBottom: "4px", fontSize: "12pt", fontWeight: "bold" }}>
         DESTINATÁRIO: {cargoDestinatario || "Ilmo. Sr."} {destinatario || "___"}
       </p>
 
-      {/* Assunto - bold label + bold content */}
+      {/* Assunto - bold */}
       <p style={{ marginBottom: "24px", fontSize: "12pt", fontWeight: "bold" }}>
         ASSUNTO: {assunto || "___"}
       </p>
@@ -78,21 +77,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         Excelentíssimo Senhor Secretário,
       </p>
 
-      {/* Body - justified with first-line indent of 1.25cm */}
+      {/* Body - justified, first-line indent 1.25cm, line spacing 1.5 */}
       <div style={{ textAlign: "justify", position: "relative", zIndex: 1 }}>
         {paragraphs.map((p, i) => (
-          <p key={i} style={{ textIndent: "1.25cm", marginBottom: "10px", fontSize: "12pt" }}>
+          <p key={i} style={{ textIndent: "1.25cm", marginBottom: "10px", fontSize: "12pt", lineHeight: "1.5" }}>
             {p}
           </p>
         ))}
       </div>
 
-      {/* Closing - Atenciosamente */}
+      {/* Closing */}
       <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "12pt" }}>
         Atenciosamente,
       </p>
 
-      {/* Digital Signature block - matching official PDF */}
+      {/* Digital Signature block */}
       <div style={{ textAlign: "center", marginTop: "32px" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
           <span style={{ fontSize: "9pt", fontFamily: "'Courier New', monospace", lineHeight: "1.3" }}>
@@ -110,30 +109,28 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         <p style={{ fontSize: "12pt" }}>Vereador</p>
       </div>
 
-      {/* Footer - italic, NO top border */}
+      {/* Footer - centered, smaller font, address + page number */}
       <div
         style={{
           position: "absolute",
-          bottom: "15mm",
+          bottom: "10mm",
           left: "30mm",
-          right: "30mm",
+          right: "20mm",
           fontSize: "8pt",
           color: "#333",
           fontStyle: "italic",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
+          textAlign: "center",
         }}
       >
         <span>Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG</span>
-        <span style={{ display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap" }}>
-          {multiPage && <span>Pág. 1</span>}
+        <div style={{ marginTop: "2px", fontSize: "8pt" }}>
+          Pág. 1
           {operadorNome && (
-            <span style={{ fontSize: "5pt", color: "rgba(0,0,0,0.05)", fontFamily: "'Times New Roman', Times, serif" }}>
+            <span style={{ fontSize: "5pt", color: "rgba(0,0,0,0.05)", fontFamily: "'Times New Roman', Times, serif", marginLeft: "8px" }}>
               {operadorNome}
             </span>
           )}
-        </span>
+        </div>
       </div>
     </div>
   );
