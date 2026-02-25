@@ -101,14 +101,6 @@ export async function exportToWord(data: {
     })
   );
 
-  // Greeting
-  children.push(
-    new Paragraph({
-      spacing: { after: 200 },
-      children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a),", font: "Times New Roman", size: 24 })],
-    })
-  );
-
   // Body paragraphs - justified, first-line indent, line spacing 1.5
   paragraphs.forEach(p => {
     children.push(
@@ -121,55 +113,50 @@ export async function exportToWord(data: {
     );
   });
 
-  // Closing
+  // Digital signature certificate text block
+  const ts = `Dados: ${hoje.getFullYear()}.${String(hoje.getMonth() + 1).padStart(2, '0')}.${String(hoje.getDate()).padStart(2, '0')} ${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}:${String(hoje.getSeconds()).padStart(2, '0')} -03'00'`;
   children.push(
     new Paragraph({
-      indent: { firstLine: 709 },
-      spacing: { before: 300, after: 100 },
-      children: [new TextRun({ text: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço.", font: "Times New Roman", size: 24 })],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 400, after: 0 },
+      children: [
+        new TextRun({ text: "FABIO DIAS", font: "Times New Roman", size: 22 }),
+        new TextRun("          "),
+        new TextRun({ text: "Assinado de forma digital", font: "Times New Roman", size: 18, color: "333333" }),
+      ],
     })
   );
-
-  // Atenciosamente
   children.push(
     new Paragraph({
-      indent: { firstLine: 709 },
-      spacing: { after: 400 },
-      children: [new TextRun({ text: "Atenciosamente,", font: "Times New Roman", size: 24 })],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 0 },
+      children: [
+        new TextRun({ text: "ZAVITOSKI:275000", font: "Times New Roman", size: 22 }),
+        new TextRun("     "),
+        new TextRun({ text: "por FABIO DIAS QUEIROZ", font: "Times New Roman", size: 18, color: "333333" }),
+      ],
     })
   );
-
-  // Digital signature image
-  if (assinatura.byteLength > 0) {
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 200, after: 0 },
-        children: [
-          new ImageRun({ data: assinatura, transformation: { width: 100, height: 60 }, type: "png" }),
-          new TextRun("   "),
-          new TextRun({ text: "Assinado de forma digital", font: "Times New Roman", size: 14, color: "333333" }),
-        ],
-      })
-    );
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 0 },
-        children: [
-          new TextRun({ text: "por FABIO DIAS QUEIROZ ZAVITOSKI:27500005806", font: "Times New Roman", size: 14, color: "333333" }),
-        ],
-      })
-    );
-    const ts = `Dados: ${hoje.getFullYear()}.${String(hoje.getMonth() + 1).padStart(2, '0')}.${String(hoje.getDate()).padStart(2, '0')} ${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}:${String(hoje.getSeconds()).padStart(2, '0')} -03'00'`;
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 100 },
-        children: [new TextRun({ text: ts, font: "Times New Roman", size: 14, color: "333333", italics: true })],
-      })
-    );
-  }
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 0 },
+      children: [
+        new TextRun({ text: "05 806", font: "Times New Roman", size: 22 }),
+        new TextRun("                    "),
+        new TextRun({ text: "ZAVITOSKI:27500005806", font: "Times New Roman", size: 18, color: "333333" }),
+      ],
+    })
+  );
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 0 },
+      children: [
+        new TextRun({ text: ts, font: "Times New Roman", size: 18, color: "333333", italics: true }),
+      ],
+    })
+  );
 
   // Signature line
   children.push(
@@ -185,7 +172,7 @@ export async function exportToWord(data: {
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 50 },
-      children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })],
+      children: [new TextRun({ text: "FABÃO", font: "Times New Roman", size: 24 })],
     })
   );
 

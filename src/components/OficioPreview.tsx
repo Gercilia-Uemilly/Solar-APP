@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import oficioHeaderOficial from "@/assets/oficio-header-oficial.png";
-import assinaturaFabao from "@/assets/assinatura-fabao.png";
+
 
 interface Props {
   numero: string;
@@ -72,11 +72,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         ASSUNTO: {assunto || "___"}
       </p>
 
-      {/* Greeting */}
-      <p style={{ marginBottom: "16px", fontSize: "12pt" }}>
-        Excelentíssimo(a) Senhor(a) Secretário(a),
-      </p>
-
       {/* Body - justified, first-line indent 1.25cm, 1.5 line spacing */}
       <div style={{ textAlign: "justify" }}>
         {paragraphs.map((p, i) => (
@@ -86,41 +81,33 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         ))}
       </div>
 
-      {/* Closing */}
-      <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "8px", fontSize: "12pt" }}>
-        Na certeza de contar com o vosso pronto atendimento, desde já agradeço.
-      </p>
-
-      {/* Atenciosamente */}
-      <p style={{ textIndent: "1.25cm", marginBottom: "32px", fontSize: "12pt" }}>
-        Atenciosamente,
-      </p>
-
       {/* Digital signature block - matching official template */}
-      <div style={{ textAlign: "center", marginTop: "16px" }}>
-        {/* Signature image + certificate info side by side */}
+      <div style={{ textAlign: "center", marginTop: "40px" }}>
+        {/* Certificate text block side by side */}
         <div style={{
           display: "inline-flex",
-          alignItems: "center",
-          gap: "8px",
+          alignItems: "flex-start",
+          gap: "0",
           marginBottom: "4px",
         }}>
-          <img
-            src={assinaturaFabao}
-            alt="Assinatura digital"
-            style={{
-              width: "120px",
-              height: "auto",
-              objectFit: "contain",
-            }}
-          />
           <div style={{
-            fontSize: "8pt",
+            fontSize: "11pt",
             textAlign: "left",
-            color: "#333",
+            color: "#000",
+            paddingRight: "12px",
+            lineHeight: "1.4",
+          }}>
+            <div>FABIO DIAS</div>
+            <div>ZAVITOSKI:275000</div>
+            <div>05 806</div>
+          </div>
+          <div style={{
+            fontSize: "9pt",
+            textAlign: "left",
+            color: "#000",
             borderLeft: "1px solid #999",
-            paddingLeft: "8px",
-            lineHeight: "1.3",
+            paddingLeft: "12px",
+            lineHeight: "1.4",
           }}>
             <div>Assinado de forma digital</div>
             <div>por FABIO DIAS QUEIROZ</div>
@@ -131,8 +118,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         </div>
 
         {/* Signature line */}
-        <div style={{ width: "280px", borderBottom: "1px solid #000", margin: "0 auto 12px auto" }} />
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "2px" }}>FABÃO</p>
+        <div style={{ width: "280px", borderBottom: "1px solid #000", margin: "8px auto 12px auto" }} />
+        <p style={{ fontSize: "12pt", marginBottom: "2px" }}>FABÃO</p>
         <p style={{ fontSize: "12pt" }}>Vereador</p>
       </div>
 
