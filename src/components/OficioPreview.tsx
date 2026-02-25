@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import logoCamara from "@/assets/logo-camara.png";
-import logoFabao from "@/assets/logo-fabao.png";
+import logoFabao from "@/assets/logo-fabao-cor.png";
 
 interface Props {
   numero: string;
@@ -39,19 +39,11 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         boxSizing: "border-box",
       }}
     >
-      {/* Header: fixed table layout matching official model */}
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginBottom: "16px" }}>
-        <tbody>
-          <tr>
-            <td style={{ width: "50%", padding: "0", verticalAlign: "bottom", border: "none", textAlign: "left" }}>
-              <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", display: "inline-block", objectFit: "contain" }} />
-            </td>
-            <td style={{ width: "50%", padding: "0", verticalAlign: "bottom", border: "none", textAlign: "right" }}>
-              <img src={logoFabao} alt="Vereador Fabão" style={{ height: "92px", width: "auto", display: "inline-block", objectFit: "contain" }} />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      {/* Header: centered logos matching official PDF model */}
+      <div style={{ textAlign: "center", marginBottom: "16px" }}>
+        <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", objectFit: "contain", verticalAlign: "middle", display: "inline-block" }} />
+        <img src={logoFabao} alt="Vereador Fabão" style={{ height: "80px", width: "auto", objectFit: "contain", verticalAlign: "middle", display: "inline-block", marginLeft: "24px" }} />
+      </div>
 
       {/* Date - right aligned */}
       <p style={{ textAlign: "right", marginBottom: "16px", fontSize: "12pt" }}>
