@@ -39,15 +39,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         boxSizing: "border-box",
       }}
     >
-      {/* Header: table layout for fixed PDF structure */}
-      <table style={{ width: "auto", margin: "0 auto 20px auto", borderCollapse: "collapse", tableLayout: "fixed" }}>
+      {/* Header: fixed table layout matching official model */}
+      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginBottom: "16px" }}>
         <tbody>
           <tr>
-            <td style={{ padding: "0 6px 0 0", verticalAlign: "middle", border: "none" }}>
-              <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "60px", width: "auto", display: "block", objectFit: "contain" }} />
+            <td style={{ width: "50%", padding: "0", verticalAlign: "bottom", border: "none", textAlign: "left" }}>
+              <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", display: "inline-block", objectFit: "contain" }} />
             </td>
-            <td style={{ padding: "0 0 0 6px", verticalAlign: "middle", border: "none" }}>
-              <img src={logoFabao} alt="Vereador Fabão" style={{ height: "68px", width: "auto", display: "block", objectFit: "contain" }} />
+            <td style={{ width: "50%", padding: "0", verticalAlign: "bottom", border: "none", textAlign: "right" }}>
+              <img src={logoFabao} alt="Vereador Fabão" style={{ height: "92px", width: "auto", display: "inline-block", objectFit: "contain" }} />
             </td>
           </tr>
         </tbody>
