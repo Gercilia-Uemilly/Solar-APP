@@ -38,23 +38,17 @@ export async function exportToWord(data: {
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
+        spacing: { after: 400 },
         children: [
-          new ImageRun({ data: logoCamara, transformation: { width: 120, height: 64 }, type: "png" }),
+          new ImageRun({ data: logoCamara, transformation: { width: 160, height: 80 }, type: "png" }),
           new TextRun("          "),
-          new ImageRun({ data: logoFabao, transformation: { width: 120, height: 64 }, type: "png" }),
+          new ImageRun({ data: logoFabao, transformation: { width: 140, height: 72 }, type: "png" }),
         ],
       })
     );
   }
 
-  // Separator
-  children.push(
-    new Paragraph({
-      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "000000" } },
-      spacing: { after: 300 },
-    })
-  );
+  // NO separator line
 
   // Date
   children.push(
@@ -79,7 +73,7 @@ export async function exportToWord(data: {
       spacing: { after: 100 },
       children: [
         new TextRun({ text: "DESTINATÁRIO: ", bold: true, font: "Times New Roman", size: 24 }),
-        new TextRun({ text: `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`, font: "Times New Roman", size: 24 }),
+        new TextRun({ text: `${cargoDestinatario || "Ilmo. Sr."} ${destinatario || "___"}`, bold: true, font: "Times New Roman", size: 24 }),
       ],
     })
   );
@@ -90,7 +84,7 @@ export async function exportToWord(data: {
       spacing: { after: 300 },
       children: [
         new TextRun({ text: "ASSUNTO: ", bold: true, font: "Times New Roman", size: 24 }),
-        new TextRun({ text: assunto || "___", font: "Times New Roman", size: 24 }),
+        new TextRun({ text: assunto || "___", bold: true, font: "Times New Roman", size: 24 }),
       ],
     })
   );
@@ -99,7 +93,7 @@ export async function exportToWord(data: {
   children.push(
     new Paragraph({
       spacing: { after: 200 },
-      children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a),", font: "Times New Roman", size: 24 })],
+      children: [new TextRun({ text: "Excelentíssimo Senhor Secretário,", font: "Times New Roman", size: 24 })],
     })
   );
 
@@ -133,12 +127,9 @@ export async function exportToWord(data: {
     })
   );
 
-  // Signature
+  // Signature - NO underline
   children.push(
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600 }, children: [new TextRun({ text: "____________________________", font: "Times New Roman", size: 24 })] })
-  );
-  children.push(
-    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })] })
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600 }, children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })] })
   );
   children.push(
     new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Vereador", font: "Times New Roman", size: 24 })] })
@@ -159,14 +150,14 @@ export async function exportToWord(data: {
             children: [
               new Paragraph({
                 alignment: AlignmentType.CENTER,
-                border: { top: { style: BorderStyle.SINGLE, size: 2, color: "000000" } },
                 spacing: { before: 100 },
                 children: [
                   new TextRun({
-                    text: "Gabinete Vereador Fabão – Câmara Municipal de Uberlândia – Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, Bairro Santa Mônica, CEP: 38408-144, Uberlândia-MG",
+                    text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
                     font: "Times New Roman",
                     size: 16,
                     color: "333333",
+                    italics: true,
                   }),
                 ],
               }),

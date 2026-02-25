@@ -39,40 +39,35 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         boxSizing: "border-box",
       }}
     >
-      {/* Watermark - operator name (tiny, bottom-right, nearly invisible) */}
-
-      {/* Header: logos side by side, centered – NO line above */}
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "48px", marginBottom: "8px", position: "relative", zIndex: 1 }}>
-        <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "64px", objectFit: "contain" }} />
-        <img src={logoFabao} alt="Vereador Fabão" style={{ height: "64px", objectFit: "contain" }} />
+      {/* Header: logos side by side, centered – NO separator line */}
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "40px", marginBottom: "24px", position: "relative", zIndex: 1 }}>
+        <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "80px", objectFit: "contain" }} />
+        <img src={logoFabao} alt="Vereador Fabão" style={{ height: "72px", objectFit: "contain" }} />
       </div>
 
-      {/* Separator - thin black line below logos */}
-      <hr style={{ border: "none", borderTop: "1px solid #000", margin: "8px 0 24px 0" }} />
-
       {/* Date - right aligned */}
-      <p style={{ textAlign: "right", marginBottom: "8px", fontSize: "12pt" }}>
+      <p style={{ textAlign: "right", marginBottom: "16px", fontSize: "12pt" }}>
         {dataFormatada}
       </p>
 
-      {/* Numbering */}
+      {/* Numbering - bold */}
       <p style={{ marginBottom: "24px", fontWeight: "bold", fontSize: "12pt" }}>
         Ofício GVF n° {numero || "___"}/2026
       </p>
 
-      {/* Destinatário */}
-      <p style={{ marginBottom: "4px", fontSize: "12pt" }}>
-        <strong>DESTINATÁRIO:</strong> {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
+      {/* Destinatário - bold label */}
+      <p style={{ marginBottom: "4px", fontSize: "12pt", fontWeight: "bold" }}>
+        DESTINATÁRIO: {cargoDestinatario || "Ilmo. Sr."} {destinatario || "___"}
       </p>
 
-      {/* Assunto */}
-      <p style={{ marginBottom: "24px", fontSize: "12pt" }}>
-        <strong>ASSUNTO:</strong> {assunto || "___"}
+      {/* Assunto - bold label + bold content */}
+      <p style={{ marginBottom: "24px", fontSize: "12pt", fontWeight: "bold" }}>
+        ASSUNTO: {assunto || "___"}
       </p>
 
       {/* Greeting */}
       <p style={{ marginBottom: "16px", fontSize: "12pt" }}>
-        Excelentíssimo(a) Senhor(a),
+        Excelentíssimo Senhor Secretário,
       </p>
 
       {/* Body - justified with first-line indent of 1.25cm */}
@@ -84,39 +79,33 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         ))}
       </div>
 
-      {/* Closing */}
-      <p style={{ textIndent: "1.25cm", marginTop: "24px", marginBottom: "16px", textAlign: "justify", fontSize: "12pt" }}>
-        Na certeza de contar com o vosso pronto atendimento, desde já agradeço.
-      </p>
-
-      <p style={{ marginTop: "16px", marginBottom: "48px", fontSize: "12pt" }}>
+      {/* Closing - Atenciosamente */}
+      <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "12pt" }}>
         Atenciosamente,
       </p>
 
-      {/* Signature - centered */}
+      {/* Signature - centered, NO underline */}
       <div style={{ textAlign: "center", marginTop: "48px" }}>
-        <p style={{ marginBottom: "4px", fontSize: "12pt" }}>____________________________</p>
-        <p style={{ fontWeight: "bold", fontSize: "12pt" }}>FABÃO</p>
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "4px" }}>FABÃO</p>
         <p style={{ fontSize: "12pt" }}>Vereador</p>
       </div>
 
-      {/* Footer */}
+      {/* Footer - italic, NO top border */}
       <div
         style={{
           position: "absolute",
           bottom: "15mm",
           left: "30mm",
           right: "30mm",
-          borderTop: "1px solid #000",
-          paddingTop: "6px",
           fontSize: "8pt",
           color: "#333",
+          fontStyle: "italic",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
         }}
       >
-        <span>Gabinete Vereador Fabão – Câmara Municipal de Uberlândia – Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, Bairro Santa Mônica, CEP: 38408-144, Uberlândia-MG</span>
+        <span>Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG</span>
         <span style={{ display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap" }}>
           {multiPage && <span>Pág. 1</span>}
           {operadorNome && (
