@@ -16,8 +16,9 @@ export async function exportToWord(data: {
   logoCamaraUrl: string;
   logoFabaoUrl: string;
   cargoDestinatario?: string;
+  assinaturaUrl?: string;
 }) {
-  const { numero, destinatario, assunto, conteudo, logoCamaraUrl, logoFabaoUrl, cargoDestinatario } = data;
+  const { numero, destinatario, assunto, conteudo, logoCamaraUrl, logoFabaoUrl, cargoDestinatario, assinaturaUrl } = data;
   const hoje = new Date();
   const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
@@ -127,9 +128,22 @@ export async function exportToWord(data: {
     })
   );
 
-  // Signature - NO underline
+  // Signature image + name
+  let assinaturaImg: ArrayBuffer | null = null;
+  if (assinaturaUrl) {
+    try { assinaturaImg = await loadImage(assinaturaUrl); } catch { /* ignore */ }
+  }
+  if (assinaturaImg && assinaturaImg.byteLength > 0) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 400 },
+        children: [new ImageRun({ data: assinaturaImg, transformation: { width: 120, height: 60 }, type: "png" })],
+      })
+    );
+  }
   children.push(
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600 }, children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })] })
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: assinaturaImg ? 100 : 600 }, children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })] })
   );
   children.push(
     new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Vereador", font: "Times New Roman", size: 24 })] })

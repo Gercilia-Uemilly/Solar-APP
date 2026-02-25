@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
+import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
 interface Props {
   numero: string;
@@ -84,8 +85,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         Atenciosamente,
       </p>
 
-      {/* Signature - centered, NO underline */}
-      <div style={{ textAlign: "center", marginTop: "48px" }}>
+      {/* Signature - centered, with signature image */}
+      <div style={{ textAlign: "center", marginTop: "32px" }}>
+        <img src={assinaturaFabao} alt="Assinatura" style={{ height: "64px", objectFit: "contain", margin: "0 auto 8px auto", display: "block" }} />
         <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "4px" }}>FABÃO</p>
         <p style={{ fontSize: "12pt" }}>Vereador</p>
       </div>
