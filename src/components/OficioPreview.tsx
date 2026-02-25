@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import logoCamara from "@/assets/logo-camara.png";
-import logoFabao from "@/assets/logo-fabao-cor.png";
+import logoFabao from "@/assets/logo-fabao-oficial.svg";
 
 interface Props {
   numero: string;
@@ -40,14 +40,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
       }}
     >
       {/* Header: exact replica of official PDF */}
-      <table style={{ width: "auto", margin: "0 auto 20px auto", borderCollapse: "collapse" }}>
+      <table style={{ width: "auto", margin: "0 auto 16px auto", borderCollapse: "collapse", tableLayout: "fixed" }}>
         <tbody>
           <tr>
             <td style={{ padding: "0", verticalAlign: "middle", border: "none" }}>
-              <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "68px", width: "auto", display: "block", objectFit: "contain" }} />
+              <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", display: "block", objectFit: "contain" }} />
             </td>
-            <td style={{ padding: "0 0 0 20px", verticalAlign: "middle", border: "none" }}>
-              <img src={logoFabao} alt="Vereador Fabão" style={{ height: "78px", width: "auto", display: "block", objectFit: "contain" }} />
+            <td style={{ padding: "0 0 0 14px", verticalAlign: "middle", border: "none" }}>
+              <img src={logoFabao} alt="Vereador Fabão" style={{ height: "92px", width: "auto", display: "block", objectFit: "contain" }} />
             </td>
           </tr>
         </tbody>
