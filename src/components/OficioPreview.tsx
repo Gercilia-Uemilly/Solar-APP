@@ -45,7 +45,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
           alt="Cabeçalho oficial do Gabinete"
           style={{
             display: "inline-block",
-            width: "420px",
+            width: "480px",
             maxWidth: "100%",
             height: "auto",
             objectFit: "contain",
