@@ -39,11 +39,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         boxSizing: "border-box",
       }}
     >
-      {/* Header: logos side by side, centered – NO separator line */}
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", marginBottom: "20px", position: "relative", zIndex: 1 }}>
-        <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ maxHeight: "65px", width: "auto", display: "block" }} />
-        <img src={logoFabao} alt="Vereador Fabão" style={{ maxHeight: "75px", width: "auto", display: "block" }} />
-      </div>
+      {/* Header: table layout for fixed PDF structure */}
+      <table style={{ width: "auto", margin: "0 auto 20px auto", borderCollapse: "collapse", tableLayout: "fixed" }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: "0 6px 0 0", verticalAlign: "middle", border: "none" }}>
+              <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "60px", width: "auto", display: "block", objectFit: "contain" }} />
+            </td>
+            <td style={{ padding: "0 0 0 6px", verticalAlign: "middle", border: "none" }}>
+              <img src={logoFabao} alt="Vereador Fabão" style={{ height: "68px", width: "auto", display: "block", objectFit: "contain" }} />
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* Date - right aligned */}
       <p style={{ textAlign: "right", marginBottom: "16px", fontSize: "12pt" }}>
