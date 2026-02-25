@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import oficioHeaderOficial from "@/assets/oficio-header-oficial.svg";
+import oficioHeaderOficial from "@/assets/oficio-header-oficial.png";
 
 interface Props {
   numero: string;
