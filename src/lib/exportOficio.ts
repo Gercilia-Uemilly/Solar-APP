@@ -16,9 +16,8 @@ export async function exportToWord(data: {
   logoCamaraUrl: string;
   logoFabaoUrl: string;
   cargoDestinatario?: string;
-  assinaturaUrl?: string;
 }) {
-  const { numero, destinatario, assunto, conteudo, logoCamaraUrl, logoFabaoUrl, cargoDestinatario, assinaturaUrl } = data;
+  const { numero, destinatario, assunto, conteudo, logoCamaraUrl, logoFabaoUrl, cargoDestinatario } = data;
   const hoje = new Date();
   const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
@@ -128,22 +127,28 @@ export async function exportToWord(data: {
     })
   );
 
-  // Signature image + name
-  let assinaturaImg: ArrayBuffer | null = null;
-  if (assinaturaUrl) {
-    try { assinaturaImg = await loadImage(assinaturaUrl); } catch { /* ignore */ }
-  }
-  if (assinaturaImg && assinaturaImg.byteLength > 0) {
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 400 },
-        children: [new ImageRun({ data: assinaturaImg, transformation: { width: 120, height: 60 }, type: "png" })],
-      })
-    );
-  }
+  // Digital signature text block
+  const sigDate = `${new Date().toISOString().split("T")[0].replace(/-/g, ".")} ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
   children.push(
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: assinaturaImg ? 100 : 600 }, children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })] })
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 400 },
+      children: [
+        new TextRun({ text: "FABIO DIAS QUEIROZ ZAVITOSKI:27500005806", font: "Courier New", size: 18 }),
+      ],
+    })
+  );
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 100 },
+      children: [
+        new TextRun({ text: `Assinado de forma digital por FABIO DIAS QUEIROZ ZAVITOSKI:27500005806 — Dados: ${sigDate} -03'00'`, font: "Courier New", size: 14, color: "666666" }),
+      ],
+    })
+  );
+  children.push(
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200 }, children: [new TextRun({ text: "FABÃO", bold: true, font: "Times New Roman", size: 24 })] })
   );
   children.push(
     new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Vereador", font: "Times New Roman", size: 24 })] })

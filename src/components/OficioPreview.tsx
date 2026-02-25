@@ -1,7 +1,6 @@
 import { forwardRef } from "react";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
-import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
 interface Props {
   numero: string;
@@ -85,9 +84,20 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(({ numero, destinatario,
         Atenciosamente,
       </p>
 
-      {/* Signature - centered, with signature image */}
+      {/* Digital Signature block - matching official PDF */}
       <div style={{ textAlign: "center", marginTop: "32px" }}>
-        <img src={assinaturaFabao} alt="Assinatura" style={{ height: "64px", objectFit: "contain", margin: "0 auto 8px auto", display: "block" }} />
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+          <span style={{ fontSize: "9pt", fontFamily: "'Courier New', monospace", lineHeight: "1.3" }}>
+            FABIO DIAS QUEIROZ<br />ZAVITOSKI:27500005<br />806
+          </span>
+          <div style={{ border: "1px solid #999", padding: "4px 6px", fontSize: "7pt", fontFamily: "'Courier New', monospace", lineHeight: "1.3", textAlign: "left", color: "#333" }}>
+            Assinado de forma digital<br />
+            por FABIO DIAS QUEIROZ<br />
+            ZAVITOSKI:27500005806<br />
+            Dados: {new Date().toISOString().split("T")[0].replace(/-/g, ".")} {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}<br />
+            -03'00'
+          </div>
+        </div>
         <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "4px" }}>FABÃO</p>
         <p style={{ fontSize: "12pt" }}>Vereador</p>
       </div>
