@@ -203,7 +203,7 @@ async function buildWordBlob(data: {
           // Data - alinhada à direita
           new Paragraph({
             alignment: AlignmentType.RIGHT,
-            spacing: { after: 200, before: 100 },
+            spacing: { after: 400, before: 100 },
             children: [
               new TextRun({ text: formatDate(dataGeracao), font: FONT, size: SIZE }),
             ],
@@ -235,7 +235,7 @@ async function buildWordBlob(data: {
 
           // Saudação (com recuo de parágrafo)
           new Paragraph({
-            spacing: { after: 300 },
+            spacing: { after: 480 },
             indent: { firstLine: FIRST_LINE_INDENT },
             children: [
               new TextRun({ text: `Excelentíssimo(a) Senhor(a) ${(cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")},`, font: FONT, size: SIZE }),
