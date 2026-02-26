@@ -10,9 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, Pencil, Trash2, Download, Search, FileText, FileSpreadsheet } from "lucide-react";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, exportToCSV } from "@/lib/exportOficio";
-import logoCamara from "@/assets/logo-camara.png";
-import logoFabao from "@/assets/logo-fabao.png";
-import assinaturaFabao from "@/assets/assinatura-fabao.png";
+
+
 
 interface OficioRow {
   id: string;
@@ -25,6 +24,7 @@ interface OficioRow {
   secretaria_identificada: string | null;
   tipo_demanda: string | null;
   urgencia: string | null;
+  cargo_destinatario: string | null;
   author_id: string;
   created_at: string;
   updated_at: string;
@@ -146,9 +146,7 @@ export default function MeusOficios() {
                             destinatario: o.destinatario,
                             assunto: o.assunto,
                             conteudo: o.conteudo,
-                            logoCamaraUrl: logoCamara,
-                            logoFabaoUrl: logoFabao,
-                            assinaturaUrl: assinaturaFabao,
+                            cargoDestinatario: o.cargo_destinatario || undefined,
                           });
                         }
                       }}
@@ -183,9 +181,7 @@ export default function MeusOficios() {
                         destinatario: viewOficio.destinatario,
                         assunto: viewOficio.assunto,
                         conteudo: viewOficio.conteudo,
-                        logoCamaraUrl: logoCamara,
-                        logoFabaoUrl: logoFabao,
-                        assinaturaUrl: assinaturaFabao,
+                        cargoDestinatario: viewOficio.cargo_destinatario || undefined,
                       });
                     }
                   }}
