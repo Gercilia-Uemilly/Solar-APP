@@ -231,6 +231,48 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Fetch relevant knowledge base entries for context
+    let knowledgeContext = "";
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const searchTerms = [assunto, bairro, tipo, descricao?.substring(0, 100)].filter(Boolean).join(" ");
+      
+      const kbResp = await fetch(
+        `${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao,orgao,bairro,palavras_chave&order=data_publicacao.desc&limit=5`,
+        { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+      );
+      if (kbResp.ok) {
+        const kbData = await kbResp.json();
+        if (kbData.length > 0) {
+          knowledgeContext = "\n\nCONTEXTO ADICIONAL (notícias recentes do SOS Uberlândia relevantes):\n" +
+            kbData.map((k: any) => `- ${k.titulo}${k.orgao ? ` (Órgão: ${k.orgao})` : ""}${k.bairro ? ` (Bairro: ${k.bairro})` : ""}: ${k.descricao?.substring(0, 150) || ""}`).join("\n");
+        }
+      }
+    } catch (kbErr) {
+      console.error("Knowledge base fetch error (non-fatal):", kbErr);
+    }
+
+    // Fetch existing scripts for reference
+    let scriptsContext = "";
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const scriptsResp = await fetch(
+        `${supabaseUrl}/rest/v1/scripts?select=titulo,conteudo,categoria&limit=5&order=created_at.desc`,
+        { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+      );
+      if (scriptsResp.ok) {
+        const scriptsData = await scriptsResp.json();
+        if (scriptsData.length > 0) {
+          scriptsContext = "\n\nSCRIPTS DE REFERÊNCIA (modelos de ofícios já usados):\n" +
+            scriptsData.map((s: any) => `- ${s.titulo} (${s.categoria}): ${s.conteudo?.substring(0, 200) || ""}`).join("\n");
+        }
+      }
+    } catch (sErr) {
+      console.error("Scripts fetch error (non-fatal):", sErr);
+    }
+
     const userPrompt = `Gere o ofício com base nas seguintes informações:
 
 ASSUNTO: ${assunto || "Não informado"}
@@ -242,13 +284,15 @@ LOCAL: ${local || "Não informado"}
 BAIRRO: ${bairro || "Não informado"}
 PRIORIDADE: ${prioridade || "Normal"}
 DATA: ${new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}
+${knowledgeContext}${scriptsContext}
 
 Com base nessas informações:
 1. Identifique automaticamente a secretaria responsável usando a lista de competências
 2. Determine o nível de urgência
 3. Redija o ofício completo com 4-5 parágrafos seguindo a estrutura obrigatória
 4. Mencione ruas e bairros específicos de Uberlândia quando relevante
-5. Gere uma sugestão de resposta ao cidadão`;
+5. Gere uma sugestão de resposta ao cidadão
+6. Use o contexto das notícias recentes e scripts anteriores para enriquecer o ofício quando pertinente`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

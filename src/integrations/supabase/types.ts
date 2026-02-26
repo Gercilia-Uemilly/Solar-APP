@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      base_conhecimento: {
+        Row: {
+          bairro: string | null
+          categoria: string | null
+          created_at: string
+          data_publicacao: string | null
+          descricao: string | null
+          fonte: string | null
+          id: string
+          link: string | null
+          orgao: string | null
+          palavras_chave: string[] | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          categoria?: string | null
+          created_at?: string
+          data_publicacao?: string | null
+          descricao?: string | null
+          fonte?: string | null
+          id?: string
+          link?: string | null
+          orgao?: string | null
+          palavras_chave?: string[] | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          categoria?: string | null
+          created_at?: string
+          data_publicacao?: string | null
+          descricao?: string | null
+          fonte?: string | null
+          id?: string
+          link?: string | null
+          orgao?: string | null
+          palavras_chave?: string[] | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       oficios: {
         Row: {
           assunto: string
