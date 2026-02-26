@@ -115,7 +115,7 @@ async function buildWordBlob(data: {
                 children: [
                   new ImageRun({
                     data: logoCamaraBuf,
-                    transformation: { width: 180, height: 65 },
+                    transformation: { width: 250, height: 85 },
                     type: "jpg",
                   }),
                 ],
@@ -132,7 +132,7 @@ async function buildWordBlob(data: {
                 children: [
                   new ImageRun({
                     data: logoFabaoBuf,
-                    transformation: { width: 180, height: 65 },
+                    transformation: { width: 200, height: 85 },
                     type: "png",
                   }),
                 ],
@@ -190,7 +190,7 @@ async function buildWordBlob(data: {
           headerTable,
 
           // Espaço após logos
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
+          new Paragraph({ spacing: { after: 80 }, children: [] }),
 
           // Data - alinhada à direita
           new Paragraph({
