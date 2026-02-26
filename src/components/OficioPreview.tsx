@@ -59,7 +59,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           paddingRight: "20mm",
           paddingBottom: "20mm",
           paddingLeft: "30mm",
-          fontFamily: "'Times New Roman', Times, serif",
+          fontFamily: "Arial, Helvetica, sans-serif",
           fontSize: "12pt",
           lineHeight: "1.5",
           color: "#000",
@@ -100,12 +100,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* DESTINATÁRIO */}
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "16px" }}>
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "2px" }}>
           DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
         </p>
 
         {/* ASSUNTO (com bairro integrado) */}
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "20px", textIndent: "1.25cm" }}>
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "20px" }}>
           ASSUNTO: {assuntoFormatado}
         </p>
 
