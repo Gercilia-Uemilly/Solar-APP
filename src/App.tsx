@@ -14,6 +14,7 @@ import MeusOficios from "./pages/MeusOficios";
 import Operadores from "./pages/Operadores";
 import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
+import BancoInformacoes from "./pages/BancoInformacoes";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import { ReactNode } from "react";
@@ -53,6 +54,7 @@ const AppRoutes = () => (
     <Route path="/scripts" element={<ProtectedRoute><AppLayout><ScriptsPage /></AppLayout></ProtectedRoute>} />
     <Route path="/operadores" element={<AdminRoute><AppLayout><Operadores /></AppLayout></AdminRoute>} />
     <Route path="/relatorios" element={<AdminRoute><AppLayout><Relatorios /></AppLayout></AdminRoute>} />
+    <Route path="/banco-informacoes" element={<ProtectedRoute><AppLayout><BancoInformacoes /></AppLayout></ProtectedRoute>} />
     <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
