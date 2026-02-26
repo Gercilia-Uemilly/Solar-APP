@@ -6,6 +6,7 @@ import {
   WidthType, BorderStyle, VerticalAlign,
 } from "docx";
 import { saveAs } from "file-saver";
+import { jsPDF } from "jspdf";
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
 import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
 import assinaturaFabaoSrc from "@/assets/assinatura-fabao.png";
@@ -332,48 +333,171 @@ export async function exportToPDF(data: {
   cargoDestinatario?: string;
   dataGeracao?: string;
 }): Promise<void> {
-  const wordBlob = await buildWordBlob(data);
-  const numero = data.numero || "rascunho";
+  const { numero: num, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, dataGeracao } = data;
+  const numero = num || "rascunho";
 
-  try {
-    const formData = new FormData();
-    formData.append("file", wordBlob, `Oficio_GVF_${numero}.docx`);
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-    const resp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${supabaseKey}`,
-      },
-      body: formData,
+  // Load images as base64
+  const toBase64 = async (src: string): Promise<string> => {
+    const resp = await fetch(src);
+    const blob = await resp.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
     });
+  };
 
-    if (resp.ok) {
-      const pdfBlob = await resp.blob();
-      saveAs(pdfBlob, `Oficio_GVF_${numero}.pdf`);
-      return;
+  const [logoCamaraB64, logoFabaoB64, assinaturaB64] = await Promise.all([
+    toBase64(logoCamaraSrc),
+    toBase64(logoFabaoSrc),
+    toBase64(assinaturaFabaoSrc),
+  ]);
+
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = 210;
+  const marginL = 30;
+  const marginR = 20;
+  const marginT = 30;
+  const contentW = pageW - marginL - marginR;
+  const fontSize = 12;
+  const lineHeight = fontSize * 0.45; // ~5.4mm per line
+  const pageH = 297;
+  const marginB = 20;
+  const maxY = pageH - marginB - 15; // leave room for footer
+
+  let y = marginT;
+
+  const addPageIfNeeded = (needed: number) => {
+    if (y + needed > maxY) {
+      // Footer on current page
+      addFooter(doc);
+      doc.addPage();
+      y = marginT;
+      addPageNumber(doc);
     }
+  };
 
-    const errJson = await resp.json().catch(() => ({}));
-    if (errJson.fallback) {
-      saveAs(wordBlob, `Oficio_GVF_${numero}.docx`);
-      alert(
-        "O servidor de conversão PDF não está configurado.\n\n" +
-        "O arquivo Word foi baixado. Abra-o e use 'Arquivo → Salvar como → PDF' para gerar o PDF."
-      );
-      return;
-    }
+  const addFooter = (d: jsPDF) => {
+    d.setFontSize(8);
+    d.setTextColor(100);
+    d.setDrawColor(200);
+    d.line(marginL, pageH - marginB - 2, pageW - marginR, pageH - marginB - 2);
+    d.text("Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG", pageW / 2, pageH - marginB + 2, { align: "center" });
+    d.setTextColor(0);
+  };
 
-    throw new Error(errJson.error || "Erro na conversão");
-  } catch (e) {
-    saveAs(wordBlob, `Oficio_GVF_${numero}.docx`);
-    alert(
-      "Não foi possível gerar o PDF automaticamente.\n\n" +
-      "O arquivo Word foi baixado. Abra-o e use 'Arquivo → Salvar como → PDF'."
-    );
+  const addPageNumber = (d: jsPDF) => {
+    d.setFontSize(fontSize);
+    d.setTextColor(0);
+    const pg = d.getNumberOfPages();
+    d.text(String(pg), pageW - marginR, 15, { align: "right" });
+  };
+
+  // Page number on first page
+  addPageNumber(doc);
+
+  // Logos
+  try { doc.addImage(logoCamaraB64, "JPEG", marginL, y, 45, 15); } catch {}
+  try { doc.addImage(logoFabaoB64, "PNG", pageW - marginR - 38, y, 38, 15); } catch {}
+  y += 20;
+
+  // Date
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(fontSize);
+  doc.text(formatDate(dataGeracao), pageW - marginR, y, { align: "right" });
+  y += lineHeight * 2.5;
+
+  // Numero
+  const hoje = new Date();
+  const numeroFormatado = numero !== "rascunho"
+    ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
+    : "___";
+  doc.setFont("helvetica", "bold");
+  doc.text(`Ofício GVF n° ${numeroFormatado}`, marginL, y);
+  y += lineHeight * 2.5;
+
+  // Destinatario
+  const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
+  doc.text(`DESTINATÁRIO: ${destinatarioCompleto}`, marginL, y);
+  y += lineHeight * 1.2;
+
+  // Assunto
+  let assuntoFormatado = assunto || "___";
+  const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
+  if (logradouro && numeroEnd && bairroFormatado) {
+    assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} – ${bairroFormatado}`;
+  } else if (logradouro && bairroFormatado) {
+    assuntoFormatado = `${assunto} – ${logradouro} – ${bairroFormatado}`;
+  } else if (bairroFormatado) {
+    assuntoFormatado = `${assunto} – ${bairroFormatado}`;
   }
+  const assuntoLines = doc.splitTextToSize(`ASSUNTO: ${assuntoFormatado}`, contentW);
+  doc.text(assuntoLines, marginL, y);
+  y += assuntoLines.length * lineHeight + lineHeight * 2;
+
+  // Saudação
+  doc.setFont("helvetica", "normal");
+  const cargoSaudacao = (cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "");
+  const saudacao = `Excelentíssimo(a) Senhor(a) ${cargoSaudacao},`;
+  const indentMM = 12.5;
+  doc.text(saudacao, marginL + indentMM, y);
+  y += lineHeight * 2.5;
+
+  // Body paragraphs
+  const paragraphs = conteudo
+    .split("\n")
+    .map(p => p.trim())
+    .filter(Boolean)
+    .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
+
+  for (const para of paragraphs) {
+    const lines = doc.splitTextToSize(para, contentW - indentMM);
+    addPageIfNeeded(lines.length * lineHeight + 3);
+    // First line indented
+    if (lines.length > 0) {
+      doc.text(lines[0], marginL + indentMM, y);
+      y += lineHeight;
+    }
+    // Remaining lines justified left
+    for (let i = 1; i < lines.length; i++) {
+      addPageIfNeeded(lineHeight);
+      doc.text(lines[i], marginL, y);
+      y += lineHeight;
+    }
+    y += 2; // paragraph spacing
+  }
+
+  // Atenciosamente
+  y += lineHeight;
+  addPageIfNeeded(lineHeight * 8);
+  doc.text("Atenciosamente,", marginL + indentMM, y);
+  y += lineHeight * 4;
+
+  // Signature image
+  addPageIfNeeded(35);
+  try {
+    const sigW = 50;
+    const sigH = 18;
+    doc.addImage(assinaturaB64, "PNG", pageW / 2 - sigW / 2, y, sigW, sigH);
+    y += sigH - 2;
+  } catch {}
+
+  // Signature line
+  const lineW = 70;
+  doc.line(pageW / 2 - lineW / 2, y, pageW / 2 + lineW / 2, y);
+  y += 5;
+
+  // Name
+  doc.setFont("helvetica", "bold");
+  doc.text("FABÃO", pageW / 2, y, { align: "center" });
+  y += lineHeight;
+  doc.setFont("helvetica", "normal");
+  doc.text("Vereador", pageW / 2, y, { align: "center" });
+
+  // Footer on last page
+  addFooter(doc);
+
+  doc.save(`Oficio_GVF_${numero}.pdf`);
 }
 
 export function exportToCSV(oficios: Array<{
