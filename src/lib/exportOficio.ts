@@ -198,12 +198,12 @@ async function buildWordBlob(data: {
           headerTable,
 
           // Espaço após logos
-          new Paragraph({ spacing: { after: 80 }, children: [] }),
+          new Paragraph({ spacing: { after: 40 }, children: [] }),
 
           // Data - alinhada à direita
           new Paragraph({
             alignment: AlignmentType.RIGHT,
-            spacing: { after: 400, before: 100 },
+            spacing: { after: 480, before: 100 },
             children: [
               new TextRun({ text: formatDate(dataGeracao), font: FONT, size: SIZE }),
             ],
@@ -211,7 +211,7 @@ async function buildWordBlob(data: {
 
           // Número do ofício
           new Paragraph({
-            spacing: { after: 360 },
+            spacing: { after: 480 },
             children: [
               new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: FONT, size: SIZE, bold: true }),
             ],
@@ -219,7 +219,7 @@ async function buildWordBlob(data: {
 
           // Destinatário
           new Paragraph({
-            spacing: { after: 0 },
+            spacing: { after: 120 },
             children: [
               new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: FONT, size: SIZE, bold: true }),
             ],
@@ -227,7 +227,7 @@ async function buildWordBlob(data: {
 
           // Assunto
           new Paragraph({
-            spacing: { after: 480 },
+            spacing: { after: 600 },
             children: [
               new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: SIZE, bold: true }),
             ],
@@ -235,7 +235,7 @@ async function buildWordBlob(data: {
 
           // Saudação (com recuo de parágrafo)
           new Paragraph({
-            spacing: { after: 480 },
+            spacing: { after: 600 },
             indent: { firstLine: FIRST_LINE_INDENT },
             children: [
               new TextRun({ text: `Excelentíssimo(a) Senhor(a) ${(cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")},`, font: FONT, size: SIZE }),

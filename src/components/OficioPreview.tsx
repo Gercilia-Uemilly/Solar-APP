@@ -73,7 +73,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "14px",
+          marginBottom: "8px",
+          padding: "0 20px",
         }}>
           <img
             src={logoCamara}
@@ -90,27 +91,27 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* DATA - alinhada à direita */}
-        <p style={{ textAlign: "right", marginBottom: "20px", marginTop: "10px" }}>
+        <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px" }}>
           {dataFormatada}
         </p>
 
         {/* NÚMERO */}
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "16px" }}>
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "24px" }}>
           Ofício GVF n° {numeroFormatado}
         </p>
 
         {/* DESTINATÁRIO */}
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "2px" }}>
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "8px" }}>
           DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
         </p>
 
         {/* ASSUNTO (com bairro integrado) */}
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "20px" }}>
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "30px" }}>
           ASSUNTO: {assuntoFormatado}
         </p>
 
         {/* SAUDAÇÃO (com recuo de parágrafo) */}
-        <p style={{ fontSize: "12pt", marginBottom: "16px", textIndent: "1.25cm" }}>
+        <p style={{ fontSize: "12pt", marginBottom: "30px", textIndent: "1.25cm" }}>
           Excelentíssimo(a) Senhor(a) {cargoSaudacao},
         </p>
 
