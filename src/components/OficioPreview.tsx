@@ -24,7 +24,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const paragraphs = conteudo
       .split("\n")
       .map(p => p.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
     const numeroFormatado = numero
       ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
@@ -54,10 +55,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         style={{
           width: "210mm",
           // minHeight removido para evitar página em branco no PDF
-          paddingTop: "11mm",
-          paddingRight: "17mm",
-          paddingBottom: "15mm",
-          paddingLeft: "22mm",
+          paddingTop: "30mm",
+          paddingRight: "20mm",
+          paddingBottom: "20mm",
+          paddingLeft: "30mm",
           fontFamily: "'Times New Roman', Times, serif",
           fontSize: "12pt",
           lineHeight: "1.5",
@@ -131,8 +132,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           Atenciosamente,
         </p>
 
-        {/* ASSINATURA */}
-        <div style={{ marginTop: "60px", textAlign: "center" }}>
+        {/* ASSINATURA com imagem */}
+        <div style={{ marginTop: "40px", textAlign: "center" }}>
+          <img
+            src={assinaturaFabaoImg}
+            alt="Assinatura Fabão"
+            style={{ height: "80px", width: "auto", objectFit: "contain", marginBottom: "-10px" }}
+          />
           <div style={{ width: "280px", borderBottom: "1px solid #000", margin: "0 auto 6px auto" }} />
           <p style={{ fontSize: "12pt", marginBottom: "2px", fontWeight: "bold" }}>FABÃO</p>
           <p style={{ fontSize: "12pt" }}>Vereador</p>
