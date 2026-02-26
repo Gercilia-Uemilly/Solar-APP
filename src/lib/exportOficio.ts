@@ -2,7 +2,8 @@ import {
   Document, Packer, Paragraph, TextRun, ImageRun,
   AlignmentType, Header, Footer, PageNumber, NumberFormat,
   HeadingLevel, TabStopPosition, TabStopType,
-  convertMillimetersToTwip,
+  convertMillimetersToTwip, Table, TableRow, TableCell,
+  WidthType, BorderStyle, VerticalAlign,
 } from "docx";
 import { saveAs } from "file-saver";
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
@@ -87,21 +88,51 @@ async function buildWordBlob(data: {
       })
   );
 
-  // Header with logos side by side using a table-like approach via tabs
-  const headerParagraph = new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 200 },
-    children: [
-      new ImageRun({
-        data: logoCamaraBuf,
-        transformation: { width: 180, height: 65 },
-        type: "jpg",
-      }),
-      new TextRun({ text: "                                                          ", font: FONT, size: SIZE }),
-      new ImageRun({
-        data: logoFabaoBuf,
-        transformation: { width: 180, height: 65 },
-        type: "png",
+  // Header with logos using a Table for reliable side-by-side layout
+  const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+  const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
+
+  const headerTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            borders: noBorders,
+            verticalAlign: VerticalAlign.CENTER,
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.LEFT,
+                children: [
+                  new ImageRun({
+                    data: logoCamaraBuf,
+                    transformation: { width: 180, height: 65 },
+                    type: "jpg",
+                  }),
+                ],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            borders: noBorders,
+            verticalAlign: VerticalAlign.CENTER,
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new ImageRun({
+                    data: logoFabaoBuf,
+                    transformation: { width: 180, height: 65 },
+                    type: "png",
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
       }),
     ],
   });
@@ -122,7 +153,7 @@ async function buildWordBlob(data: {
         },
         headers: {
           default: new Header({
-            children: [headerParagraph],
+            children: [headerTable],
           }),
         },
         footers: {
@@ -136,10 +167,17 @@ async function buildWordBlob(data: {
                   new TextRun({
                     text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
                     font: FONT,
-                    size: 16, // 8pt
+                    size: 16,
                     color: "444444",
                     italics: true,
                   }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({ text: "Pág. ", font: FONT, size: 16, color: "888888" }),
+                  new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 16, color: "888888" }),
                 ],
               }),
             ],
