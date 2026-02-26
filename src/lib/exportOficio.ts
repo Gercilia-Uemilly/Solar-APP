@@ -203,7 +203,7 @@ async function buildWordBlob(data: {
           // Data - alinhada à direita
           new Paragraph({
             alignment: AlignmentType.RIGHT,
-            spacing: { after: 300, before: 100 },
+            spacing: { after: 200, before: 100 },
             children: [
               new TextRun({ text: formatDate(dataGeracao), font: FONT, size: SIZE }),
             ],
@@ -211,7 +211,7 @@ async function buildWordBlob(data: {
 
           // Número do ofício
           new Paragraph({
-            spacing: { after: 240 },
+            spacing: { after: 360 },
             children: [
               new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: FONT, size: SIZE, bold: true }),
             ],
@@ -227,7 +227,7 @@ async function buildWordBlob(data: {
 
           // Assunto
           new Paragraph({
-            spacing: { after: 300 },
+            spacing: { after: 480 },
             children: [
               new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: SIZE, bold: true }),
             ],
@@ -235,7 +235,7 @@ async function buildWordBlob(data: {
 
           // Saudação (com recuo de parágrafo)
           new Paragraph({
-            spacing: { after: 200 },
+            spacing: { after: 300 },
             indent: { firstLine: FIRST_LINE_INDENT },
             children: [
               new TextRun({ text: `Excelentíssimo(a) Senhor(a) ${(cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")},`, font: FONT, size: SIZE }),
