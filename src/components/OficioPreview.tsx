@@ -105,7 +105,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* ASSUNTO (com bairro integrado) */}
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "20px" }}>
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "20px", textIndent: "1.25cm" }}>
           ASSUNTO: {assuntoFormatado}
         </p>
 

@@ -225,9 +225,10 @@ async function buildWordBlob(data: {
             ],
           }),
 
-          // Assunto (com bairro integrado, como no modelo)
+          // Assunto (com bairro integrado, como no modelo, com recuo)
           new Paragraph({
             spacing: { after: 300 },
+            indent: { firstLine: FIRST_LINE_INDENT },
             children: [
               new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: SIZE, bold: true }),
             ],
