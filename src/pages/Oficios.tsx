@@ -11,8 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF } from "@/lib/exportOficio";
-
-
+import logoCamara from "@/assets/logo-camara.png";
+import logoFabao from "@/assets/logo-fabao.png";
+import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
 
 const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido", "Arquivado"];
@@ -350,7 +351,7 @@ export default function Oficios() {
               <button onClick={() => { setViewingOficio(o); setShowPreviewDialog(true); }} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
               <button
                 onClick={() => {
-                  if (o.conteudo) exportToWord({ numero: o.numero || "", destinatario: o.destinatario, assunto: o.assunto, conteudo: o.conteudo, cargoDestinatario: o.cargo_destinatario || undefined });
+                  if (o.conteudo) exportToWord({ numero: o.numero || "", destinatario: o.destinatario, assunto: o.assunto, conteudo: o.conteudo, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, assinaturaUrl: assinaturaFabao });
                 }}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 title="Exportar Word"
@@ -596,7 +597,7 @@ export default function Oficios() {
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
               <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="outline" onClick={() => exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, cargoDestinatario })}>
+                <Button size="sm" variant="outline" onClick={() => exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao })}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => { if (previewRef.current) await exportToPDF(previewRef.current, numero); }}>
@@ -644,7 +645,7 @@ export default function Oficios() {
               <span>{viewingOficio?.assunto || "Ofício"}</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => {
-                  if (viewingOficio?.conteudo) exportToWord({ numero: viewingOficio.numero || "", destinatario: viewingOficio.destinatario, assunto: viewingOficio.assunto, conteudo: viewingOficio.conteudo, cargoDestinatario: viewingOficio.cargo_destinatario || undefined });
+                  if (viewingOficio?.conteudo) exportToWord({ numero: viewingOficio.numero || "", destinatario: viewingOficio.destinatario, assunto: viewingOficio.assunto, conteudo: viewingOficio.conteudo, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, assinaturaUrl: assinaturaFabao });
                 }}><FileText size={14} className="mr-1" /> Word</Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   const el = document.getElementById("oficio-view-preview");

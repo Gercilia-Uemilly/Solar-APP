@@ -1,19 +1,21 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, Header, Footer, ImageRun, BorderStyle, TabStopPosition, TabStopType } from "docx";
+import PizZip from "pizzip";
+import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-import oficioHeaderImg from "@/assets/oficio-header-oficial.png";
+const TEMPLATE_URL = "/templates/modelo_oficio_OFICIAL_PRONTO.docx";
 
-async function loadImageAsBuffer(url: string): Promise<ArrayBuffer> {
-  const resp = await fetch(url);
+async function loadTemplate(): Promise<ArrayBuffer> {
+  const resp = await fetch(TEMPLATE_URL);
+  if (!resp.ok) throw new Error("Falha ao carregar template do ofício");
   return resp.arrayBuffer();
 }
 
 function formatDate(): string {
   const hoje = new Date();
   const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-  return `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
+  return `${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 }
 
 export async function exportToWord(data: {
@@ -21,189 +23,41 @@ export async function exportToWord(data: {
   destinatario: string;
   assunto: string;
   conteudo: string;
-  cargoDestinatario?: string;
   logoCamaraUrl?: string;
   logoFabaoUrl?: string;
+  cargoDestinatario?: string;
   assinaturaUrl?: string;
 }) {
   const { numero, destinatario, assunto, conteudo, cargoDestinatario } = data;
   const hoje = new Date();
   const ano = hoje.getFullYear().toString();
+
+  const templateBuffer = await loadTemplate();
+  const zip = new PizZip(templateBuffer);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+    delimiters: { start: "{{", end: "}}" },
+  });
+
+  // Build destinatario with cargo prefix
   const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
 
-  // Load header image
-  let headerImageBuffer: ArrayBuffer;
-  try {
-    headerImageBuffer = await loadImageAsBuffer(oficioHeaderImg);
-  } catch {
-    headerImageBuffer = new ArrayBuffer(0);
-  }
-
-  // Build body paragraphs from content
-  const bodyParagraphs = conteudo
-    .split("\n")
-    .map(p => p.trim())
-    .filter(Boolean)
-    .map(
-      (text) =>
-        new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: { line: 360, after: 120 },
-          indent: { firstLine: 709 }, // 1.25cm
-          children: [
-            new TextRun({
-              text,
-              font: "Times New Roman",
-              size: 24, // 12pt
-            }),
-          ],
-        })
-    );
-
-  const children: Paragraph[] = [];
-
-  // Header image
-  if (headerImageBuffer.byteLength > 0) {
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
-        children: [
-          new ImageRun({
-            data: headerImageBuffer,
-            transformation: { width: 500, height: 100 },
-            type: "png",
-          }),
-        ],
-      })
-    );
-  }
-
-  // Date - right aligned
-  children.push(
-    new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      spacing: { after: 300 },
-      children: [
-        new TextRun({
-          text: formatDate(),
-          font: "Times New Roman",
-          size: 24,
-        }),
-      ],
-    })
-  );
-
-  // Document number
-  children.push(
-    new Paragraph({
-      spacing: { after: 240 },
-      children: [
-        new TextRun({
-          text: `Ofício GVF n° ${numero || "___"}${!numero?.includes("/") ? `/${ano}` : ""}`,
-          font: "Times New Roman",
-          size: 24,
-          bold: true,
-        }),
-      ],
-    })
-  );
-
-  // Destinatário
-  children.push(
-    new Paragraph({
-      spacing: { after: 60 },
-      children: [
-        new TextRun({
-          text: `DESTINATÁRIO: ${destinatarioCompleto}`,
-          font: "Times New Roman",
-          size: 24,
-          bold: true,
-        }),
-      ],
-    })
-  );
-
-  // Assunto
-  children.push(
-    new Paragraph({
-      spacing: { after: 300 },
-      children: [
-        new TextRun({
-          text: `ASSUNTO: ${assunto || "___"}`,
-          font: "Times New Roman",
-          size: 24,
-          bold: true,
-        }),
-      ],
-    })
-  );
-
-  // Body paragraphs
-  children.push(...bodyParagraphs);
-
-  // Signature block
-  children.push(
-    new Paragraph({ spacing: { before: 600 } }), // spacing
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 0 },
-      children: [
-        new TextRun({ text: "________________________________________", font: "Times New Roman", size: 24 }),
-      ],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 0 },
-      children: [
-        new TextRun({ text: "FABÃO", font: "Times New Roman", size: 24 }),
-      ],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 0 },
-      children: [
-        new TextRun({ text: "Vereador", font: "Times New Roman", size: 24 }),
-      ],
-    })
-  );
-
-  // Footer
-  const footerParagraph = new Paragraph({
-    alignment: AlignmentType.CENTER,
-    children: [
-      new TextRun({
-        text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
-        font: "Times New Roman",
-        size: 16, // 8pt
-        color: "333333",
-      }),
-    ],
+  doc.render({
+    data: formatDate(),
+    numero: numero || "___",
+    ano,
+    destinatario: destinatarioCompleto,
+    assunto: assunto || "___",
+    texto: conteudo || "",
   });
 
-  const doc = new Document({
-    sections: [
-      {
-        properties: {
-          page: {
-            margin: {
-              top: 567,   // ~1cm top (header handles rest)
-              bottom: 567,
-              left: 1701,  // 3cm
-              right: 1134, // 2cm
-            },
-          },
-        },
-        footers: {
-          default: new Footer({ children: [footerParagraph] }),
-        },
-        children,
-      },
-    ],
+  const out = doc.getZip().generate({
+    type: "blob",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
 
-  const blob = await Packer.toBlob(doc);
-  saveAs(blob, `Oficio_GVF_${numero || "rascunho"}.docx`);
+  saveAs(out, `Oficio_GVF_${numero || "rascunho"}.docx`);
 }
 
 export async function exportToPDF(element: HTMLElement, numero: string) {
