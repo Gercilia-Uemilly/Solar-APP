@@ -219,7 +219,7 @@ async function buildWordBlob(data: {
 
           // Destinatário
           new Paragraph({
-            spacing: { after: 0 },
+            spacing: { after: 240 },
             children: [
               new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: FONT, size: SIZE, bold: true }),
             ],
