@@ -55,13 +55,20 @@ async function buildWordBlob(data: {
   const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
 
   let assuntoFormatado = assunto || "___";
-  if (logradouro && numeroEnd) {
-    assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} –`;
-  } else if (logradouro) {
-    assuntoFormatado = `${assunto} – ${logradouro} –`;
-  }
-
   const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
+
+  // Monta a linha do ASSUNTO com logradouro e bairro integrados (como no modelo)
+  if (logradouro && numeroEnd && bairroFormatado) {
+    assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} – ${bairroFormatado}`;
+  } else if (logradouro && bairroFormatado) {
+    assuntoFormatado = `${assunto} – ${logradouro} – ${bairroFormatado}`;
+  } else if (logradouro && numeroEnd) {
+    assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd}`;
+  } else if (logradouro) {
+    assuntoFormatado = `${assunto} – ${logradouro}`;
+  } else if (bairroFormatado) {
+    assuntoFormatado = `${assunto} – ${bairroFormatado}`;
+  }
 
   // Parse body paragraphs
   const paragraphs = conteudo
@@ -210,29 +217,18 @@ async function buildWordBlob(data: {
             ],
           }),
 
-          // Assunto (colado ao destinatário, sem espaço)
+          // Assunto (com bairro integrado, como no modelo)
           new Paragraph({
-            spacing: { after: bairroFormatado ? 0 : 300 },
+            spacing: { after: 300 },
             children: [
               new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: SIZE, bold: true }),
             ],
           }),
 
-          // Bairro (se houver)
-          ...(bairroFormatado
-            ? [
-                new Paragraph({
-                  spacing: { after: 300 },
-                  children: [
-                    new TextRun({ text: bairroFormatado, font: FONT, size: SIZE, bold: true }),
-                  ],
-                }),
-              ]
-            : []),
-
-          // Saudação
+          // Saudação (com recuo de parágrafo)
           new Paragraph({
             spacing: { after: 200 },
+            indent: { firstLine: FIRST_LINE_INDENT },
             children: [
               new TextRun({ text: `Excelentíssimo(a) Senhor(a) ${(cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")},`, font: FONT, size: SIZE }),
             ],
