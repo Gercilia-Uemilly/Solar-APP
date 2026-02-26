@@ -233,8 +233,17 @@ async function buildWordBlob(data: {
           // Corpo do texto
           ...bodyParagraphs,
 
+          // Atenciosamente
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 400, after: 200 },
+            children: [
+              new TextRun({ text: "Atenciosamente,", font: FONT, size: SIZE }),
+            ],
+          }),
+
           // Espaço para assinatura
-          new Paragraph({ spacing: { before: 800 }, children: [] }),
+          new Paragraph({ spacing: { before: 400 }, children: [] }),
 
           // Linha de assinatura
           new Paragraph({
