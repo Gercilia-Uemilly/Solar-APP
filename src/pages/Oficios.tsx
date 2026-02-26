@@ -606,7 +606,7 @@ export default function Oficios() {
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => { if (previewRef.current) await exportToPDF(previewRef.current, numero); }}>
+                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario }); }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
               </div>
@@ -654,8 +654,14 @@ export default function Oficios() {
                   if (viewingOficio?.conteudo) exportToWord({ numero: viewingOficio.numero || "", destinatario: viewingOficio.destinatario, assunto: viewingOficio.assunto, conteudo: viewingOficio.conteudo, bairro: (viewingOficio as any).bairro || "", logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, assinaturaUrl: assinaturaFabao });
                 }}><FileText size={14} className="mr-1" /> Word</Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  const el = document.getElementById("oficio-view-preview");
-                  if (el) await exportToPDF(el, viewingOficio?.numero || "");
+                  if (viewingOficio?.conteudo) await exportToPDF({
+                    numero: viewingOficio.numero || "",
+                    destinatario: viewingOficio.destinatario,
+                    assunto: viewingOficio.assunto,
+                    conteudo: viewingOficio.conteudo,
+                    bairro: (viewingOficio as any).bairro || "",
+                    cargoDestinatario: (viewingOficio as any).cargo_destinatario || "",
+                  });
                 }}><Download size={14} className="mr-1" /> PDF</Button>
               </div>
             </DialogTitle>

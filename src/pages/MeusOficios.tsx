@@ -146,6 +146,7 @@ export default function MeusOficios() {
                             destinatario: o.destinatario,
                             assunto: o.assunto,
                             conteudo: o.conteudo,
+                            bairro: (o as any).bairro || "",
                             logoCamaraUrl: logoCamara,
                             logoFabaoUrl: logoFabao,
                             assinaturaUrl: assinaturaFabao,
@@ -183,6 +184,7 @@ export default function MeusOficios() {
                         destinatario: viewOficio.destinatario,
                         assunto: viewOficio.assunto,
                         conteudo: viewOficio.conteudo,
+                        bairro: (viewOficio as any).bairro || "",
                         logoCamaraUrl: logoCamara,
                         logoFabaoUrl: logoFabao,
                         assinaturaUrl: assinaturaFabao,
@@ -196,8 +198,15 @@ export default function MeusOficios() {
                   size="sm"
                   variant="outline"
                   onClick={async () => {
-                    if (previewRef.current) {
-                      await exportToPDF(previewRef.current, viewOficio?.numero || "");
+                    if (viewOficio?.conteudo) {
+                      await exportToPDF({
+                        numero: viewOficio.numero || "",
+                        destinatario: viewOficio.destinatario,
+                        assunto: viewOficio.assunto,
+                        conteudo: viewOficio.conteudo,
+                        bairro: (viewOficio as any).bairro || "",
+                        cargoDestinatario: (viewOficio as any).cargo_destinatario || "",
+                      });
                     }
                   }}
                 >
