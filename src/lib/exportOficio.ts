@@ -8,6 +8,7 @@ import {
 import { saveAs } from "file-saver";
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
 import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
+import assinaturaFabaoSrc from "@/assets/assinatura-fabao.png";
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -42,9 +43,10 @@ async function buildWordBlob(data: {
   } = data;
 
   // Fetch logo images in parallel
-  const [logoCamaraBuf, logoFabaoBuf] = await Promise.all([
+  const [logoCamaraBuf, logoFabaoBuf, assinaturaBuf] = await Promise.all([
     fetchImageBuffer(logoCamaraSrc),
     fetchImageBuffer(logoFabaoSrc),
+    fetchImageBuffer(assinaturaFabaoSrc),
   ]);
 
   const hoje = new Date();
@@ -70,11 +72,12 @@ async function buildWordBlob(data: {
     assuntoFormatado = `${assunto} – ${bairroFormatado}`;
   }
 
-  // Parse body paragraphs
+  // Parse body paragraphs - remove duplicate saudação if present
   const paragraphs = conteudo
     .split("\n")
     .map(p => p.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
   // Common text style
   const FONT = "Times New Roman";
@@ -150,9 +153,9 @@ async function buildWordBlob(data: {
         properties: {
           page: {
             margin: {
-              top: convertMillimetersToTwip(20),    // 2cm (reduced since logos are in body)
+              top: convertMillimetersToTwip(30),     // 3cm (ABNT)
               bottom: convertMillimetersToTwip(20),  // 2cm
-              left: convertMillimetersToTwip(30),    // 3cm
+              left: convertMillimetersToTwip(30),    // 3cm (ABNT)
               right: convertMillimetersToTwip(20),   // 2cm
             },
             pageNumbers: { start: 1 },
@@ -246,9 +249,18 @@ async function buildWordBlob(data: {
             ],
           }),
 
-          // Espaço para assinatura
-          new Paragraph({ spacing: { before: 600 }, children: [] }),
-          new Paragraph({ spacing: { before: 200 }, children: [] }),
+          // Imagem da assinatura (centralizada, acima da linha)
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 400 },
+            children: [
+              new ImageRun({
+                data: assinaturaBuf,
+                transformation: { width: 220, height: 80 },
+                type: "png",
+              }),
+            ],
+          }),
 
           // Linha de assinatura
           new Paragraph({
