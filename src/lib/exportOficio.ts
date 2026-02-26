@@ -1,6 +1,6 @@
 import {
   Document, Packer, Paragraph, TextRun, ImageRun,
-  AlignmentType, Footer, PageNumber, NumberFormat,
+  AlignmentType, Footer, Header, PageNumber, NumberFormat,
   HeadingLevel, TabStopPosition, TabStopType,
   convertMillimetersToTwip, Table, TableRow, TableCell,
   WidthType, BorderStyle, VerticalAlign,
@@ -161,6 +161,18 @@ async function buildWordBlob(data: {
             pageNumbers: { start: 1 },
           },
         },
+        headers: {
+          default: new Header({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: SIZE, color: "000000" }),
+                ],
+              }),
+            ],
+          }),
+        },
         footers: {
           default: new Footer({
             children: [
@@ -176,13 +188,6 @@ async function buildWordBlob(data: {
                     color: "444444",
                     italics: true,
                   }),
-                ],
-              }),
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new TextRun({ text: "Pág. ", font: FONT, size: 16, color: "888888" }),
-                  new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 16, color: "888888" }),
                 ],
               }),
             ],
