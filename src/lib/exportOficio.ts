@@ -1,8 +1,6 @@
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
 const TEMPLATE_URL = "/templates/modelo_oficio_OFICIAL_PRONTO.docx";
 
@@ -12,26 +10,28 @@ async function loadTemplate(): Promise<ArrayBuffer> {
   return resp.arrayBuffer();
 }
 
-function formatDate(): string {
-  const hoje = new Date();
-  const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-  return `${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
+function formatDate(dateStr?: string): string {
+  const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
+  const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-export async function exportToWord(data: {
+async function buildWordBlob(data: {
   numero: string;
   destinatario: string;
   assunto: string;
   conteudo: string;
   bairro?: string;
-  logoCamaraUrl?: string;
-  logoFabaoUrl?: string;
+  logradouro?: string;
+  numeroEnd?: string;
   cargoDestinatario?: string;
-  assinaturaUrl?: string;
-}) {
-  const { numero, destinatario, assunto, conteudo, bairro, cargoDestinatario } = data;
-  const hoje = new Date();
-  const ano = hoje.getFullYear().toString();
+  dataGeracao?: string;
+}): Promise<Blob> {
+  const {
+    numero, destinatario, assunto, conteudo,
+    bairro, logradouro, numeroEnd,
+    cargoDestinatario, dataGeracao,
+  } = data;
 
   const templateBuffer = await loadTemplate();
   const zip = new PizZip(templateBuffer);
@@ -41,56 +41,118 @@ export async function exportToWord(data: {
     delimiters: { start: "{{", end: "}}" },
   });
 
-  // Destinatário com tratamento (cargo) prefixado
   const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
 
+  // Monta assunto no formato: "Tipo – Logradouro, nº X –"
+  let assuntoFormatado = assunto || "___";
+  if (logradouro && numeroEnd) {
+    assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} –`;
+  } else if (logradouro) {
+    assuntoFormatado = `${assunto} – ${logradouro} –`;
+  }
+
+  // Bairro como "Bairro X" na linha separada
+  const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
+
   doc.render({
-    data: formatDate(),
+    data: formatDate(dataGeracao),
     numero: numero || "___",
-    ano,
     destinatario: destinatarioCompleto,
-    assunto: assunto || "___",
-    bairro: bairro || "___",
+    assunto: assuntoFormatado,
+    bairro: bairroFormatado,
     texto: conteudo || "",
-    conteudo: conteudo || "",
   });
 
-  const out = doc.getZip().generate({
+  return doc.getZip().generate({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
-
-  saveAs(out, `Oficio_GVF_${numero || "rascunho"}.docx`);
 }
 
-export async function exportToPDF(element: HTMLElement, numero: string) {
-  const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-  const imgData = canvas.toDataURL("image/png");
-  const pdf = new jsPDF("p", "mm", "a4");
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+export async function exportToWord(data: {
+  numero: string;
+  destinatario: string;
+  assunto: string;
+  conteudo: string;
+  bairro?: string;
+  logradouro?: string;
+  numeroEnd?: string;
+  logoCamaraUrl?: string;
+  logoFabaoUrl?: string;
+  cargoDestinatario?: string;
+  assinaturaUrl?: string;
+  dataGeracao?: string;
+}): Promise<Blob> {
+  const blob = await buildWordBlob(data);
+  saveAs(blob, `Oficio_GVF_${data.numero || "rascunho"}.docx`);
+  return blob;
+}
 
-  const totalPages = Math.ceil(imgHeight / pageHeight);
-  let position = 0;
+export async function exportToPDF(data: {
+  numero: string;
+  destinatario: string;
+  assunto: string;
+  conteudo: string;
+  bairro?: string;
+  logradouro?: string;
+  numeroEnd?: string;
+  cargoDestinatario?: string;
+  dataGeracao?: string;
+}): Promise<void> {
+  const wordBlob = await buildWordBlob(data);
+  const numero = data.numero || "rascunho";
 
-  for (let page = 1; page <= totalPages; page++) {
-    if (page > 1) {
-      pdf.addPage();
-      position -= pageHeight;
+  try {
+    const formData = new FormData();
+    formData.append("file", wordBlob, `Oficio_GVF_${numero}.docx`);
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const resp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: formData,
+    });
+
+    if (resp.ok) {
+      const pdfBlob = await resp.blob();
+      saveAs(pdfBlob, `Oficio_GVF_${numero}.pdf`);
+      return;
     }
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    pdf.setFont("times", "normal");
-    pdf.setFontSize(8);
-    pdf.setTextColor(51, 51, 51);
-    pdf.text(`Pág. ${page}`, pageWidth / 2, pageHeight - 5, { align: "center" });
-  }
 
-  pdf.save(`Oficio_GVF_${numero || "rascunho"}.pdf`);
+    const errJson = await resp.json().catch(() => ({}));
+    if (errJson.fallback) {
+      // Serviço não configurado — fallback para download do Word
+      saveAs(wordBlob, `Oficio_GVF_${numero}.docx`);
+      alert(
+        "O servidor de conversão PDF não está configurado.\n\n" +
+        "O arquivo Word foi baixado. Abra-o e use 'Arquivo → Salvar como → PDF' para gerar o PDF."
+      );
+      return;
+    }
+
+    throw new Error(errJson.error || "Erro na conversão");
+  } catch (e) {
+    // Fallback final: baixa o Word e instrui o usuário
+    saveAs(wordBlob, `Oficio_GVF_${numero}.docx`);
+    alert(
+      "Não foi possível gerar o PDF automaticamente.\n\n" +
+      "O arquivo Word foi baixado. Abra-o e use 'Arquivo → Salvar como → PDF'."
+    );
+  }
 }
 
-export function exportToCSV(oficios: Array<{ numero?: string; assunto: string; destinatario: string; status: string; created_at: string; profiles?: { full_name?: string } }>) {
+export function exportToCSV(oficios: Array<{
+  numero?: string;
+  assunto: string;
+  destinatario: string;
+  status: string;
+  created_at: string;
+  profiles?: { full_name?: string };
+}>) {
   const header = "Número,Assunto,Destinatário,Status,Data,Autor";
   const rows = oficios.map(o =>
     `"${o.numero || ""}","${o.assunto}","${o.destinatario}","${o.status}","${new Date(o.created_at).toLocaleDateString("pt-BR")}","${o.profiles?.full_name || ""}"`
