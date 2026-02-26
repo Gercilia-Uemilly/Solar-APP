@@ -81,7 +81,7 @@ async function buildWordBlob(data: {
 
   // Common text style
   const FONT = "Arial";
-  const SIZE = 24; // half-points → 12pt
+  const SIZE = 25; // half-points → 12.5pt
   const LINE_SPACING = 360; // 1.5 × 240 = 360
   const FIRST_LINE_INDENT = convertMillimetersToTwip(12.5); // 1.25cm
 
