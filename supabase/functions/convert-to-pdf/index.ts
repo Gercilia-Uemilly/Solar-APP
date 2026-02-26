@@ -3,8 +3,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-info",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+function sanitizeDocxFilename(name?: string): string {
+  const raw = (name || "oficio.docx").trim();
+  const cleaned = raw
+    .replace(/[\\/:*?"<>|]+/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  const withFallback = cleaned || "oficio.docx";
+  return withFallback.toLowerCase().endsWith(".docx")
+    ? withFallback
+    : `${withFallback}.docx`;
+}
 
 // Converte um .docx para PDF usando a API do CloudConvert
 // Alternativa gratuita: usar a API do LibreOffice Online (Collabora) ou CloudConvert
@@ -29,7 +42,7 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      filename = file.name;
+      filename = sanitizeDocxFilename(file.name);
       docxBytes = new Uint8Array(await file.arrayBuffer());
     } else {
       // Recebe o arquivo como body binário
@@ -148,7 +161,8 @@ async function convertWithCloudConvert(
     });
 
     if (!uploadResp.ok) {
-      throw new Error(`CloudConvert upload error: ${uploadResp.status}`);
+      const uploadErr = await uploadResp.text();
+      throw new Error(`CloudConvert upload error: ${uploadResp.status} ${uploadErr}`);
     }
 
     // 3. Aguardar conclusão do job
@@ -165,8 +179,9 @@ async function convertWithCloudConvert(
       }
 
       const status = await statusResp.json();
-      const exportTask = status.data.tasks.find((t: { name: string }) => t.name === "export-file");
-      const convertTask = status.data.tasks.find((t: { name: string; operation?: string }) => t.name === "convert-file" || t.operation === "convert");
+      const tasks = status?.data?.tasks ?? [];
+      const exportTask = tasks.find((t: { name?: string }) => t.name === "export-file");
+      const convertTask = tasks.find((t: { name?: string; operation?: string }) => t.name === "convert-file" || t.operation === "convert");
 
       if (exportTask?.status === "finished") {
         const pdfUrl = exportTask.result.files[0].url;
@@ -177,8 +192,18 @@ async function convertWithCloudConvert(
         return new Uint8Array(await pdfResp.arrayBuffer());
       }
 
-      if (status.data.status === "error") {
+      if (status?.data?.status === "error") {
+        const failedTasks = tasks.filter((t: { status?: string }) => t.status === "error");
+        const failedDetails = failedTasks
+          .map((t: { name?: string; operation?: string; message?: string; code?: string; result?: { error?: string } }) => {
+            const taskName = t.name || t.operation || "task";
+            const taskError = t.message || t.result?.error || t.code || "erro desconhecido";
+            return `${taskName}: ${taskError}`;
+          })
+          .join(" | ");
+
         const detailedMessage =
+          failedDetails ||
           convertTask?.message ||
           convertTask?.result?.error ||
           exportTask?.message ||

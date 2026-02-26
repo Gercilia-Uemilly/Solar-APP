@@ -334,10 +334,16 @@ export async function exportToPDF(data: {
 }): Promise<void> {
   const wordBlob = await buildWordBlob(data);
   const numero = data.numero || "rascunho";
+  const numeroArquivo =
+    numero
+      .replace(/[\\/:*?"<>|]+/g, "_")
+      .replace(/\s+/g, "_")
+      .trim() || "rascunho";
+  const baseFileName = `Oficio_GVF_${numeroArquivo}`;
 
   try {
     const formData = new FormData();
-    formData.append("file", wordBlob, `Oficio_GVF_${numero}.docx`);
+    formData.append("file", wordBlob, `${baseFileName}.docx`);
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -352,13 +358,13 @@ export async function exportToPDF(data: {
 
     if (resp.ok) {
       const pdfBlob = await resp.blob();
-      saveAs(pdfBlob, `Oficio_GVF_${numero}.pdf`);
+      saveAs(pdfBlob, `${baseFileName}.pdf`);
       return;
     }
 
     const errJson = await resp.json().catch(() => ({}));
     if (errJson.fallback) {
-      saveAs(wordBlob, `Oficio_GVF_${numero}.docx`);
+      saveAs(wordBlob, `${baseFileName}.docx`);
       alert(
         "O servidor de conversão PDF não está configurado.\n\n" +
         "O arquivo Word foi baixado. Abra-o e use 'Arquivo → Salvar como → PDF' para gerar o PDF."
@@ -368,7 +374,7 @@ export async function exportToPDF(data: {
 
     throw new Error(errJson.error || "Erro na conversão");
   } catch (e) {
-    saveAs(wordBlob, `Oficio_GVF_${numero}.docx`);
+    saveAs(wordBlob, `${baseFileName}.docx`);
     alert(
       "Não foi possível gerar o PDF automaticamente.\n\n" +
       "O arquivo Word foi baixado. Abra-o e use 'Arquivo → Salvar como → PDF'."
