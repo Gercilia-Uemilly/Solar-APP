@@ -1,20 +1,27 @@
-import PizZip from "pizzip";
-import Docxtemplater from "docxtemplater";
+import {
+  Document, Packer, Paragraph, TextRun, ImageRun,
+  AlignmentType, Header, Footer, PageNumber, NumberFormat,
+  HeadingLevel, TabStopPosition, TabStopType,
+  convertMillimetersToTwip,
+} from "docx";
 import { saveAs } from "file-saver";
+import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
+import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
 
-const TEMPLATE_URL = "/templates/modelo_oficio_OFICIAL_PRONTO.docx";
-
-async function loadTemplate(): Promise<ArrayBuffer> {
-  const resp = await fetch(TEMPLATE_URL);
-  if (!resp.ok) throw new Error("Falha ao carregar template do ofício");
-  return resp.arrayBuffer();
-}
+// ── helpers ──────────────────────────────────────────────
 
 function formatDate(dateStr?: string): string {
   const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
   const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
-  return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
+  return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
+
+async function fetchImageBuffer(src: string): Promise<ArrayBuffer> {
+  const resp = await fetch(src);
+  return resp.arrayBuffer();
+}
+
+// ── build Word blob ──────────────────────────────────────
 
 async function buildWordBlob(data: {
   numero: string;
@@ -33,17 +40,19 @@ async function buildWordBlob(data: {
     cargoDestinatario, dataGeracao,
   } = data;
 
-  const templateBuffer = await loadTemplate();
-  const zip = new PizZip(templateBuffer);
-  const doc = new Docxtemplater(zip, {
-    paragraphLoop: true,
-    linebreaks: true,
-    delimiters: { start: "{{", end: "}}" },
-  });
+  // Fetch logo images in parallel
+  const [logoCamaraBuf, logoFabaoBuf] = await Promise.all([
+    fetchImageBuffer(logoCamaraSrc),
+    fetchImageBuffer(logoFabaoSrc),
+  ]);
+
+  const hoje = new Date();
+  const numeroFormatado = numero
+    ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
+    : "___";
 
   const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
 
-  // Monta assunto no formato: "Tipo – Logradouro, nº X –"
   let assuntoFormatado = assunto || "___";
   if (logradouro && numeroEnd) {
     assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} –`;
@@ -51,23 +60,179 @@ async function buildWordBlob(data: {
     assuntoFormatado = `${assunto} – ${logradouro} –`;
   }
 
-  // Bairro como "Bairro X" na linha separada
   const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
 
-  doc.render({
-    data: formatDate(dataGeracao),
-    numero: numero || "___",
-    destinatario: destinatarioCompleto,
-    assunto: assuntoFormatado,
-    bairro: bairroFormatado,
-    texto: conteudo || "",
+  // Parse body paragraphs
+  const paragraphs = conteudo
+    .split("\n")
+    .map(p => p.trim())
+    .filter(Boolean);
+
+  // Common text style
+  const FONT = "Times New Roman";
+  const SIZE = 24; // half-points → 12pt
+  const LINE_SPACING = 360; // 1.5 × 240 = 360
+  const FIRST_LINE_INDENT = convertMillimetersToTwip(12.5); // 1.25cm
+
+  // Build body paragraphs
+  const bodyParagraphs = paragraphs.map(
+    (text) =>
+      new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { line: LINE_SPACING, after: 120 },
+        indent: { firstLine: FIRST_LINE_INDENT },
+        children: [
+          new TextRun({ text, font: FONT, size: SIZE }),
+        ],
+      })
+  );
+
+  // Header with logos side by side using a table-like approach via tabs
+  const headerParagraph = new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 200 },
+    children: [
+      new ImageRun({
+        data: logoCamaraBuf,
+        transformation: { width: 180, height: 65 },
+        type: "jpg",
+      }),
+      new TextRun({ text: "                                                          ", font: FONT, size: SIZE }),
+      new ImageRun({
+        data: logoFabaoBuf,
+        transformation: { width: 180, height: 65 },
+        type: "png",
+      }),
+    ],
   });
 
-  return doc.getZip().generate({
-    type: "blob",
-    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              top: convertMillimetersToTwip(30),    // 3cm
+              bottom: convertMillimetersToTwip(20),  // 2cm
+              left: convertMillimetersToTwip(30),    // 3cm
+              right: convertMillimetersToTwip(20),   // 2cm
+            },
+            pageNumbers: { start: 1 },
+          },
+        },
+        headers: {
+          default: new Header({
+            children: [headerParagraph],
+          }),
+        },
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 100 },
+                border: { top: { style: "single" as any, size: 1, color: "CCCCCC", space: 4 } },
+                children: [
+                  new TextRun({
+                    text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
+                    font: FONT,
+                    size: 16, // 8pt
+                    color: "444444",
+                    italics: true,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        },
+        children: [
+          // Data - alinhada à direita
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 300, before: 100 },
+            children: [
+              new TextRun({ text: formatDate(dataGeracao), font: FONT, size: SIZE }),
+            ],
+          }),
+
+          // Número do ofício
+          new Paragraph({
+            spacing: { after: 240 },
+            children: [
+              new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: FONT, size: SIZE, bold: true }),
+            ],
+          }),
+
+          // Destinatário
+          new Paragraph({
+            spacing: { after: 80 },
+            children: [
+              new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: FONT, size: SIZE, bold: true }),
+            ],
+          }),
+
+          // Assunto
+          new Paragraph({
+            spacing: { after: bairroFormatado ? 60 : 300 },
+            children: [
+              new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: SIZE, bold: true }),
+            ],
+          }),
+
+          // Bairro (se houver)
+          ...(bairroFormatado
+            ? [
+                new Paragraph({
+                  spacing: { after: 300 },
+                  indent: { left: convertMillimetersToTwip(20) },
+                  children: [
+                    new TextRun({ text: bairroFormatado, font: FONT, size: SIZE, bold: true }),
+                  ],
+                }),
+              ]
+            : []),
+
+          // Corpo do texto
+          ...bodyParagraphs,
+
+          // Espaço para assinatura
+          new Paragraph({ spacing: { before: 800 }, children: [] }),
+
+          // Linha de assinatura
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 80 },
+            border: { bottom: { style: "single" as any, size: 1, color: "000000", space: 1 } },
+            children: [
+              new TextRun({ text: "                                                  ", font: FONT, size: SIZE }),
+            ],
+          }),
+
+          // FABÃO
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 20 },
+            children: [
+              new TextRun({ text: "FABÃO", font: FONT, size: SIZE, bold: true }),
+            ],
+          }),
+
+          // Vereador
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: "Vereador", font: FONT, size: SIZE }),
+            ],
+          }),
+        ],
+      },
+    ],
   });
+
+  return Packer.toBlob(doc);
 }
+
+// ── exports ──────────────────────────────────────────────
 
 export async function exportToWord(data: {
   numero: string;
@@ -125,7 +290,6 @@ export async function exportToPDF(data: {
 
     const errJson = await resp.json().catch(() => ({}));
     if (errJson.fallback) {
-      // Serviço não configurado — fallback para download do Word
       saveAs(wordBlob, `Oficio_GVF_${numero}.docx`);
       alert(
         "O servidor de conversão PDF não está configurado.\n\n" +
@@ -136,7 +300,6 @@ export async function exportToPDF(data: {
 
     throw new Error(errJson.error || "Erro na conversão");
   } catch (e) {
-    // Fallback final: baixa o Word e instrui o usuário
     saveAs(wordBlob, `Oficio_GVF_${numero}.docx`);
     alert(
       "Não foi possível gerar o PDF automaticamente.\n\n" +
