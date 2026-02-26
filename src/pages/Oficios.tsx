@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, ChangeEvent } from "react";
 import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -401,6 +401,7 @@ export default function Oficios() {
         <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground">{editingOficioId ? "Editar Ofício" : "Novo Ofício"}</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Preencha os dados, revise o texto e salve o ofício.</DialogDescription>
           </DialogHeader>
 
           <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
@@ -697,6 +698,7 @@ export default function Oficios() {
                 }}><Download size={14} className="mr-1" /> PDF</Button>
               </div>
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Visualize o conteúdo antes de exportar para Word ou PDF.</DialogDescription>
           </DialogHeader>
           {viewingOficio && (
             <div className="overflow-x-auto">
