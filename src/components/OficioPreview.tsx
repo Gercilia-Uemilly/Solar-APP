@@ -9,12 +9,14 @@ interface Props {
   assunto: string;
   conteudo: string;
   bairro?: string;
+  logradouro?: string;
+  numeroEnd?: string;
   cargoDestinatario?: string;
   operadorNome?: string;
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, cargoDestinatario }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario }, ref) => {
     const hoje = new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
     const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
@@ -27,6 +29,24 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const numeroFormatado = numero
       ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
       : "___";
+
+    // Monta assunto com logradouro e bairro integrados (como no modelo)
+    let assuntoFormatado = assunto || "___";
+    const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
+    if (logradouro && numeroEnd && bairroFormatado) {
+      assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} – ${bairroFormatado}`;
+    } else if (logradouro && bairroFormatado) {
+      assuntoFormatado = `${assunto} – ${logradouro} – ${bairroFormatado}`;
+    } else if (logradouro && numeroEnd) {
+      assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd}`;
+    } else if (logradouro) {
+      assuntoFormatado = `${assunto} – ${logradouro}`;
+    } else if (bairroFormatado) {
+      assuntoFormatado = `${assunto} – ${bairroFormatado}`;
+    }
+
+    // Extrai cargo para saudação
+    const cargoSaudacao = (cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "");
 
     return (
       <div
@@ -83,20 +103,18 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
         </p>
 
-        {/* ASSUNTO */}
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "4px" }}>
-          ASSUNTO: {assunto || "___"}
+        {/* ASSUNTO (com bairro integrado) */}
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "20px" }}>
+          ASSUNTO: {assuntoFormatado}
         </p>
 
-        {/* BAIRRO (linha abaixo do assunto, recuada) */}
-        {bairro && (
-          <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "20px", marginLeft: "80px" }}>
-            {bairro}
-          </p>
-        )}
+        {/* SAUDAÇÃO (com recuo de parágrafo) */}
+        <p style={{ fontSize: "12pt", marginBottom: "16px", textIndent: "1.25cm" }}>
+          Excelentíssimo(a) Senhor(a) {cargoSaudacao},
+        </p>
 
         {/* CORPO */}
-        <div style={{ textAlign: "justify", marginTop: bairro ? "0" : "20px" }}>
+        <div style={{ textAlign: "justify" }}>
           {paragraphs.map((p, i) => (
             <p key={i} style={{
               textIndent: "1.25cm",
@@ -109,8 +127,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           ))}
         </div>
 
-        {/* ATENCIOSAMENTE */}
-        <p style={{ textAlign: "center", marginTop: "40px", fontSize: "12pt" }}>
+        <p style={{ textIndent: "1.25cm", marginTop: "20px", fontSize: "12pt" }}>
           Atenciosamente,
         </p>
 
