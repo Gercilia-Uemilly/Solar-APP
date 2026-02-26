@@ -109,8 +109,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           ))}
         </div>
 
+        {/* ATENCIOSAMENTE */}
+        <p style={{ textAlign: "center", marginTop: "40px", fontSize: "12pt" }}>
+          Atenciosamente,
+        </p>
+
         {/* ASSINATURA */}
-        <div style={{ marginTop: "100px", textAlign: "center" }}>
+        <div style={{ marginTop: "60px", textAlign: "center" }}>
           <div style={{ width: "280px", borderBottom: "1px solid #000", margin: "0 auto 6px auto" }} />
           <p style={{ fontSize: "12pt", marginBottom: "2px", fontWeight: "bold" }}>FABÃO</p>
           <p style={{ fontSize: "12pt" }}>Vereador</p>
