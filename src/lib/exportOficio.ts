@@ -204,15 +204,15 @@ async function buildWordBlob(data: {
 
           // Destinatário
           new Paragraph({
-            spacing: { after: 80 },
+            spacing: { after: 0 },
             children: [
               new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: FONT, size: SIZE, bold: true }),
             ],
           }),
 
-          // Assunto
+          // Assunto (colado ao destinatário, sem espaço)
           new Paragraph({
-            spacing: { after: bairroFormatado ? 60 : 300 },
+            spacing: { after: bairroFormatado ? 0 : 300 },
             children: [
               new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: SIZE, bold: true }),
             ],
@@ -223,7 +223,6 @@ async function buildWordBlob(data: {
             ? [
                 new Paragraph({
                   spacing: { after: 300 },
-                  indent: { left: convertMillimetersToTwip(20) },
                   children: [
                     new TextRun({ text: bairroFormatado, font: FONT, size: SIZE, bold: true }),
                   ],
@@ -231,28 +230,36 @@ async function buildWordBlob(data: {
               ]
             : []),
 
+          // Saudação
+          new Paragraph({
+            spacing: { after: 200 },
+            children: [
+              new TextRun({ text: `Excelentíssimo(a) Senhor(a) ${(cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")},`, font: FONT, size: SIZE }),
+            ],
+          }),
+
           // Corpo do texto
           ...bodyParagraphs,
 
-          // Atenciosamente
+          // Atenciosamente (com recuo, alinhado à esquerda como parágrafo)
           new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 400, after: 200 },
+            spacing: { before: 200, after: 0 },
+            indent: { firstLine: FIRST_LINE_INDENT },
             children: [
               new TextRun({ text: "Atenciosamente,", font: FONT, size: SIZE }),
             ],
           }),
 
           // Espaço para assinatura
-          new Paragraph({ spacing: { before: 400 }, children: [] }),
+          new Paragraph({ spacing: { before: 600 }, children: [] }),
+          new Paragraph({ spacing: { before: 200 }, children: [] }),
 
           // Linha de assinatura
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 80 },
-            border: { bottom: { style: "single" as any, size: 1, color: "000000", space: 1 } },
+            spacing: { after: 40 },
             children: [
-              new TextRun({ text: "                                                  ", font: FONT, size: SIZE }),
+              new TextRun({ text: "___________________________________", font: FONT, size: SIZE }),
             ],
           }),
 
