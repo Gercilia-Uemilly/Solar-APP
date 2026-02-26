@@ -109,14 +109,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           ))}
         </div>
 
-        {/* ASSINATURA MANUSCRITA */}
-        <div style={{ marginTop: "50px", textAlign: "center" }}>
-          <img
-            src={assinaturaFabaoImg}
-            alt="Assinatura Fabão"
-            style={{ height: "80px", width: "auto", objectFit: "contain", marginBottom: "-10px" }}
-            crossOrigin="anonymous"
-          />
+        {/* ASSINATURA */}
+        <div style={{ marginTop: "100px", textAlign: "center" }}>
           <div style={{ width: "280px", borderBottom: "1px solid #000", margin: "0 auto 6px auto" }} />
           <p style={{ fontSize: "12pt", marginBottom: "2px", fontWeight: "bold" }}>FABÃO</p>
           <p style={{ fontSize: "12pt" }}>Vereador</p>
