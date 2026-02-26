@@ -109,45 +109,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           ))}
         </div>
 
-        {/* ASSINATURA DIGITAL */}
-        <div style={{ marginTop: "50px", display: "flex", justifyContent: "center" }}>
-          <div style={{ display: "inline-flex", alignItems: "flex-start", gap: "0" }}>
-            {/* Nome certificado - lado esquerdo */}
-            <div style={{
-              fontSize: "10pt",
-              textAlign: "left",
-              color: "#000",
-              paddingRight: "14px",
-              lineHeight: "1.4",
-              minWidth: "130px",
-            }}>
-              <div>FABIO DIAS</div>
-              <div>ZAVITOSKI:275000</div>
-              <div>05 806</div>
-            </div>
-            {/* Dados digitais - lado direito com borda esquerda */}
-            <div style={{
-              fontSize: "9pt",
-              textAlign: "left",
-              color: "#000",
-              borderLeft: "1px solid #666",
-              paddingLeft: "14px",
-              lineHeight: "1.5",
-              backgroundColor: "#FFD8D8",
-              padding: "4px 10px",
-            }}>
-              <div>Assinado de forma digital</div>
-              <div>por FABIO DIAS QUEIROZ</div>
-              <div>ZAVITOSKI:27500005806</div>
-              <div><em>Dados:</em> {hoje.getFullYear()}.{String(hoje.getMonth()+1).padStart(2,"0")}.{String(hoje.getDate()).padStart(2,"0")} {String(hoje.getHours()).padStart(2,"0")}:{String(hoje.getMinutes()).padStart(2,"0")}:{String(hoje.getSeconds()).padStart(2,"0")}</div>
-              <div>-03'00'</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Linha + FABÃO + Vereador */}
-        <div style={{ textAlign: "center", marginTop: "10px" }}>
-          <div style={{ width: "280px", borderBottom: "1px solid #000", margin: "0 auto 10px auto" }} />
+        {/* ASSINATURA MANUSCRITA */}
+        <div style={{ marginTop: "50px", textAlign: "center" }}>
+          <img
+            src={assinaturaFabaoImg}
+            alt="Assinatura Fabão"
+            style={{ height: "80px", width: "auto", objectFit: "contain", marginBottom: "-10px" }}
+            crossOrigin="anonymous"
+          />
+          <div style={{ width: "280px", borderBottom: "1px solid #000", margin: "0 auto 6px auto" }} />
           <p style={{ fontSize: "12pt", marginBottom: "2px", fontWeight: "bold" }}>FABÃO</p>
           <p style={{ fontSize: "12pt" }}>Vereador</p>
         </div>
