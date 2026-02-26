@@ -33,7 +33,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         ref={ref}
         style={{
           width: "210mm",
-          minHeight: "297mm",
+          // minHeight removido para evitar página em branco no PDF
           paddingTop: "11mm",
           paddingRight: "17mm",
           paddingBottom: "15mm",
@@ -154,15 +154,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* RODAPÉ */}
         <div style={{
-          position: "absolute",
-          bottom: "8mm",
-          left: "22mm",
-          right: "17mm",
+          marginTop: "30px",
           fontSize: "8pt",
           color: "#444",
           textAlign: "center",
           borderTop: "1px solid #ccc",
-          paddingTop: "4px",
+          paddingTop: "6px",
+          paddingBottom: "6px",
         }}>
           Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
         </div>
