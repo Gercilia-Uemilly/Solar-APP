@@ -80,7 +80,7 @@ async function buildWordBlob(data: {
     .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
   // Common text style
-  const FONT = "Times New Roman";
+  const FONT = "Arial";
   const SIZE = 24; // half-points → 12pt
   const LINE_SPACING = 360; // 1.5 × 240 = 360
   const FIRST_LINE_INDENT = convertMillimetersToTwip(12.5); // 1.25cm
@@ -219,16 +219,15 @@ async function buildWordBlob(data: {
 
           // Destinatário
           new Paragraph({
-            spacing: { after: 240 },
+            spacing: { after: 0 },
             children: [
               new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: FONT, size: SIZE, bold: true }),
             ],
           }),
 
-          // Assunto (com bairro integrado, como no modelo, com recuo)
+          // Assunto
           new Paragraph({
             spacing: { after: 300 },
-            indent: { firstLine: FIRST_LINE_INDENT },
             children: [
               new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: SIZE, bold: true }),
             ],
