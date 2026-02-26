@@ -4,7 +4,12 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const Select = SelectPrimitive.Root;
+type SelectProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>;
+
+const Select = React.forwardRef<HTMLButtonElement, SelectProps>(({ children, ...props }, _ref) => (
+  <SelectPrimitive.Root {...props}>{children}</SelectPrimitive.Root>
+));
+Select.displayName = "Select";
 
 const SelectGroup = SelectPrimitive.Group;
 
