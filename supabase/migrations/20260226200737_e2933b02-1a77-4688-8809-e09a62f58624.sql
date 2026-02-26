@@ -1,0 +1,1 @@
+DELETE FROM base_conhecimento WHERE link LIKE '%utm_source=rss%';

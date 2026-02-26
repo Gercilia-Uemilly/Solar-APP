@@ -29,6 +29,7 @@ export default function BancoInformacoes() {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [scraping, setScraping] = useState(false);
   const [search, setSearch] = useState("");
   const [showScriptDialog, setShowScriptDialog] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
@@ -77,6 +78,25 @@ export default function BancoInformacoes() {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleScrapeAll = async () => {
+    setScraping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-knowledge", {
+        body: { action: "scrape_all", limit: 100 },
+      });
+      if (error) throw error;
+      toast({
+        title: "Scraping concluído!",
+        description: `${data.saved} novas notícias importadas de ${data.total} encontradas no site.`,
+      });
+      await fetchEntries();
+    } catch (err: any) {
+      toast({ title: "Erro no scraping", description: err.message, variant: "destructive" });
+    } finally {
+      setScraping(false);
     }
   };
 
@@ -146,10 +166,16 @@ export default function BancoInformacoes() {
           <p className="text-sm text-muted-foreground">{entries.length} entrada(s) · Fonte: SOS Uberlândia</p>
         </div>
         {isAdmin && (
-          <Button onClick={handleImport} disabled={importing} className="bg-primary text-primary-foreground">
-            {importing ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Download size={16} className="mr-1" />}
-            {importing ? "Importando..." : "Importar Últimas Notícias"}
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={handleImport} disabled={importing || scraping} variant="outline">
+              {importing ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Download size={16} className="mr-1" />}
+              {importing ? "Importando..." : "RSS (Últimas)"}
+            </Button>
+            <Button onClick={handleScrapeAll} disabled={importing || scraping} className="bg-primary text-primary-foreground">
+              {scraping ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Download size={16} className="mr-1" />}
+              {scraping ? "Buscando todas..." : "Importar Todas (Site)"}
+            </Button>
+          </div>
         )}
       </div>
 
