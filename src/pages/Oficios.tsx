@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -110,6 +110,9 @@ export default function Oficios() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  // Edit state
+  const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
+
   // Fetch oficios
   const fetchOficios = async () => {
     setLoading(true);
@@ -191,9 +194,29 @@ export default function Oficios() {
     }
   };
 
+  const handleEdit = (o: OficioRow) => {
+    setEditingOficioId(o.id);
+    setNumero(o.numero || "");
+    setDataGeracao(o.data_geracao || new Date().toISOString().split("T")[0]);
+    setAssunto(o.assunto || "");
+    setDestinatario(o.destinatario || "");
+    setCargoDestinatario(o.cargo_destinatario || "");
+    setLocalDemanda(o.local_demanda || "");
+    setBairro(o.bairro || "");
+    setSolicitante(o.solicitante || "");
+    setContatoSolicitante(o.contato_solicitante || "");
+    setEditedOficio(o.conteudo || "");
+    setEditedResposta(o.resposta_cidadao || "");
+    setDescricao("");
+    setPrioridade("Normal");
+    setLinhaTelefonica("");
+    setFormTab("dados");
+    setShowDialog(true);
+  };
+
   const handleCreate = async () => {
     if (!user) return;
-    const { error } = await supabase.from("oficios").insert({
+    const payload = {
       numero: numero || null,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
       destinatario: destinatario || aiResult?.secretaria_identificada || "A definir",
@@ -203,7 +226,6 @@ export default function Oficios() {
       secretaria_identificada: aiResult?.secretaria_identificada || secretaria || null,
       tipo_demanda: aiResult?.tipo_demanda || tipoServico || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
-      author_id: user.id,
       linha_telefonica: linhaTelefonica || null,
       operador_nome: user.user_metadata?.full_name || user.email || null,
       cargo_destinatario: cargoDestinatario || null,
@@ -212,14 +234,22 @@ export default function Oficios() {
       solicitante: solicitante || null,
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
-    });
+    };
+
+    let error;
+    if (editingOficioId) {
+      ({ error } = await supabase.from("oficios").update(payload).eq("id", editingOficioId));
+    } else {
+      ({ error } = await supabase.from("oficios").insert({ ...payload, author_id: user.id }));
+    }
+
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
     }
     await fetchOficios();
     resetForm();
-    toast({ title: "Ofício salvo!" });
+    toast({ title: editingOficioId ? "Ofício atualizado!" : "Ofício salvo!" });
   };
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: "image" | "audio") => {
@@ -267,6 +297,7 @@ export default function Oficios() {
 
   const resetForm = () => {
     setShowDialog(false);
+    setEditingOficioId(null);
     setNumero("");
     setDataGeracao(new Date().toISOString().split("T")[0]);
     setTipoServico("");
@@ -348,6 +379,7 @@ export default function Oficios() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <button onClick={() => handleEdit(o)} className="p-2 text-muted-foreground hover:text-primary" title="Editar"><Pencil size={16} /></button>
               <button onClick={() => { setViewingOficio(o); setShowPreviewDialog(true); }} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
               <button
                 onClick={() => {
@@ -368,7 +400,7 @@ export default function Oficios() {
       <Dialog open={showDialog} onOpenChange={open => { if (!open) resetForm(); else setShowDialog(true); }}>
         <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Novo Ofício</DialogTitle>
+            <DialogTitle className="text-foreground">{editingOficioId ? "Editar Ofício" : "Novo Ofício"}</DialogTitle>
           </DialogHeader>
 
           <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
@@ -636,7 +668,7 @@ export default function Oficios() {
                 )}
               </div>
               <Button onClick={handleCreate} className="w-full bg-primary text-primary-foreground">
-                <CheckCircle2 size={16} className="mr-1" /> Salvar Ofício
+                <CheckCircle2 size={16} className="mr-1" /> {editingOficioId ? "Atualizar Ofício" : "Salvar Ofício"}
               </Button>
             </TabsContent>
           </Tabs>
