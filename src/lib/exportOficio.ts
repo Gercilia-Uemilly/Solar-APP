@@ -1,6 +1,6 @@
 import {
   Document, Packer, Paragraph, TextRun, ImageRun,
-  AlignmentType, Header, Footer, PageNumber, NumberFormat,
+  AlignmentType, Footer, PageNumber, NumberFormat,
   HeadingLevel, TabStopPosition, TabStopType,
   convertMillimetersToTwip, Table, TableRow, TableCell,
   WidthType, BorderStyle, VerticalAlign,
@@ -143,18 +143,13 @@ async function buildWordBlob(data: {
         properties: {
           page: {
             margin: {
-              top: convertMillimetersToTwip(30),    // 3cm
+              top: convertMillimetersToTwip(20),    // 2cm (reduced since logos are in body)
               bottom: convertMillimetersToTwip(20),  // 2cm
               left: convertMillimetersToTwip(30),    // 3cm
               right: convertMillimetersToTwip(20),   // 2cm
             },
             pageNumbers: { start: 1 },
           },
-        },
-        headers: {
-          default: new Header({
-            children: [headerTable],
-          }),
         },
         footers: {
           default: new Footer({
@@ -184,6 +179,12 @@ async function buildWordBlob(data: {
           }),
         },
         children: [
+          // Logos no topo do documento (compatível com Google Docs)
+          headerTable,
+
+          // Espaço após logos
+          new Paragraph({ spacing: { after: 200 }, children: [] }),
+
           // Data - alinhada à direita
           new Paragraph({
             alignment: AlignmentType.RIGHT,
