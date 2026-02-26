@@ -23,12 +23,13 @@ export async function exportToWord(data: {
   destinatario: string;
   assunto: string;
   conteudo: string;
+  bairro?: string;
   logoCamaraUrl?: string;
   logoFabaoUrl?: string;
   cargoDestinatario?: string;
   assinaturaUrl?: string;
 }) {
-  const { numero, destinatario, assunto, conteudo, cargoDestinatario } = data;
+  const { numero, destinatario, assunto, conteudo, bairro, cargoDestinatario } = data;
   const hoje = new Date();
   const ano = hoje.getFullYear().toString();
 
@@ -40,7 +41,7 @@ export async function exportToWord(data: {
     delimiters: { start: "{{", end: "}}" },
   });
 
-  // Build destinatario with cargo prefix
+  // Destinatário com tratamento (cargo) prefixado
   const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
 
   doc.render({
@@ -49,7 +50,9 @@ export async function exportToWord(data: {
     ano,
     destinatario: destinatarioCompleto,
     assunto: assunto || "___",
+    bairro: bairro || "___",
     texto: conteudo || "",
+    conteudo: conteudo || "",
   });
 
   const out = doc.getZip().generate({
@@ -70,7 +73,6 @@ export async function exportToPDF(element: HTMLElement, numero: string) {
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
   const totalPages = Math.ceil(imgHeight / pageHeight);
-  let heightLeft = imgHeight;
   let position = 0;
 
   for (let page = 1; page <= totalPages; page++) {
@@ -83,7 +85,6 @@ export async function exportToPDF(element: HTMLElement, numero: string) {
     pdf.setFontSize(8);
     pdf.setTextColor(51, 51, 51);
     pdf.text(`Pág. ${page}`, pageWidth / 2, pageHeight - 5, { align: "center" });
-    heightLeft -= pageHeight;
   }
 
   pdf.save(`Oficio_GVF_${numero || "rascunho"}.pdf`);
