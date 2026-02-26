@@ -1,6 +1,6 @@
 import { Document, Packer, Paragraph, TextRun, AlignmentType, Header, Footer, ImageRun, BorderStyle, TabStopPosition, TabStopType } from "docx";
 import { saveAs } from "file-saver";
-
+import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 import oficioHeaderImg from "@/assets/oficio-header-oficial.png";
@@ -206,119 +206,33 @@ export async function exportToWord(data: {
   saveAs(blob, `Oficio_GVF_${numero || "rascunho"}.docx`);
 }
 
-export async function exportToPDF(data: {
-  numero: string;
-  destinatario: string;
-  assunto: string;
-  conteudo: string;
-  cargoDestinatario?: string;
-}) {
-  const { numero, destinatario, assunto, conteudo, cargoDestinatario } = data;
-  const hoje = new Date();
-  const ano = hoje.getFullYear().toString();
-  const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
-
+export async function exportToPDF(element: HTMLElement, numero: string) {
+  const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+  const imgData = canvas.toDataURL("image/png");
   const pdf = new jsPDF("p", "mm", "a4");
-  const pageWidth = pdf.internal.pageSize.getWidth(); // 210
-  const pageHeight = pdf.internal.pageSize.getHeight(); // 297
-  const marginLeft = 30; // 3cm
-  const marginRight = 20; // 2cm
-  const contentWidth = pageWidth - marginLeft - marginRight;
-  let y = 10; // start position
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  // Header image
-  try {
-    const resp = await fetch(oficioHeaderImg);
-    const blob = await resp.blob();
-    const imgUrl = await new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
-    const imgW = 160;
-    const imgH = 32;
-    const imgX = (pageWidth - imgW) / 2;
-    pdf.addImage(imgUrl, "PNG", imgX, y, imgW, imgH);
-    y += imgH + 8;
-  } catch {
-    y += 15;
-  }
+  const totalPages = Math.ceil(imgHeight / pageHeight);
+  let heightLeft = imgHeight;
+  let position = 0;
 
-  // Helper: add text with word wrap and page break
-  const addText = (text: string, options: {
-    x?: number; fontSize?: number; bold?: boolean; align?: "left" | "center" | "right" | "justify";
-    indent?: number; lineHeight?: number; maxWidth?: number;
-  } = {}) => {
-    const { x = marginLeft, fontSize = 12, bold = false, align = "left", indent = 0, lineHeight = 7, maxWidth = contentWidth } = options;
-    pdf.setFont("times", bold ? "bold" : "normal");
-    pdf.setFontSize(fontSize);
-    const effectiveWidth = maxWidth - indent;
-    const lines = pdf.splitTextToSize(text, effectiveWidth);
-    for (let i = 0; i < lines.length; i++) {
-      if (y + lineHeight > pageHeight - 20) {
-        // Footer before page break
-        addFooter(pdf, pageWidth, pageHeight);
-        pdf.addPage();
-        y = 20;
-      }
-      const lineX = i === 0 ? x + indent : x;
-      if (align === "right") {
-        pdf.text(lines[i], pageWidth - marginRight, y, { align: "right" });
-      } else if (align === "center") {
-        pdf.text(lines[i], pageWidth / 2, y, { align: "center" });
-      } else {
-        pdf.text(lines[i], lineX, y);
-      }
-      y += lineHeight;
+  for (let page = 1; page <= totalPages; page++) {
+    if (page > 1) {
+      pdf.addPage();
+      position -= pageHeight;
     }
-  };
-
-  // Date
-  addText(formatDate(), { align: "right" });
-  y += 4;
-
-  // Ofício number
-  addText(`Ofício GVF n° ${numero || "___"}${!numero?.includes("/") ? `/${ano}` : ""}`, { bold: true });
-  y += 3;
-
-  // Destinatário
-  addText(`DESTINATÁRIO: ${destinatarioCompleto}`, { bold: true });
-  y += 1;
-
-  // Assunto
-  addText(`ASSUNTO: ${assunto || "___"}`, { bold: true });
-  y += 6;
-
-  // Body paragraphs
-  const paragraphs = conteudo.split("\n").map(p => p.trim()).filter(Boolean);
-  for (const para of paragraphs) {
-    addText(para, { indent: 12.5, lineHeight: 7 }); // 1.25cm indent
-    y += 2;
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    pdf.setFont("times", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(51, 51, 51);
+    pdf.text(`Pág. ${page}`, pageWidth / 2, pageHeight - 5, { align: "center" });
+    heightLeft -= pageHeight;
   }
-
-  // Signature block
-  y += 12;
-  addText("________________________________________", { align: "center" });
-  addText("FABÃO", { align: "center" });
-  addText("Vereador", { align: "center" });
-
-  // Footer on last page
-  addFooter(pdf, pageWidth, pageHeight);
 
   pdf.save(`Oficio_GVF_${numero || "rascunho"}.pdf`);
-}
-
-function addFooter(pdf: jsPDF, pageWidth: number, pageHeight: number) {
-  pdf.setFont("times", "normal");
-  pdf.setFontSize(8);
-  pdf.setTextColor(51, 51, 51);
-  pdf.text(
-    "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
-    pageWidth / 2,
-    pageHeight - 8,
-    { align: "center" }
-  );
-  pdf.setTextColor(0, 0, 0);
 }
 
 export function exportToCSV(oficios: Array<{ numero?: string; assunto: string; destinatario: string; status: string; created_at: string; profiles?: { full_name?: string } }>) {

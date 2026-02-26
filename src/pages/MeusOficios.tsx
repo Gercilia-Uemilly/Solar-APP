@@ -192,14 +192,8 @@ export default function MeusOficios() {
                   size="sm"
                   variant="outline"
                   onClick={async () => {
-                    if (viewOficio?.conteudo) {
-                      await exportToPDF({
-                        numero: viewOficio.numero || "",
-                        destinatario: viewOficio.destinatario,
-                        assunto: viewOficio.assunto,
-                        conteudo: viewOficio.conteudo,
-                        cargoDestinatario: viewOficio.cargo_destinatario || undefined,
-                      });
+                    if (previewRef.current) {
+                      await exportToPDF(previewRef.current, viewOficio?.numero || "");
                     }
                   }}
                 >
