@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useRef } from "react";
+import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabaoImg from "@/assets/assinatura-fabao.png";
@@ -20,10 +20,68 @@ interface Props {
   onContentChange?: (newContent: string) => void;
 }
 
+function EditableBody({ conteudo, fmt, bodyStyle, onContentChange }: {
+  conteudo: string;
+  fmt: FormatOptions;
+  bodyStyle: React.CSSProperties;
+  onContentChange?: (newContent: string) => void;
+}) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const isUserEditing = useRef(false);
+
+  // Build HTML from conteudo
+  const buildHtml = (text: string) => {
+    const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
+      .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
+    return paras.map(p =>
+      `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:${fmt.fontSize}pt;line-height:${fmt.lineSpacing}">${p}</p>`
+    ).join("");
+  };
+
+  // Set initial content and update only when conteudo changes externally
+  useEffect(() => {
+    if (divRef.current && !isUserEditing.current) {
+      divRef.current.innerHTML = buildHtml(conteudo);
+    }
+  }, [conteudo]);
+
+  const syncContent = () => {
+    if (divRef.current && onContentChange) {
+      const paragraphs = Array.from(divRef.current.querySelectorAll("p"))
+        .map(p => p.textContent?.trim() || "");
+      // Also get any raw text nodes
+      const text = paragraphs.filter(Boolean).join("\n") || divRef.current.innerText?.trim() || "";
+      isUserEditing.current = true;
+      onContentChange(text);
+      // Reset flag after React re-render cycle
+      requestAnimationFrame(() => { isUserEditing.current = false; });
+    }
+  };
+
+  return (
+    <div
+      ref={divRef}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={syncContent}
+      onFocus={() => { isUserEditing.current = true; }}
+      onBlur={() => {
+        syncContent();
+        isUserEditing.current = false;
+      }}
+      style={{
+        textAlign: fmt.textAlign,
+        cursor: "text",
+        outline: "none",
+        minHeight: "50px",
+        ...bodyStyle,
+      }}
+    />
+  );
+}
+
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, formatOptions, editable, onContentChange }, ref) => {
-    const bodyRef = useRef<HTMLDivElement>(null);
-    
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -110,33 +168,28 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* CORPO */}
-        <div
-          ref={bodyRef}
-          style={{ textAlign: fmt.textAlign, cursor: editable ? "text" : undefined, outline: "none" }}
-          contentEditable={editable}
-          suppressContentEditableWarning
-          onBlur={() => {
-            if (editable && onContentChange && bodyRef.current) {
-              const paragraphs = Array.from(bodyRef.current.querySelectorAll("p"))
-                .map(p => p.textContent?.trim() || "")
-                .filter(Boolean);
-              onContentChange(paragraphs.join("\n"));
-            }
-          }}
-        >
-          {paragraphs.map((p, i) => (
-            <p key={i} style={{
-              textIndent: "1.25cm",
-              marginBottom: "10px",
-              fontSize: `${fmt.fontSize}pt`,
-              lineHeight: String(fmt.lineSpacing),
-              ...bodyStyle,
-              outline: "none",
-            }}>
-              {p}
-            </p>
-          ))}
-        </div>
+        {editable ? (
+          <EditableBody
+            conteudo={conteudo}
+            fmt={fmt}
+            bodyStyle={bodyStyle}
+            onContentChange={onContentChange}
+          />
+        ) : (
+          <div style={{ textAlign: fmt.textAlign }}>
+            {paragraphs.map((p, i) => (
+              <p key={i} style={{
+                textIndent: "1.25cm",
+                marginBottom: "10px",
+                fontSize: `${fmt.fontSize}pt`,
+                lineHeight: String(fmt.lineSpacing),
+                ...bodyStyle,
+              }}>
+                {p}
+              </p>
+            ))}
+          </div>
+        )}
 
         <p style={{ textIndent: "1.25cm", marginTop: "20px", fontSize: `${fmt.fontSize}pt` }}>
           Atenciosamente,
