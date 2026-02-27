@@ -9,6 +9,8 @@ import { saveAs } from "file-saver";
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
 import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
 import assinaturaFabaoSrc from "@/assets/assinatura-fabao.png";
+import type { FormatOptions } from "@/components/PreviewFormatToolbar";
+import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -35,6 +37,7 @@ async function buildWordBlob(data: {
   numeroEnd?: string;
   cargoDestinatario?: string;
   dataGeracao?: string;
+  formatOptions?: FormatOptions;
 }): Promise<Blob> {
   const {
     numero, destinatario, assunto, conteudo,
@@ -79,21 +82,29 @@ async function buildWordBlob(data: {
     .filter(Boolean)
     .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
-  // Common text style
-  const FONT = "Arial";
-  const SIZE = 25; // half-points → 12.5pt
-  const LINE_SPACING = 360; // 1.5 × 240 = 360
-  const FIRST_LINE_INDENT = convertMillimetersToTwip(12.5); // 1.25cm
+  // Format options
+  const fmt = data.formatOptions || defaultFormatOptions;
+  const FONT = fmt.fontFamily;
+  const SIZE = Math.round(fmt.fontSize * 2); // half-points
+  const LINE_SPACING = Math.round(fmt.lineSpacing * 240);
+  const FIRST_LINE_INDENT = convertMillimetersToTwip(12.5);
+
+  const alignMap = {
+    left: AlignmentType.LEFT,
+    center: AlignmentType.CENTER,
+    justify: AlignmentType.JUSTIFIED,
+  };
+  const bodyAlignment = alignMap[fmt.textAlign] || AlignmentType.JUSTIFIED;
 
   // Build body paragraphs
   const bodyParagraphs = paragraphs.map(
     (text) =>
       new Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
+        alignment: bodyAlignment,
         spacing: { line: LINE_SPACING, after: 120 },
         indent: { firstLine: FIRST_LINE_INDENT },
         children: [
-          new TextRun({ text, font: FONT, size: SIZE }),
+          new TextRun({ text, font: FONT, size: SIZE, bold: fmt.bold, italics: fmt.italic, underline: fmt.underline ? {} : undefined }),
         ],
       })
   );
@@ -261,7 +272,7 @@ async function buildWordBlob(data: {
             children: [
               new ImageRun({
                 data: assinaturaBuf,
-                transformation: { width: 350, height: 130 },
+                transformation: { width: Math.round(fmt.signatureHeight * 2.5), height: fmt.signatureHeight },
                 type: "png",
               }),
             ],
@@ -315,6 +326,7 @@ export async function exportToWord(data: {
   cargoDestinatario?: string;
   assinaturaUrl?: string;
   dataGeracao?: string;
+  formatOptions?: FormatOptions;
 }): Promise<Blob> {
   const blob = await buildWordBlob(data);
   saveAs(blob, `Oficio_GVF_${data.numero || "rascunho"}.docx`);
@@ -331,6 +343,7 @@ export async function exportToPDF(data: {
   numeroEnd?: string;
   cargoDestinatario?: string;
   dataGeracao?: string;
+  formatOptions?: FormatOptions;
 }): Promise<void> {
   const wordBlob = await buildWordBlob(data);
   const numero = data.numero || "rascunho";

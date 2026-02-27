@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, ChangeEvent } from "react";
 import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload } from "lucide-react";
+import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,7 @@ export default function Oficios() {
 
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
+  const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
 
   // Fetch oficios
   const fetchOficios = async () => {
@@ -736,22 +738,23 @@ export default function Oficios() {
 
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
+              <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
               <div className="flex gap-2 justify-end">
                 <Button size="sm" variant="outline" onClick={() => {
                   if (!destinatario || !assunto || !editedOficio) {
                     alert("Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.");
                     return;
                   }
-                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao });
+                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao, formatOptions });
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario }); }}>
+                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario, formatOptions }); }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg">
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={user?.user_metadata?.full_name || user?.email || undefined} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={user?.user_metadata?.full_name || user?.email || undefined} formatOptions={formatOptions} />
               </div>
             </TabsContent>
 
