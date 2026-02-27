@@ -112,7 +112,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* SAUDAÇÃO (com recuo de parágrafo) */}
         <p style={{ fontSize: "12pt", marginBottom: "30px", textIndent: "1.25cm" }}>
-          Excelentíssimo(a) Senhor(a) {cargoSaudacao},
+          Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,
         </p>
 
         {/* CORPO */}

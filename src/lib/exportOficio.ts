@@ -238,7 +238,7 @@ async function buildWordBlob(data: {
             spacing: { after: 600 },
             indent: { firstLine: FIRST_LINE_INDENT },
             children: [
-              new TextRun({ text: `Excelentíssimo(a) Senhor(a) ${(cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")},`, font: FONT, size: SIZE }),
+              new TextRun({ text: `Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,`, font: FONT, size: SIZE }),
             ],
           }),
 
