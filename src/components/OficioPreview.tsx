@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
-import assinaturaFabaoImg from "@/assets/assinatura-fabao.png";
+import assinaturaFabaoImg from "@/assets/assinatura-fabao-clean.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
 
@@ -204,9 +204,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               height: `${fmt.signatureHeight}px`,
               width: "auto",
               objectFit: "contain",
-              marginBottom: "-10px",
+              marginBottom: "4px",
               display: "inline-block",
-              filter: "contrast(1.3) saturate(1.4)",
             }}
           />
           <div style={{ width: "300px", borderBottom: "1px solid #000", margin: "0 auto 8px auto" }} />
