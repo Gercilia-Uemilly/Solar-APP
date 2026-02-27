@@ -753,7 +753,7 @@ export default function Oficios() {
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
               </div>
-              <div className="overflow-x-auto border border-border rounded-lg">
+              <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
                 <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={user?.user_metadata?.full_name || user?.email || undefined} formatOptions={formatOptions} editable onContentChange={setEditedOficio} />
               </div>
             </TabsContent>
@@ -788,7 +788,7 @@ export default function Oficios() {
 
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="bg-card border-border max-w-[900px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center justify-between">
               <span>{viewingOficio?.assunto || "Ofício"}</span>
@@ -814,8 +814,8 @@ export default function Oficios() {
             <DialogDescription className="text-xs text-muted-foreground">Visualize o conteúdo antes de exportar para Word ou PDF.</DialogDescription>
           </DialogHeader>
           {viewingOficio && (
-            <div className="overflow-x-auto">
-              <div id="oficio-view-preview">
+            <div className="flex justify-center">
+              <div id="oficio-view-preview" className="shadow-lg">
                 <OficioPreview numero={viewingOficio.numero || ""} destinatario={viewingOficio.destinatario} assunto={viewingOficio.assunto} conteudo={viewingOficio.conteudo || ""} />
               </div>
             </div>
