@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -331,6 +331,105 @@ export default function Oficios() {
     toast({ title: `${label} copiado!` });
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUploadToDrive = async (oficio: OficioRow) => {
+    if (!oficio.conteudo) {
+      toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de enviar.", variant: "destructive" });
+      return;
+    }
+    setIsUploading(true);
+    try {
+      // 1. Generate Word blob
+      const wordBlob = await exportToWord({
+        numero: oficio.numero || "",
+        destinatario: oficio.destinatario,
+        assunto: oficio.assunto,
+        conteudo: oficio.conteudo,
+        bairro: oficio.bairro || "",
+        cargoDestinatario: oficio.cargo_destinatario || "",
+        logoCamaraUrl: logoCamara,
+        logoFabaoUrl: logoFabao,
+        assinaturaUrl: assinaturaFabao,
+      });
+
+      // 2. Convert to PDF via edge function
+      const formDataPdf = new FormData();
+      const numeroArquivo = (oficio.numero || "rascunho").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_");
+      const baseFileName = `Oficio_GVF_${numeroArquivo}`;
+      formDataPdf.append("file", wordBlob, `${baseFileName}.docx`);
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const pdfResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${supabaseKey}` },
+        body: formDataPdf,
+      });
+
+      let uploadBlob: Blob;
+      let uploadFileName: string;
+      let uploadMimeType: string;
+
+      if (pdfResp.ok) {
+        uploadBlob = await pdfResp.blob();
+        uploadFileName = `${baseFileName}.pdf`;
+        uploadMimeType = "application/pdf";
+      } else {
+        // Fallback: upload Word
+        uploadBlob = wordBlob;
+        uploadFileName = `${baseFileName}.docx`;
+        uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      }
+
+      // 3. Upload to Drive + register in Sheets
+      const driveFormData = new FormData();
+      driveFormData.append("file", uploadBlob, uploadFileName);
+      driveFormData.append("metadata", JSON.stringify({
+        numero: oficio.numero || "",
+        assunto: oficio.assunto,
+        destinatario: oficio.destinatario,
+        secretaria: (oficio as any).secretaria_identificada || "",
+        bairro: oficio.bairro || "",
+        solicitante: oficio.solicitante || "",
+        contato_solicitante: oficio.contato_solicitante || "",
+        tipo_demanda: (oficio as any).tipo_demanda || "",
+        urgencia: (oficio as any).urgencia || "",
+        operador: (oficio as any).operador_nome || user?.user_metadata?.full_name || user?.email || "",
+        status: oficio.status,
+      }));
+
+      const driveResp = await fetch(`${supabaseUrl}/functions/v1/upload-to-drive`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${supabaseKey}` },
+        body: driveFormData,
+      });
+
+      if (!driveResp.ok) {
+        const err = await driveResp.json().catch(() => ({}));
+        throw new Error(err.error || "Erro ao enviar para o Drive");
+      }
+
+      const driveResult = await driveResp.json();
+
+      // 4. Update oficio with drive link
+      if (driveResult.driveLink) {
+        await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink }).eq("id", oficio.id);
+        await fetchOficios();
+      }
+
+      toast({
+        title: "✅ Enviado ao Drive!",
+        description: "Arquivo enviado e registrado na planilha.",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -389,6 +488,14 @@ export default function Oficios() {
                 title="Exportar Word"
               >
                 <FileText size={16} />
+              </button>
+              <button
+                onClick={() => handleUploadToDrive(o)}
+                disabled={isUploading}
+                className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50"
+                title="Enviar ao Drive + Planilha"
+              >
+                {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
               </button>
               <button onClick={() => handleDelete(o.id)} className="p-2 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
             </div>
@@ -696,6 +803,9 @@ export default function Oficios() {
                     cargoDestinatario: (viewingOficio as any).cargo_destinatario || "",
                   });
                 }}><Download size={14} className="mr-1" /> PDF</Button>
+                <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
+                  {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
+                </Button>
               </div>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">Visualize o conteúdo antes de exportar para Word ou PDF.</DialogDescription>
