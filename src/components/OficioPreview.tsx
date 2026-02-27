@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useCallback, useRef } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabaoImg from "@/assets/assinatura-fabao.png";
@@ -16,10 +16,14 @@ interface Props {
   cargoDestinatario?: string;
   operadorNome?: string;
   formatOptions?: FormatOptions;
+  editable?: boolean;
+  onContentChange?: (newContent: string) => void;
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, formatOptions }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, formatOptions, editable, onContentChange }, ref) => {
+    const bodyRef = useRef<HTMLDivElement>(null);
+    
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -106,7 +110,20 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* CORPO */}
-        <div style={{ textAlign: fmt.textAlign }}>
+        <div
+          ref={bodyRef}
+          style={{ textAlign: fmt.textAlign, cursor: editable ? "text" : undefined, outline: "none" }}
+          contentEditable={editable}
+          suppressContentEditableWarning
+          onBlur={() => {
+            if (editable && onContentChange && bodyRef.current) {
+              const paragraphs = Array.from(bodyRef.current.querySelectorAll("p"))
+                .map(p => p.textContent?.trim() || "")
+                .filter(Boolean);
+              onContentChange(paragraphs.join("\n"));
+            }
+          }}
+        >
           {paragraphs.map((p, i) => (
             <p key={i} style={{
               textIndent: "1.25cm",
@@ -114,6 +131,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               fontSize: `${fmt.fontSize}pt`,
               lineHeight: String(fmt.lineSpacing),
               ...bodyStyle,
+              outline: "none",
             }}>
               {p}
             </p>
