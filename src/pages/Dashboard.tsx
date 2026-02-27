@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, MapPin, UserCheck } from "lucide-react";
+import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, TrendingDown, Minus, MapPin, UserCheck, Trophy } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,9 +45,16 @@ export default function Dashboard() {
     const now = new Date();
     const mesAtual = now.getMonth();
     const anoAtual = now.getFullYear();
+    const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1;
+    const anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+
     const doMes = oficios.filter(o => {
       const d = new Date(o.created_at);
       return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+    });
+    const doMesAnterior = oficios.filter(o => {
+      const d = new Date(o.created_at);
+      return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
     });
 
     const total = oficios.length;
@@ -66,7 +73,7 @@ export default function Dashboard() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    // por bairro
+    // por bairro (chart)
     const bairroMap: Record<string, number> = {};
     doMes.forEach(o => {
       const b = o.bairro || "Não informado";
@@ -77,6 +84,22 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 8);
 
+    // ranking top 5 bairros com tendência
+    const bairroMapAnterior: Record<string, number> = {};
+    doMesAnterior.forEach(o => {
+      const b = o.bairro || "Não informado";
+      bairroMapAnterior[b] = (bairroMapAnterior[b] || 0) + 1;
+    });
+    const rankingBairros = Object.entries(bairroMap)
+      .map(([name, value]) => {
+        const anterior = bairroMapAnterior[name] || 0;
+        const diff = value - anterior;
+        const trend: "up" | "down" | "stable" = diff > 0 ? "up" : diff < 0 ? "down" : "stable";
+        return { name, value, anterior, diff, trend };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+
     // por status (pie)
     const statusMap: Record<string, number> = {};
     oficios.forEach(o => {
@@ -85,7 +108,7 @@ export default function Dashboard() {
     const porStatus = Object.entries(statusMap)
       .map(([name, value]) => ({ name, value }));
 
-    return { total, totalMes, rascunhos, gerados, enviados, porOperador, porBairro, porStatus };
+    return { total, totalMes, rascunhos, gerados, enviados, porOperador, porBairro, porStatus, rankingBairros };
   }, [oficios]);
 
   const statCards = [
@@ -199,6 +222,67 @@ export default function Dashboard() {
           )}
         </motion.div>
       </div>
+
+      {/* Ranking Top 5 Bairros */}
+      <motion.div
+        className="bg-card/60 backdrop-blur-md rounded-2xl p-5 border border-border"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.32 }}
+      >
+        <h2 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+          <Trophy size={16} className="text-primary" />
+          Top 5 Bairros com Mais Demandas (mês)
+        </h2>
+        {stats.rankingBairros.length > 0 ? (
+          <div className="space-y-3">
+            {stats.rankingBairros.map((b, i) => {
+              const maxVal = stats.rankingBairros[0]?.value || 1;
+              const pct = Math.round((b.value / maxVal) * 100);
+              const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`;
+              return (
+                <div key={b.name} className="flex items-center gap-3">
+                  <span className="text-sm w-6 text-center">{medal}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-foreground truncate">{b.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-foreground">{b.value}</span>
+                        {b.trend === "up" && (
+                          <span className="flex items-center gap-0.5 text-xs text-emerald-500 font-medium">
+                            <TrendingUp size={12} /> +{b.diff}
+                          </span>
+                        )}
+                        {b.trend === "down" && (
+                          <span className="flex items-center gap-0.5 text-xs text-red-500 font-medium">
+                            <TrendingDown size={12} /> {b.diff}
+                          </span>
+                        )}
+                        {b.trend === "stable" && (
+                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                            <Minus size={12} /> 0
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full bg-primary"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.6, delay: i * 0.1 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <p className="text-xs text-muted-foreground mt-2">Tendência comparada ao mês anterior</p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-10">Nenhum dado de bairro neste mês</p>
+        )}
+      </motion.div>
 
       {/* Status Pie + Quick Links */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
