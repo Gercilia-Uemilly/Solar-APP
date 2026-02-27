@@ -261,7 +261,7 @@ async function buildWordBlob(data: {
             children: [
               new ImageRun({
                 data: assinaturaBuf,
-                transformation: { width: 220, height: 80 },
+                transformation: { width: 300, height: 110 },
                 type: "png",
               }),
             ],
