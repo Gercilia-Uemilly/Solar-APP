@@ -134,11 +134,11 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* ASSINATURA com imagem */}
-        <div style={{ marginTop: "40px", textAlign: "center" }}>
+        <div style={{ marginTop: "30px", textAlign: "center" }}>
           <img
             src={assinaturaFabaoImg}
             alt="Assinatura Fabão"
-            style={{ height: "220px", width: "auto", objectFit: "contain", marginBottom: "-14px", display: "inline-block" }}
+            style={{ height: "140px", width: "auto", objectFit: "contain", marginBottom: "-10px", display: "inline-block", filter: "contrast(1.3) saturate(1.4)" }}
           />
           <div style={{ width: "300px", borderBottom: "1px solid #000", margin: "0 auto 8px auto" }} />
           <p style={{ fontSize: "12pt", marginBottom: "2px", fontWeight: "bold", letterSpacing: "1px" }}>FABÃO</p>
