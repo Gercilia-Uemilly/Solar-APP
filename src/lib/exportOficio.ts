@@ -272,7 +272,7 @@ async function buildWordBlob(data: {
             children: [
               new ImageRun({
                 data: assinaturaBuf,
-                transformation: { width: Math.round(fmt.signatureHeight * 2.5), height: fmt.signatureHeight },
+                transformation: { width: Math.round(fmt.signatureHeight * 3.5), height: Math.round(fmt.signatureHeight * 1.4) },
                 type: "png",
               }),
             ],

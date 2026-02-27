@@ -196,7 +196,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* ASSINATURA */}
-        <div style={{ marginTop: "30px", textAlign: "center" }}>
+        <div style={{ marginTop: "40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <img
             src={assinaturaFabaoImg}
             alt="Assinatura Fabão"
@@ -205,7 +205,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               width: "auto",
               objectFit: "contain",
               marginBottom: "4px",
-              display: "inline-block",
+              display: "block",
+              maxWidth: "80%",
             }}
           />
           <div style={{ width: "300px", borderBottom: "1px solid #000", margin: "0 auto 8px auto" }} />
