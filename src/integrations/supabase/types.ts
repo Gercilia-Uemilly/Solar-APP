@@ -61,6 +61,7 @@ export type Database = {
       }
       oficios: {
         Row: {
+          ano: number | null
           assunto: string
           author_id: string
           bairro: string | null
@@ -72,6 +73,7 @@ export type Database = {
           destinatario: string
           id: string
           linha_telefonica: string | null
+          link_pdf_drive: string | null
           local_demanda: string | null
           numero: string | null
           operador_nome: string | null
@@ -84,6 +86,7 @@ export type Database = {
           urgencia: string | null
         }
         Insert: {
+          ano?: number | null
           assunto?: string
           author_id: string
           bairro?: string | null
@@ -95,6 +98,7 @@ export type Database = {
           destinatario?: string
           id?: string
           linha_telefonica?: string | null
+          link_pdf_drive?: string | null
           local_demanda?: string | null
           numero?: string | null
           operador_nome?: string | null
@@ -107,6 +111,7 @@ export type Database = {
           urgencia?: string | null
         }
         Update: {
+          ano?: number | null
           assunto?: string
           author_id?: string
           bairro?: string | null
@@ -118,6 +123,7 @@ export type Database = {
           destinatario?: string
           id?: string
           linha_telefonica?: string | null
+          link_pdf_drive?: string | null
           local_demanda?: string | null
           numero?: string | null
           operador_nome?: string | null
