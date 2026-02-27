@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import logoFabao from "@/assets/logo-fabao.png";
+import logoSolar from "@/assets/logo-solar.png";
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
@@ -72,9 +72,9 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
-          <img src={logoFabao} alt="The Office 30" className="h-16 mx-auto mb-4" />
-          <CardTitle className="text-foreground">The Office 30</CardTitle>
-          <CardDescription className="text-muted-foreground">Gabinete Digital · Vereador Fabão</CardDescription>
+          <img src={logoSolar} alt="Solar" className="h-20 mx-auto mb-4" />
+          <CardTitle className="text-foreground">Solar</CardTitle>
+          <CardDescription className="text-muted-foreground">Sistema de Gerenciamento de Mandato</CardDescription>
         </CardHeader>
         <CardContent>
           {showForgot ? (

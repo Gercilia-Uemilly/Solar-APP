@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Database } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import logoFabao from "@/assets/logo-fabao.png";
+import logoSolar from "@/assets/logo-solar.png";
 
 const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
@@ -34,7 +34,7 @@ export default function AppSidebar({ collapsed, onToggle }: Props) {
     >
       {/* Logo */}
       <div className="p-3 flex items-center gap-3 border-b border-sidebar-border min-h-[56px]">
-        <img src={logoFabao} alt="The Office 30" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+        <img src={logoSolar} alt="Solar" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
         {!collapsed && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -42,8 +42,8 @@ export default function AppSidebar({ collapsed, onToggle }: Props) {
             exit={{ opacity: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div className="text-sm font-medium text-foreground leading-tight">The Office 30</div>
-            <div className="text-[10px] text-muted-foreground">Gabinete Vereador Fabão</div>
+            <div className="text-sm font-medium text-foreground leading-tight">Solar</div>
+            <div className="text-[10px] text-muted-foreground">Sistema de Gerenciamento de Mandato</div>
           </motion.div>
         )}
       </div>
