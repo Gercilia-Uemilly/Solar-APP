@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Pencil, Trash2, Download, Search, FileText, FileSpreadsheet } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, exportToCSV } from "@/lib/exportOficio";
 import logoCamara from "@/assets/logo-camara.png";
@@ -28,6 +33,11 @@ interface OficioRow {
   author_id: string;
   created_at: string;
   updated_at: string;
+  solicitante: string | null;
+  bairro: string | null;
+  contato_solicitante: string | null;
+  operador_nome: string | null;
+  link_pdf_drive: string | null;
   profiles?: { full_name: string | null };
 }
 
@@ -40,6 +50,9 @@ export default function MeusOficios() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
+  const [filtroOperador, setFiltroOperador] = useState("Todos");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
 
   // View / Edit
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
@@ -60,6 +73,15 @@ export default function MeusOficios() {
 
   useEffect(() => { fetchOficios(); }, []);
 
+  const operadores = useMemo(() => {
+    const names = new Set<string>();
+    oficios.forEach(o => {
+      const name = o.profiles?.full_name || o.operador_nome;
+      if (name) names.add(name);
+    });
+    return Array.from(names).sort();
+  }, [oficios]);
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("oficios").delete().eq("id", id);
     if (error) {
@@ -72,12 +94,42 @@ export default function MeusOficios() {
 
   const filtered = oficios.filter(o => {
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
+    if (filtroOperador !== "Todos") {
+      const opName = o.profiles?.full_name || o.operador_nome || "";
+      if (opName !== filtroOperador) return false;
+    }
+    if (dateFrom) {
+      const d = new Date(o.created_at);
+      if (d < dateFrom) return false;
+    }
+    if (dateTo) {
+      const d = new Date(o.created_at);
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      if (d > end) return false;
+    }
     if (search) {
       const s = search.toLowerCase();
-      return o.assunto.toLowerCase().includes(s) || o.destinatario.toLowerCase().includes(s) || (o.numero || "").toLowerCase().includes(s);
+      return (
+        o.assunto.toLowerCase().includes(s) ||
+        o.destinatario.toLowerCase().includes(s) ||
+        (o.numero || "").toLowerCase().includes(s) ||
+        (o.solicitante || "").toLowerCase().includes(s) ||
+        (o.bairro || "").toLowerCase().includes(s) ||
+        (o.contato_solicitante || "").toLowerCase().includes(s)
+      );
     }
     return true;
   });
+
+  const hasActiveFilters = filtroStatus !== "Todos" || filtroOperador !== "Todos" || !!dateFrom || !!dateTo || !!search;
+  const clearFilters = () => {
+    setSearch("");
+    setFiltroStatus("Todos");
+    setFiltroOperador("Todos");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
 
   return (
     <div className="space-y-6">
@@ -96,15 +148,49 @@ export default function MeusOficios() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-[200px] relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-card border-border" />
+          <Input placeholder="Buscar nome, número, bairro, telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-card border-border" />
         </div>
         <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-          <SelectTrigger className="w-40 bg-card border-border"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-36 bg-card border-border"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="Todos">Todos</SelectItem>
+            <SelectItem value="Todos">Todos Status</SelectItem>
             {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filtroOperador} onValueChange={setFiltroOperador}>
+          <SelectTrigger className="w-40 bg-card border-border"><SelectValue placeholder="Operador" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Todos">Todos Operadores</SelectItem>
+            {operadores.map(op => <SelectItem key={op} value={op}>{op}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal bg-card border-border", !dateFrom && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateFrom ? format(dateFrom, "dd/MM/yy") : "De"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal bg-card border-border", !dateTo && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateTo ? format(dateTo, "dd/MM/yy") : "Até"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className={cn("p-3 pointer-events-auto")} />
+          </PopoverContent>
+        </Popover>
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+            <X size={14} className="mr-1" /> Limpar
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-xl border border-border overflow-x-auto">
