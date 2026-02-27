@@ -19,7 +19,7 @@ export interface FormatOptions {
 export const defaultFormatOptions: FormatOptions = {
   fontSize: 12,
   lineSpacing: 1.5,
-  signatureHeight: 140,
+  signatureHeight: 180,
   fontFamily: "Arial",
   bold: false,
   italic: false,
