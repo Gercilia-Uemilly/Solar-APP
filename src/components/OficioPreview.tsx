@@ -204,14 +204,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               height: `${fmt.signatureHeight}px`,
               width: "auto",
               objectFit: "contain",
-              marginBottom: "4px",
+              marginBottom: "-8px",
               display: "block",
               maxWidth: "80%",
             }}
           />
-          <div style={{ width: "300px", borderBottom: "1px solid #000", margin: "0 auto 8px auto" }} />
-          <p style={{ fontSize: `${fmt.fontSize}pt`, marginBottom: "2px", fontWeight: "bold", letterSpacing: "1px" }}>FABÃO</p>
-          <p style={{ fontSize: `${fmt.fontSize - 1}pt` }}>Vereador</p>
+          <div style={{ width: "300px", borderBottom: "1px solid #000", marginBottom: "4px" }} />
+          <p style={{ fontSize: `${fmt.fontSize}pt`, marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
+          <p style={{ fontSize: `${fmt.fontSize}pt`, marginTop: "0" }}>Vereador</p>
         </div>
 
         {/* RODAPÉ */}
