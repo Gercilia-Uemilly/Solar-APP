@@ -154,7 +154,6 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     <p style="font-weight:bold;font-size:12pt;margin-bottom:30px">ASSUNTO: ${assuntoFormatado}</p>
     <p style="font-size:12pt;margin-bottom:30px;text-indent:1.25cm">Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,</p>
     ${bodyParagraphs}
-    <p style="text-indent:1.25cm;margin-top:20px;font-size:12pt">Atenciosamente,</p>
     <div style="margin-top:30px;font-size:8pt;color:#444;text-align:center;border-top:1px solid #ccc;padding-top:6px;padding-bottom:6px;position:absolute;bottom:20mm;left:30mm;right:20mm;">
       Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
     </div>
@@ -165,6 +164,7 @@ export async function exportToPDF(data: OficioData): Promise<void> {
       <img src="${logoCamaraImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
       <img src="${logoFabaoImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
     </div>
+    <p style="text-indent:1.25cm;margin-top:40px;margin-bottom:30px;font-size:12pt">Atenciosamente,</p>
     <div style="margin-top:120px;text-align:center;display:flex;flex-direction:column;align-items:center;">
       <img src="${assinaturaImg}" style="height:180px;width:auto;object-fit:contain;margin-bottom:-8px;display:block;max-width:80%;" crossorigin="anonymous" />
       <div style="width:300px;border-bottom:1px solid #000;margin-bottom:4px"></div>
