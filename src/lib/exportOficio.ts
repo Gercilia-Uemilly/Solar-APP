@@ -265,23 +265,23 @@ async function buildWordBlob(data: {
             ],
           }),
 
-          // Imagem da assinatura (centralizada, acima da linha)
+          // Imagem da assinatura (centralizada, sobrepondo a linha como no modelo)
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 400 },
+            spacing: { before: 400, after: 0 },
             children: [
               new ImageRun({
                 data: assinaturaBuf,
-                transformation: { width: Math.round(fmt.signatureHeight * 3.5), height: Math.round(fmt.signatureHeight * 1.4) },
+                transformation: { width: 350, height: 130 },
                 type: "png",
               }),
             ],
           }),
 
-          // Linha de assinatura
+          // Linha de assinatura (colada na imagem)
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 40 },
+            spacing: { before: 0, after: 0 },
             children: [
               new TextRun({ text: "___________________________________", font: FONT, size: SIZE }),
             ],
@@ -290,7 +290,7 @@ async function buildWordBlob(data: {
           // FABÃO
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 20 },
+            spacing: { before: 0, after: 0 },
             children: [
               new TextRun({ text: "FABÃO", font: FONT, size: SIZE, bold: true }),
             ],
@@ -299,6 +299,7 @@ async function buildWordBlob(data: {
           // Vereador
           new Paragraph({
             alignment: AlignmentType.CENTER,
+            spacing: { before: 0 },
             children: [
               new TextRun({ text: "Vereador", font: FONT, size: SIZE }),
             ],
