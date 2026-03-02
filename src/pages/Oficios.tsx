@@ -355,35 +355,16 @@ export default function Oficios() {
         assinaturaUrl: assinaturaFabao,
       });
 
-      // 2. Convert to PDF via edge function
-      const formDataPdf = new FormData();
       const numeroArquivo = (oficio.numero || "rascunho").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_");
       const baseFileName = `Oficio_GVF_${numeroArquivo}`;
-      formDataPdf.append("file", wordBlob, `${baseFileName}.docx`);
+
+      // Upload DOCX directly (sem conversão PDF)
+      const uploadBlob = wordBlob;
+      const uploadFileName = `${baseFileName}.docx`;
+      const uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      const pdfResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${supabaseKey}` },
-        body: formDataPdf,
-      });
-
-      let uploadBlob: Blob;
-      let uploadFileName: string;
-      let uploadMimeType: string;
-
-      if (pdfResp.ok) {
-        uploadBlob = await pdfResp.blob();
-        uploadFileName = `${baseFileName}.pdf`;
-        uploadMimeType = "application/pdf";
-      } else {
-        // Fallback: upload Word
-        uploadBlob = wordBlob;
-        uploadFileName = `${baseFileName}.docx`;
-        uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      }
 
       // 3. Upload to Drive + register in Sheets
       const driveFormData = new FormData();
