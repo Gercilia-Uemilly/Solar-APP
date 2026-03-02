@@ -191,10 +191,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           </div>
         )}
 
-        <p style={{ textIndent: "1.25cm", marginTop: "20px", fontSize: `${fmt.fontSize}pt` }}>
-          Atenciosamente,
-        </p>
-
         {/* PAGE BREAK — assinatura vai para a folha 2 */}
         <div
           className="page-break-signature"
@@ -207,7 +203,11 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           }}
         />
 
-        {/* ASSINATURA (página 2) */}
+        {/* ATENCIOSAMENTE + ASSINATURA (página 2) */}
+        <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: `${fmt.fontSize}pt` }}>
+          Atenciosamente,
+        </p>
+
         <div style={{ marginTop: "40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <img
             src={assinaturaFabaoImg}
