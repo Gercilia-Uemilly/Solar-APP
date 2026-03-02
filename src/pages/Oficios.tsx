@@ -726,11 +726,11 @@ export default function Oficios() {
                     alert("Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.");
                     return;
                   }
-                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao, formatOptions });
+                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao });
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario, formatOptions }); }}>
+                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario }); }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
               </div>
