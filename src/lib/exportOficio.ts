@@ -123,39 +123,9 @@ export async function exportToPDF(data: {
   const ano = new Date().getFullYear().toString();
   const fileName = buildFileName(data.numero, ano, data.telefone);
 
-  try {
-    const formData = new FormData();
-    formData.append("file", wordBlob, `${fileName}.docx`);
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-    const resp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${supabaseKey}` },
-      body: formData,
-    });
-
-    if (resp.ok) {
-      const pdfBlob = await resp.blob();
-      saveAs(pdfBlob, `${fileName}.pdf`);
-      return;
-    }
-
-    const errJson = await resp.json().catch(() => ({}));
-    if (errJson.fallback) {
-      saveAs(wordBlob, `${fileName}.docx`);
-      alert(
-        "Servidor de conversão PDF não configurado.\n\n" +
-        "O arquivo Word foi baixado. Use 'Arquivo → Salvar como → PDF'."
-      );
-      return;
-    }
-    throw new Error(errJson.error || "Erro na conversão");
-  } catch {
-    saveAs(wordBlob, `${fileName}.docx`);
-    alert("Não foi possível gerar o PDF.\n\nO arquivo Word foi baixado.");
-  }
+  // Conversão PDF desativada (créditos CloudConvert esgotados).
+  // Baixa direto o .docx.
+  saveAs(wordBlob, `${fileName}.docx`);
 }
 
 export function exportToCSV(oficios: Array<{
