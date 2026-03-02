@@ -136,43 +136,29 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     .map(p => `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:12pt;line-height:1.5">${p}</p>`)
     .join("");
 
-  // Cria as duas páginas como divs separados
-  const buildPageHTML = (content: string) => `
+  // Página única com todo o conteúdo
+  const singlePageContent = `
     <div style="width:210mm;min-height:297mm;padding:30mm 20mm 20mm 30mm;font-family:'Times New Roman',serif;font-size:12pt;line-height:1.5;color:#000;background:#fff;box-sizing:border-box;position:relative;">
-      ${content}
-    </div>
-  `;
-
-  const page1Content = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 20px;">
-      <img src="${logoCamaraImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
-      <img src="${logoFabaoImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
-    </div>
-    <p style="text-align:right;margin-bottom:24px;margin-top:10px">${dataFormatada}</p>
-    <p style="font-weight:bold;font-size:12pt;margin-bottom:24px">Ofício GVF n° ${numeroFormatado}</p>
-    <p style="font-weight:bold;font-size:12pt;margin-bottom:8px">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}</p>
-    <p style="font-weight:bold;font-size:12pt;margin-bottom:30px">ASSUNTO: ${assuntoFormatado}</p>
-    <p style="font-size:12pt;margin-bottom:30px;text-indent:1.25cm">Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,</p>
-    ${bodyParagraphs}
-    <div style="margin-top:30px;font-size:8pt;color:#444;text-align:center;border-top:1px solid #ccc;padding-top:6px;padding-bottom:6px;position:absolute;bottom:20mm;left:30mm;right:20mm;">
-      Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
-    </div>
-  `;
-
-  const page2Content = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 20px;">
-      <img src="${logoCamaraImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
-      <img src="${logoFabaoImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
-    </div>
-    <p style="text-indent:1.25cm;margin-top:40px;margin-bottom:30px;font-size:12pt">Atenciosamente,</p>
-    <div style="margin-top:120px;text-align:center;display:flex;flex-direction:column;align-items:center;">
-      <img src="${assinaturaImg}" style="height:180px;width:auto;object-fit:contain;margin-bottom:-8px;display:block;max-width:80%;" crossorigin="anonymous" />
-      <div style="width:300px;border-bottom:1px solid #000;margin-bottom:4px"></div>
-      <p style="font-size:12pt;margin-bottom:0;font-weight:bold">FABÃO</p>
-      <p style="font-size:12pt;margin-top:0">Vereador</p>
-    </div>
-    <div style="margin-top:30px;font-size:8pt;color:#444;text-align:center;border-top:1px solid #ccc;padding-top:6px;padding-bottom:6px;position:absolute;bottom:20mm;left:30mm;right:20mm;">
-      Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 20px;">
+        <img src="${logoCamaraImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
+        <img src="${logoFabaoImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
+      </div>
+      <p style="text-align:right;margin-bottom:24px;margin-top:10px">${dataFormatada}</p>
+      <p style="font-weight:bold;font-size:12pt;margin-bottom:24px">Ofício GVF n° ${numeroFormatado}</p>
+      <p style="font-weight:bold;font-size:12pt;margin-bottom:8px">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}</p>
+      <p style="font-weight:bold;font-size:12pt;margin-bottom:30px">ASSUNTO: ${assuntoFormatado}</p>
+      <p style="font-size:12pt;margin-bottom:30px;text-indent:1.25cm">Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,</p>
+      ${bodyParagraphs}
+      <p style="text-indent:1.25cm;margin-top:20px;margin-bottom:30px;font-size:12pt">Atenciosamente,</p>
+      <div style="margin-top:40px;text-align:center;display:flex;flex-direction:column;align-items:center;">
+        <img src="${assinaturaImg}" style="height:180px;width:auto;object-fit:contain;margin-bottom:-8px;display:block;max-width:80%;" crossorigin="anonymous" />
+        <div style="width:300px;border-bottom:1px solid #000;margin-bottom:4px"></div>
+        <p style="font-size:12pt;margin-bottom:0;font-weight:bold">FABÃO</p>
+        <p style="font-size:12pt;margin-top:0">Vereador</p>
+      </div>
+      <div style="font-size:8pt;color:#444;text-align:center;border-top:1px solid #ccc;padding-top:6px;padding-bottom:6px;position:absolute;bottom:20mm;left:30mm;right:20mm;">
+        Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
+      </div>
     </div>
   `;
 
@@ -181,7 +167,7 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   container.style.position = "fixed";
   container.style.left = "-9999px";
   container.style.top = "0";
-  container.innerHTML = buildPageHTML(page1Content) + buildPageHTML(page2Content);
+  container.innerHTML = singlePageContent;
   document.body.appendChild(container);
 
   // Espera imagens carregarem
@@ -198,24 +184,34 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   );
 
   try {
-    const pages = container.querySelectorAll<HTMLDivElement>(":scope > div");
+    const pageDiv = container.querySelector<HTMLDivElement>(":scope > div")!;
+    const canvas = await html2canvas(pageDiv, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      width: pageDiv.scrollWidth,
+      height: pageDiv.scrollHeight,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdfWidth = 210;
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pageHeight = 297;
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    for (let i = 0; i < pages.length; i++) {
-      const canvas = await html2canvas(pages[i], {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        width: pages[i].scrollWidth,
-        height: pages[i].scrollHeight,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdfWidth = 210;
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, Math.min(pdfHeight, 297));
+    // Se o conteúdo cabe em uma página
+    if (pdfHeight <= pageHeight) {
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    } else {
+      // Divide em múltiplas páginas
+      let yOffset = 0;
+      let page = 0;
+      while (yOffset < pdfHeight) {
+        if (page > 0) pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, -yOffset, pdfWidth, pdfHeight);
+        yOffset += pageHeight;
+        page++;
+      }
     }
 
     pdf.save(`${fileName}.pdf`);

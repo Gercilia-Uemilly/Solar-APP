@@ -191,17 +191,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           </div>
         )}
 
-        {/* PAGE BREAK — assinatura vai para a folha 2 */}
-        <div
-          className="page-break-signature"
-          style={{
-            pageBreakBefore: "always",
-            breakBefore: "page",
-            marginTop: "60px",
-            borderTop: "1px dashed #ccc",
-            paddingTop: "40px",
-          }}
-        />
+        {/* Espaço antes do fechamento */}
 
         {/* ATENCIOSAMENTE + ASSINATURA (página 2) */}
         <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: `${fmt.fontSize}pt` }}>
