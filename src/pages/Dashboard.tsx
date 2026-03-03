@@ -150,7 +150,7 @@ export default function Dashboard() {
         <h1 className="text-xl font-medium text-foreground mt-1">
           Bem-vindo, {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operador"}
         </h1>
-        <p className="text-sm text-muted-foreground">The Office 30 · Gabinete Vereador Fabão · Câmara Municipal de Uberlândia</p>
+        <p className="text-sm text-muted-foreground">Solar · Gabinete Vereador Fabão · Câmara Municipal de Uberlândia</p>
       </motion.div>
 
       {/* Stat Cards */}
