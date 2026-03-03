@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF } from "@/lib/exportOficio";
+import { printOficio } from "@/lib/printOficio";
 import ImageUploader from "@/components/ImageUploader";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
@@ -486,22 +487,14 @@ export default function Oficios() {
               <button
                 onClick={() => {
                   if (o.conteudo) {
-                    setViewingOficio(o);
-                    setShowPreviewDialog(true);
-                    setTimeout(() => {
-                      const el = document.getElementById("oficio-view-preview");
-                      if (el) {
-                        const printWindow = window.open("", "_blank");
-                        if (printWindow) {
-                          printWindow.document.write(`<html><head><title>Ofício ${o.numero || ""}</title><style>body{margin:0;padding:20px;font-family:Arial,sans-serif;}@media print{body{padding:0;}}</style></head><body>${el.innerHTML}</body></html>`);
-                          printWindow.document.close();
-                          printWindow.focus();
-                          printWindow.print();
-                          printWindow.close();
-                        }
-                      }
-                      setShowPreviewDialog(false);
-                    }, 500);
+                    printOficio({
+                      numero: o.numero || "",
+                      destinatario: o.destinatario,
+                      assunto: o.assunto,
+                      conteudo: o.conteudo,
+                      bairro: o.bairro || "",
+                      cargoDestinatario: o.cargo_destinatario || "",
+                    });
                   }
                 }}
                 className="p-2 text-muted-foreground hover:text-foreground"
@@ -822,16 +815,15 @@ export default function Oficios() {
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => {
-                  const el = document.getElementById("oficio-view-preview");
-                  if (el) {
-                    const printWindow = window.open("", "_blank");
-                    if (printWindow) {
-                      printWindow.document.write(`<html><head><title>Ofício ${viewingOficio?.numero || ""}</title><style>body{margin:0;padding:20px;font-family:Arial,sans-serif;}@media print{body{padding:0;}}</style></head><body>${el.innerHTML}</body></html>`);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      printWindow.print();
-                      printWindow.close();
-                    }
+                  if (viewingOficio?.conteudo) {
+                    printOficio({
+                      numero: viewingOficio.numero || "",
+                      destinatario: viewingOficio.destinatario,
+                      assunto: viewingOficio.assunto,
+                      conteudo: viewingOficio.conteudo,
+                      bairro: (viewingOficio as any).bairro || "",
+                      cargoDestinatario: (viewingOficio as any).cargo_destinatario || "",
+                    });
                   }
                 }}><Printer size={14} className="mr-1" /> Imprimir</Button>
               </div>
