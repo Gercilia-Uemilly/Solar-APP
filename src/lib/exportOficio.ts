@@ -299,14 +299,15 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     y += 3; // Spacing between paragraphs
   }
 
-  // ── FECHAMENTO ──
+  // ── FECHAMENTO + ASSINATURA (manter juntos na mesma página) ──
+  const closingBlockHeight = 8 + 6 + 10 + 10 + 30 + 4 + 5 + 5 + 20; // ~98mm total
+  checkPageBreak(closingBlockHeight);
+
   y += 8;
-  checkPageBreak(6);
   pdf.text("Atenciosamente,", marginLeft + 12, y);
   y += 10;
 
   // ── ASSINATURA ──
-  checkPageBreak(50);
   y += 10;
   const sigW = 55;
   const sigH = 30;
