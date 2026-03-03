@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Database, Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, FileText, MessageSquare, AlertTriangle } from "lucide-react";
+import { Database, Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface KnowledgeEntry {
   id: string;
@@ -31,7 +30,7 @@ interface ExistingScript {
   categoria: string;
 }
 
-type DialogMode = "script" | "oficio";
+
 
 export default function BancoInformacoes() {
   const { toast } = useToast();
@@ -44,7 +43,7 @@ export default function BancoInformacoes() {
 
   // Dialog state
   const [showDialog, setShowDialog] = useState(false);
-  const [dialogMode, setDialogMode] = useState<DialogMode>("script");
+  const [dialogMode] = useState("script");
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
   const [generating, setGenerating] = useState(false);
 
@@ -53,9 +52,6 @@ export default function BancoInformacoes() {
   const [scriptContent, setScriptContent] = useState("");
   const [scriptCategoria, setScriptCategoria] = useState("SOS Uberlândia");
 
-  // Ofício fields
-  const [oficioContent, setOficioContent] = useState("");
-  const [oficioResposta, setOficioResposta] = useState("");
 
   // Duplicate detection
   const [existingScript, setExistingScript] = useState<ExistingScript | null>(null);
@@ -143,7 +139,7 @@ export default function BancoInformacoes() {
   };
 
   // Generate content via AI
-  const generateContent = async (entry: KnowledgeEntry, mode: DialogMode) => {
+  const generateContent = async (entry: KnowledgeEntry) => {
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-oficio", {
@@ -157,15 +153,8 @@ export default function BancoInformacoes() {
         },
       });
       if (error) throw error;
-
-      if (mode === "script") {
-        // Format as WhatsApp script (plain text, conversational)
-        const scriptText = data.resposta_cidadao || data.oficio || "";
-        setScriptContent(scriptText);
-      } else {
-        setOficioContent(data.oficio || "");
-        setOficioResposta(data.resposta_cidadao || "");
-      }
+      const scriptText = data.resposta_cidadao || data.oficio || "";
+      setScriptContent(scriptText);
     } catch (err: any) {
       toast({ title: "Erro ao gerar conteúdo", description: err.message, variant: "destructive" });
     } finally {
@@ -174,18 +163,15 @@ export default function BancoInformacoes() {
   };
 
   // Open dialog for an entry
-  const openDialog = (entry: KnowledgeEntry, mode: DialogMode) => {
+  const openDialog = (entry: KnowledgeEntry) => {
     setSelectedEntry(entry);
-    setDialogMode(mode);
     setScriptTitle(entry.titulo);
     setScriptContent("");
     setScriptCategoria("SOS Uberlândia");
-    setOficioContent("");
-    setOficioResposta("");
     setExistingScript(null);
     setShowDialog(true);
     checkDuplicate(entry.titulo);
-    generateContent(entry, mode);
+    generateContent(entry);
   };
 
   // Save script (new or update)
@@ -222,28 +208,6 @@ export default function BancoInformacoes() {
     setShowDialog(false);
   };
 
-  // Save ofício
-  const handleSaveOficio = async () => {
-    if (!user) return;
-
-    const { error } = await supabase.from("oficios").insert({
-      assunto: scriptTitle,
-      destinatario: selectedEntry?.orgao || "A definir",
-      conteudo: oficioContent,
-      resposta_cidadao: oficioResposta || null,
-      bairro: selectedEntry?.bairro || null,
-      status: "Gerado",
-      author_id: user.id,
-      operador_nome: user.user_metadata?.full_name || user.email || null,
-    });
-
-    if (error) {
-      toast({ title: "Erro ao salvar ofício", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Ofício salvo com sucesso!" });
-    setShowDialog(false);
-  };
 
   return (
     <div className="space-y-6">
@@ -331,18 +295,11 @@ export default function BancoInformacoes() {
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
-                  onClick={() => openDialog(entry, "script")}
+                  onClick={() => openDialog(entry)}
                   className="p-2 text-muted-foreground hover:text-primary"
                   title="Criar Script de atendimento"
                 >
                   <MessageSquare size={16} />
-                </button>
-                <button
-                  onClick={() => openDialog(entry, "oficio")}
-                  className="p-2 text-muted-foreground hover:text-primary"
-                  title="Criar Ofício"
-                >
-                  <FileText size={16} />
                 </button>
                 {entry.link && (
                   <a href={entry.link} target="_blank" rel="noopener noreferrer" className="p-2 text-muted-foreground hover:text-foreground">
@@ -366,119 +323,60 @@ export default function BancoInformacoes() {
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
               <Sparkles size={18} />
-              {dialogMode === "script" ? "Criar Script de Atendimento" : "Criar Ofício"}
+              Criar Script de Atendimento
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              {dialogMode === "script"
-                ? "Script para resposta via WhatsApp ao cidadão. Revise e edite antes de salvar."
-                : "Ofício formal baseado na notícia. Revise e edite antes de salvar."}
+              Script para resposta via WhatsApp ao cidadão. Revise e edite antes de salvar.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Mode switcher */}
-          <Tabs value={dialogMode} onValueChange={(v) => {
-            const newMode = v as DialogMode;
-            setDialogMode(newMode);
-            if (selectedEntry && !generating) {
-              // Re-generate if switching mode and content is empty
-              if (newMode === "script" && !scriptContent) generateContent(selectedEntry, "script");
-              if (newMode === "oficio" && !oficioContent) generateContent(selectedEntry, "oficio");
-            }
-          }}>
-            <TabsList className="w-full grid grid-cols-2 bg-secondary">
-              <TabsTrigger value="script" className="flex items-center gap-1">
-                <MessageSquare size={14} /> Script
-              </TabsTrigger>
-              <TabsTrigger value="oficio" className="flex items-center gap-1">
-                <FileText size={14} /> Ofício
-              </TabsTrigger>
-            </TabsList>
+          <div className="space-y-4">
+            {existingScript && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <AlertTriangle size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                <div className="text-xs">
+                  <p className="font-semibold text-foreground">Script similar encontrado!</p>
+                  <p className="text-muted-foreground mt-0.5">"{existingScript.titulo}" ({existingScript.categoria})</p>
+                  <p className="text-muted-foreground mt-1">Você pode atualizar o existente ou criar um novo.</p>
+                </div>
+              </div>
+            )}
 
-            {/* Script tab */}
-            <TabsContent value="script" className="space-y-4 mt-4">
-              {/* Duplicate warning */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Título do Script</label>
+              <Input value={scriptTitle} onChange={e => setScriptTitle(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
+              <Input value={scriptCategoria} onChange={e => setScriptCategoria(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Conteúdo do Script (WhatsApp)</label>
+              {generating ? (
+                <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground">
+                  <Loader2 size={16} className="animate-spin" /> Gerando script com IA...
+                </div>
+              ) : (
+                <Textarea value={scriptContent} onChange={e => setScriptContent(e.target.value)} rows={12} />
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 flex-wrap">
+              <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
               {existingScript && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                  <AlertTriangle size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs">
-                    <p className="font-semibold text-foreground">Script similar encontrado!</p>
-                    <p className="text-muted-foreground mt-0.5">"{existingScript.titulo}" ({existingScript.categoria})</p>
-                    <p className="text-muted-foreground mt-1">Você pode atualizar o existente ou criar um novo.</p>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Título do Script</label>
-                <Input value={scriptTitle} onChange={e => setScriptTitle(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
-                <Input value={scriptCategoria} onChange={e => setScriptCategoria(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Conteúdo do Script (WhatsApp)</label>
-                {generating ? (
-                  <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground">
-                    <Loader2 size={16} className="animate-spin" /> Gerando script com IA...
-                  </div>
-                ) : (
-                  <Textarea value={scriptContent} onChange={e => setScriptContent(e.target.value)} rows={12} />
-                )}
-              </div>
-
-              <div className="flex justify-end gap-2 flex-wrap">
-                <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
-                {existingScript && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleSaveScript(true)}
-                    disabled={!scriptContent || generating}
-                  >
-                    Atualizar Existente
-                  </Button>
-                )}
-                <Button onClick={() => handleSaveScript(false)} disabled={!scriptContent || generating}>
-                  {existingScript ? "Criar Novo" : "Salvar Script"}
+                <Button
+                  variant="secondary"
+                  onClick={() => handleSaveScript(true)}
+                  disabled={!scriptContent || generating}
+                >
+                  Atualizar Existente
                 </Button>
-              </div>
-            </TabsContent>
-
-            {/* Ofício tab */}
-            <TabsContent value="oficio" className="space-y-4 mt-4">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Assunto</label>
-                <Input value={scriptTitle} onChange={e => setScriptTitle(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Destinatário</label>
-                <Input value={selectedEntry?.orgao || ""} disabled className="bg-secondary" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Texto do Ofício</label>
-                {generating ? (
-                  <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground">
-                    <Loader2 size={16} className="animate-spin" /> Gerando ofício com IA...
-                  </div>
-                ) : (
-                  <Textarea value={oficioContent} onChange={e => setOficioContent(e.target.value)} rows={12} />
-                )}
-              </div>
-              {oficioResposta && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Resposta ao Cidadão (WhatsApp)</label>
-                  <Textarea value={oficioResposta} onChange={e => setOficioResposta(e.target.value)} rows={4} />
-                </div>
               )}
-
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
-                <Button onClick={handleSaveOficio} disabled={!oficioContent || generating}>
-                  Salvar Ofício
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
+              <Button onClick={() => handleSaveScript(false)} disabled={!scriptContent || generating}>
+                {existingScript ? "Criar Novo" : "Salvar Script"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
