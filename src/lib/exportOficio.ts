@@ -1,7 +1,6 @@
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 // ── Assets (importados como módulos para funcionar no build) ─────────────────
@@ -139,9 +138,25 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   return blob;
 }
 
-// ── Export PDF (client-side via html2canvas + jsPDF) ─────────────────────────
-// Renderiza o ofício em HTML oculto, captura com html2canvas e gera PDF A4.
-// A assinatura fica na página 2.
+// ── Helper: load image as base64 data URL ───────────────────────────────────
+async function loadImageAsDataUrl(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+// ── Export PDF (jsPDF nativo – texto real + imagens) ─────────────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
   const ano = new Date().getFullYear().toString();
   const fileName = buildFileName(data.numero, ano, data.telefone);
@@ -164,92 +179,144 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     .filter(Boolean)
     .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
-  const bodyParagraphs = paragraphs
-    .map(p => `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:12pt;line-height:1.5">${p}</p>`)
-    .join("");
+  // Load images
+  const [logoCamaraData, logoFabaoData, assinaturaData] = await Promise.all([
+    loadImageAsDataUrl(logoCamaraImg),
+    loadImageAsDataUrl(logoFabaoImg),
+    loadImageAsDataUrl(assinaturaImg),
+  ]);
 
-  // Página única com todo o conteúdo
-  const singlePageContent = `
-    <div style="width:210mm;min-height:297mm;padding:30mm 20mm 20mm 30mm;font-family:'Times New Roman',serif;font-size:12pt;line-height:1.5;color:#000;background:#fff;box-sizing:border-box;position:relative;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 20px;">
-        <img src="${logoCamaraImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
-        <img src="${logoFabaoImg}" style="height:65px;width:auto;object-fit:contain" crossorigin="anonymous" />
-      </div>
-      <p style="text-align:right;margin-bottom:24px;margin-top:10px">${dataFormatada}</p>
-      <p style="font-weight:bold;font-size:12pt;margin-bottom:24px">Ofício GVF n° ${numeroFormatado}</p>
-      <p style="font-weight:bold;font-size:12pt;margin-bottom:8px">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}</p>
-      <p style="font-weight:bold;font-size:12pt;margin-bottom:30px">ASSUNTO: ${assuntoFormatado}</p>
-      <p style="font-size:12pt;margin-bottom:30px;text-indent:1.25cm">Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,</p>
-      ${bodyParagraphs}
-      <p style="text-indent:1.25cm;margin-top:20px;margin-bottom:30px;font-size:12pt">Atenciosamente,</p>
-      <div style="margin-top:40px;text-align:center;display:flex;flex-direction:column;align-items:center;">
-        <img src="${assinaturaImg}" style="height:180px;width:auto;object-fit:contain;margin-bottom:-8px;display:block;max-width:80%;" crossorigin="anonymous" />
-        <div style="width:300px;border-bottom:1px solid #000;margin-bottom:4px"></div>
-        <p style="font-size:12pt;margin-bottom:0;font-weight:bold">FABÃO</p>
-        <p style="font-size:12pt;margin-top:0">Vereador</p>
-      </div>
-      <div style="font-size:8pt;color:#444;text-align:center;border-top:1px solid #ccc;padding-top:6px;padding-bottom:6px;position:absolute;bottom:20mm;left:30mm;right:20mm;">
-        Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
-      </div>
-    </div>
-  `;
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = 210;
+  const pageH = 297;
+  const marginLeft = 30;
+  const marginRight = 20;
+  const marginTop = 25;
+  const marginBottom = 25;
+  const contentW = pageW - marginLeft - marginRight;
+  let y = marginTop;
 
-  // Renderiza off-screen
-  const container = document.createElement("div");
-  container.style.position = "fixed";
-  container.style.left = "-9999px";
-  container.style.top = "0";
-  container.innerHTML = singlePageContent;
-  document.body.appendChild(container);
+  const footerText = "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG";
 
-  // Espera imagens carregarem
-  const images = container.querySelectorAll("img");
-  await Promise.all(
-    Array.from(images).map(
-      img =>
-        new Promise<void>(resolve => {
-          if (img.complete) return resolve();
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
-        })
-    )
-  );
-
-  try {
-    const pageDiv = container.querySelector<HTMLDivElement>(":scope > div")!;
-    const canvas = await html2canvas(pageDiv, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      width: pageDiv.scrollWidth,
-      height: pageDiv.scrollHeight,
-    });
-
-    const imgData = canvas.toDataURL("image/png");
-    const pdfWidth = 210;
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    const pageHeight = 297;
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
-    // Se o conteúdo cabe em uma página
-    if (pdfHeight <= pageHeight) {
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    } else {
-      // Divide em múltiplas páginas
-      let yOffset = 0;
-      let page = 0;
-      while (yOffset < pdfHeight) {
-        if (page > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, -yOffset, pdfWidth, pdfHeight);
-        yOffset += pageHeight;
-        page++;
-      }
-    }
-
-    pdf.save(`${fileName}.pdf`);
-  } finally {
-    document.body.removeChild(container);
+  function addFooter() {
+    pdf.setDrawColor(200);
+    pdf.line(marginLeft, pageH - 18, pageW - marginRight, pageH - 18);
+    pdf.setFontSize(7);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(100);
+    pdf.text(footerText, pageW / 2, pageH - 14, { align: "center" });
+    pdf.setTextColor(0);
   }
+
+  function addHeader() {
+    // Logos
+    pdf.addImage(logoCamaraData, "PNG", marginLeft + 5, marginTop, 25, 16);
+    pdf.addImage(logoFabaoData, "PNG", pageW - marginRight - 30, marginTop, 25, 16);
+    return marginTop + 20;
+  }
+
+  function checkPageBreak(needed: number): void {
+    if (y + needed > pageH - marginBottom) {
+      addFooter();
+      pdf.addPage();
+      y = marginTop;
+    }
+  }
+
+  // ── Wrap text helper ──
+  function wrapText(text: string, maxWidth: number): string[] {
+    return pdf.splitTextToSize(text, maxWidth) as string[];
+  }
+
+  // ── PAGE 1: Header ──
+  y = addHeader();
+  y += 5;
+
+  // Data
+  pdf.setFontSize(12);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(dataFormatada, pageW - marginRight, y, { align: "right" });
+  y += 12;
+
+  // Número
+  pdf.setFont("helvetica", "bold");
+  pdf.text(`Ofício GVF n° ${numeroFormatado}`, marginLeft, y);
+  y += 10;
+
+  // Destinatário
+  const destText = `DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}`;
+  const destLines = wrapText(destText, contentW);
+  destLines.forEach(line => {
+    checkPageBreak(6);
+    pdf.text(line, marginLeft, y);
+    y += 6;
+  });
+  y += 4;
+
+  // Assunto
+  const assuntoText = `ASSUNTO: ${assuntoFormatado}`;
+  const assuntoLines = wrapText(assuntoText, contentW);
+  assuntoLines.forEach(line => {
+    checkPageBreak(6);
+    pdf.text(line, marginLeft, y);
+    y += 6;
+  });
+  y += 10;
+
+  // Saudação
+  pdf.setFont("helvetica", "normal");
+  checkPageBreak(8);
+  pdf.text("Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", marginLeft + 12, y);
+  y += 12;
+
+  // ── CORPO ──
+  pdf.setFontSize(12);
+  pdf.setFont("helvetica", "normal");
+
+  for (const para of paragraphs) {
+    const lines = wrapText(para, contentW - 12); // Account for indent
+    for (let i = 0; i < lines.length; i++) {
+      checkPageBreak(6);
+      const x = i === 0 ? marginLeft + 12 : marginLeft;
+      pdf.text(lines[i], x, y);
+      y += 6;
+    }
+    y += 3; // Spacing between paragraphs
+  }
+
+  // ── FECHAMENTO ──
+  y += 8;
+  checkPageBreak(6);
+  pdf.text("Atenciosamente,", marginLeft + 12, y);
+  y += 10;
+
+  // ── ASSINATURA ──
+  checkPageBreak(50);
+  y += 10;
+  const sigW = 55;
+  const sigH = 30;
+  const sigX = (pageW - sigW) / 2;
+  pdf.addImage(assinaturaData, "PNG", sigX, y, sigW, sigH);
+  y += sigH - 1;
+
+  // Linha
+  const lineX = (pageW - 60) / 2;
+  pdf.setDrawColor(0);
+  pdf.line(lineX, y, lineX + 60, y);
+  y += 4;
+
+  // Nome e cargo
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  pdf.text("FABÃO", pageW / 2, y, { align: "center" });
+  y += 5;
+  pdf.setFont("helvetica", "normal");
+  pdf.text("Vereador", pageW / 2, y, { align: "center" });
+
+  // Footer on last page
+  addFooter();
+
+  pdf.save(`${fileName}.pdf`);
 }
 
 // ── Export CSV ───────────────────────────────────────────────────────────────
