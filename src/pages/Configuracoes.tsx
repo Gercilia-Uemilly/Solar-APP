@@ -56,6 +56,15 @@ export default function Configuracoes() {
 
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground">Perfil</h3>
+        <div className="flex items-center gap-4 pb-2 border-b border-border">
+          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary text-lg font-bold">
+            {(fullName || user?.email || "?").charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-foreground">{fullName || "Sem nome"}</p>
+            <p className="text-sm text-muted-foreground">{user?.email || ""}</p>
+          </div>
+        </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome completo</label>
           <Input value={fullName} onChange={e => setFullName(e.target.value)} className="bg-secondary border-border" />

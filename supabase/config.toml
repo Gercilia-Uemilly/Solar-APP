@@ -14,3 +14,12 @@ verify_jwt = false
 
 [functions.add-anexo-images]
 verify_jwt = false
+
+[functions.invite-user]
+verify_jwt = false
+
+[functions.toggle-user-active]
+verify_jwt = false
+
+[functions.toggle-user-role]
+verify_jwt = false
