@@ -233,7 +233,7 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   y += 5;
 
   // Data
-  pdf.setFontSize(12);
+  pdf.setFontSize(11);
   pdf.setFont("helvetica", "normal");
   pdf.text(dataFormatada, pageW - marginRight, y, { align: "right" });
   y += 12;
@@ -270,7 +270,7 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   y += 12;
 
   // ── CORPO ──
-  pdf.setFontSize(12);
+  pdf.setFontSize(11);
   pdf.setFont("helvetica", "normal");
 
   for (const para of paragraphs) {
@@ -307,7 +307,7 @@ export async function exportToPDF(data: OficioData): Promise<void> {
 
   // Nome e cargo
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(12);
+  pdf.setFontSize(11);
   pdf.text("FABÃO", pageW / 2, y, { align: "center" });
   y += 5;
   pdf.setFont("helvetica", "normal");
