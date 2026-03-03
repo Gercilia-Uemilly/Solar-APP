@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.upload-to-drive]
 verify_jwt = false
+
+[functions.add-anexo-images]
+verify_jwt = false

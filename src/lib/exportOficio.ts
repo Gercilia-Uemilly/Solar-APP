@@ -53,6 +53,7 @@ interface OficioData {
   operadorNome?: string;
   operadorEmail?: string;
   telefone?: string;
+  imagens?: File[];
 }
 
 // ── Build Word blob via Docxtemplater ────────────────────────────────────────
@@ -98,9 +99,40 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   });
 }
 
+// ── Enviar docx + imagens para edge function add-anexo-images ───────────────
+async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
+  const formData = new FormData();
+  formData.append("docx", docxBlob, "oficio.docx");
+  imagens.forEach((img, i) => {
+    formData.append(`imagem_${i}`, img, img.name);
+  });
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  const resp = await fetch(`${supabaseUrl}/functions/v1/add-anexo-images`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${supabaseKey}` },
+    body: formData,
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || "Erro ao adicionar anexo de imagens");
+  }
+
+  return resp.blob();
+}
+
 // ── Export Word ──────────────────────────────────────────────────────────────
 export async function exportToWord(data: OficioData): Promise<Blob> {
-  const blob = await buildWordBlob(data);
+  let blob = await buildWordBlob(data);
+
+  // Se houver imagens, enviar para edge function para adicionar anexo
+  if (data.imagens && data.imagens.length > 0) {
+    blob = await addAnexoImages(blob, data.imagens);
+  }
+
   const ano = new Date().getFullYear().toString();
   const fileName = buildFileName(data.numero, ano, data.telefone);
   saveAs(blob, `${fileName}.docx`);

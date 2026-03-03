@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF } from "@/lib/exportOficio";
+import ImageUploader from "@/components/ImageUploader";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
@@ -114,6 +115,7 @@ export default function Oficios() {
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
+  const [anexoImages, setAnexoImages] = useState<File[]>([]);
 
   // Fetch oficios
   const fetchOficios = async () => {
@@ -320,6 +322,7 @@ export default function Oficios() {
     setEditedResposta("");
     setProcessedFileText("");
     setProcessedFileType(null);
+    setAnexoImages([]);
   };
 
   const handleDelete = async (id: string) => {
@@ -657,6 +660,8 @@ export default function Oficios() {
                 </Select>
               </div>
 
+              <ImageUploader images={anexoImages} onChange={setAnexoImages} />
+
               <div className="flex gap-2">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
@@ -726,7 +731,7 @@ export default function Oficios() {
                     alert("Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.");
                     return;
                   }
-                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao });
+                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao, imagens: anexoImages });
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
