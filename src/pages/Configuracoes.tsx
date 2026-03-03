@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings, Save, Phone } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function Configuracoes() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [fullName, setFullName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [tel1, setTel1] = useState("");
   const [tel2, setTel2] = useState("");
   const [tel3, setTel3] = useState("");
@@ -19,12 +21,14 @@ export default function Configuracoes() {
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const { data } = await supabase.from("profiles").select("full_name, telefone1, telefone2, telefone3").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("full_name, telefone1, telefone2, telefone3, avatar_url" as any).eq("id", user.id).single();
       if (data) {
-        setFullName(data.full_name || "");
-        setTel1(data.telefone1 || "");
-        setTel2(data.telefone2 || "");
-        setTel3(data.telefone3 || "");
+        const d = data as any;
+        setFullName(d.full_name || "");
+        setAvatarUrl(d.avatar_url || null);
+        setTel1(d.telefone1 || "");
+        setTel2(d.telefone2 || "");
+        setTel3(d.telefone3 || "");
       }
     };
     fetch();
@@ -57,12 +61,18 @@ export default function Configuracoes() {
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground">Perfil</h3>
         <div className="flex items-center gap-4 pb-2 border-b border-border">
-          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary text-lg font-bold">
-            {(fullName || user?.email || "?").charAt(0).toUpperCase()}
-          </div>
+          <UserAvatar
+            userId={user?.id}
+            fullName={fullName}
+            avatarUrl={avatarUrl}
+            size="xl"
+            editable
+            onAvatarChange={setAvatarUrl}
+          />
           <div>
             <p className="text-lg font-semibold text-foreground">{fullName || "Sem nome"}</p>
             <p className="text-sm text-muted-foreground">{user?.email || ""}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Passe o mouse sobre a foto para alterar</p>
           </div>
         </div>
         <div>
