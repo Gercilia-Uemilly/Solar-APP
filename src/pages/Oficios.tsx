@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Printer } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -483,6 +483,32 @@ export default function Oficios() {
               >
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
               </button>
+              <button
+                onClick={() => {
+                  if (o.conteudo) {
+                    setViewingOficio(o);
+                    setShowPreviewDialog(true);
+                    setTimeout(() => {
+                      const el = document.getElementById("oficio-view-preview");
+                      if (el) {
+                        const printWindow = window.open("", "_blank");
+                        if (printWindow) {
+                          printWindow.document.write(`<html><head><title>Ofício ${o.numero || ""}</title><style>body{margin:0;padding:20px;font-family:Arial,sans-serif;}@media print{body{padding:0;}}</style></head><body>${el.innerHTML}</body></html>`);
+                          printWindow.document.close();
+                          printWindow.focus();
+                          printWindow.print();
+                          printWindow.close();
+                        }
+                      }
+                      setShowPreviewDialog(false);
+                    }, 500);
+                  }
+                }}
+                className="p-2 text-muted-foreground hover:text-foreground"
+                title="Imprimir"
+              >
+                <Printer size={16} />
+              </button>
               <button onClick={() => handleDelete(o.id)} className="p-2 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
             </div>
           </div>
@@ -795,6 +821,19 @@ export default function Oficios() {
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
+                <Button size="sm" variant="outline" onClick={() => {
+                  const el = document.getElementById("oficio-view-preview");
+                  if (el) {
+                    const printWindow = window.open("", "_blank");
+                    if (printWindow) {
+                      printWindow.document.write(`<html><head><title>Ofício ${viewingOficio?.numero || ""}</title><style>body{margin:0;padding:20px;font-family:Arial,sans-serif;}@media print{body{padding:0;}}</style></head><body>${el.innerHTML}</body></html>`);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      printWindow.print();
+                      printWindow.close();
+                    }
+                  }
+                }}><Printer size={14} className="mr-1" /> Imprimir</Button>
               </div>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">Visualize o conteúdo antes de exportar para Word ou PDF.</DialogDescription>
