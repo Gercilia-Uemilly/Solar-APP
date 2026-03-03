@@ -114,7 +114,7 @@ async function uploadToDrive(
   }
 
   const resp = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink&supportsAllDrives=true",
     {
       method: "POST",
       headers: {
