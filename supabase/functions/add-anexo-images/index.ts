@@ -1,0 +1,215 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const formData = await req.formData();
+    const docxFile = formData.get("docx") as File | null;
+    if (!docxFile) {
+      return new Response(JSON.stringify({ error: "docx não enviado" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Coletar imagens
+    const images: { name: string; data: Uint8Array; type: string }[] = [];
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith("imagem_") && value instanceof File) {
+        images.push({
+          name: value.name,
+          data: new Uint8Array(await value.arrayBuffer()),
+          type: value.type,
+        });
+      }
+    }
+
+    if (images.length === 0) {
+      // Sem imagens — retornar docx original
+      const docxBytes = await docxFile.arrayBuffer();
+      return new Response(docxBytes, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+      });
+    }
+
+    // Processar: abrir o docx (ZIP), adicionar página de anexo com imagens
+    const docxBytes = new Uint8Array(await docxFile.arrayBuffer());
+    const resultBytes = await addAnexoToDocx(docxBytes, images);
+
+    return new Response(resultBytes, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="oficio_com_anexo.docx"`,
+      },
+    });
+
+  } catch (e) {
+    console.error("add-anexo-images error:", e);
+    return new Response(JSON.stringify({ error: String(e) }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
+
+// ── Manipulação do DOCX (ZIP) ────────────────────────────────────────────────
+async function addAnexoToDocx(
+  docxBytes: Uint8Array,
+  images: { name: string; data: Uint8Array; type: string }[]
+): Promise<Uint8Array> {
+
+  // Importar biblioteca de ZIP para Deno
+  const { ZipReader, ZipWriter, BlobReader, BlobWriter, Uint8ArrayReader, Uint8ArrayWriter, TextReader, TextWriter }
+    = await import("https://deno.land/x/zipjs@v2.7.52/index.js");
+
+  // ── Ler arquivos do docx original ───────────────────────────────────────
+  const zipReader = new ZipReader(new Uint8ArrayReader(docxBytes));
+  const entries = await zipReader.getEntries();
+
+  const fileMap = new Map<string, Uint8Array>();
+  for (const entry of entries) {
+    if (!entry.getData) continue;
+    const writer = new Uint8ArrayWriter();
+    const data = await entry.getData(writer);
+    fileMap.set(entry.filename, data);
+  }
+  await zipReader.close();
+
+  // ── Ler document.xml e rels ─────────────────────────────────────────────
+  const docXml = new TextDecoder().decode(fileMap.get("word/document.xml")!);
+  const relsXml = new TextDecoder().decode(fileMap.get("word/_rels/document.xml.rels")!);
+  const contentTypesXml = new TextDecoder().decode(fileMap.get("[Content_Types].xml")!);
+
+  const W  = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+  const WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+  const PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+  const A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main";
+
+  // ── Adicionar imagens ao zip e criar rels ────────────────────────────────
+  let newRels = relsXml.replace("</Relationships>", "");
+  let nextRid = 20; // IDs altos para não conflitar
+
+  const imageRefs: { rId: string; cx: number; cy: number; idx: number }[] = [];
+
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i];
+    const ext = img.type.includes("png") ? "png" : "jpeg";
+    const mediaName = `word/media/anexo_img_${i + 1}.${ext}`;
+    fileMap.set(mediaName, img.data);
+
+    const rId = `rIdAnexo${nextRid}`;
+    const mimeType = img.type.includes("png")
+      ? "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+      : "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+
+    newRels += `<Relationship Id="${rId}" Type="${mimeType}" Target="media/anexo_img_${i + 1}.${ext}"/>`;
+    nextRid++;
+
+    // Tamanho padrão: max 8cm largura (mantendo proporção)
+    // 1cm = 360000 EMU, 8cm = 2880000 EMU
+    const maxCx = 2880000;
+    const cx = maxCx;
+    const cy = Math.round(maxCx * 0.75); // proporção 4:3 como fallback
+
+    imageRefs.push({ rId, cx, cy, idx: i + 1 });
+    nextRid++;
+  }
+
+  newRels += "</Relationships>";
+  fileMap.set("word/_rels/document.xml.rels", new TextEncoder().encode(newRels));
+
+  // ── Gerar XML do Anexo I ─────────────────────────────────────────────────
+  const makeImageXml = (rId: string, cx: number, cy: number, idx: number) => `
+<w:p xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:r>
+    <w:drawing>
+      <wp:inline distT="0" distB="114300" distL="0" distR="0">
+        <wp:extent cx="${cx}" cy="${cy}"/>
+        <wp:effectExtent l="0" t="0" r="0" b="0"/>
+        <wp:docPr id="${idx + 100}" name="Imagem${idx}"/>
+        <wp:cNvGraphicFramePr>
+          <a:graphicFrameLocks xmlns:a="${A_NS}" noChangeAspect="1"/>
+        </wp:cNvGraphicFramePr>
+        <a:graphic xmlns:a="${A_NS}">
+          <a:graphicData uri="${PIC_NS}">
+            <pic:pic xmlns:pic="${PIC_NS}">
+              <pic:nvPicPr>
+                <pic:cNvPr id="${idx + 100}" name="Imagem${idx}"/>
+                <pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr>
+              </pic:nvPicPr>
+              <pic:blipFill>
+                <a:blip r:embed="${rId}"/>
+                <a:stretch><a:fillRect/></a:stretch>
+              </pic:blipFill>
+              <pic:spPr>
+                <a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>
+                <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+              </pic:spPr>
+            </pic:pic>
+          </a:graphicData>
+        </a:graphic>
+      </wp:inline>
+    </w:drawing>
+  </w:r>
+</w:p>`;
+
+  // Montar 2 imagens por linha (grade 2 colunas)
+  const imageParas: string[] = [];
+  for (let i = 0; i < imageRefs.length; i += 2) {
+    const ref1 = imageRefs[i];
+    const ref2 = imageRefs[i + 1];
+    // Imagem 1
+    imageParas.push(makeImageXml(ref1.rId, ref1.cx, ref1.cy, ref1.idx));
+    // Imagem 2 (se existir)
+    if (ref2) {
+      imageParas.push(makeImageXml(ref2.rId, ref2.cx, ref2.cy, ref2.idx));
+    }
+    // Linha em branco entre pares
+    imageParas.push(`<w:p xmlns:w="${W}"><w:r><w:t> </w:t></w:r></w:p>`);
+  }
+
+  // ── Inserir Anexo I no document.xml ─────────────────────────────────────
+  const pageBreak = `<w:p xmlns:w="${W}"><w:r><w:br w:type="page"/></w:r></w:p>`;
+  const anexoTitulo = `<w:p xmlns:w="${W}">
+    <w:pPr><w:jc w:val="center"/>
+      <w:rPr><w:b/><w:sz w:val="24"/></w:rPr>
+    </w:pPr>
+    <w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr>
+      <w:t>Anexo I – Imagens</w:t>
+    </w:r>
+  </w:p>
+  <w:p xmlns:w="${W}"><w:r><w:t> </w:t></w:r></w:p>`;
+
+  const anexoBlock = pageBreak + anexoTitulo + imageParas.join("\n");
+
+  // Inserir antes do </w:body>
+  const newDocXml = docXml.replace("</w:body>", `${anexoBlock}</w:body>`);
+  fileMap.set("word/document.xml", new TextEncoder().encode(newDocXml));
+
+  // ── Atualizar Content_Types para novas extensões ─────────────────────────
+  let newCT = contentTypesXml;
+  if (!newCT.includes('Extension="jpeg"')) {
+    newCT = newCT.replace("</Types>",
+      '<Default Extension="jpeg" ContentType="image/jpeg"/></Types>');
+  }
+  if (!newCT.includes('Extension="png"')) {
+    newCT = newCT.replace("</Types>",
+      '<Default Extension="png" ContentType="image/png"/></Types>');
+  }
+  fileMap.set("[Content_Types].xml", new TextEncoder().encode(newCT));
+
+  // ── Reembalar o ZIP ──────────────────────────────────────────────────────
+  const zipWriter = new ZipWriter(new Uint8ArrayWriter());
+  for (const [filename, data] of fileMap.entries()) {
+    await zipWriter.add(filename, new Uint8ArrayReader(data));
+  }
+  return await zipWriter.close();
+}
