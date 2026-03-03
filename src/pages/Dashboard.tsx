@@ -25,6 +25,14 @@ const PIE_COLORS = [
 export default function Dashboard() {
   const { user, isAdmin } = useAuth();
   const [oficios, setOficios] = useState<OficioRow[]>([]);
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("full_name").eq("id", user.id).single().then(({ data }) => {
+      if (data) setProfileName(data.full_name || null);
+    });
+  }, [user]);
 
   const hoje = new Date();
   const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
@@ -140,7 +148,7 @@ export default function Dashboard() {
       >
         <p className="text-sm text-muted-foreground">{dataFormatada}</p>
         <h1 className="text-xl font-medium text-foreground mt-1">
-          Bem-vindo, {user?.user_metadata?.full_name || user?.email || "Operador"}
+          Bem-vindo, {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operador"}
         </h1>
         <p className="text-sm text-muted-foreground">The Office 30 · Gabinete Vereador Fabão · Câmara Municipal de Uberlândia</p>
       </motion.div>
