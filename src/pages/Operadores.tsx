@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff } from "lucide-react";
+import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 
 interface Profile {
@@ -47,6 +48,10 @@ export default function Operadores() {
   const [inviteName, setInviteName] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
   const [inviting, setInviting] = useState(false);
+
+  // Delete confirmation
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -142,6 +147,22 @@ export default function Operadores() {
     setInviting(false);
   };
 
+  const handleDeleteUser = async () => {
+    if (!deleteUserId) return;
+    setDeleting(true);
+    const { error } = await supabase.functions.invoke("delete-user", {
+      body: { userId: deleteUserId },
+    });
+    if (error) {
+      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Usuário removido com sucesso!" });
+      fetchProfiles();
+    }
+    setDeleteUserId(null);
+    setDeleting(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -222,6 +243,15 @@ export default function Operadores() {
                       </>
                     )}
                     <button onClick={() => openEdit(p)} className="p-2 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setDeleteUserId(p.id)}
+                        className="p-2 text-muted-foreground hover:text-destructive"
+                        title="Remover acesso"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -286,6 +316,24 @@ export default function Operadores() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteUserId} onOpenChange={(open) => !open && setDeleteUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover acesso do operador?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é irreversível. O usuário será removido permanentemente do sistema e perderá todo o acesso.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Removendo..." : "Remover"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
