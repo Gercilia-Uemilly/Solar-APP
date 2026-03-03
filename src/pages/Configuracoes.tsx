@@ -64,6 +64,10 @@ export default function Configuracoes() {
           <label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail</label>
           <Input value={user?.email || ""} disabled className="bg-secondary border-border opacity-60" />
         </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">ID do usuário</label>
+          <Input value={user?.id || ""} disabled className="bg-secondary border-border opacity-60 font-mono text-xs" />
+        </div>
       </div>
 
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
