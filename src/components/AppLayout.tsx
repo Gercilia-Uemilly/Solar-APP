@@ -2,15 +2,26 @@ import { ReactNode, useState, useEffect } from "react";
 import AppSidebar from "./AppSidebar";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
-import { Menu, LogOut, User, X } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
+import UserAvatar from "@/components/UserAvatar";
+import { useEffect as useEffectAvatar, useState as useStateAvatar } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
+  const [avatarUrl, setAvatarUrl] = useStateAvatar<string | null>(null);
+
+  useEffectAvatar(() => {
+    if (!user) return;
+    supabase.from("profiles").select("avatar_url" as any).eq("id", user.id).single().then(({ data }) => {
+      if (data) setAvatarUrl((data as any).avatar_url || null);
+    });
+  }, [user]);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -71,9 +82,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <p className="text-sm font-medium text-foreground">{user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário"}</p>
               <p className="text-[10px] text-muted-foreground">{user?.email}</p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <User size={14} className="text-primary" />
-            </div>
+            <UserAvatar
+              userId={user?.id}
+              fullName={user?.user_metadata?.full_name || user?.email?.split("@")[0]}
+              avatarUrl={avatarUrl}
+              size="sm"
+            />
             <button
               onClick={() => signOut()}
               className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"

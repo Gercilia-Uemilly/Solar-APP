@@ -9,11 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff } from "lucide-react";
+import UserAvatar from "@/components/UserAvatar";
 
 interface Profile {
   id: string;
   full_name: string | null;
   email: string | null;
+  avatar_url: string | null;
   telefone1: string | null;
   telefone2: string | null;
   telefone3: string | null;
@@ -180,7 +182,12 @@ export default function Operadores() {
               const role = roles[p.id] || "user";
               return (
                 <TableRow key={p.id} className={!p.active ? "opacity-50" : ""}>
-                  <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <UserAvatar userId={p.id} fullName={p.full_name} avatarUrl={(p as any).avatar_url} size="sm" />
+                      {p.full_name || "—"}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{p.email || "—"}</TableCell>
                   <TableCell>
                     <Badge variant={role === "admin" ? "default" : "secondary"} className="text-xs">
