@@ -160,7 +160,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         <p style={{ fontWeight: "bold", fontSize: `${fmt.fontSize}pt`, marginBottom: "30px" }}>
-          ASSUNTO: {assuntoFormatado}
+          Assunto: {assuntoFormatado}
         </p>
 
         <p style={{ fontSize: `${fmt.fontSize}pt`, marginBottom: "30px", textIndent: "1.25cm" }}>

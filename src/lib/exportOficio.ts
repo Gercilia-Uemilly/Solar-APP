@@ -254,7 +254,7 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   y += 4;
 
   // Assunto
-  const assuntoText = `ASSUNTO: ${assuntoFormatado}`;
+  const assuntoText = `Assunto: ${assuntoFormatado}`;
   const assuntoLines = wrapText(assuntoText, contentW);
   assuntoLines.forEach(line => {
     checkPageBreak(6);
