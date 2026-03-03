@@ -38,7 +38,7 @@ interface OficioRow {
   contato_solicitante: string | null;
   operador_nome: string | null;
   link_pdf_drive: string | null;
-  profiles?: { full_name: string | null };
+  
 }
 
 const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido", "Arquivado"];
@@ -61,7 +61,7 @@ export default function MeusOficios() {
 
   const fetchOficios = async () => {
     setLoading(true);
-    const q = supabase.from("oficios").select("*, profiles(full_name)").order("created_at", { ascending: false });
+    const q = supabase.from("oficios").select("*").order("created_at", { ascending: false });
     const { data, error } = await q;
     if (error) {
       toast({ title: "Erro ao buscar ofícios", description: error.message, variant: "destructive" });
@@ -76,7 +76,7 @@ export default function MeusOficios() {
   const operadores = useMemo(() => {
     const names = new Set<string>();
     oficios.forEach(o => {
-      const name = o.profiles?.full_name || o.operador_nome;
+      const name = o.operador_nome;
       if (name) names.add(name);
     });
     return Array.from(names).sort();
@@ -95,7 +95,7 @@ export default function MeusOficios() {
   const filtered = oficios.filter(o => {
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
     if (filtroOperador !== "Todos") {
-      const opName = o.profiles?.full_name || o.operador_nome || "";
+      const opName = o.operador_nome || "";
       if (opName !== filtroOperador) return false;
     }
     if (dateFrom) {
@@ -220,7 +220,7 @@ export default function MeusOficios() {
                   <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary font-medium">{o.status}</span>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{new Date(o.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                {isAdmin && <TableCell className="text-sm text-muted-foreground">{o.profiles?.full_name || "-"}</TableCell>}
+                {isAdmin && <TableCell className="text-sm text-muted-foreground">{o.operador_nome || "-"}</TableCell>}
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => { setViewOficio(o); setShowPreview(true); }} className="p-2 text-muted-foreground hover:text-foreground"><Eye size={16} /></button>
