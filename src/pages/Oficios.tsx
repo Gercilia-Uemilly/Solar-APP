@@ -11,8 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
-import { exportToWord, exportToPDF } from "@/lib/exportOficio";
-import { printOficio } from "@/lib/printOficio";
+import { exportToWord, exportToPDF, printOficioViaPdf } from "@/lib/exportOficio";
 import ImageUploader from "@/components/ImageUploader";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
@@ -496,7 +495,7 @@ export default function Oficios() {
               <button
                 onClick={async () => {
                   if (o.conteudo) {
-                    await printOficio({
+                    await printOficioViaPdf({
                       numero: o.numero || "",
                       destinatario: o.destinatario,
                       assunto: o.assunto,
@@ -825,7 +824,7 @@ export default function Oficios() {
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (viewingOficio?.conteudo) {
-                    await printOficio({
+                    await printOficioViaPdf({
                       numero: viewingOficio.numero || "",
                       destinatario: viewingOficio.destinatario,
                       assunto: viewingOficio.assunto,

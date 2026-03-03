@@ -62,8 +62,9 @@ NÃO INCLUIR NO CORPO:
 • assinatura
 • data
 
-6. Encerramento: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço."
-7. Assinatura: "FABÃO Vereador"
+6. O ÚLTIMO PARÁGRAFO do corpo DEVE SEMPRE terminar com a frase de encerramento: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço."
+7. NÃO inclua "Atenciosamente," no corpo do texto - isto já está no template do documento.
+8. Assinatura: "FABÃO Vereador"
 8. Rodapé: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG"
 
 ## TOM DE VOZ
@@ -203,7 +204,7 @@ NÃO INCLUIR NO CORPO:
 
 Você DEVE retornar um JSON válido com a seguinte estrutura:
 {
-  "oficio": "Texto completo do ofício (SÓ O CORPO - sem cabeçalho, sem destinatário, sem assunto, sem data, sem assinatura). Inclua apenas os parágrafos do corpo do ofício, começando pela saudação e terminando no fecho.",
+  "oficio": "Texto completo do ofício (SÓ O CORPO - sem cabeçalho, sem destinatário, sem assunto, sem data, sem assinatura, sem 'Atenciosamente'). Inclua apenas os parágrafos do corpo do ofício, terminando com 'Na certeza de contar com o vosso pronto atendimento, desde já agradeço.'",
   "resposta_cidadao": "Sugestão de resposta ao cidadão com linguagem simples, acolhedora e respeitosa",
   "secretaria_identificada": "Nome da secretaria/órgão responsável",
   "tipo_demanda": "Tipo da demanda (Solicitação, Reclamação, Denúncia)",
