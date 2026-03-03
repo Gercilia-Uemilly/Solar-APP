@@ -208,10 +208,25 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     pdf.setTextColor(0);
   }
 
-  function addHeader() {
-    // Logos
-    pdf.addImage(logoCamaraData, "PNG", marginLeft + 5, marginTop, 25, 16);
-    pdf.addImage(logoFabaoData, "PNG", pageW - marginRight - 30, marginTop, 25, 16);
+  function getImageDimensions(dataUrl: string): Promise<{ w: number; h: number }> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => resolve({ w: 1, h: 1 });
+      img.src = dataUrl;
+    });
+  }
+
+  async function addHeaderAsync() {
+    const targetH = 16; // mm
+    const [dimCamara, dimFabao] = await Promise.all([
+      getImageDimensions(logoCamaraData),
+      getImageDimensions(logoFabaoData),
+    ]);
+    const wCamara = (dimCamara.w / dimCamara.h) * targetH;
+    const wFabao = (dimFabao.w / dimFabao.h) * targetH;
+    pdf.addImage(logoCamaraData, "PNG", marginLeft + 5, marginTop, wCamara, targetH);
+    pdf.addImage(logoFabaoData, "PNG", pageW - marginRight - wFabao - 5, marginTop, wFabao, targetH);
     return marginTop + 20;
   }
 
@@ -229,7 +244,7 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   }
 
   // ── PAGE 1: Header ──
-  y = addHeader();
+  y = await addHeaderAsync();
   y += 5;
 
   // Data
