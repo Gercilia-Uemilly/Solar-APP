@@ -15,11 +15,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useStateAvatar<string | null>(null);
+  const [profileName, setProfileName] = useStateAvatar<string | null>(null);
+  const [profileTel, setProfileTel] = useStateAvatar<string | null>(null);
 
   useEffectAvatar(() => {
     if (!user) return;
-    supabase.from("profiles").select("avatar_url" as any).eq("id", user.id).single().then(({ data }) => {
-      if (data) setAvatarUrl((data as any).avatar_url || null);
+    supabase.from("profiles").select("avatar_url, full_name, telefone1").eq("id", user.id).single().then(({ data }: any) => {
+      if (data) {
+        setAvatarUrl(data.avatar_url || null);
+        setProfileName(data.full_name || null);
+        setProfileTel(data.telefone1 || null);
+      }
     });
   }, [user]);
 
@@ -79,8 +85,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-foreground">{user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário"}</p>
-              <p className="text-[10px] text-muted-foreground">{user?.email}</p>
+              <p className="text-sm font-medium text-foreground">{profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário"}</p>
+              <p className="text-[10px] text-muted-foreground">{profileTel ? `📱 ${profileTel}` : user?.email}</p>
             </div>
             <UserAvatar
               userId={user?.id}
