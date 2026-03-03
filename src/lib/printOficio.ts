@@ -11,12 +11,25 @@ interface PrintData {
   cargoDestinatario?: string;
 }
 
-function toAbsoluteUrl(src: string): string {
-  if (src.startsWith("http")) return src;
-  return `${window.location.origin}${src}`;
+// Convert an image URL (possibly Vite-hashed) to a base64 data URL
+async function toDataUrl(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
 }
 
-export function printOficio(data: PrintData) {
+export async function printOficio(data: PrintData) {
   const hoje = new Date();
   const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
@@ -35,6 +48,13 @@ export function printOficio(data: PrintData) {
     .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
     .map(p => `<p style="text-indent:1.25cm;margin:0 0 10px 0;font-size:12pt;line-height:1.5;text-align:justify;">${p}</p>`)
     .join("");
+
+  // Convert images to base64 so they work in the print window
+  const [logoCamaraB64, logoFabaoB64, assinaturaB64] = await Promise.all([
+    toDataUrl(logoCamara),
+    toDataUrl(logoFabao),
+    toDataUrl(assinaturaImg),
+  ]);
 
   const html = `<!DOCTYPE html>
 <html>
@@ -112,8 +132,8 @@ export function printOficio(data: PrintData) {
 <body>
   <div class="page">
     <div class="header">
-      <img src="${toAbsoluteUrl(logoCamara)}" alt="Câmara Municipal" />
-      <img src="${toAbsoluteUrl(logoFabao)}" alt="Vereador Fabão" />
+      <img src="${logoCamaraB64}" alt="Câmara Municipal" />
+      <img src="${logoFabaoB64}" alt="Vereador Fabão" />
     </div>
 
     <p class="date">${dataFormatada}</p>
@@ -127,7 +147,7 @@ export function printOficio(data: PrintData) {
     <p class="fechamento">Atenciosamente,</p>
 
     <div class="assinatura">
-      <img src="${toAbsoluteUrl(assinaturaImg)}" alt="Assinatura" />
+      <img src="${assinaturaB64}" alt="Assinatura" />
       <div class="linha"></div>
       <p class="nome">FABÃO</p>
       <p class="cargo">Vereador</p>
@@ -138,12 +158,7 @@ export function printOficio(data: PrintData) {
     </div>
   </div>
   <script>
-    // Wait for images to load then print
-    Promise.all(
-      Array.from(document.images).map(img =>
-        img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
-      )
-    ).then(() => { window.print(); });
+    window.onload = function() { window.print(); };
   </script>
 </body>
 </html>`;

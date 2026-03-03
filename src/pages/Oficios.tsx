@@ -477,6 +477,15 @@ export default function Oficios() {
                 <FileText size={16} />
               </button>
               <button
+                onClick={() => {
+                  if (o.conteudo) exportToPDF({ numero: o.numero || "", destinatario: o.destinatario, assunto: o.assunto, conteudo: o.conteudo, bairro: o.bairro || "", cargoDestinatario: o.cargo_destinatario || "" });
+                }}
+                className="p-2 text-muted-foreground hover:text-foreground"
+                title="Exportar PDF"
+              >
+                <Download size={16} />
+              </button>
+              <button
                 onClick={() => handleUploadToDrive(o)}
                 disabled={isUploading}
                 className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50"
@@ -485,9 +494,9 @@ export default function Oficios() {
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (o.conteudo) {
-                    printOficio({
+                    await printOficio({
                       numero: o.numero || "",
                       destinatario: o.destinatario,
                       assunto: o.assunto,
@@ -814,9 +823,9 @@ export default function Oficios() {
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => {
+                <Button size="sm" variant="outline" onClick={async () => {
                   if (viewingOficio?.conteudo) {
-                    printOficio({
+                    await printOficio({
                       numero: viewingOficio.numero || "",
                       destinatario: viewingOficio.destinatario,
                       assunto: viewingOficio.assunto,
