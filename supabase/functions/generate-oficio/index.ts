@@ -35,24 +35,18 @@ INSTRUÇÕES OBRIGATÓRIAS:
 • mencionar impactos à população e à mobilidade/segurança quando aplicável
 • demonstrar fundamentação institucional do pedido
 • manter tom impessoal e institucional
-• utilizar 3 parágrafos bem estruturados (máximo 4 se necessário), texto conciso que caiba em uma página A4
+• utilizar EXATAMENTE 3 parágrafos curtos e objetivos (MÁXIMO 3). O texto DEVE caber em uma única página A4 com margens 3cm/2cm, fonte Arial 11pt e espaçamento 1,5. Seja CONCISO.
 
-ESTRUTURA DO TEXTO:
+ESTRUTURA DO TEXTO (3 parágrafos apenas):
 
-1º parágrafo - APRESENTAÇÃO DA SOLICITAÇÃO:
-"Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar [descrição geral da solicitação], especialmente [local/bairro específico]."
+1º parágrafo - APRESENTAÇÃO E DESCRIÇÃO:
+"Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar [descrição geral da solicitação], especialmente [local/bairro específico]." Em seguida, descreva brevemente o problema.
 
-2º parágrafo - DESCRIÇÃO DO PROBLEMA:
-Detalhar o problema com dados concretos. Mencionar ruas e bairros reais de Uberlândia quando fornecidos. Começar com "Conforme demandas recebidas por este gabinete..."
+2º parágrafo - IMPACTOS E JUSTIFICATIVA:
+Explique os impactos negativos de forma objetiva: riscos à segurança, prejuízos, comprometimento da mobilidade ou qualidade de vida.
 
-3º parágrafo - IMPACTOS À POPULAÇÃO:
-Explicar os impactos negativos: riscos à segurança, prejuízos materiais, comprometimento da mobilidade, impacto na qualidade de vida dos moradores.
-
-4º parágrafo - PROVIDÊNCIAS SOLICITADAS:
-"Diante disso, solicita-se [ação específica], com avaliação técnica e adoção das medidas necessárias para [objetivo]."
-
-5º parágrafo (opcional) - ENCAMINHAMENTO:
-"Espero que a [Secretaria/Órgão] considere favoravelmente nosso pedido e nos informe sobre a viabilidade de concretizá-lo, bem como sobre os próximos passos a serem seguidos."
+3º parágrafo - PROVIDÊNCIAS SOLICITADAS:
+"Diante do exposto, solicita-se [ação específica], com avaliação técnica e adoção das medidas necessárias para [objetivo]."
 
 NÃO INCLUIR NO CORPO:
 • cabeçalho
