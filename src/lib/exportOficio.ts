@@ -135,22 +135,10 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Linha em branco ──
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
         // ── Data ──
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
-        // ── Linha em branco ──
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
@@ -186,30 +174,18 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
         // ── Saudação ──
         new Paragraph({
-          indent: { firstLine: 709 }, // 1.25cm
+          indent: { firstLine: 709 },
           children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Linha em branco ──
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
-        // ── Parágrafos do corpo ──
+        // ── Parágrafos do corpo (sem linha em branco entre eles) ──
         ...paragraphs.map(p => new Paragraph({
-          indent: { firstLine: 709 }, // 1.25cm
+          indent: { firstLine: 709 },
           alignment: AlignmentType.JUSTIFIED,
           children: [new TextRun({ text: p, font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         })),
-
-        // ── Linha em branco ──
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
 
         // ── Atenciosamente ──
         new Paragraph({
@@ -218,7 +194,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Linhas em branco antes da assinatura ──
+        // ── Linha em branco ──
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
@@ -230,7 +206,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [
             new ImageRun({
               data: assinaturaBytes,
-              transformation: { width: 200, height: 80 },
+              transformation: { width: 180, height: 70 },
               type: "png",
             }),
           ],

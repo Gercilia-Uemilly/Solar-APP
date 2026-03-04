@@ -35,7 +35,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 • mencionar impactos à população e à mobilidade/segurança quando aplicável
 • demonstrar fundamentação institucional do pedido
 • manter tom impessoal e institucional
-• utilizar 3 a 5 parágrafos bem estruturados
+• utilizar 3 parágrafos bem estruturados (máximo 4 se necessário), texto conciso que caiba em uma página A4
 
 ESTRUTURA DO TEXTO:
 
