@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Footer, Header, Tab, TabStopType, TabStopPosition } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Footer, Header, Tab, TabStopType, TabStopPosition, PageNumber } from "docx";
 import { saveAs } from "file-saver";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
@@ -141,6 +141,16 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       footers: {
         default: new Footer({
           children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({
+                children: [PageNumber.CURRENT, " / ", PageNumber.TOTAL_PAGES],
+                font: fontName,
+                size: 16,
+                color: "444444",
+              })],
+              spacing: { before: 0, after: 80 },
+            }),
             new Paragraph({
               alignment: AlignmentType.CENTER,
               border: {
