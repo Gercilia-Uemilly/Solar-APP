@@ -335,9 +335,15 @@ Com base nessas informações:
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    console.log("AI response structure:", JSON.stringify(data).substring(0, 500));
+    
+    const message = data.choices?.[0]?.message;
+    const content = message?.content || 
+      (message?.tool_calls?.[0]?.function?.arguments) || 
+      null;
 
     if (!content) {
+      console.error("Empty AI response. Full data:", JSON.stringify(data).substring(0, 1000));
       return new Response(JSON.stringify({ error: "Resposta vazia da IA" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
