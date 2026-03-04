@@ -416,6 +416,39 @@ export default function Oficios() {
     }
   };
 
+  // ── Helper: build consistent export data from an OficioRow ─────────────────
+  const buildExportData = (o: OficioRow) => ({
+    numero: o.numero || "",
+    destinatario: o.destinatario,
+    assunto: o.assunto,
+    conteudo: o.conteudo || "",
+    bairro: o.bairro || "",
+    cargoDestinatario: o.cargo_destinatario || "",
+    dataGeracao: o.data_geracao || undefined,
+    operadorNome: (o as any).operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
+    telefone: (o as any).linha_telefonica || undefined,
+    logoCamaraUrl: logoCamara,
+    logoFabaoUrl: logoFabao,
+    assinaturaUrl: assinaturaFabao,
+  });
+
+  // ── Helper: build export data from form state ─────────────────────────────
+  const buildFormExportData = () => ({
+    numero,
+    destinatario,
+    assunto,
+    conteudo: editedOficio,
+    bairro,
+    cargoDestinatario,
+    dataGeracao: dataGeracao || undefined,
+    operadorNome: user?.user_metadata?.full_name || user?.email || undefined,
+    telefone: linhaTelefonica || undefined,
+    logoCamaraUrl: logoCamara,
+    logoFabaoUrl: logoFabao,
+    assinaturaUrl: assinaturaFabao,
+    imagens: anexoImages.length > 0 ? anexoImages : undefined,
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -467,18 +500,14 @@ export default function Oficios() {
               <button onClick={() => handleEdit(o)} className="p-2 text-muted-foreground hover:text-primary" title="Editar"><Pencil size={16} /></button>
               <button onClick={() => { setViewingOficio(o); setShowPreviewDialog(true); }} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
               <button
-                onClick={() => {
-                  if (o.conteudo) exportToWord({ numero: o.numero || "", destinatario: o.destinatario, assunto: o.assunto, conteudo: o.conteudo, bairro: (o as any).bairro || "", logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, assinaturaUrl: assinaturaFabao });
-                }}
+                onClick={() => { if (o.conteudo) exportToWord(buildExportData(o)); }}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 title="Exportar Word"
               >
                 <FileText size={16} />
               </button>
               <button
-                onClick={() => {
-                  if (o.conteudo) exportToPDF({ numero: o.numero || "", destinatario: o.destinatario, assunto: o.assunto, conteudo: o.conteudo, bairro: o.bairro || "", cargoDestinatario: o.cargo_destinatario || "" });
-                }}
+                onClick={() => { if (o.conteudo) exportToPDF(buildExportData(o)); }}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 title="Exportar PDF"
               >
@@ -493,18 +522,7 @@ export default function Oficios() {
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
               </button>
               <button
-                onClick={async () => {
-                  if (o.conteudo) {
-                    await printOficioViaPdf({
-                      numero: o.numero || "",
-                      destinatario: o.destinatario,
-                      assunto: o.assunto,
-                      conteudo: o.conteudo,
-                      bairro: o.bairro || "",
-                      cargoDestinatario: o.cargo_destinatario || "",
-                    });
-                  }
-                }}
+                onClick={async () => { if (o.conteudo) await printOficioViaPdf(buildExportData(o)); }}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 title="Imprimir"
               >
@@ -758,11 +776,11 @@ export default function Oficios() {
                     alert("Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.");
                     return;
                   }
-                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao, imagens: anexoImages });
+                  exportToWord(buildFormExportData());
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario }); }}>
+                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF(buildFormExportData()); }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
               </div>
@@ -807,32 +825,16 @@ export default function Oficios() {
               <span>{viewingOficio?.assunto || "Ofício"}</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => {
-                  if (viewingOficio?.conteudo) exportToWord({ numero: viewingOficio.numero || "", destinatario: viewingOficio.destinatario, assunto: viewingOficio.assunto, conteudo: viewingOficio.conteudo, bairro: (viewingOficio as any).bairro || "", logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, assinaturaUrl: assinaturaFabao });
+                  if (viewingOficio?.conteudo) exportToWord(buildExportData(viewingOficio));
                 }}><FileText size={14} className="mr-1" /> Word</Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (viewingOficio?.conteudo) await exportToPDF({
-                    numero: viewingOficio.numero || "",
-                    destinatario: viewingOficio.destinatario,
-                    assunto: viewingOficio.assunto,
-                    conteudo: viewingOficio.conteudo,
-                    bairro: (viewingOficio as any).bairro || "",
-                    cargoDestinatario: (viewingOficio as any).cargo_destinatario || "",
-                  });
+                  if (viewingOficio?.conteudo) await exportToPDF(buildExportData(viewingOficio));
                 }}><Download size={14} className="mr-1" /> PDF</Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (viewingOficio?.conteudo) {
-                    await printOficioViaPdf({
-                      numero: viewingOficio.numero || "",
-                      destinatario: viewingOficio.destinatario,
-                      assunto: viewingOficio.assunto,
-                      conteudo: viewingOficio.conteudo,
-                      bairro: (viewingOficio as any).bairro || "",
-                      cargoDestinatario: (viewingOficio as any).cargo_destinatario || "",
-                    });
-                  }
+                  if (viewingOficio?.conteudo) await printOficioViaPdf(buildExportData(viewingOficio));
                 }}><Printer size={14} className="mr-1" /> Imprimir</Button>
               </div>
             </DialogTitle>
