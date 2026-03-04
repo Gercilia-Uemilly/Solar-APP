@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,9 @@ import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF } from "@/lib/exportOficio";
 import ImageUploader from "@/components/ImageUploader";
+import RichTextEditor from "@/components/RichTextEditor";
+import FileDropzone from "@/components/FileDropzone";
+import type { DemandaAnexo } from "@/types";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
@@ -117,6 +120,22 @@ export default function Oficios() {
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const [anexoImages, setAnexoImages] = useState<File[]>([]);
+  const [anexos, setAnexos] = useState<DemandaAnexo[]>([]);
+
+  // Helpers to convert between HTML and plain text for the ofício
+  const plainToHtml = (text: string) => {
+    if (!text) return "";
+    return text.split("\n").filter(p => p.trim()).map(p => `<p>${p}</p>`).join("");
+  };
+  const htmlToPlain = (html: string) => {
+    if (!html) return "";
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return Array.from(div.querySelectorAll("p, div, li, h1, h2, h3"))
+      .map(el => el.textContent?.trim() || "")
+      .filter(Boolean)
+      .join("\n") || div.textContent?.trim() || "";
+  };
 
   // Fetch oficios
   const fetchOficios = async () => {
@@ -327,6 +346,7 @@ export default function Oficios() {
     setProcessedFileText("");
     setProcessedFileType(null);
     setAnexoImages([]);
+    setAnexos([]);
   };
 
   const handleDelete = async (id: string) => {
@@ -736,7 +756,11 @@ export default function Oficios() {
                   <label className="text-xs font-medium text-muted-foreground">Texto do Ofício</label>
                   {editedOficio && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedOficio, "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>}
                 </div>
-                <Textarea value={editedOficio} onChange={e => setEditedOficio(e.target.value)} placeholder="O texto será preenchido pela IA ou manualmente..." className="bg-secondary border-border min-h-[250px] font-mono text-sm leading-relaxed" />
+                <RichTextEditor
+                  content={plainToHtml(editedOficio)}
+                  onChange={(html) => setEditedOficio(htmlToPlain(html))}
+                  placeholder="O texto será preenchido pela IA ou manualmente..."
+                />
               </div>
 
               <div>
@@ -745,6 +769,24 @@ export default function Oficios() {
                   {editedResposta && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedResposta, "Resposta")}><Copy size={14} className="mr-1" /> Copiar</Button>}
                 </div>
                 <Textarea value={editedResposta} onChange={e => setEditedResposta(e.target.value)} placeholder="Sugestão de resposta ao cidadão..." className="bg-secondary border-border min-h-[150px] text-sm" />
+              </div>
+
+              {/* Anexos inline */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                  <Paperclip size={12} /> Anexos do Ofício
+                </label>
+                <FileDropzone
+                  anexos={anexos}
+                  onChange={setAnexos}
+                  onFileAdded={(file) => {
+                    // Auto-process PDFs/images for text extraction
+                    if (file.type === "application/pdf" || file.type.startsWith("image/")) {
+                      const type = file.type.startsWith("image/") ? "image" : "audio";
+                      // Could trigger analysis here if needed
+                    }
+                  }}
+                />
               </div>
 
               {aiResult?.sugestoes_melhoria?.length > 0 && (
