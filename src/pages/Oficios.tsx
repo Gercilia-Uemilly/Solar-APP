@@ -553,10 +553,20 @@ export default function Oficios() {
 
       {/* Create Dialog with Tabs */}
       <Dialog open={showDialog} onOpenChange={open => { if (!open) resetForm(); else setShowDialog(true); }}>
-        <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">{editingOficioId ? "Editar Ofício" : "Novo Ofício"}</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">Preencha os dados, revise o texto e salve o ofício.</DialogDescription>
+        <DialogContent className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-6">
+          <DialogHeader className="flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle className="text-foreground">{editingOficioId ? "Editar Ofício" : "Novo Ofício"}</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">Preencha os dados, revise o texto e salve o ofício.</DialogDescription>
+            </div>
+            {editingOficioId && (
+              <Button variant="destructive" size="sm" onClick={async () => {
+                await handleDelete(editingOficioId);
+                resetForm();
+              }}>
+                <Trash2 size={14} className="mr-1" /> Excluir Ofício
+              </Button>
+            )}
           </DialogHeader>
 
           <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
@@ -754,7 +764,14 @@ export default function Oficios() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-medium text-muted-foreground">Texto do Ofício</label>
-                  {editedOficio && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedOficio, "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>}
+                  <div className="flex gap-1">
+                    {editedOficio && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedOficio, "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { setEditedOficio(""); }}><Trash2 size={14} className="mr-1" /> Limpar</Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <RichTextEditor
                   content={plainToHtml(editedOficio)}
