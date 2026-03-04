@@ -18,7 +18,7 @@ export interface FormatOptions {
 
 export const defaultFormatOptions: FormatOptions = {
   fontSize: 11,
-  lineSpacing: 1.15,
+  lineSpacing: 1.5,
   signatureHeight: 140,
   fontFamily: "Arial",
   bold: false,
