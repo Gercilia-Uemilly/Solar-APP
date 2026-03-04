@@ -2,8 +2,7 @@ import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderSt
 import { saveAs } from "file-saver";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
-import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
-import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
+import headerOficialSrc from "@/assets/oficio-header-oficial.png";
 import assinaturaSrc from "@/assets/assinatura-fabao-clean.png";
 
 const TEMPLATES = [
@@ -61,9 +60,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   } = data;
 
   // Fetch images
-  const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
-    fetchImageBytes(logoCamaraSrc),
-    fetchImageBytes(logoFabaoSrc),
+  const [headerBytes, assinaturaBytes] = await Promise.all([
+    fetchImageBytes(headerOficialSrc),
     fetchImageBytes(assinaturaSrc),
   ]);
 
@@ -112,25 +110,16 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         },
       },
       children: [
-        // ── Header logos ──
+        // ── Header (imagem única com ambas as logos) ──
         new Paragraph({
+          alignment: AlignmentType.CENTER,
           children: [
             new ImageRun({
-              data: logoCamaraBytes,
-              transformation: { width: 185, height: 65 },
-              type: "jpg",
-            }),
-            new TextRun({ text: "\t" }),
-            new ImageRun({
-              data: logoFabaoBytes,
-              transformation: { width: 130, height: 65 },
+              data: headerBytes,
+              transformation: { width: 580, height: 90 },
               type: "png",
             }),
           ],
-          tabStops: [{
-            type: TabStopType.RIGHT,
-            position: TabStopPosition.MAX,
-          }],
           spacing: { after: 200 },
         }),
 
