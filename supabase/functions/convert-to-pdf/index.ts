@@ -49,22 +49,35 @@ serve(async (req) => {
       docxBytes = new Uint8Array(await req.arrayBuffer());
     }
 
-    // ── Tentativa 1: CloudConvert API ────────────────────────────────────────
-    const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
-    
+    const pdfHeaders = {
+      ...corsHeaders,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
+    };
 
-    if (CLOUDCONVERT_API_KEY) {
-      const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
-      return new Response(pdfBytes, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
-        },
-      });
+    // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
+    const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
+    if (CONVERTAPI_SECRET) {
+      try {
+        const pdfBytes = await convertWithConvertApi(docxBytes, filename, CONVERTAPI_SECRET);
+        return new Response(pdfBytes, { headers: pdfHeaders });
+      } catch (e) {
+        console.error("ConvertAPI failed, trying next provider:", e);
+      }
     }
 
-    // ── Tentativa 2: Gotenberg (self-hosted, se disponível) ──────────────────
+    // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
+    const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
+    if (CLOUDCONVERT_API_KEY) {
+      try {
+        const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
+        return new Response(pdfBytes, { headers: pdfHeaders });
+      } catch (e) {
+        console.error("CloudConvert failed, trying next provider:", e);
+      }
+    }
+
+    // ── Tentativa 3: Gotenberg (self-hosted, se disponível) ──────────────────
     const GOTENBERG_URL = Deno.env.get("GOTENBERG_URL");
     if (GOTENBERG_URL) {
       const pdfBytes = await convertWithGotenberg(docxBytes, filename, GOTENBERG_URL);
@@ -252,4 +265,39 @@ async function convertWithGotenberg(
   }
 
   return new Uint8Array(await resp.arrayBuffer());
+}
+
+// ── ConvertAPI ───────────────────────────────────────────────────────────────
+async function convertWithConvertApi(
+  docxBytes: Uint8Array,
+  filename: string,
+  secret: string
+): Promise<Uint8Array> {
+  // ConvertAPI accepts base64-encoded file content
+  const base64 = btoa(String.fromCharCode(...docxBytes));
+
+  const resp = await fetch(`https://v2.convertapi.com/convert/docx/to/pdf?Secret=${secret}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      Parameters: [
+        { Name: "File", FileValue: { Name: filename, Data: base64 } },
+        { Name: "StoreFile", Value: true },
+      ],
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`ConvertAPI error: ${resp.status} ${errText}`);
+  }
+
+  const result = await resp.json();
+  const pdfFileUrl = result?.Files?.[0]?.Url;
+  if (!pdfFileUrl) throw new Error("ConvertAPI: no PDF URL in response");
+
+  const pdfResp = await fetch(pdfFileUrl);
+  if (!pdfResp.ok) throw new Error("ConvertAPI: failed to download PDF");
+
+  return new Uint8Array(await pdfResp.arrayBuffer());
 }
