@@ -113,35 +113,24 @@ serve(async (req) => {
   }
 });
 
-// ── ConvertAPI ───────────────────────────────────────────────────────────────
+// ── ConvertAPI (multipart upload, binary response) ──────────────────────────
 async function convertWithConvertAPI(
   docxBytes: Uint8Array,
   filename: string,
   secret: string
 ): Promise<Uint8Array> {
-  // Chunked base64 encoding to avoid stack overflow
-  let binary = "";
-  const chunkSize = 8192;
-  for (let i = 0; i < docxBytes.length; i += chunkSize) {
-    const chunk = docxBytes.subarray(i, i + chunkSize);
-    for (let j = 0; j < chunk.length; j++) {
-      binary += String.fromCharCode(chunk[j]);
-    }
-  }
-  const base64 = btoa(binary);
+  // Use multipart form upload with accept: octet-stream for direct binary PDF
+  const form = new FormData();
+  form.append("File", new Blob([docxBytes], {
+    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  }), filename);
 
-  const resp = await fetch("https://v2.convertapi.com/convert/docx/to/pdf", {
+  const resp = await fetch(`https://v2.convertapi.com/convert/docx/to/pdf?Secret=${secret}`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${secret}`,
+      Accept: "application/octet-stream",
     },
-    body: JSON.stringify({
-      Parameters: [
-        { Name: "File", FileValue: { Name: filename, Data: base64 } },
-        { Name: "StoreFile", Value: true },
-      ],
-    }),
+    body: form,
   });
 
   if (!resp.ok) {
@@ -149,16 +138,7 @@ async function convertWithConvertAPI(
     throw new Error(`ConvertAPI error: ${resp.status} ${errText}`);
   }
 
-  const result = await resp.json();
-  const fileData = result.Files?.[0]?.FileData;
-  if (!fileData) throw new Error("ConvertAPI: no file data in response");
-
-  const binaryStr = atob(fileData);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i);
-  }
-  return bytes;
+  return new Uint8Array(await resp.arrayBuffer());
 }
 
 // ── CloudConvert ─────────────────────────────────────────────────────────────
