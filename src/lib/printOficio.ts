@@ -1,5 +1,4 @@
-import logoCamara from "@/assets/logo-camara-docx.jpeg";
-import logoFabao from "@/assets/logo-fabao-docx.png";
+import headerOficial from "@/assets/oficio-header-oficial.png";
 import assinaturaImg from "@/assets/assinatura-fabao-clean.png";
 
 interface PrintData {
@@ -54,9 +53,8 @@ export async function printOficio(data: PrintData) {
     .join("");
 
   // Convert images to base64 so they work in the print window
-  const [logoCamaraB64, logoFabaoB64, assinaturaB64] = await Promise.all([
-    toDataUrl(logoCamara),
-    toDataUrl(logoFabao),
+  const [headerB64, assinaturaB64] = await Promise.all([
+    toDataUrl(headerOficial),
     toDataUrl(assinaturaImg),
   ]);
 
@@ -84,13 +82,10 @@ export async function printOficio(data: PrintData) {
       min-height: 100vh;
     }
     .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      text-align: center;
       margin-bottom: 8px;
-      padding: 0 20px;
     }
-    .header img { height: 65px; width: auto; object-fit: contain; }
+    .header img { height: 80px; width: auto; object-fit: contain; max-width: 100%; }
     .date { text-align: right; margin-bottom: 24px; margin-top: 10px; }
     .oficio-num { font-weight: bold; margin-bottom: 24px; }
     .dest { font-weight: bold; margin-bottom: 8px; }
@@ -136,8 +131,7 @@ export async function printOficio(data: PrintData) {
 <body>
   <div class="page">
     <div class="header">
-      <img src="${logoCamaraB64}" alt="Câmara Municipal" />
-      <img src="${logoFabaoB64}" alt="Vereador Fabão" />
+      <img src="${headerB64}" alt="Câmara Municipal de Uberlândia - Vereador Fabão" />
     </div>
 
     <p class="date">${dataFormatada}</p>
