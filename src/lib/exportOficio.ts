@@ -60,8 +60,16 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   // Debug: find all template tags
   const xmlContent = zip.file("word/document.xml")?.asText() || "";
-  const tagMatches = xmlContent.match(/\{\{[^}]+\}\}/g);
-  console.log("[exportOficio] Template tags found:", tagMatches);
+  // Debug: check raw XML for tag fragments
+  const rawXml = xmlContent.slice(0, 3000);
+  console.log("[exportOficio] XML snippet (first 3000):", rawXml);
+  
+  // Check for fragmented tags
+  const hasCurly = xmlContent.includes("{") || xmlContent.includes("}");
+  console.log("[exportOficio] Has curly braces in XML:", hasCurly);
+  console.log("[exportOficio] Has 'texto' in XML:", xmlContent.includes("texto"));
+  console.log("[exportOficio] Has 'numero' in XML:", xmlContent.includes("numero"));
+  console.log("[exportOficio] Has 'assunto' in XML:", xmlContent.includes("assunto"));
 
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
