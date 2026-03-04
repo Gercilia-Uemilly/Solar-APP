@@ -171,15 +171,35 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   saveAs(pdfBlob, `${fileName}.pdf`);
 }
 
-// ── Print via Word→PDF conversion ───────────────────────────────────────────
+// ── Print via Word→PDF conversion (iframe to avoid popup blockers) ───────────
 export async function printOficioViaPdf(data: OficioData): Promise<void> {
   let wordBlob = await buildWordBlob(data);
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
   const pdfUrl = URL.createObjectURL(pdfBlob);
-  const printWindow = window.open(pdfUrl, "_blank");
-  if (printWindow) {
-    printWindow.addEventListener("afterprint", () => URL.revokeObjectURL(pdfUrl));
-  }
+
+  // Use hidden iframe to avoid ERR_BLOCKED_BY_CLIENT from popup blockers
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "none";
+  iframe.src = pdfUrl;
+  document.body.appendChild(iframe);
+
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow?.print();
+    } catch {
+      // Fallback: download the PDF directly
+      saveAs(pdfBlob, "oficio.pdf");
+    }
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      URL.revokeObjectURL(pdfUrl);
+    }, 60000);
+  };
 }
 
 // ── Export CSV ───────────────────────────────────────────────────────────────
