@@ -109,12 +109,19 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const FOOTER_TEXT = "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG";
 
+  // Logo sizes matching reference model (larger, proper aspect ratios)
+  // Câmara logo: wide with coat of arms + text (~3:1 ratio)
+  // Fabão logo: nearly square (~1.3:1 ratio)
+  const LOGO_HEIGHT = 75;
+  const CAMARA_WIDTH = 230;
+  const FABAO_WIDTH = 100;
+
   const doc = new Document({
     sections: [{
       properties: {
         page: {
           margin: {
-            top: mmToTwip(30),
+            top: mmToTwip(25),
             right: mmToTwip(20),
             bottom: mmToTwip(25),
             left: mmToTwip(30),
@@ -126,23 +133,19 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
+              spacing: { after: 200 },
               children: [
                 new ImageRun({
                   data: logoCamaraBuf,
-                  transformation: { width: 170, height: 60 },
+                  transformation: { width: CAMARA_WIDTH, height: LOGO_HEIGHT },
                   type: "jpg",
                 }),
-                new TextRun({ text: "\t", font: FONT }),
-                new TextRun({ text: "\t", font: FONT }),
+                new TextRun({ text: "  ", font: FONT }),
                 new ImageRun({
                   data: logoFabaoBuf,
-                  transformation: { width: 120, height: 60 },
+                  transformation: { width: FABAO_WIDTH, height: LOGO_HEIGHT },
                   type: "png",
                 }),
-              ],
-              tabStops: [
-                { type: TabStopType.CENTER, position: TabStopPosition.MAX / 2 },
-                { type: TabStopType.RIGHT, position: TabStopPosition.MAX },
               ],
             }),
           ],
@@ -153,9 +156,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
-              border: {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC", space: 4 },
-              },
               children: [
                 new TextRun({ text: FOOTER_TEXT, font: FONT, size: 16, color: "444444" }),
               ],
@@ -164,53 +164,53 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         }),
       },
       children: [
-        // Date
+        // Date - right aligned
         new Paragraph({
           alignment: AlignmentType.RIGHT,
-          spacing: { after: 300 },
+          spacing: { before: 200, after: 300 },
           children: [new TextRun({ text: formatDate(dataGeracao), font: FONT, size: FONT_SIZE })],
         }),
-        // Número
+        // Número - left aligned, bold
         new Paragraph({
           spacing: { after: 300 },
           children: [new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: FONT, size: FONT_SIZE, bold: true })],
         }),
         // Destinatário
         new Paragraph({
-          spacing: { after: 100 },
+          spacing: { after: 0 },
           children: [new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: FONT, size: FONT_SIZE, bold: true })],
         }),
         // Assunto
         new Paragraph({
-          spacing: { after: 400 },
-          children: [new TextRun({ text: `Assunto: ${assuntoFormatado}`, font: FONT, size: FONT_SIZE, bold: true })],
+          spacing: { after: 300 },
+          children: [new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: FONT_SIZE, bold: true })],
         }),
-        // Saudação
+        // Saudação - left aligned (no indent, matching reference)
         new Paragraph({
-          indent: { firstLine: INDENT },
-          spacing: { after: 400 },
-          children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: FONT, size: FONT_SIZE })],
+          spacing: { after: 300 },
+          children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a),", font: FONT, size: FONT_SIZE })],
         }),
         // Body
         ...bodyParas,
         // Fechamento
         new Paragraph({
           indent: { firstLine: INDENT },
-          spacing: { before: 300, after: 400 },
+          spacing: { before: 200, after: 400 },
           children: [new TextRun({ text: "Atenciosamente,", font: FONT, size: FONT_SIZE })],
         }),
-        // Signature
+        // Signature image - centered
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { before: 500 },
+          spacing: { before: 400 },
           children: [
             new ImageRun({
               data: assinaturaBuf,
-              transformation: { width: 250, height: 80 },
+              transformation: { width: 220, height: 70 },
               type: "png",
             }),
           ],
         }),
+        // Line under signature
         new Paragraph({
           alignment: AlignmentType.CENTER,
           border: {
@@ -218,10 +218,12 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           },
           children: [],
         }),
+        // Name bold centered
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "FABÃO", font: FONT, size: FONT_SIZE, bold: true })],
         }),
+        // Title centered
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "Vereador", font: FONT, size: FONT_SIZE })],
