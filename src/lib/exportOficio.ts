@@ -57,6 +57,12 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const templateBuffer = await loadTemplate();
   const zip = new PizZip(templateBuffer);
+
+  // Debug: find all template tags
+  const xmlContent = zip.file("word/document.xml")?.asText() || "";
+  const tagMatches = xmlContent.match(/\{\{[^}]+\}\}/g);
+  console.log("[exportOficio] Template tags found:", tagMatches);
+
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
