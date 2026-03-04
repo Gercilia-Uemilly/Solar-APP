@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
-import { exportToWord, exportToPDF, printOficioViaPdf } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF } from "@/lib/exportOficio";
+import { printOficio } from "@/lib/printOficio";
 import ImageUploader from "@/components/ImageUploader";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
@@ -522,7 +523,7 @@ export default function Oficios() {
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
               </button>
               <button
-                onClick={async () => { if (o.conteudo) await printOficioViaPdf(buildExportData(o)); }}
+                onClick={async () => { if (o.conteudo) await printOficio(buildExportData(o)); }}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 title="Imprimir"
               >
@@ -834,7 +835,7 @@ export default function Oficios() {
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (viewingOficio?.conteudo) await printOficioViaPdf(buildExportData(viewingOficio));
+                  if (viewingOficio?.conteudo) await printOficio(buildExportData(viewingOficio));
                 }}><Printer size={14} className="mr-1" /> Imprimir</Button>
               </div>
             </DialogTitle>

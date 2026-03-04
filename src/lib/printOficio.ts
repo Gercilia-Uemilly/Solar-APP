@@ -9,6 +9,10 @@ interface PrintData {
   conteudo: string;
   bairro?: string;
   cargoDestinatario?: string;
+  dataGeracao?: string;
+  operadorNome?: string;
+  operadorEmail?: string;
+  telefone?: string;
 }
 
 // Convert an image URL (possibly Vite-hashed) to a base64 data URL
