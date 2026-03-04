@@ -2,7 +2,8 @@ import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderSt
 import { saveAs } from "file-saver";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
-import headerOficialSrc from "@/assets/oficio-header-oficial.png";
+import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
+import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
 import assinaturaSrc from "@/assets/assinatura-fabao-clean.png";
 
 const TEMPLATES = [
@@ -60,8 +61,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   } = data;
 
   // Fetch images
-  const [headerBytes, assinaturaBytes] = await Promise.all([
-    fetchImageBytes(headerOficialSrc),
+  const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
+    fetchImageBytes(logoCamaraSrc),
+    fetchImageBytes(logoFabaoSrc),
     fetchImageBytes(assinaturaSrc),
   ]);
 
@@ -110,16 +112,25 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         },
       },
       children: [
-        // ── Header (imagem única com ambas as logos) ──
+        // ── Header: logo Câmara à esquerda, logo Fabão à direita ──
         new Paragraph({
-          alignment: AlignmentType.CENTER,
           children: [
             new ImageRun({
-              data: headerBytes,
-              transformation: { width: 580, height: 90 },
+              data: logoCamaraBytes,
+              transformation: { width: 240, height: 70 },
+              type: "jpg",
+            }),
+            new TextRun({ text: "\t", font: fontName, size: fontSize }),
+            new ImageRun({
+              data: logoFabaoBytes,
+              transformation: { width: 140, height: 70 },
               type: "png",
             }),
           ],
+          tabStops: [{
+            type: TabStopType.RIGHT,
+            position: TabStopPosition.MAX,
+          }],
           spacing: { after: 120 },
         }),
 
