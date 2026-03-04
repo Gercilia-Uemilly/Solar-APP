@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
+import { Undo2 } from "lucide-react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabaoImg from "@/assets/assinatura-fabao-clean.png";
@@ -18,18 +19,19 @@ interface Props {
   formatOptions?: FormatOptions;
   editable?: boolean;
   onContentChange?: (newContent: string) => void;
+  initialConteudo?: string;
 }
 
-function EditableBody({ conteudo, fmt, bodyStyle, onContentChange }: {
+function EditableBody({ conteudo, fmt, bodyStyle, onContentChange, initialConteudo }: {
   conteudo: string;
   fmt: FormatOptions;
   bodyStyle: React.CSSProperties;
   onContentChange?: (newContent: string) => void;
+  initialConteudo: string;
 }) {
   const divRef = useRef<HTMLDivElement>(null);
   const isUserEditing = useRef(false);
 
-  // Build HTML from conteudo
   const buildHtml = (text: string) => {
     const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
@@ -38,7 +40,6 @@ function EditableBody({ conteudo, fmt, bodyStyle, onContentChange }: {
     ).join("");
   };
 
-  // Set initial content and update only when conteudo changes externally
   useEffect(() => {
     if (divRef.current && !isUserEditing.current) {
       divRef.current.innerHTML = buildHtml(conteudo);
@@ -49,39 +50,62 @@ function EditableBody({ conteudo, fmt, bodyStyle, onContentChange }: {
     if (divRef.current && onContentChange) {
       const paragraphs = Array.from(divRef.current.querySelectorAll("p"))
         .map(p => p.textContent?.trim() || "");
-      // Also get any raw text nodes
       const text = paragraphs.filter(Boolean).join("\n") || divRef.current.innerText?.trim() || "";
       isUserEditing.current = true;
       onContentChange(text);
-      // Reset flag after React re-render cycle
       requestAnimationFrame(() => { isUserEditing.current = false; });
     }
   };
 
+  const handleUndo = () => {
+    if (onContentChange) {
+      isUserEditing.current = false;
+      onContentChange(initialConteudo);
+      if (divRef.current) {
+        divRef.current.innerHTML = buildHtml(initialConteudo);
+      }
+    }
+  };
+
+  const hasChanges = conteudo !== initialConteudo;
+
   return (
-    <div
-      ref={divRef}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={syncContent}
-      onFocus={() => { isUserEditing.current = true; }}
-      onBlur={() => {
-        syncContent();
-        isUserEditing.current = false;
-      }}
-      style={{
-        textAlign: fmt.textAlign,
-        cursor: "text",
-        outline: "none",
-        minHeight: "50px",
-        ...bodyStyle,
-      }}
-    />
+    <div>
+      {hasChanges && (
+        <div className="flex justify-end mb-2 print:hidden">
+          <button
+            onClick={handleUndo}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+            title="Desfazer todas as edições"
+          >
+            <Undo2 size={12} /> Desfazer edições
+          </button>
+        </div>
+      )}
+      <div
+        ref={divRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={syncContent}
+        onFocus={() => { isUserEditing.current = true; }}
+        onBlur={() => {
+          syncContent();
+          isUserEditing.current = false;
+        }}
+        style={{
+          textAlign: fmt.textAlign,
+          cursor: "text",
+          outline: "none",
+          minHeight: "50px",
+          ...bodyStyle,
+        }}
+      />
+    </div>
   );
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, formatOptions, editable, onContentChange }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, formatOptions, editable, onContentChange, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -174,6 +198,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             fmt={fmt}
             bodyStyle={bodyStyle}
             onContentChange={onContentChange}
+            initialConteudo={initialConteudo || conteudo}
           />
         ) : (
           <div style={{ textAlign: fmt.textAlign }}>
