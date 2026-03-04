@@ -1,17 +1,40 @@
-import {
-  Document, Packer, Paragraph, TextRun, ImageRun,
-  Header, Footer, AlignmentType, TabStopType, TabStopPosition,
-  PageBreak, BorderStyle,
-  convertMillimetersToTwip as mmToTwip,
-} from "docx";
+import PizZip from "pizzip";
+import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
 
-// ── Assets ──────────────────────────────────────────────────────────────────
-import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
-import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
-import assinaturaSrc from "@/assets/assinatura-fabao-clean.png";
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// ── Assets (importados como módulos para funcionar no build) ─────────────────
+
+const TEMPLATES = [
+  "/templates/modelo_oficio_assin_1.docx",
+  "/templates/modelo_oficio_assin_2.docx",
+  "/templates/modelo_oficio_assin_3.docx",
+];
+
+async function loadTemplate(): Promise<ArrayBuffer> {
+  const idx = Math.floor(Math.random() * TEMPLATES.length);
+  const resp = await fetch(TEMPLATES[idx]);
+  if (!resp.ok) throw new Error("Falha ao carregar template do ofício");
+  return resp.arrayBuffer();
+}
+
+function formatDate(dateStr?: string): string {
+  const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
+  const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
+}
+
+function buildFileName(numero: string, ano: string, telefone?: string): string {
+  const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+  const telSufixo = telefone
+    ? telefone.replace(/\D/g, '').slice(-4)
+    : '';
+  const parts = [`GVF-${numLimpo}`, ano];
+  if (telSufixo) parts.push(telSufixo);
+  return parts.join('-');
+}
+
+// ── Dados comuns ─────────────────────────────────────────────────────────────
 interface OficioData {
   numero: string;
   destinatario: string;
@@ -29,37 +52,7 @@ interface OficioData {
   imagens?: File[];
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function formatDate(dateStr?: string): string {
-  const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
-  const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
-  return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
-}
-
-function buildFileName(numero: string, ano: string, telefone?: string): string {
-  const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-  const telSufixo = telefone ? telefone.replace(/\D/g, '').slice(-4) : '';
-  const parts = [`GVF-${numLimpo}`, ano];
-  if (telSufixo) parts.push(telSufixo);
-  return parts.join('-');
-}
-
-async function fetchImageBuffer(src: string): Promise<ArrayBuffer> {
-  const resp = await fetch(src);
-  return resp.arrayBuffer();
-}
-
-function buildMarcaDagua(operadorNome?: string, operadorEmail?: string, telefone?: string): string {
-  const agora = new Date();
-  const dataHora = `${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-  const iniciais = operadorNome
-    ? operadorNome.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 3)
-    : operadorEmail?.split('@')[0].slice(0, 6).toUpperCase() || 'SIS';
-  const telSufixo = telefone ? telefone.replace(/\D/g, '').slice(-4) : '';
-  return `${iniciais}${telSufixo ? '-' + telSufixo : ''} • ${dataHora}`;
-}
-
-// ── Build Word Document ─────────────────────────────────────────────────────
+// ── Build Word blob via Docxtemplater ────────────────────────────────────────
 async function buildWordBlob(data: OficioData): Promise<Blob> {
   const {
     numero, destinatario, assunto, conteudo,
@@ -67,178 +60,39 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     operadorNome, operadorEmail, telefone,
   } = data;
 
-  // Load images
-  const [logoCamaraBuf, logoFabaoBuf, assinaturaBuf] = await Promise.all([
-    fetchImageBuffer(logoCamaraSrc),
-    fetchImageBuffer(logoFabaoSrc),
-    fetchImageBuffer(assinaturaSrc),
-  ]);
-
-  const hoje = new Date();
-  const numeroFormatado = numero
-    ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
-    : "___";
-
-  const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
-
-  let assuntoFormatado = assunto || "___";
-  if (bairro) assuntoFormatado += ` – Bairro ${bairro}`;
-
-  const marcaDagua = buildMarcaDagua(operadorNome, operadorEmail, telefone);
-
-  // Parse body paragraphs
-  const bodyParagraphs = conteudo
-    .split("\n")
-    .map(p => p.trim())
-    .filter(Boolean)
-    .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
-
-  const FONT = "Arial";
-  const FONT_SIZE = 22; // 11pt in half-points
-  const INDENT = mmToTwip(12.5); // 1.25cm
-
-  // Build body sections
-  const bodyParas: Paragraph[] = bodyParagraphs.map(text =>
-    new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      indent: { firstLine: INDENT },
-      spacing: { after: 120 },
-      children: [new TextRun({ text, font: FONT, size: FONT_SIZE })],
-    })
-  );
-
-  const FOOTER_TEXT = "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG";
-
-  // Logo sizes matching reference model (larger, proper aspect ratios)
-  // Câmara logo: wide with coat of arms + text (~3:1 ratio)
-  // Fabão logo: nearly square (~1.3:1 ratio)
-  const LOGO_HEIGHT = 75;
-  const CAMARA_WIDTH = 230;
-  const FABAO_WIDTH = 100;
-
-  const doc = new Document({
-    sections: [{
-      properties: {
-        page: {
-          margin: {
-            top: mmToTwip(25),
-            right: mmToTwip(20),
-            bottom: mmToTwip(25),
-            left: mmToTwip(30),
-          },
-        },
-      },
-      headers: {
-        default: new Header({
-          children: [
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 200 },
-              children: [
-                new ImageRun({
-                  data: logoCamaraBuf,
-                  transformation: { width: CAMARA_WIDTH, height: LOGO_HEIGHT },
-                  type: "jpg",
-                }),
-                new TextRun({ text: "  ", font: FONT }),
-                new ImageRun({
-                  data: logoFabaoBuf,
-                  transformation: { width: FABAO_WIDTH, height: LOGO_HEIGHT },
-                  type: "png",
-                }),
-              ],
-            }),
-          ],
-        }),
-      },
-      footers: {
-        default: new Footer({
-          children: [
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [
-                new TextRun({ text: FOOTER_TEXT, font: FONT, size: 16, color: "444444" }),
-              ],
-            }),
-          ],
-        }),
-      },
-      children: [
-        // Date - right aligned
-        new Paragraph({
-          alignment: AlignmentType.RIGHT,
-          spacing: { before: 200, after: 300 },
-          children: [new TextRun({ text: formatDate(dataGeracao), font: FONT, size: FONT_SIZE })],
-        }),
-        // Número - left aligned, bold
-        new Paragraph({
-          spacing: { after: 300 },
-          children: [new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: FONT, size: FONT_SIZE, bold: true })],
-        }),
-        // Destinatário
-        new Paragraph({
-          spacing: { after: 0 },
-          children: [new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: FONT, size: FONT_SIZE, bold: true })],
-        }),
-        // Assunto
-        new Paragraph({
-          spacing: { after: 300 },
-          children: [new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: FONT, size: FONT_SIZE, bold: true })],
-        }),
-        // Saudação - left aligned (no indent, matching reference)
-        new Paragraph({
-          spacing: { after: 300 },
-          children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a),", font: FONT, size: FONT_SIZE })],
-        }),
-        // Body
-        ...bodyParas,
-        // Fechamento
-        new Paragraph({
-          indent: { firstLine: INDENT },
-          spacing: { before: 200, after: 400 },
-          children: [new TextRun({ text: "Atenciosamente,", font: FONT, size: FONT_SIZE })],
-        }),
-        // Signature image - centered
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 400 },
-          children: [
-            new ImageRun({
-              data: assinaturaBuf,
-              transformation: { width: 220, height: 70 },
-              type: "png",
-            }),
-          ],
-        }),
-        // Line under signature
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          border: {
-            bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000", space: 1 },
-          },
-          children: [],
-        }),
-        // Name bold centered
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: "FABÃO", font: FONT, size: FONT_SIZE, bold: true })],
-        }),
-        // Title centered
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: "Vereador", font: FONT, size: FONT_SIZE })],
-        }),
-        // Marca d'água
-        new Paragraph({
-          spacing: { before: 200 },
-          alignment: AlignmentType.LEFT,
-          children: [new TextRun({ text: marcaDagua, font: FONT, size: 12, color: "CCCCCC" })],
-        }),
-      ],
-    }],
+  const templateBuffer = await loadTemplate();
+  const zip = new PizZip(templateBuffer);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+    delimiters: { start: "{{", end: "}}" },
   });
 
-  return await Packer.toBlob(doc);
+  const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
+  const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
+
+  const agora = new Date();
+  const dataHora = `${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  const iniciais = operadorNome
+    ? operadorNome.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 3)
+    : operadorEmail?.split('@')[0].slice(0, 6).toUpperCase() || 'SIS';
+  const telSufixo = telefone ? telefone.replace(/\D/g, '').slice(-4) : '';
+  const marcaDagua = `${iniciais}${telSufixo ? '-' + telSufixo : ''} • ${dataHora}`;
+
+  doc.render({
+    data: formatDate(dataGeracao),
+    numero: numero || "___",
+    destinatario: destinatarioCompleto,
+    assunto: assunto || "___",
+    bairro: bairroFormatado,
+    texto: conteudo || "",
+    marca_dagua: marcaDagua,
+  });
+
+  return doc.getZip().generate({
+    type: "blob",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
 }
 
 // ── Enviar docx + imagens para edge function add-anexo-images ───────────────
@@ -270,6 +124,7 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
 export async function exportToWord(data: OficioData): Promise<Blob> {
   let blob = await buildWordBlob(data);
 
+  // Se houver imagens, enviar para edge function para adicionar anexo
   if (data.imagens && data.imagens.length > 0) {
     blob = await addAnexoImages(blob, data.imagens);
   }
@@ -278,6 +133,26 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   const fileName = buildFileName(data.numero, ano, data.telefone);
   saveAs(blob, `${fileName}.docx`);
   return blob;
+}
+
+
+
+// ── Export PDF (via Word→PDF conversion for identical output) ────────────────
+export async function exportToPDF(data: OficioData): Promise<void> {
+  const ano = new Date().getFullYear().toString();
+  const fileName = buildFileName(data.numero, ano, data.telefone);
+
+  // 1. Generate the Word blob (same as Word export)
+  let wordBlob = await buildWordBlob(data);
+
+  // 2. If there are images, add them
+  if (data.imagens && data.imagens.length > 0) {
+    wordBlob = await addAnexoImages(wordBlob, data.imagens);
+  }
+
+  // 3. Convert Word to PDF via edge function
+  const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
+  saveAs(pdfBlob, `${fileName}.pdf`);
 }
 
 // ── Convert Word blob to PDF via edge function ──────────────────────────────
@@ -302,25 +177,15 @@ async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob>
   return resp.blob();
 }
 
-// ── Export PDF ───────────────────────────────────────────────────────────────
-export async function exportToPDF(data: OficioData): Promise<void> {
-  const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.telefone);
-
-  let wordBlob = await buildWordBlob(data);
-
-  if (data.imagens && data.imagens.length > 0) {
-    wordBlob = await addAnexoImages(wordBlob, data.imagens);
-  }
-
-  const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
-  saveAs(pdfBlob, `${fileName}.pdf`);
-}
-
-// ── Print via Word→PDF ──────────────────────────────────────────────────────
+// ── Print via Word→PDF conversion ───────────────────────────────────────────
 export async function printOficioViaPdf(data: OficioData): Promise<void> {
+  // 1. Generate Word blob
   let wordBlob = await buildWordBlob(data);
+
+  // 2. Convert to PDF
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
+
+  // 3. Open PDF in new tab for printing
   const pdfUrl = URL.createObjectURL(pdfBlob);
   const printWindow = window.open(pdfUrl, "_blank");
   if (printWindow) {

@@ -12,12 +12,15 @@ function sanitizeDocxFilename(name?: string): string {
     .replace(/[\\/:*?"<>|]+/g, "_")
     .replace(/\s+/g, "_")
     .replace(/^_+|_+$/g, "");
+
   const withFallback = cleaned || "oficio.docx";
   return withFallback.toLowerCase().endsWith(".docx")
     ? withFallback
     : `${withFallback}.docx`;
 }
 
+// Converte um .docx para PDF usando a API do CloudConvert
+// Alternativa gratuita: usar a API do LibreOffice Online (Collabora) ou CloudConvert
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,6 +33,7 @@ serve(async (req) => {
     let filename = "oficio.docx";
 
     if (contentType.includes("multipart/form-data")) {
+      // Recebe o arquivo via FormData
       const formData = await req.formData();
       const file = formData.get("file") as File | null;
       if (!file) {
@@ -41,44 +45,26 @@ serve(async (req) => {
       filename = sanitizeDocxFilename(file.name);
       docxBytes = new Uint8Array(await file.arrayBuffer());
     } else {
+      // Recebe o arquivo como body binário
       docxBytes = new Uint8Array(await req.arrayBuffer());
     }
 
-    // ── Tentativa 1: ConvertAPI ──────────────────────────────────────────────
-    const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
-    if (CONVERTAPI_SECRET) {
-      try {
-        const pdfBytes = await convertWithConvertApi(docxBytes, filename, CONVERTAPI_SECRET);
-        return new Response(pdfBytes, {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
-          },
-        });
-      } catch (e) {
-        console.error("ConvertAPI failed, trying next:", e);
-      }
-    }
-
-    // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
+    // ── Tentativa 1: CloudConvert API ────────────────────────────────────────
     const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
+    
+
     if (CLOUDCONVERT_API_KEY) {
-      try {
-        const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
-        return new Response(pdfBytes, {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
-          },
-        });
-      } catch (e) {
-        console.error("CloudConvert failed, trying next:", e);
-      }
+      const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
+      return new Response(pdfBytes, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
+        },
+      });
     }
 
-    // ── Tentativa 3: Gotenberg ───────────────────────────────────────────────
+    // ── Tentativa 2: Gotenberg (self-hosted, se disponível) ──────────────────
     const GOTENBERG_URL = Deno.env.get("GOTENBERG_URL");
     if (GOTENBERG_URL) {
       const pdfBytes = await convertWithGotenberg(docxBytes, filename, GOTENBERG_URL);
@@ -91,9 +77,10 @@ serve(async (req) => {
       });
     }
 
+    // ── Fallback: retorna erro informativo ───────────────────────────────────
     return new Response(
       JSON.stringify({
-        error: "Nenhum serviço de conversão disponível. Configure CONVERTAPI_SECRET, CLOUDCONVERT_API_KEY ou GOTENBERG_URL.",
+        error: "Nenhum serviço de conversão configurado. Configure CLOUDCONVERT_API_KEY ou GOTENBERG_URL nas variáveis de ambiente do Supabase.",
         fallback: true,
       }),
       { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -108,123 +95,143 @@ serve(async (req) => {
   }
 });
 
-// ── ConvertAPI (250 conversões/mês grátis) ───────────────────────────────────
-async function convertWithConvertApi(
-  docxBytes: Uint8Array,
-  filename: string,
-  secret: string
-): Promise<Uint8Array> {
-  // Convert to base64 in chunks to avoid stack overflow
-  let binary = "";
-  const chunkSize = 8192;
-  for (let i = 0; i < docxBytes.length; i += chunkSize) {
-    const chunk = docxBytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  const base64 = btoa(binary);
-
-  const resp = await fetch(`https://v2.convertapi.com/convert/docx/to/pdf?Secret=${secret}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      Parameters: [
-        { Name: "File", FileValue: { Name: filename, Data: base64 } },
-        { Name: "StoreFile", Value: true },
-      ],
-    }),
-  });
-
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`ConvertAPI error: ${resp.status} ${errText}`);
-  }
-
-  const result = await resp.json();
-  const fileData = result.Files?.[0]?.FileData;
-  if (!fileData) throw new Error("ConvertAPI: no file data in response");
-
-  // Decode base64 response
-  const binary = atob(fileData);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
 // ── CloudConvert ─────────────────────────────────────────────────────────────
 async function convertWithCloudConvert(
   docxBytes: Uint8Array,
   filename: string,
   apiKey: string
 ): Promise<Uint8Array> {
-  const baseUrl = "https://api.cloudconvert.com/v2";
+  const productionBaseUrl = "https://api.cloudconvert.com/v2";
+  const sandboxBaseUrl = "https://api.sandbox.cloudconvert.com/v2";
 
-  const jobResp = await fetch(`${baseUrl}/jobs`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      tasks: {
-        "upload-file": { operation: "import/upload" },
-        "convert-file": {
-          operation: "convert",
-          input: "upload-file",
-          input_format: "docx",
-          output_format: "pdf",
-          engine: "office",
-        },
-        "export-file": { operation: "export/url", input: "convert-file" },
+  const runConversion = async (baseUrl: string): Promise<Uint8Array> => {
+    // 1. Criar job de conversão
+    const jobResp = await fetch(`${baseUrl}/jobs`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-      tag: "oficio-pdf",
-    }),
-  });
-
-  if (!jobResp.ok) {
-    const errText = await jobResp.text();
-    throw new Error(`CloudConvert error: ${errText}`);
-  }
-
-  const job = await jobResp.json();
-  const uploadTask = job.data.tasks.find((t: { name: string }) => t.name === "upload-file");
-  if (!uploadTask?.result?.form) throw new Error("CloudConvert: upload task sem form");
-
-  const form = uploadTask.result.form;
-  const uploadForm = new FormData();
-  for (const [key, value] of Object.entries(form.parameters as Record<string, string>)) {
-    uploadForm.append(key, value);
-  }
-  uploadForm.append("file", new Blob([docxBytes], {
-    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  }), filename);
-
-  const uploadResp = await fetch(form.url, { method: "POST", body: uploadForm });
-  if (!uploadResp.ok) throw new Error(`CloudConvert upload error: ${uploadResp.status}`);
-
-  for (let i = 0; i < 30; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
-    const statusResp = await fetch(`${baseUrl}/jobs/${job.data.id}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        tasks: {
+          "upload-file": {
+            operation: "import/upload",
+          },
+          "convert-file": {
+            operation: "convert",
+            input: "upload-file",
+            input_format: "docx",
+            output_format: "pdf",
+            engine: "office",
+          },
+          "export-file": {
+            operation: "export/url",
+            input: "convert-file",
+          },
+        },
+        tag: "oficio-pdf",
+      }),
     });
-    if (!statusResp.ok) throw new Error(`CloudConvert status error`);
-    const status = await statusResp.json();
-    const tasks = status?.data?.tasks ?? [];
-    const exportTask = tasks.find((t: { name?: string }) => t.name === "export-file");
-    if (exportTask?.status === "finished") {
-      const pdfResp = await fetch(exportTask.result.files[0].url);
-      if (!pdfResp.ok) throw new Error("CloudConvert: erro ao baixar PDF");
-      return new Uint8Array(await pdfResp.arrayBuffer());
+
+    if (!jobResp.ok) {
+      const errText = await jobResp.text();
+      throw new Error(`CloudConvert job creation error (${baseUrl}): ${errText}`);
     }
-    if (status?.data?.status === "error") {
-      throw new Error("CloudConvert conversion error");
+
+    const job = await jobResp.json();
+    const uploadTask = job.data.tasks.find((t: { name: string }) => t.name === "upload-file");
+
+    if (!uploadTask?.result?.form) {
+      throw new Error("CloudConvert: upload task sem form");
     }
+
+    // 2. Fazer upload do arquivo
+    const form = uploadTask.result.form;
+    const uploadForm = new FormData();
+    for (const [key, value] of Object.entries(form.parameters as Record<string, string>)) {
+      uploadForm.append(key, value);
+    }
+    uploadForm.append("file", new Blob([docxBytes], {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }), filename);
+
+    const uploadResp = await fetch(form.url, {
+      method: "POST",
+      body: uploadForm,
+    });
+
+    if (!uploadResp.ok) {
+      const uploadErr = await uploadResp.text();
+      throw new Error(`CloudConvert upload error: ${uploadResp.status} ${uploadErr}`);
+    }
+
+    // 3. Aguardar conclusão do job
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+
+      const statusResp = await fetch(`${baseUrl}/jobs/${job.data.id}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+
+      if (!statusResp.ok) {
+        const errText = await statusResp.text();
+        throw new Error(`CloudConvert status error (${baseUrl}): ${errText}`);
+      }
+
+      const status = await statusResp.json();
+      const tasks = status?.data?.tasks ?? [];
+      const exportTask = tasks.find((t: { name?: string }) => t.name === "export-file");
+      const convertTask = tasks.find((t: { name?: string; operation?: string }) => t.name === "convert-file" || t.operation === "convert");
+
+      if (exportTask?.status === "finished") {
+        const pdfUrl = exportTask.result.files[0].url;
+
+        // 4. Baixar o PDF gerado
+        const pdfResp = await fetch(pdfUrl);
+        if (!pdfResp.ok) throw new Error("CloudConvert: erro ao baixar PDF");
+        return new Uint8Array(await pdfResp.arrayBuffer());
+      }
+
+      if (status?.data?.status === "error") {
+        const failedTasks = tasks.filter((t: { status?: string }) => t.status === "error");
+        const failedDetails = failedTasks
+          .map((t: { name?: string; operation?: string; message?: string; code?: string; result?: { error?: string } }) => {
+            const taskName = t.name || t.operation || "task";
+            const taskError = t.message || t.result?.error || t.code || "erro desconhecido";
+            return `${taskName}: ${taskError}`;
+          })
+          .join(" | ");
+
+        const detailedMessage =
+          failedDetails ||
+          convertTask?.message ||
+          convertTask?.result?.error ||
+          exportTask?.message ||
+          "Erro na conversão";
+
+        throw new Error(`CloudConvert conversion error: ${detailedMessage}`);
+      }
+    }
+
+    throw new Error("CloudConvert: timeout aguardando conversão");
+  };
+
+  try {
+    // Produção primeiro (chave padrão)
+    return await runConversion(productionBaseUrl);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    // Só tenta sandbox se de fato for erro de autenticação
+    if (message.includes("UNAUTHENTICATED") || /Unauthenticated/i.test(message)) {
+      return await runConversion(sandboxBaseUrl);
+    }
+
+    throw error;
   }
-  throw new Error("CloudConvert: timeout");
 }
 
-// ── Gotenberg ────────────────────────────────────────────────────────────────
+// ── Gotenberg (LibreOffice self-hosted) ──────────────────────────────────────
 async function convertWithGotenberg(
   docxBytes: Uint8Array,
   filename: string,
@@ -240,6 +247,9 @@ async function convertWithGotenberg(
     body: form,
   });
 
-  if (!resp.ok) throw new Error(`Gotenberg error: ${resp.status} ${await resp.text()}`);
+  if (!resp.ok) {
+    throw new Error(`Gotenberg error: ${resp.status} ${await resp.text()}`);
+  }
+
   return new Uint8Array(await resp.arrayBuffer());
 }
