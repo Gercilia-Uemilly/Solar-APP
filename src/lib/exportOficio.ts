@@ -87,8 +87,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     .filter(Boolean)
     .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
-  const fontSize = 22; // 11pt in half-points
+  const fontSize = 22; // 11pt in half-points (11 * 2)
   const fontName = "Arial";
+  const lineSpacing = 360; // 1.5 lines (240 twips per line * 1.5)
 
   // Build marca d'água text
   const agora = new Date();
@@ -104,10 +105,10 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       properties: {
         page: {
           margin: {
-            top: 1134,   // 20mm
-            right: 1134,  // 20mm
-            bottom: 851,  // 15mm
-            left: 1701,   // 30mm
+            top: 1701,    // 3cm
+            right: 1134,  // 2cm
+            bottom: 1134, // 2cm
+            left: 1701,   // 3cm
           },
         },
       },
@@ -131,54 +132,96 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
             type: TabStopType.RIGHT,
             position: TabStopPosition.MAX,
           }],
-          spacing: { after: 120 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
+        }),
+
+        // ── Linha em branco ──
+        new Paragraph({
+          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Data ──
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
-          spacing: { after: 200 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
+        }),
+
+        // ── Linha em branco ──
+        new Paragraph({
+          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Número do ofício ──
         new Paragraph({
           children: [new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: fontName, size: fontSize, bold: true })],
-          spacing: { after: 200 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
+        }),
+
+        // ── Linha em branco ──
+        new Paragraph({
+          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Destinatário ──
         new Paragraph({
           children: [new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: fontName, size: fontSize, bold: true })],
-          spacing: { after: 60 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Assunto ──
         new Paragraph({
           children: [new TextRun({ text: `Assunto: ${assuntoFormatado}`, font: fontName, size: fontSize, bold: true })],
-          spacing: { after: 300 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
+        }),
+
+        // ── Linha em branco ──
+        new Paragraph({
+          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Saudação ──
         new Paragraph({
-          indent: { firstLine: 709 },
+          indent: { firstLine: 709 }, // 1.25cm
           children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: fontName, size: fontSize })],
-          spacing: { after: 200 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
+        }),
+
+        // ── Linha em branco ──
+        new Paragraph({
+          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Parágrafos do corpo ──
         ...paragraphs.map(p => new Paragraph({
-          indent: { firstLine: 709 },
+          indent: { firstLine: 709 }, // 1.25cm
           alignment: AlignmentType.JUSTIFIED,
           children: [new TextRun({ text: p, font: fontName, size: fontSize })],
-          spacing: { after: 120 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
         })),
+
+        // ── Linha em branco ──
+        new Paragraph({
+          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
+        }),
 
         // ── Atenciosamente ──
         new Paragraph({
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Atenciosamente,", font: fontName, size: fontSize })],
-          spacing: { before: 200, after: 300 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
+        }),
+
+        // ── Linhas em branco antes da assinatura ──
+        new Paragraph({
+          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Assinatura ──
@@ -191,7 +234,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               type: "png",
             }),
           ],
-          spacing: { after: 0 },
+          spacing: { before: 0, after: 0 },
         }),
 
         // ── Linha ──
@@ -201,21 +244,21 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
             bottom: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "000000" },
           },
           children: [new TextRun({ text: "                                                              ", font: fontName, size: 2 })],
-          spacing: { after: 30 },
+          spacing: { before: 0, after: 0 },
         }),
 
         // ── Nome ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "FABÃO", font: fontName, size: fontSize, bold: true })],
-          spacing: { after: 0 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Cargo ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "Vereador", font: fontName, size: fontSize })],
-          spacing: { after: 300 },
+          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Rodapé / Endereço ──
@@ -230,7 +273,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
             size: 16,
             color: "444444",
           })],
-          spacing: { before: 100 },
+          spacing: { before: 0, after: 0 },
         }),
 
         // ── Marca d'água ──
