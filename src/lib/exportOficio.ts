@@ -102,9 +102,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       properties: {
         page: {
           margin: {
-            top: 1701,   // 30mm
+            top: 1134,   // 20mm
             right: 1134,  // 20mm
-            bottom: 1134, // 20mm
+            bottom: 851,  // 15mm
             left: 1701,   // 30mm
           },
         },
@@ -120,39 +120,39 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               type: "png",
             }),
           ],
-          spacing: { after: 200 },
+          spacing: { after: 120 },
         }),
 
         // ── Data ──
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
-          spacing: { after: 400 },
+          spacing: { after: 200 },
         }),
 
         // ── Número do ofício ──
         new Paragraph({
           children: [new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: fontName, size: fontSize, bold: true })],
-          spacing: { after: 400 },
+          spacing: { after: 200 },
         }),
 
         // ── Destinatário ──
         new Paragraph({
           children: [new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: fontName, size: fontSize, bold: true })],
-          spacing: { after: 100 },
+          spacing: { after: 60 },
         }),
 
         // ── Assunto ──
         new Paragraph({
           children: [new TextRun({ text: `Assunto: ${assuntoFormatado}`, font: fontName, size: fontSize, bold: true })],
-          spacing: { after: 500 },
+          spacing: { after: 300 },
         }),
 
         // ── Saudação ──
         new Paragraph({
-          indent: { firstLine: 709 }, // 1.25cm
+          indent: { firstLine: 709 },
           children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: fontName, size: fontSize })],
-          spacing: { after: 500 },
+          spacing: { after: 200 },
         }),
 
         // ── Parágrafos do corpo ──
@@ -160,14 +160,14 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           indent: { firstLine: 709 },
           alignment: AlignmentType.JUSTIFIED,
           children: [new TextRun({ text: p, font: fontName, size: fontSize })],
-          spacing: { after: 200 },
+          spacing: { after: 120 },
         })),
 
         // ── Atenciosamente ──
         new Paragraph({
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Atenciosamente,", font: fontName, size: fontSize })],
-          spacing: { before: 400, after: 600 },
+          spacing: { before: 200, after: 300 },
         }),
 
         // ── Assinatura ──
@@ -176,7 +176,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [
             new ImageRun({
               data: assinaturaBytes,
-              transformation: { width: 250, height: 100 },
+              transformation: { width: 200, height: 80 },
               type: "png",
             }),
           ],
@@ -190,7 +190,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
             bottom: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "000000" },
           },
           children: [new TextRun({ text: "                                                              ", font: fontName, size: 2 })],
-          spacing: { after: 50 },
+          spacing: { after: 30 },
         }),
 
         // ── Nome ──
@@ -204,7 +204,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "Vereador", font: fontName, size: fontSize })],
-          spacing: { after: 600 },
+          spacing: { after: 300 },
         }),
 
         // ── Rodapé / Endereço ──
@@ -216,10 +216,10 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [new TextRun({
             text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
             font: fontName,
-            size: 16, // 8pt
+            size: 16,
             color: "444444",
           })],
-          spacing: { before: 200 },
+          spacing: { before: 100 },
         }),
 
         // ── Marca d'água ──
