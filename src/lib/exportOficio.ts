@@ -74,7 +74,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   const telSufixo = telefone ? telefone.replace(/\D/g, '').slice(-4) : '';
   const marcaDagua = `${iniciais}${telSufixo ? '-' + telSufixo : ''} • ${dataHora}`;
 
-  doc.render({
+  const renderData = {
     data: formatDate(dataGeracao),
     numero: numero || "___",
     destinatario: destinatarioCompleto,
@@ -82,7 +82,12 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     bairro: bairroFormatado,
     texto: conteudo || "",
     marca_dagua: marcaDagua,
-  });
+  };
+
+  console.log("[exportOficio] render data:", JSON.stringify(renderData).slice(0, 500));
+  console.log("[exportOficio] conteudo length:", conteudo?.length, "first 200 chars:", conteudo?.slice(0, 200));
+
+  doc.render(renderData);
 
   return doc.getZip().generate({
     type: "blob",
