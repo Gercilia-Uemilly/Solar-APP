@@ -38,9 +38,7 @@ interface OficioRow {
   contato_solicitante: string | null;
   operador_nome: string | null;
   link_pdf_drive: string | null;
-  cargo_destinatario: string | null;
-  data_geracao: string | null;
-  linha_telefonica: string | null;
+  
 }
 
 const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido", "Arquivado"];
@@ -234,11 +232,7 @@ export default function MeusOficios() {
                             destinatario: o.destinatario,
                             assunto: o.assunto,
                             conteudo: o.conteudo,
-                            bairro: o.bairro || "",
-                            cargoDestinatario: o.cargo_destinatario || "",
-                            dataGeracao: o.data_geracao || undefined,
-                            operadorNome: o.operador_nome || undefined,
-                            telefone: o.linha_telefonica || undefined,
+                            bairro: (o as any).bairro || "",
                             logoCamaraUrl: logoCamara,
                             logoFabaoUrl: logoFabao,
                             assinaturaUrl: assinaturaFabao,
@@ -276,11 +270,7 @@ export default function MeusOficios() {
                         destinatario: viewOficio.destinatario,
                         assunto: viewOficio.assunto,
                         conteudo: viewOficio.conteudo,
-                        bairro: viewOficio.bairro || "",
-                        cargoDestinatario: viewOficio.cargo_destinatario || "",
-                        dataGeracao: viewOficio.data_geracao || undefined,
-                        operadorNome: viewOficio.operador_nome || undefined,
-                        telefone: viewOficio.linha_telefonica || undefined,
+                        bairro: (viewOficio as any).bairro || "",
                         logoCamaraUrl: logoCamara,
                         logoFabaoUrl: logoFabao,
                         assinaturaUrl: assinaturaFabao,
@@ -300,11 +290,8 @@ export default function MeusOficios() {
                         destinatario: viewOficio.destinatario,
                         assunto: viewOficio.assunto,
                         conteudo: viewOficio.conteudo,
-                        bairro: viewOficio.bairro || "",
-                        cargoDestinatario: viewOficio.cargo_destinatario || "",
-                        dataGeracao: viewOficio.data_geracao || undefined,
-                        operadorNome: viewOficio.operador_nome || undefined,
-                        telefone: viewOficio.linha_telefonica || undefined,
+                        bairro: (viewOficio as any).bairro || "",
+                        cargoDestinatario: (viewOficio as any).cargo_destinatario || "",
                       });
                     }
                   }}

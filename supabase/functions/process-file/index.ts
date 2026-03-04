@@ -17,7 +17,7 @@ serve(async (req) => {
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const fileType = formData.get("type") as string; // "image", "audio", or "video"
+    const fileType = formData.get("type") as string; // "image" or "audio"
 
     if (!file) {
       return new Response(JSON.stringify({ error: "Nenhum arquivo enviado" }), {
@@ -34,7 +34,7 @@ serve(async (req) => {
       binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
     }
     const base64 = btoa(binary);
-    const mimeType = file.type || (fileType === "audio" ? "audio/ogg" : fileType === "video" ? "video/mp4" : "image/jpeg");
+    const mimeType = file.type || (fileType === "audio" ? "audio/ogg" : "image/jpeg");
 
     let prompt: string;
     if (fileType === "image") {
@@ -47,28 +47,6 @@ Foque em:
 - Condições gerais da situação fotografada
 
 Retorne um texto descritivo claro e objetivo com todas as informações extraídas. Se houver texto legível na imagem, transcreva-o integralmente. Se for uma foto de um problema urbano, descreva em detalhes o que está visível.`;
-    } else if (fileType === "video") {
-      prompt = `Analise este vídeo e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
-
-Foque em:
-- Problemas urbanos visíveis (buracos, falta de iluminação, lixo, esgoto, alagamentos, etc.)
-- Textos visíveis (placas de rua, documentos, cartazes, endereços)
-- Localização (ruas, bairros, referências visuais)
-- Condições gerais da situação filmada
-- Narração ou comentários audíveis no vídeo
-- Movimentação que evidencie a gravidade do problema
-
-Retorne um texto descritivo claro e objetivo com todas as informações extraídas.
-
-Formato da resposta:
-DESCRIÇÃO DO VÍDEO:
-[descrição detalhada do que é mostrado no vídeo]
-
-INFORMAÇÕES PARA OFÍCIO:
-[informações organizadas: problema, localização, detalhes relevantes]
-
-NARRAÇÃO/ÁUDIO:
-[transcrição de qualquer fala ou narração presente no vídeo, se houver]`;
     } else {
       prompt = `Transcreva este áudio integralmente, mantendo o conteúdo original. 
       
@@ -86,37 +64,28 @@ RESUMO PARA OFÍCIO:
 [informações organizadas]`;
     }
 
-    // Build content parts based on file type
-    const contentParts: any[] = [
-      { type: "text", text: prompt },
-    ];
-
-    if (fileType === "image") {
-      contentParts.push({
-        type: "image_url",
-        image_url: { url: `data:${mimeType};base64,${base64}` },
-      });
-    } else if (fileType === "video") {
-      // Gemini supports inline video via the same image_url format with video mimetypes
-      contentParts.push({
-        type: "image_url",
-        image_url: { url: `data:${mimeType};base64,${base64}` },
-      });
-    } else {
-      contentParts.push({
-        type: "input_audio",
-        input_audio: { data: base64, format: mimeType.includes("wav") ? "wav" : "mp3" },
-      });
-    }
-
     const messages = [
       {
         role: "user" as const,
-        content: contentParts,
+        content: [
+          {
+            type: "text" as const,
+            text: prompt,
+          },
+          fileType === "image"
+            ? {
+                type: "image_url" as const,
+                image_url: { url: `data:${mimeType};base64,${base64}` },
+              }
+            : {
+                type: "input_audio" as const,
+                input_audio: { data: base64, format: mimeType.includes("wav") ? "wav" : "mp3" },
+              },
+        ],
       },
     ];
 
-    // Use Gemini Flash for speed (supports video natively)
+    // Use Gemini Flash for speed
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {

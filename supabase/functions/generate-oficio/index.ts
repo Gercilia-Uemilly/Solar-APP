@@ -209,9 +209,6 @@ Você DEVE retornar um JSON válido com a seguinte estrutura:
   "secretaria_identificada": "Nome da secretaria/órgão responsável",
   "tipo_demanda": "Tipo da demanda (Solicitação, Reclamação, Denúncia)",
   "urgencia": "normal ou urgente",
-  "solicitante_identificado": "Nome do solicitante extraído da descrição, se mencionado (ou null)",
-  "bairro_identificado": "Bairro mencionado na descrição (ou null)",
-  "local_identificado": "Endereço/logradouro específico mencionado na descrição (ou null)",
   "sugestoes_melhoria": ["lista de sugestões"]
 }
 
