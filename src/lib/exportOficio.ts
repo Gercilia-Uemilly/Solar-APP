@@ -112,30 +112,62 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           },
         },
       },
-      children: [
-        // ── Header: logo Câmara à esquerda, logo Fabão à direita ──
-        new Paragraph({
+      headers: {
+        default: new Header({
           children: [
-            new ImageRun({
-              data: logoCamaraBytes,
-              transformation: { width: 240, height: 70 },
-              type: "jpg",
-            }),
-            new TextRun({ text: "\t", font: fontName, size: fontSize }),
-            new ImageRun({
-              data: logoFabaoBytes,
-              transformation: { width: 140, height: 70 },
-              type: "png",
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  data: logoCamaraBytes,
+                  transformation: { width: 240, height: 70 },
+                  type: "jpg",
+                }),
+                new TextRun({ text: "\t", font: fontName, size: fontSize }),
+                new ImageRun({
+                  data: logoFabaoBytes,
+                  transformation: { width: 140, height: 70 },
+                  type: "png",
+                }),
+              ],
+              tabStops: [{
+                type: TabStopType.RIGHT,
+                position: TabStopPosition.MAX,
+              }],
+              spacing: { before: 0, after: 0 },
             }),
           ],
-          tabStops: [{
-            type: TabStopType.RIGHT,
-            position: TabStopPosition.MAX,
-          }],
-          spacing: { before: 0, after: 0, line: lineSpacing },
         }),
-
-        // ── Linha em branco ──
+      },
+      footers: {
+        default: new Footer({
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              border: {
+                top: { style: BorderStyle.SINGLE, size: 1, space: 4, color: "CCCCCC" },
+              },
+              children: [new TextRun({
+                text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
+                font: fontName,
+                size: 16,
+                color: "444444",
+              })],
+              spacing: { before: 0, after: 0 },
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({
+                text: marcaDagua,
+                font: fontName,
+                size: 12,
+                color: "CCCCCC",
+              })],
+            }),
+          ],
+        }),
+      },
+      children: [
+        // ── Linha em branco após cabeçalho ──
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
@@ -228,7 +260,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Assinatura ──
+        // ── Assinatura (imagem) ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
@@ -241,7 +273,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0 },
         }),
 
-        // ── Linha ──
+        // ── Linha separadora ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
           border: {
@@ -251,44 +283,18 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0 },
         }),
 
-        // ── Nome ──
+        // ── Nome (abaixo da assinatura) ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "FABÃO", font: fontName, size: fontSize, bold: true })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Cargo ──
+        // ── Cargo (abaixo do nome) ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "Vereador", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
-        // ── Rodapé / Endereço ──
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          border: {
-            top: { style: BorderStyle.SINGLE, size: 1, space: 4, color: "CCCCCC" },
-          },
-          children: [new TextRun({
-            text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
-            font: fontName,
-            size: 16,
-            color: "444444",
-          })],
-          spacing: { before: 0, after: 0 },
-        }),
-
-        // ── Marca d'água ──
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new TextRun({
-            text: marcaDagua,
-            font: fontName,
-            size: 12,
-            color: "CCCCCC",
-          })],
         }),
       ],
     }],
