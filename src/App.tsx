@@ -17,7 +17,6 @@ import Configuracoes from "./pages/Configuracoes";
 import BancoInformacoes from "./pages/BancoInformacoes";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Demandas from "./pages/Demandas";
 import { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -57,7 +56,7 @@ const AppRoutes = () => (
     <Route path="/relatorios" element={<AdminRoute><AppLayout><Relatorios /></AppLayout></AdminRoute>} />
     <Route path="/banco-informacoes" element={<ProtectedRoute><AppLayout><BancoInformacoes /></AppLayout></ProtectedRoute>} />
     <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>} />
-    <Route path="/demandas" element={<ProtectedRoute><AppLayout><Demandas /></AppLayout></ProtectedRoute>} />
+    <Route path="*" element={<NotFound />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
