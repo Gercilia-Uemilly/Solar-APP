@@ -48,6 +48,9 @@ interface AIResult {
   secretaria_identificada: string;
   tipo_demanda: string;
   urgencia: string;
+  solicitante_identificado?: string;
+  bairro_identificado?: string;
+  local_identificado?: string;
   sugestoes_melhoria: string[];
 }
 
@@ -67,6 +70,8 @@ interface OficioRow {
   solicitante: string | null;
   contato_solicitante: string | null;
   data_geracao: string | null;
+  linha_telefonica: string | null;
+  operador_nome: string | null;
 }
 
 export default function Oficios() {
@@ -107,8 +112,6 @@ export default function Oficios() {
   const [editedResposta, setEditedResposta] = useState("");
 
   // File processing state
-  const [isProcessingFile, setIsProcessingFile] = useState(false);
-  const [processedFileText, setProcessedFileText] = useState("");
   const [processedFileType, setProcessedFileType] = useState<"image" | "audio" | "video" | null>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -192,6 +195,10 @@ export default function Oficios() {
       setEditedResposta(data.resposta_cidadao || "");
       if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
       if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
+      if (data.solicitante_identificado && !solicitante) setSolicitante(data.solicitante_identificado);
+      if (data.bairro_identificado && !bairro) setBairro(data.bairro_identificado);
+      if (data.local_identificado && !localDemanda) setLocalDemanda(data.local_identificado);
+      if (data.tipo_demanda && !tipoServico) setTipoServico(data.tipo_demanda);
       setFormTab("texto");
       toast({ title: "Ofício gerado!", description: "Revise e edite o texto antes de salvar." });
     } catch (e: any) {
@@ -259,51 +266,57 @@ export default function Oficios() {
     toast({ title: editingOficioId ? "Ofício atualizado!" : "Ofício salvo!" });
   };
 
-  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: "image" | "audio" | "video") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const [processedTexts, setProcessedTexts] = useState<Array<{ text: string; type: string }>>([]);
+  const [processingCount, setProcessingCount] = useState(0);
 
-    // For video, also store the file for frame extraction
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: "image" | "audio" | "video") => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // For video, store the first file for frame extraction
     if (type === "video") {
-      setVideoFile(file);
+      setVideoFile(files[0]);
     }
 
-    setIsProcessingFile(true);
-    setProcessedFileText("");
+    setProcessingCount(prev => prev + files.length);
     setProcessedFileType(type);
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", type);
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("type", type);
 
-      const { data, error } = await supabase.functions.invoke("process-file", {
-        body: formData,
-      });
+        const { data, error } = await supabase.functions.invoke("process-file", {
+          body: formData,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const extractedText = data.text || "";
-      setProcessedFileText(extractedText);
-      toast({
-        title: type === "image" ? "📷 Imagem processada!" : type === "video" ? "🎬 Vídeo analisado!" : "🎤 Áudio transcrito!",
-        description: "Revise o conteúdo extraído antes de gerar o ofício.",
-      });
-    } catch (err: any) {
-      toast({ title: "Erro ao processar arquivo", description: err.message || "Tente novamente.", variant: "destructive" });
-      setProcessedFileType(null);
-      if (type === "video") setVideoFile(null);
-    } finally {
-      setIsProcessingFile(false);
-      if (type === "audio" && audioInputRef.current) audioInputRef.current.value = "";
-      if (type === "image" && imageInputRef.current) imageInputRef.current.value = "";
-      if (type === "video" && videoInputRef.current) videoInputRef.current.value = "";
+        const extractedText = data.text || "";
+        setProcessedTexts(prev => [...prev, { text: extractedText, type }]);
+        toast({
+          title: type === "image" ? `📷 ${file.name} processada!` : type === "video" ? "🎬 Vídeo analisado!" : `🎤 ${file.name} transcrito!`,
+          description: "Revise o conteúdo extraído.",
+        });
+      } catch (err: any) {
+        toast({ title: `Erro ao processar ${file.name}`, description: err.message || "Tente novamente.", variant: "destructive" });
+      } finally {
+        setProcessingCount(prev => prev - 1);
+      }
     }
+
+    if (type === "audio" && audioInputRef.current) audioInputRef.current.value = "";
+    if (type === "image" && imageInputRef.current) imageInputRef.current.value = "";
+    if (type === "video" && videoInputRef.current) videoInputRef.current.value = "";
   };
 
+  const isProcessingFiles = processingCount > 0;
+
   const confirmProcessedText = () => {
-    setDescricao(prev => prev ? prev + "\n\n" + processedFileText : processedFileText);
-    setProcessedFileText("");
+    const allTexts = processedTexts.map(p => p.text).join("\n\n");
+    setDescricao(prev => prev ? prev + "\n\n" + allTexts : allTexts);
+    setProcessedTexts([]);
     setProcessedFileType(null);
     toast({ title: "Conteúdo inserido na descrição!" });
   };
@@ -329,8 +342,9 @@ export default function Oficios() {
     setAiResult(null);
     setEditedOficio("");
     setEditedResposta("");
-    setProcessedFileText("");
+    setProcessedTexts([]);
     setProcessedFileType(null);
+    setProcessingCount(0);
     setAnexoImages([]);
     setVideoFile(null);
   };
@@ -345,6 +359,22 @@ export default function Oficios() {
     navigator.clipboard.writeText(text);
     toast({ title: `${label} copiado!` });
   };
+
+  // Helper to build consistent export data from a saved oficio
+  const buildExportData = (o: OficioRow) => ({
+    numero: o.numero || "",
+    destinatario: o.destinatario,
+    assunto: o.assunto,
+    conteudo: o.conteudo || "",
+    bairro: o.bairro || "",
+    cargoDestinatario: o.cargo_destinatario || "",
+    dataGeracao: o.data_geracao || undefined,
+    operadorNome: o.operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
+    telefone: o.linha_telefonica || undefined,
+    logoCamaraUrl: logoCamara,
+    logoFabaoUrl: logoFabao,
+    assinaturaUrl: assinaturaFabao,
+  });
 
   const [isUploading, setIsUploading] = useState(false);
 
@@ -478,7 +508,7 @@ export default function Oficios() {
               <button onClick={() => { setViewingOficio(o); setShowPreviewDialog(true); }} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
               <button
                 onClick={() => {
-                  if (o.conteudo) exportToWord({ numero: o.numero || "", destinatario: o.destinatario, assunto: o.assunto, conteudo: o.conteudo, bairro: (o as any).bairro || "", logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, assinaturaUrl: assinaturaFabao });
+                  if (o.conteudo) exportToWord(buildExportData(o));
                 }}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 title="Exportar Word"
@@ -487,7 +517,7 @@ export default function Oficios() {
               </button>
               <button
                 onClick={() => {
-                  if (o.conteudo) exportToPDF({ numero: o.numero || "", destinatario: o.destinatario, assunto: o.assunto, conteudo: o.conteudo, bairro: o.bairro || "", cargoDestinatario: o.cargo_destinatario || "" });
+                  if (o.conteudo) exportToPDF(buildExportData(o));
                 }}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 title="Exportar PDF"
@@ -504,16 +534,9 @@ export default function Oficios() {
               </button>
               <button
                 onClick={async () => {
-                  if (o.conteudo) {
-                    await printOficioViaPdf({
-                      numero: o.numero || "",
-                      destinatario: o.destinatario,
-                      assunto: o.assunto,
-                      conteudo: o.conteudo,
-                      bairro: o.bairro || "",
-                      cargoDestinatario: o.cargo_destinatario || "",
-                    });
-                  }
+                   if (o.conteudo) {
+                     await printOficioViaPdf(buildExportData(o));
+                   }
                 }}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 title="Imprimir"
@@ -620,71 +643,71 @@ export default function Oficios() {
 
               {/* Real file upload buttons */}
               <div className="flex gap-2">
-                <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={e => handleFileUpload(e, "audio")} />
-                <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileUpload(e, "image")} />
+              <input ref={audioInputRef} type="file" accept="audio/*" multiple className="hidden" onChange={e => handleFileUpload(e, "audio")} />
+                <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFileUpload(e, "image")} />
                 <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={e => handleFileUpload(e, "video")} />
                 <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 border-border text-xs"
-                  disabled={isProcessingFile}
-                  onClick={() => audioInputRef.current?.click()}
-                >
-                  <Mic size={14} className="mr-1" /> Áudio
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 border-border text-xs"
-                  disabled={isProcessingFile}
-                  onClick={() => imageInputRef.current?.click()}
-                >
-                  <ImagePlus size={14} className="mr-1" /> Imagem
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 border-border text-xs"
-                  disabled={isProcessingFile}
-                  onClick={() => videoInputRef.current?.click()}
-                >
-                  <Video size={14} className="mr-1" /> Vídeo
-                </Button>
+                   type="button"
+                   variant="outline"
+                   className="flex-1 border-border text-xs"
+                   disabled={isProcessingFiles}
+                   onClick={() => audioInputRef.current?.click()}
+                 >
+                   <Mic size={14} className="mr-1" /> Áudio
+                 </Button>
+                 <Button
+                   type="button"
+                   variant="outline"
+                   className="flex-1 border-border text-xs"
+                   disabled={isProcessingFiles}
+                   onClick={() => imageInputRef.current?.click()}
+                 >
+                   <ImagePlus size={14} className="mr-1" /> Imagens
+                 </Button>
+                 <Button
+                   type="button"
+                   variant="outline"
+                   className="flex-1 border-border text-xs"
+                   disabled={isProcessingFiles}
+                   onClick={() => videoInputRef.current?.click()}
+                 >
+                   <Video size={14} className="mr-1" /> Vídeo
+                 </Button>
               </div>
 
               {/* Processing indicator */}
-              {isProcessingFile && (
-                <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
-                  <Loader2 size={16} className="animate-spin text-primary" />
-                  <span className="text-sm text-primary font-medium">
-                    {processedFileType === "image" ? "Analisando imagem (OCR)..." : processedFileType === "video" ? "Analisando vídeo com IA..." : "Transcrevendo áudio..."}
-                  </span>
-                </div>
-              )}
+               {isProcessingFiles && (
+                 <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                   <Loader2 size={16} className="animate-spin text-primary" />
+                   <span className="text-sm text-primary font-medium">
+                     Processando {processingCount} arquivo(s)...
+                   </span>
+                 </div>
+               )}
 
-              {/* Processed content preview */}
-              {processedFileText && !isProcessingFile && (
-                <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-foreground flex items-center gap-1">
-                      {processedFileType === "image" ? <Image size={12} /> : processedFileType === "video" ? <Video size={12} /> : <FileAudio size={12} />}
-                      Conteúdo extraído
-                    </span>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setProcessedFileText(""); setProcessedFileType(null); }}>
-                      <X size={14} />
-                    </Button>
-                  </div>
-                  <div className="max-h-[150px] overflow-y-auto text-sm text-muted-foreground bg-background/50 p-2 rounded border border-border whitespace-pre-wrap">
-                    {processedFileText}
-                  </div>
-                  <Button size="sm" onClick={confirmProcessedText} className="w-full bg-primary text-primary-foreground">
-                    <CheckCircle2 size={14} className="mr-1" /> Inserir na descrição
-                  </Button>
-                </div>
-              )}
+               {/* Processed content preview */}
+               {processedTexts.length > 0 && !isProcessingFiles && (
+                 <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent">
+                   <div className="flex items-center justify-between">
+                     <span className="text-xs font-medium text-foreground flex items-center gap-1">
+                       {processedFileType === "image" ? <Image size={12} /> : processedFileType === "video" ? <Video size={12} /> : <FileAudio size={12} />}
+                       {processedTexts.length} conteúdo(s) extraído(s)
+                     </span>
+                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setProcessedTexts([]); setProcessedFileType(null); }}>
+                       <X size={14} />
+                     </Button>
+                   </div>
+                   <div className="max-h-[150px] overflow-y-auto text-sm text-muted-foreground bg-background/50 p-2 rounded border border-border whitespace-pre-wrap">
+                     {processedTexts.map(p => p.text).join("\n\n---\n\n")}
+                   </div>
+                   <Button size="sm" onClick={confirmProcessedText} className="w-full bg-primary text-primary-foreground">
+                     <CheckCircle2 size={14} className="mr-1" /> Inserir na descrição
+                   </Button>
+                 </div>
+               )}
 
               {/* Video Frame Extractor */}
-              {videoFile && !isProcessingFile && (
+               {videoFile && !isProcessingFiles && (
                 <VideoFrameExtractor
                   videoFile={videoFile}
                   onFramesSelected={(frames) => {
@@ -790,11 +813,11 @@ export default function Oficios() {
                     alert("Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.");
                     return;
                   }
-                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, cargoDestinatario, assinaturaUrl: assinaturaFabao, imagens: anexoImages });
+                  exportToWord({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario, dataGeracao, operadorNome: user?.user_metadata?.full_name || user?.email || undefined, telefone: linhaTelefonica || undefined, logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, assinaturaUrl: assinaturaFabao, imagens: anexoImages });
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario }); }}>
+                <Button size="sm" variant="outline" onClick={async () => { await exportToPDF({ numero, destinatario, assunto, conteudo: editedOficio, bairro, cargoDestinatario, dataGeracao, operadorNome: user?.user_metadata?.full_name || user?.email || undefined, telefone: linhaTelefonica || undefined }); }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
               </div>
@@ -839,32 +862,16 @@ export default function Oficios() {
               <span>{viewingOficio?.assunto || "Ofício"}</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => {
-                  if (viewingOficio?.conteudo) exportToWord({ numero: viewingOficio.numero || "", destinatario: viewingOficio.destinatario, assunto: viewingOficio.assunto, conteudo: viewingOficio.conteudo, bairro: (viewingOficio as any).bairro || "", logoCamaraUrl: logoCamara, logoFabaoUrl: logoFabao, assinaturaUrl: assinaturaFabao });
+                  if (viewingOficio?.conteudo) exportToWord(buildExportData(viewingOficio));
                 }}><FileText size={14} className="mr-1" /> Word</Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (viewingOficio?.conteudo) await exportToPDF({
-                    numero: viewingOficio.numero || "",
-                    destinatario: viewingOficio.destinatario,
-                    assunto: viewingOficio.assunto,
-                    conteudo: viewingOficio.conteudo,
-                    bairro: (viewingOficio as any).bairro || "",
-                    cargoDestinatario: (viewingOficio as any).cargo_destinatario || "",
-                  });
+                  if (viewingOficio?.conteudo) await exportToPDF(buildExportData(viewingOficio));
                 }}><Download size={14} className="mr-1" /> PDF</Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (viewingOficio?.conteudo) {
-                    await printOficioViaPdf({
-                      numero: viewingOficio.numero || "",
-                      destinatario: viewingOficio.destinatario,
-                      assunto: viewingOficio.assunto,
-                      conteudo: viewingOficio.conteudo,
-                      bairro: (viewingOficio as any).bairro || "",
-                      cargoDestinatario: (viewingOficio as any).cargo_destinatario || "",
-                    });
-                  }
+                  if (viewingOficio?.conteudo) await printOficioViaPdf(buildExportData(viewingOficio));
                 }}><Printer size={14} className="mr-1" /> Imprimir</Button>
               </div>
             </DialogTitle>
