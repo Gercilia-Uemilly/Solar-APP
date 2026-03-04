@@ -129,14 +129,14 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               children: [
                 new ImageRun({
                   data: logoCamaraBuf,
-                  transformation: { width: 180, height: 65 },
+                  transformation: { width: 170, height: 60 },
                   type: "jpg",
                 }),
                 new TextRun({ text: "\t", font: FONT }),
                 new TextRun({ text: "\t", font: FONT }),
                 new ImageRun({
                   data: logoFabaoBuf,
-                  transformation: { width: 180, height: 65 },
+                  transformation: { width: 120, height: 60 },
                   type: "png",
                 }),
               ],
