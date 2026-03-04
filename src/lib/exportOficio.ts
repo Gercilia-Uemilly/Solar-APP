@@ -292,22 +292,29 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 
 
 
-// ── Export PDF (via Word→PDF conversion for identical output) ────────────────
+// ── Export PDF (via Word→PDF conversion, with HTML fallback) ────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
   const ano = new Date().getFullYear().toString();
   const fileName = buildFileName(data.numero, ano, data.telefone);
 
-  // 1. Generate the Word blob (same as Word export)
-  let wordBlob = await buildWordBlob(data);
+  try {
+    // 1. Generate the Word blob (same as Word export)
+    let wordBlob = await buildWordBlob(data);
 
-  // 2. If there are images, add them
-  if (data.imagens && data.imagens.length > 0) {
-    wordBlob = await addAnexoImages(wordBlob, data.imagens);
+    // 2. If there are images, add them
+    if (data.imagens && data.imagens.length > 0) {
+      wordBlob = await addAnexoImages(wordBlob, data.imagens);
+    }
+
+    // 3. Convert Word to PDF via edge function
+    const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
+    saveAs(pdfBlob, `${fileName}.pdf`);
+  } catch (e) {
+    console.warn("PDF conversion via server failed, opening print dialog for Save as PDF:", e);
+    // Fallback: open HTML print view so user can "Save as PDF" from browser
+    const { printOficio } = await import("@/lib/printOficio");
+    await printOficio(data);
   }
-
-  // 3. Convert Word to PDF via edge function
-  const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
-  saveAs(pdfBlob, `${fileName}.pdf`);
 }
 
 // ── Convert Word blob to PDF via edge function ──────────────────────────────
