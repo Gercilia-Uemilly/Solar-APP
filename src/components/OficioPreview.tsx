@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
 import { Undo2 } from "lucide-react";
-import headerOficial from "@/assets/oficio-header-oficial.png";
+import logoCamara from "@/assets/logo-camara-docx.jpeg";
+import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabaoImg from "@/assets/assinatura-fabao-clean.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
@@ -162,10 +163,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       >
         {/* CABEÇALHO */}
         <div style={{
-          textAlign: "center",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
           marginBottom: "8px",
         }}>
-          <img src={headerOficial} alt="Câmara Municipal de Uberlândia - Vereador Fabão" style={{ height: "80px", width: "auto", objectFit: "contain", maxWidth: "100%" }} crossOrigin="anonymous" />
+          <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
+          <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
         </div>
 
         <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px" }}>{dataFormatada}</p>
