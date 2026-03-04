@@ -104,6 +104,7 @@ export default function Oficios() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiResult, setAiResult] = useState<AIResult | null>(null);
   const [editedOficio, setEditedOficio] = useState("");
+  const [originalOficio, setOriginalOficio] = useState("");
   const [editedResposta, setEditedResposta] = useState("");
 
   // File processing state
@@ -187,6 +188,7 @@ export default function Oficios() {
       if (error) throw error;
       setAiResult(data);
       setEditedOficio(data.oficio || "");
+      setOriginalOficio(data.oficio || "");
       setEditedResposta(data.resposta_cidadao || "");
       if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
       if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
@@ -211,6 +213,7 @@ export default function Oficios() {
     setSolicitante(o.solicitante || "");
     setContatoSolicitante(o.contato_solicitante || "");
     setEditedOficio(o.conteudo || "");
+    setOriginalOficio(o.conteudo || "");
     setEditedResposta(o.resposta_cidadao || "");
     setDescricao("");
     setPrioridade("Normal");
@@ -320,6 +323,7 @@ export default function Oficios() {
     setFormTab("dados");
     setAiResult(null);
     setEditedOficio("");
+    setOriginalOficio("");
     setEditedResposta("");
     setProcessedFileText("");
     setProcessedFileType(null);
@@ -786,7 +790,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={user?.user_metadata?.full_name || user?.email || undefined} formatOptions={formatOptions} editable onContentChange={setEditedOficio} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={user?.user_metadata?.full_name || user?.email || undefined} formatOptions={formatOptions} editable onContentChange={setEditedOficio} initialConteudo={originalOficio} />
               </div>
             </TabsContent>
 
