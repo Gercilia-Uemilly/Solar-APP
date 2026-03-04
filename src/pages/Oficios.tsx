@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Printer } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Printer, Video } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, printOficioViaPdf } from "@/lib/exportOficio";
 import ImageUploader from "@/components/ImageUploader";
+import VideoFrameExtractor from "@/components/VideoFrameExtractor";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
@@ -108,9 +109,11 @@ export default function Oficios() {
   // File processing state
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [processedFileText, setProcessedFileText] = useState("");
-  const [processedFileType, setProcessedFileType] = useState<"image" | "audio" | null>(null);
+  const [processedFileType, setProcessedFileType] = useState<"image" | "audio" | "video" | null>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
@@ -256,9 +259,14 @@ export default function Oficios() {
     toast({ title: editingOficioId ? "Ofício atualizado!" : "Ofício salvo!" });
   };
 
-  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: "image" | "audio") => {
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: "image" | "audio" | "video") => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // For video, also store the file for frame extraction
+    if (type === "video") {
+      setVideoFile(file);
+    }
 
     setIsProcessingFile(true);
     setProcessedFileText("");
@@ -278,17 +286,18 @@ export default function Oficios() {
       const extractedText = data.text || "";
       setProcessedFileText(extractedText);
       toast({
-        title: type === "image" ? "📷 Imagem processada!" : "🎤 Áudio transcrito!",
+        title: type === "image" ? "📷 Imagem processada!" : type === "video" ? "🎬 Vídeo analisado!" : "🎤 Áudio transcrito!",
         description: "Revise o conteúdo extraído antes de gerar o ofício.",
       });
     } catch (err: any) {
       toast({ title: "Erro ao processar arquivo", description: err.message || "Tente novamente.", variant: "destructive" });
       setProcessedFileType(null);
+      if (type === "video") setVideoFile(null);
     } finally {
       setIsProcessingFile(false);
-      // Reset input
       if (type === "audio" && audioInputRef.current) audioInputRef.current.value = "";
       if (type === "image" && imageInputRef.current) imageInputRef.current.value = "";
+      if (type === "video" && videoInputRef.current) videoInputRef.current.value = "";
     }
   };
 
@@ -323,6 +332,7 @@ export default function Oficios() {
     setProcessedFileText("");
     setProcessedFileType(null);
     setAnexoImages([]);
+    setVideoFile(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -612,23 +622,33 @@ export default function Oficios() {
               <div className="flex gap-2">
                 <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={e => handleFileUpload(e, "audio")} />
                 <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileUpload(e, "image")} />
+                <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={e => handleFileUpload(e, "video")} />
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 border-border text-sm"
+                  className="flex-1 border-border text-xs"
                   disabled={isProcessingFile}
                   onClick={() => audioInputRef.current?.click()}
                 >
-                  <Mic size={14} className="mr-1" /> Anexar Áudio
+                  <Mic size={14} className="mr-1" /> Áudio
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 border-border text-sm"
+                  className="flex-1 border-border text-xs"
                   disabled={isProcessingFile}
                   onClick={() => imageInputRef.current?.click()}
                 >
-                  <ImagePlus size={14} className="mr-1" /> Anexar Imagem
+                  <ImagePlus size={14} className="mr-1" /> Imagem
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 border-border text-xs"
+                  disabled={isProcessingFile}
+                  onClick={() => videoInputRef.current?.click()}
+                >
+                  <Video size={14} className="mr-1" /> Vídeo
                 </Button>
               </div>
 
@@ -637,7 +657,7 @@ export default function Oficios() {
                 <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <Loader2 size={16} className="animate-spin text-primary" />
                   <span className="text-sm text-primary font-medium">
-                    {processedFileType === "image" ? "Analisando imagem (OCR)..." : "Transcrevendo áudio..."}
+                    {processedFileType === "image" ? "Analisando imagem (OCR)..." : processedFileType === "video" ? "Analisando vídeo com IA..." : "Transcrevendo áudio..."}
                   </span>
                 </div>
               )}
@@ -647,7 +667,7 @@ export default function Oficios() {
                 <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-foreground flex items-center gap-1">
-                      {processedFileType === "image" ? <Image size={12} /> : <FileAudio size={12} />}
+                      {processedFileType === "image" ? <Image size={12} /> : processedFileType === "video" ? <Video size={12} /> : <FileAudio size={12} />}
                       Conteúdo extraído
                     </span>
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setProcessedFileText(""); setProcessedFileType(null); }}>
@@ -663,7 +683,19 @@ export default function Oficios() {
                 </div>
               )}
 
-              {/* Linha Telefônica */}
+              {/* Video Frame Extractor */}
+              {videoFile && !isProcessingFile && (
+                <VideoFrameExtractor
+                  videoFile={videoFile}
+                  onFramesSelected={(frames) => {
+                    setAnexoImages(prev => [...prev, ...frames]);
+                    setVideoFile(null);
+                    toast({ title: `${frames.length} foto(s) extraída(s) do vídeo!` });
+                  }}
+                  onClose={() => setVideoFile(null)}
+                />
+              )}
+
               {userPhones.length > 0 && (
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1"><Phone size={12} /> Linha Telefônica utilizada</label>
