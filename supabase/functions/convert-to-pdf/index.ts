@@ -119,7 +119,16 @@ async function convertWithConvertAPI(
   filename: string,
   secret: string
 ): Promise<Uint8Array> {
-  const base64 = btoa(String.fromCharCode(...docxBytes));
+  // Chunked base64 encoding to avoid stack overflow
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < docxBytes.length; i += chunkSize) {
+    const chunk = docxBytes.subarray(i, i + chunkSize);
+    for (let j = 0; j < chunk.length; j++) {
+      binary += String.fromCharCode(chunk[j]);
+    }
+  }
+  const base64 = btoa(binary);
 
   const resp = await fetch("https://v2.convertapi.com/convert/docx/to/pdf", {
     method: "POST",
