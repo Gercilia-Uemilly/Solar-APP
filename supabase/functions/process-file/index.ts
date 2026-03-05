@@ -17,7 +17,7 @@ serve(async (req) => {
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const fileType = formData.get("type") as string; // "image" or "audio"
+    const fileType = formData.get("type") as string; // "image", "audio", or "video"
 
     if (!file) {
       return new Response(JSON.stringify({ error: "Nenhum arquivo enviado" }), {
@@ -34,7 +34,7 @@ serve(async (req) => {
       binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
     }
     const base64 = btoa(binary);
-    const mimeType = file.type || (fileType === "audio" ? "audio/ogg" : "image/jpeg");
+    const mimeType = file.type || (fileType === "audio" ? "audio/ogg" : fileType === "video" ? "video/mp4" : "image/jpeg");
 
     let prompt: string;
     if (fileType === "image") {
@@ -47,6 +47,25 @@ Foque em:
 - Condições gerais da situação fotografada
 
 Retorne um texto descritivo claro e objetivo com todas as informações extraídas. Se houver texto legível na imagem, transcreva-o integralmente. Se for uma foto de um problema urbano, descreva em detalhes o que está visível.`;
+    } else if (fileType === "video") {
+      prompt = `Analise este vídeo e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
+
+Foque em:
+- Problemas urbanos visíveis (buracos, falta de iluminação, lixo, esgoto, alagamentos, etc.)
+- Localização mostrada (placas de rua, referências visuais, bairros)
+- Áudio do narrador: transcreva o que é dito
+- Condições do local (segurança, riscos, tamanho do problema)
+- Pessoas afetadas ou veículos danificados
+
+Formato da resposta:
+DESCRIÇÃO VISUAL:
+[o que é mostrado no vídeo]
+
+TRANSCRIÇÃO DO ÁUDIO:
+[o que é falado no vídeo, se houver]
+
+RESUMO PARA OFÍCIO:
+[informações organizadas para criação do ofício]`;
     } else {
       prompt = `Transcreva este áudio integralmente, mantendo o conteúdo original. 
       
@@ -64,28 +83,29 @@ RESUMO PARA OFÍCIO:
 [informações organizadas]`;
     }
 
-    const messages = [
-      {
-        role: "user" as const,
-        content: [
-          {
-            type: "text" as const,
-            text: prompt,
-          },
-          fileType === "image"
-            ? {
-                type: "image_url" as const,
-                image_url: { url: `data:${mimeType};base64,${base64}` },
-              }
-            : {
-                type: "input_audio" as const,
-                input_audio: { data: base64, format: mimeType.includes("wav") ? "wav" : "mp3" },
-              },
-        ],
-      },
-    ];
+    // Build content parts based on file type
+    const contentParts: any[] = [{ type: "text", text: prompt }];
 
-    // Use Gemini Flash for speed
+    if (fileType === "image") {
+      contentParts.push({
+        type: "image_url",
+        image_url: { url: `data:${mimeType};base64,${base64}` },
+      });
+    } else if (fileType === "video") {
+      // Send video as image_url with video mime type (Gemini supports video)
+      contentParts.push({
+        type: "image_url",
+        image_url: { url: `data:${mimeType};base64,${base64}` },
+      });
+    } else {
+      contentParts.push({
+        type: "input_audio",
+        input_audio: { data: base64, format: mimeType.includes("wav") ? "wav" : "mp3" },
+      });
+    }
+
+    const messages = [{ role: "user" as const, content: contentParts }];
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -105,6 +125,12 @@ RESUMO PARA OFÍCIO:
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente." }), {
           status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao workspace." }), {
+          status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
