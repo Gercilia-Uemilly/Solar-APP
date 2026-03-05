@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -109,12 +109,11 @@ export default function Oficios() {
   const [originalOficio, setOriginalOficio] = useState("");
   const [editedResposta, setEditedResposta] = useState("");
 
-  // File processing state
-  const [isProcessingFile, setIsProcessingFile] = useState(false);
-  const [processedFileText, setProcessedFileText] = useState("");
-  const [processedFileType, setProcessedFileType] = useState<"image" | "audio" | null>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  // Multi-file processing state
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  const [processingQueue, setProcessingQueue] = useState<{ file: File; type: string; status: "pending" | "processing" | "done" | "error"; text?: string }[]>([]);
+  const [processedResults, setProcessedResults] = useState<{ type: string; text: string; fileName: string }[]>([]);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
 
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
@@ -327,46 +326,76 @@ export default function Oficios() {
     toast({ title: editingOficioId ? "Ofício atualizado!" : "Ofício salvo!" });
   };
 
-  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: "image" | "audio") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsProcessingFile(true);
-    setProcessedFileText("");
-    setProcessedFileType(type);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", type);
-
-      const { data, error } = await supabase.functions.invoke("process-file", {
-        body: formData,
-      });
-
-      if (error) throw error;
-
-      const extractedText = data.text || "";
-      setProcessedFileText(extractedText);
-      toast({
-        title: type === "image" ? "📷 Imagem processada!" : "🎤 Áudio transcrito!",
-        description: "Revise o conteúdo extraído antes de gerar o ofício.",
-      });
-    } catch (err: any) {
-      toast({ title: "Erro ao processar arquivo", description: err.message || "Tente novamente.", variant: "destructive" });
-      setProcessedFileType(null);
-    } finally {
-      setIsProcessingFile(false);
-      // Reset input
-      if (type === "audio" && audioInputRef.current) audioInputRef.current.value = "";
-      if (type === "image" && imageInputRef.current) imageInputRef.current.value = "";
-    }
+  const getFileMediaType = (file: File): "image" | "audio" | "video" => {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    return "audio";
   };
 
-  const confirmProcessedText = () => {
-    setDescricao(prev => prev ? prev + "\n\n" + processedFileText : processedFileText);
-    setProcessedFileText("");
-    setProcessedFileType(null);
+  const handleMultiFileUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    const queue = fileArray.map(f => ({ file: f, type: getFileMediaType(f), status: "pending" as const, text: undefined as string | undefined }));
+    setProcessingQueue(queue);
+    setIsProcessingFiles(true);
+
+    const results: { type: string; text: string; fileName: string }[] = [];
+
+    // Process files in parallel (max 3 at a time)
+    const processFile = async (idx: number) => {
+      const item = queue[idx];
+      setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "processing" } : p));
+
+      try {
+        const formData = new FormData();
+        formData.append("file", item.file);
+        formData.append("type", item.type);
+
+        const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
+        if (error) throw error;
+
+        const text = data.text || "";
+        results.push({ type: item.type, text, fileName: item.file.name });
+        setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
+
+        // If image, also add to anexoImages for document attachment
+        if (item.type === "image") {
+          setAnexoImages(prev => [...prev, item.file]);
+        }
+      } catch (err: any) {
+        setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
+        toast({ title: `Erro ao processar ${item.file.name}`, description: err.message || "Tente novamente.", variant: "destructive" });
+      }
+    };
+
+    // Process in batches of 3
+    for (let i = 0; i < queue.length; i += 3) {
+      const batch = queue.slice(i, i + 3).map((_, j) => processFile(i + j));
+      await Promise.all(batch);
+    }
+
+    setProcessedResults(prev => [...prev, ...results]);
+    setIsProcessingFiles(false);
+
+    if (results.length > 0) {
+      toast({
+        title: `✅ ${results.length} arquivo(s) processado(s)!`,
+        description: "Revise o conteúdo extraído e insira na descrição.",
+      });
+    }
+
+    if (mediaInputRef.current) mediaInputRef.current.value = "";
+  };
+
+  const confirmAllProcessedTexts = () => {
+    const combined = processedResults.map(r => {
+      const label = r.type === "image" ? "📷 Imagem" : r.type === "video" ? "🎬 Vídeo" : "🎤 Áudio";
+      return `[${label}: ${r.fileName}]\n${r.text}`;
+    }).join("\n\n---\n\n");
+    setDescricao(prev => prev ? prev + "\n\n" + combined : combined);
+    setProcessedResults([]);
+    setProcessingQueue([]);
     toast({ title: "Conteúdo inserido na descrição!" });
   };
 
@@ -392,8 +421,8 @@ export default function Oficios() {
     setEditedOficio("");
     setOriginalOficio("");
     setEditedResposta("");
-    setProcessedFileText("");
-    setProcessedFileType(null);
+    setProcessedResults([]);
+    setProcessingQueue([]);
     setAnexoImages([]);
     setAnexos([]);
     setSuggestions([]);
@@ -750,56 +779,79 @@ export default function Oficios() {
               )}
 
 
-              <div className="flex gap-2">
-                <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={e => handleFileUpload(e, "audio")} />
-                <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileUpload(e, "image")} />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 border-border text-sm"
-                  disabled={isProcessingFile}
-                  onClick={() => audioInputRef.current?.click()}
+              {/* Multi-file media upload zone */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
+                  <FileUp size={12} /> Anexar Mídias (imagens, áudios, vídeos)
+                </label>
+                <input
+                  ref={mediaInputRef}
+                  type="file"
+                  accept="image/*,audio/*,video/*"
+                  multiple
+                  className="hidden"
+                  onChange={e => e.target.files && handleMultiFileUpload(e.target.files)}
+                />
+                <div
+                  onClick={() => mediaInputRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={e => { e.preventDefault(); e.stopPropagation(); handleMultiFileUpload(e.dataTransfer.files); }}
+                  className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
                 >
-                  <Mic size={14} className="mr-1" /> Anexar Áudio
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 border-border text-sm"
-                  disabled={isProcessingFile}
-                  onClick={() => imageInputRef.current?.click()}
-                >
-                  <ImagePlus size={14} className="mr-1" /> Anexar Imagem
-                </Button>
+                  <div className="flex items-center justify-center gap-3 text-muted-foreground">
+                    <ImagePlus size={18} />
+                    <Mic size={18} />
+                    <Video size={18} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Arraste ou clique para adicionar fotos, áudios ou vídeos
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                    Múltiplos arquivos simultâneos · A IA extrai e combina as informações
+                  </p>
+                </div>
               </div>
 
-              {/* Processing indicator */}
-              {isProcessingFile && (
-                <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
-                  <Loader2 size={16} className="animate-spin text-primary" />
-                  <span className="text-sm text-primary font-medium">
-                    {processedFileType === "image" ? "Analisando imagem (OCR)..." : "Transcrevendo áudio..."}
-                  </span>
+              {/* Processing queue */}
+              {processingQueue.length > 0 && (
+                <div className="space-y-1.5">
+                  {processingQueue.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-secondary text-sm">
+                      {item.type === "image" ? <Image size={14} /> : item.type === "video" ? <Video size={14} /> : <FileAudio size={14} />}
+                      <span className="flex-1 truncate text-xs text-foreground">{item.file.name}</span>
+                      {item.status === "pending" && <span className="text-[10px] text-muted-foreground">Aguardando...</span>}
+                      {item.status === "processing" && <Loader2 size={14} className="animate-spin text-primary" />}
+                      {item.status === "done" && <CheckCircle2 size={14} className="text-primary" />}
+                      {item.status === "error" && <AlertTriangle size={14} className="text-destructive" />}
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {/* Processed content preview */}
-              {processedFileText && !isProcessingFile && (
+              {/* Processed results preview */}
+              {processedResults.length > 0 && !isProcessingFiles && (
                 <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-foreground flex items-center gap-1">
-                      {processedFileType === "image" ? <Image size={12} /> : <FileAudio size={12} />}
-                      Conteúdo extraído
+                      <CheckCircle2 size={12} className="text-primary" />
+                      {processedResults.length} arquivo(s) processado(s)
                     </span>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setProcessedFileText(""); setProcessedFileType(null); }}>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setProcessedResults([]); setProcessingQueue([]); }}>
                       <X size={14} />
                     </Button>
                   </div>
-                  <div className="max-h-[150px] overflow-y-auto text-sm text-muted-foreground bg-background/50 p-2 rounded border border-border whitespace-pre-wrap">
-                    {processedFileText}
-                  </div>
-                  <Button size="sm" onClick={confirmProcessedText} className="w-full bg-primary text-primary-foreground">
-                    <CheckCircle2 size={14} className="mr-1" /> Inserir na descrição
+                  {processedResults.map((r, i) => (
+                    <div key={i} className="bg-background/50 p-2 rounded border border-border">
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        {r.type === "image" ? "📷" : r.type === "video" ? "🎬" : "🎤"} {r.fileName}
+                      </span>
+                      <div className="max-h-[80px] overflow-y-auto text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
+                        {r.text.slice(0, 300)}{r.text.length > 300 ? "…" : ""}
+                      </div>
+                    </div>
+                  ))}
+                  <Button size="sm" onClick={confirmAllProcessedTexts} className="w-full bg-primary text-primary-foreground">
+                    <CheckCircle2 size={14} className="mr-1" /> Inserir tudo na descrição
                   </Button>
                 </div>
               )}
