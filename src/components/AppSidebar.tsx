@@ -11,7 +11,6 @@ const menuItems = [
   { label: "Scripts", icon: MessageSquare, path: "/scripts", adminOnly: false },
   { label: "Banco de Info", icon: Database, path: "/banco-informacoes", adminOnly: false },
   { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
-  { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
   { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
   { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
 ];
