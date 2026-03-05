@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip } from "lucide-react";
+import { useRef, useState, useEffect, useCallback, ChangeEvent } from "react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -122,6 +122,49 @@ export default function Oficios() {
   const [anexoImages, setAnexoImages] = useState<File[]>([]);
   const [anexos, setAnexos] = useState<DemandaAnexo[]>([]);
 
+  // Smart suggestions state
+  const [suggestions, setSuggestions] = useState<OficioRow[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [appliedSuggestionId, setAppliedSuggestionId] = useState<string | null>(null);
+  const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchSimilarOficios = useCallback((query: string) => {
+    if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
+    if (!query || query.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    suggestionTimeoutRef.current = setTimeout(() => {
+      const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      if (words.length === 0) { setSuggestions([]); setShowSuggestions(false); return; }
+      const matches = oficios
+        .filter(o => o.conteudo && o.id !== editingOficioId)
+        .map(o => {
+          const text = `${o.assunto} ${o.destinatario} ${o.bairro || ""} ${o.solicitante || ""} ${(o as any).tipo_demanda || ""}`.toLowerCase();
+          const score = words.reduce((acc, w) => acc + (text.includes(w) ? 1 : 0), 0);
+          return { ...o, score };
+        })
+        .filter(o => (o as any).score >= Math.max(1, Math.floor(words.length * 0.3)))
+        .sort((a, b) => (b as any).score - (a as any).score)
+        .slice(0, 3) as OficioRow[];
+      setSuggestions(matches);
+      setShowSuggestions(matches.length > 0);
+    }, 400);
+  }, [oficios, editingOficioId]);
+
+  const applySuggestion = (o: OficioRow) => {
+    if (!destinatario && o.destinatario) setDestinatario(o.destinatario);
+    if (!cargoDestinatario && o.cargo_destinatario) setCargoDestinatario(o.cargo_destinatario);
+    if (!secretaria && (o as any).secretaria_identificada) setSecretaria((o as any).secretaria_identificada);
+    if (!bairro && o.bairro) setBairro(o.bairro);
+    if (!assunto && o.assunto) setAssunto(o.assunto);
+    if (!tipoServico && (o as any).tipo_demanda) setTipoServico((o as any).tipo_demanda);
+    setAppliedSuggestionId(o.id);
+    setShowSuggestions(false);
+    toast({ title: "✨ Sugestão aplicada!", description: `Dados preenchidos com base no ofício nº ${o.numero || "s/n"}.` });
+  };
+
   // Helpers to convert between HTML and plain text for the ofício
   const plainToHtml = (text: string) => {
     if (!text) return "";
@@ -182,6 +225,12 @@ export default function Oficios() {
       setSecretaria(found.secretaria);
     }
   }, [tipoServico]);
+
+  // Trigger smart suggestions when assunto or descricao changes
+  useEffect(() => {
+    const query = `${assunto} ${descricao}`.trim();
+    searchSimilarOficios(query);
+  }, [assunto, descricao, searchSimilarOficios]);
 
   const filtered = oficios.filter(o => {
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
@@ -347,6 +396,9 @@ export default function Oficios() {
     setProcessedFileType(null);
     setAnexoImages([]);
     setAnexos([]);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setAppliedSuggestionId(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -653,7 +705,51 @@ export default function Oficios() {
                 />
                </div>
 
-              {/* Real file upload buttons */}
+              {/* Smart Suggestions */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-primary flex items-center gap-1">
+                      <Lightbulb size={14} /> Sugestões baseadas em ofícios anteriores
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setShowSuggestions(false)}>
+                      <X size={14} />
+                    </Button>
+                  </div>
+                  {suggestions.map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => applySuggestion(s)}
+                      className="w-full text-left p-2.5 rounded-md bg-card border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-foreground">
+                          {s.numero ? `Ofício nº ${s.numero}` : "Ofício"} — {s.assunto?.slice(0, 60)}{(s.assunto?.length || 0) > 60 ? "…" : ""}
+                        </span>
+                        <ArrowRight size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <div className="flex gap-2 mt-1 flex-wrap">
+                        {s.destinatario && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{s.destinatario}</span>}
+                        {s.bairro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{s.bairro}</span>}
+                        {(s as any).tipo_demanda && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{(s as any).tipo_demanda}</span>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {appliedSuggestionId && (
+                <div className="flex items-center gap-2 p-2 bg-accent/30 rounded-lg text-xs text-accent-foreground">
+                  <CheckCircle2 size={14} className="text-primary" />
+                  <span>Sugestão aplicada. Campos preenchidos automaticamente.</span>
+                  <Button variant="ghost" size="sm" className="h-5 text-xs ml-auto" onClick={() => setAppliedSuggestionId(null)}>
+                    <X size={12} />
+                  </Button>
+                </div>
+              )}
+
+
               <div className="flex gap-2">
                 <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={e => handleFileUpload(e, "audio")} />
                 <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileUpload(e, "image")} />
