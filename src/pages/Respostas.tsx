@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Heart, Copy, Sparkles, Loader2, Paperclip, Send, RefreshCw, Check, FileText, Image, Mic, Video, Upload, MessageSquare, Archive, X, Star } from "lucide-react";
+import { Heart, Copy, Sparkles, Loader2, Paperclip, Send, RefreshCw, Check, FileText, Image, Mic, Video, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
