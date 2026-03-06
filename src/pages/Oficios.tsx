@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2 } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2, Heart } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -104,6 +104,7 @@ export default function Oficios() {
 
   // AI state
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingResposta, setIsGeneratingResposta] = useState(false);
   const [aiResult, setAiResult] = useState<AIResult | null>(null);
   const [editedOficio, setEditedOficio] = useState("");
   const [originalOficio, setOriginalOficio] = useState("");
@@ -147,7 +148,6 @@ export default function Oficios() {
       const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
       if (words.length === 0) { setSuggestions([]); setKbSuggestions([]); setShowSuggestions(false); return; }
 
-      // Search oficios
       const matches = oficios
         .filter(o => o.conteudo && o.id !== editingOficioId)
         .map(o => {
@@ -159,7 +159,6 @@ export default function Oficios() {
         .sort((a, b) => (b as any).score - (a as any).score)
         .slice(0, 3) as OficioRow[];
 
-      // Search knowledge base
       const searchTerm = words.slice(0, 3).join(" ");
       const { data: kbData } = await supabase
         .from("base_conhecimento" as any)
@@ -184,7 +183,6 @@ export default function Oficios() {
     if (!tipoServico && (o as any).tipo_demanda) setTipoServico((o as any).tipo_demanda);
     setAppliedSuggestionId(o.id);
     setShowSuggestions(false);
-    // Track interaction for learning
     if (user) {
       supabase.from("suggestion_interactions" as any).insert({ user_id: user.id, source_type: "oficio", source_id: o.id, action: "accepted", context_assunto: assunto, context_bairro: bairro }).then(() => {});
     }
@@ -209,9 +207,8 @@ export default function Oficios() {
     historyTimeoutRef.current = setTimeout(() => {
       setOficioHistory(prev => {
         const trimmed = prev.slice(0, historyIndex + 1);
-        // Don't push if same as last entry
         if (trimmed.length > 0 && trimmed[trimmed.length - 1] === text) return prev;
-        const updated = [...trimmed, text].slice(-50); // keep max 50 versions
+        const updated = [...trimmed, text].slice(-50);
         setHistoryIndex(updated.length - 1);
         return updated;
       });
@@ -237,34 +234,24 @@ export default function Oficios() {
     setEditedOficio(oficioHistory[newIdx]);
   }, [historyIndex, oficioHistory]);
 
-  // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        undoOficio();
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
-        e.preventDefault();
-        redoOficio();
-      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undoOficio(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redoOficio(); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [undoOficio, redoOficio]);
 
-  // Generate solicitante code from user name+email
   const generateSolicitanteCode = useCallback(() => {
     if (!user) return "USR";
     const name = user.user_metadata?.full_name || "";
     const email = user.email || "";
-    // Take initials from name (up to 3 chars) + first 2 chars of email
     const initials = name.split(/\s+/).map((w: string) => w[0]?.toUpperCase() || "").join("").slice(0, 3);
     const emailCode = email.replace(/@.*/, "").slice(0, 2).toUpperCase();
     return (initials || emailCode || "USR");
   }, [user]);
 
-  // Helpers to convert between HTML and plain text for the ofício
   const plainToHtml = (text: string) => {
     if (!text) return "";
     return text.split("\n").filter(p => p.trim()).map(p => `<p>${p}</p>`).join("");
@@ -279,7 +266,6 @@ export default function Oficios() {
       .join("\n") || div.textContent?.trim() || "";
   };
 
-  // Fetch oficios
   const fetchOficios = async () => {
     setLoading(true);
     const { data } = await supabase.from("oficios").select("*").order("created_at", { ascending: false });
@@ -289,23 +275,14 @@ export default function Oficios() {
 
   useEffect(() => { fetchOficios(); }, []);
 
-  // Auto-generate next sequential number with format: NUM/YEAR/CODE
   const generateNextNumero = () => {
     const year = new Date().getFullYear();
     const code = generateSolicitanteCode();
-    const existingNumbers = oficios
-      .map(o => o.numero)
-      .filter(Boolean)
-      .map(n => {
-        const match = n!.match(/^(\d+)/);
-        return match ? parseInt(match[1], 10) : 0;
-      })
-      .filter(n => n > 0);
+    const existingNumbers = oficios.map(o => o.numero).filter(Boolean).map(n => { const match = n!.match(/^(\d+)/); return match ? parseInt(match[1], 10) : 0; }).filter(n => n > 0);
     const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
     return `${nextNum}/${year}/${code}`;
   };
 
-  // Fetch user phone lines
   useEffect(() => {
     if (!user) return;
     const fetchPhones = async () => {
@@ -318,15 +295,11 @@ export default function Oficios() {
     fetchPhones();
   }, [user]);
 
-  // Auto-fill secretaria when tipo_servico changes
   useEffect(() => {
     const found = tiposServico.find(t => t.label === tipoServico);
-    if (found && found.secretaria) {
-      setSecretaria(found.secretaria);
-    }
+    if (found && found.secretaria) setSecretaria(found.secretaria);
   }, [tipoServico]);
 
-  // Trigger smart suggestions when assunto or descricao changes
   useEffect(() => {
     const query = `${assunto} ${descricao}`.trim();
     searchSimilarOficios(query);
@@ -368,6 +341,43 @@ export default function Oficios() {
       toast({ title: "Erro ao gerar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // ── Generate empathetic response independently ─────────────────────────
+  const handleGenerateResposta = async () => {
+    setIsGeneratingResposta(true);
+    try {
+      const temMidias = processedResults.length > 0 || anexoImages.length > 0 || anexos.length > 0;
+      const tiposMidias = [
+        ...processedResults.map(r => r.type === "image" ? "imagens" : r.type === "video" ? "vídeos" : "áudios"),
+        ...anexoImages.map(() => "imagens"),
+        ...anexos.filter(a => a.tipo.includes("pdf")).map(() => "documentos PDF"),
+      ].filter((v, i, a) => a.indexOf(v) === i).join(", ");
+
+      const { data, error } = await supabase.functions.invoke("generate-resposta", {
+        body: {
+          numero: numero || null,
+          assunto,
+          destinatario,
+          descricao,
+          solicitante,
+          bairro,
+          local: localDemanda,
+          secretaria: secretaria || aiResult?.secretaria_identificada || "",
+          tipo_demanda: tipoServico || aiResult?.tipo_demanda || "",
+          urgencia: prioridade === "Urgente" ? "urgente" : "normal",
+          tem_midias: temMidias,
+          tipos_midias: tiposMidias || null,
+        },
+      });
+      if (error) throw error;
+      setEditedResposta(data.resposta || "");
+      toast({ title: "💬 Resposta empática gerada!", description: "Revise e edite antes de copiar." });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar resposta", description: e.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsGeneratingResposta(false);
     }
   };
 
@@ -442,56 +452,35 @@ export default function Oficios() {
   const handleMultiFileUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     if (fileArray.length === 0) return;
-
     const queue = fileArray.map(f => ({ file: f, type: getFileMediaType(f), status: "pending" as const, text: undefined as string | undefined }));
     setProcessingQueue(queue);
     setIsProcessingFiles(true);
-
     const results: { type: string; text: string; fileName: string }[] = [];
-
-    // Process files in parallel (max 3 at a time)
     const processFile = async (idx: number) => {
       const item = queue[idx];
       setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "processing" } : p));
-
       try {
         const formData = new FormData();
         formData.append("file", item.file);
         formData.append("type", item.type);
-
         const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
         if (error) throw error;
-
         const text = data.text || "";
         results.push({ type: item.type, text, fileName: item.file.name });
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
-
-        // If image, also add to anexoImages for document attachment
-        if (item.type === "image") {
-          setAnexoImages(prev => [...prev, item.file]);
-        }
+        if (item.type === "image") setAnexoImages(prev => [...prev, item.file]);
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
         toast({ title: `Erro ao processar ${item.file.name}`, description: err.message || "Tente novamente.", variant: "destructive" });
       }
     };
-
-    // Process in batches of 3
     for (let i = 0; i < queue.length; i += 3) {
       const batch = queue.slice(i, i + 3).map((_, j) => processFile(i + j));
       await Promise.all(batch);
     }
-
     setProcessedResults(prev => [...prev, ...results]);
     setIsProcessingFiles(false);
-
-    if (results.length > 0) {
-      toast({
-        title: `✅ ${results.length} arquivo(s) processado(s)!`,
-        description: "Revise o conteúdo extraído e insira na descrição.",
-      });
-    }
-
+    if (results.length > 0) toast({ title: `✅ ${results.length} arquivo(s) processado(s)!`, description: "Revise o conteúdo extraído e insira na descrição." });
     if (mediaInputRef.current) mediaInputRef.current.value = "";
   };
 
@@ -560,7 +549,6 @@ export default function Oficios() {
     }
     setIsUploading(true);
     try {
-      // 1. Generate Word blob
       const wordBlob = await exportToWord({
         numero: oficio.numero || "",
         destinatario: oficio.destinatario,
@@ -572,21 +560,14 @@ export default function Oficios() {
         logoFabaoUrl: logoFabao,
         assinaturaUrl: assinaturaFabao,
       });
-
       const numeroArquivo = (oficio.numero || "rascunho").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_");
       const baseFileName = `Oficio_GVF_${numeroArquivo}`;
-
-      // Upload DOCX directly (sem conversão PDF)
-      const uploadBlob = wordBlob;
       const uploadFileName = `${baseFileName}.docx`;
       const uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      // 3. Upload to Drive + register in Sheets
       const driveFormData = new FormData();
-      driveFormData.append("file", uploadBlob, uploadFileName);
+      driveFormData.append("file", wordBlob, uploadFileName);
       driveFormData.append("metadata", JSON.stringify({
         numero: oficio.numero || "",
         assunto: oficio.assunto,
@@ -600,30 +581,21 @@ export default function Oficios() {
         operador: (oficio as any).operador_nome || user?.user_metadata?.full_name || user?.email || "",
         status: oficio.status,
       }));
-
       const driveResp = await fetch(`${supabaseUrl}/functions/v1/upload-to-drive`, {
         method: "POST",
         headers: { Authorization: `Bearer ${supabaseKey}` },
         body: driveFormData,
       });
-
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
         throw new Error(err.error || "Erro ao enviar para o Drive");
       }
-
       const driveResult = await driveResp.json();
-
-      // 4. Update oficio with drive link
       if (driveResult.driveLink) {
         await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink }).eq("id", oficio.id);
         await fetchOficios();
       }
-
-      toast({
-        title: "✅ Enviado ao Drive!",
-        description: "Arquivo enviado e registrado na planilha.",
-      });
+      toast({ title: "✅ Enviado ao Drive!", description: "Arquivo enviado e registrado na planilha." });
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
@@ -631,7 +603,6 @@ export default function Oficios() {
     }
   };
 
-  // ── Helper: build consistent export data from an OficioRow ─────────────────
   const buildExportData = (o: OficioRow) => ({
     numero: o.numero || "",
     destinatario: o.destinatario,
@@ -647,7 +618,6 @@ export default function Oficios() {
     assinaturaUrl: assinaturaFabao,
   });
 
-  // ── Helper: build export data from form state ─────────────────────────────
   const buildFormExportData = () => ({
     numero,
     destinatario,
@@ -714,26 +684,9 @@ export default function Oficios() {
             <div className="flex items-center gap-1">
               <button onClick={() => handleEdit(o)} className="p-2 text-muted-foreground hover:text-primary" title="Editar"><Pencil size={16} /></button>
               <button onClick={() => { setViewingOficio(o); setShowPreviewDialog(true); }} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
-              <button
-                onClick={() => { if (o.conteudo) exportToWord(buildExportData(o)); }}
-                className="p-2 text-muted-foreground hover:text-foreground"
-                title="Exportar Word"
-              >
-                <FileText size={16} />
-              </button>
-              <button
-                onClick={() => { if (o.conteudo) exportToPDF(buildExportData(o)); }}
-                className="p-2 text-muted-foreground hover:text-foreground"
-                title="Exportar PDF"
-              >
-                <Download size={16} />
-              </button>
-              <button
-                onClick={() => handleUploadToDrive(o)}
-                disabled={isUploading}
-                className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50"
-                title="Enviar ao Drive + Planilha"
-              >
+              <button onClick={() => { if (o.conteudo) exportToWord(buildExportData(o)); }} className="p-2 text-muted-foreground hover:text-foreground" title="Exportar Word"><FileText size={16} /></button>
+              <button onClick={() => { if (o.conteudo) exportToPDF(buildExportData(o)); }} className="p-2 text-muted-foreground hover:text-foreground" title="Exportar PDF"><Download size={16} /></button>
+              <button onClick={() => handleUploadToDrive(o)} disabled={isUploading} className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50" title="Enviar ao Drive + Planilha">
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
               </button>
               <button onClick={() => handleDelete(o.id)} className="p-2 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
@@ -751,10 +704,7 @@ export default function Oficios() {
               <DialogDescription className="text-xs text-muted-foreground">Preencha os dados, revise o texto e salve o ofício.</DialogDescription>
             </div>
             {editingOficioId && (
-              <Button variant="destructive" size="sm" onClick={async () => {
-                await handleDelete(editingOficioId);
-                resetForm();
-              }}>
+              <Button variant="destructive" size="sm" onClick={async () => { await handleDelete(editingOficioId); resetForm(); }}>
                 <Trash2 size={14} className="mr-1" /> Excluir Ofício
               </Button>
             )}
@@ -842,7 +792,7 @@ export default function Oficios() {
                   onChange={e => setDescricao(e.target.value)}
                   className="bg-secondary border-border min-h-[100px]"
                 />
-               </div>
+              </div>
 
               {/* Smart Suggestions */}
               {showSuggestions && (suggestions.length > 0 || kbSuggestions.length > 0) && (
@@ -856,16 +806,9 @@ export default function Oficios() {
                     </Button>
                   </div>
                   {suggestions.map(s => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => applySuggestion(s)}
-                      className="w-full text-left p-2.5 rounded-md bg-card border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors group"
-                    >
+                    <button key={s.id} type="button" onClick={() => applySuggestion(s)} className="w-full text-left p-2.5 rounded-md bg-card border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors group">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-foreground">
-                          📄 {s.numero ? `Ofício nº ${s.numero}` : "Ofício"} — {s.assunto?.slice(0, 60)}{(s.assunto?.length || 0) > 60 ? "…" : ""}
-                        </span>
+                        <span className="text-xs font-medium text-foreground">📄 {s.numero ? `Ofício nº ${s.numero}` : "Ofício"} — {s.assunto?.slice(0, 60)}{(s.assunto?.length || 0) > 60 ? "…" : ""}</span>
                         <ArrowRight size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
                       <div className="flex gap-2 mt-1 flex-wrap">
@@ -875,12 +818,7 @@ export default function Oficios() {
                     </button>
                   ))}
                   {kbSuggestions.map(kb => (
-                    <button
-                      key={kb.id}
-                      type="button"
-                      onClick={() => applyKbSuggestion(kb)}
-                      className="w-full text-left p-2.5 rounded-md bg-card border border-border hover:border-accent/50 hover:bg-accent/10 transition-colors group"
-                    >
+                    <button key={kb.id} type="button" onClick={() => applyKbSuggestion(kb)} className="w-full text-left p-2.5 rounded-md bg-card border border-border hover:border-accent/50 hover:bg-accent/10 transition-colors group">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-foreground">
                           {kb.fonte === "Instagram" ? "📸" : kb.fonte === "Upload" ? "📁" : "📰"} {kb.titulo?.slice(0, 70)}{(kb.titulo?.length || 0) > 70 ? "…" : ""}
@@ -908,20 +846,12 @@ export default function Oficios() {
                 </div>
               )}
 
-
               {/* Multi-file media upload zone */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
                   <FileUp size={12} /> Anexar Mídias (imagens, áudios, vídeos)
                 </label>
-                <input
-                  ref={mediaInputRef}
-                  type="file"
-                  accept="image/*,audio/*,video/*"
-                  multiple
-                  className="hidden"
-                  onChange={e => e.target.files && handleMultiFileUpload(e.target.files)}
-                />
+                <input ref={mediaInputRef} type="file" accept="image/*,audio/*,video/*" multiple className="hidden" onChange={e => e.target.files && handleMultiFileUpload(e.target.files)} />
                 <div
                   onClick={() => mediaInputRef.current?.click()}
                   onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
@@ -933,12 +863,8 @@ export default function Oficios() {
                     <Mic size={18} />
                     <Video size={18} />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Arraste ou clique para adicionar fotos, áudios ou vídeos
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/60 mt-1">
-                    Múltiplos arquivos simultâneos · A IA extrai e combina as informações
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">Arraste ou clique para adicionar fotos, áudios ou vídeos</p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">Múltiplos arquivos simultâneos · A IA extrai e combina as informações</p>
                 </div>
               </div>
 
@@ -1050,9 +976,7 @@ export default function Oficios() {
                       <Redo2 size={14} />
                     </Button>
                     {oficioHistory.length > 1 && (
-                      <span className="text-[10px] text-muted-foreground mx-1">
-                        v{historyIndex + 1}/{oficioHistory.length}
-                      </span>
+                      <span className="text-[10px] text-muted-foreground mx-1">v{historyIndex + 1}/{oficioHistory.length}</span>
                     )}
                     {editedOficio && (
                       <>
@@ -1069,12 +993,49 @@ export default function Oficios() {
                 />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MessageSquare size={12} /> Resposta ao Cidadão</label>
-                  {editedResposta && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedResposta, "Resposta")}><Copy size={14} className="mr-1" /> Copiar</Button>}
+              {/* ── Resposta Empática ao Cidadão ─────────────────────────────── */}
+              <div className="space-y-2 p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Heart size={16} className="text-primary" />
+                    Resposta Empática ao Cidadão
+                  </label>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateResposta}
+                      disabled={isGeneratingResposta}
+                      className="border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      {isGeneratingResposta ? (
+                        <><Loader2 size={14} className="mr-1 animate-spin" /> Gerando...</>
+                      ) : (
+                        <><Sparkles size={14} className="mr-1" /> Gerar Resposta</>
+                      )}
+                    </Button>
+                    {editedResposta && (
+                      <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedResposta, "Resposta")}>
+                        <Copy size={14} className="mr-1" /> Copiar
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <Textarea value={editedResposta} onChange={e => setEditedResposta(e.target.value)} placeholder="Sugestão de resposta ao cidadão..." className="bg-secondary border-border min-h-[150px] text-sm" />
+                <p className="text-[11px] text-muted-foreground">
+                  Gera uma resposta empática e profissional para enviar ao cidadão via WhatsApp, informando o registro da demanda e o encaminhamento ao órgão competente.
+                </p>
+                <Textarea
+                  value={editedResposta}
+                  onChange={e => setEditedResposta(e.target.value)}
+                  placeholder="Clique em 'Gerar Resposta' para criar uma mensagem empática automaticamente, ou digite manualmente..."
+                  className="bg-background border-border min-h-[180px] text-sm leading-relaxed"
+                />
+                {editedResposta && (
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <CheckCircle2 size={12} className="text-primary" />
+                    <span>Resposta pronta. Revise e copie para enviar ao cidadão.</span>
+                  </div>
+                )}
               </div>
 
               {/* Anexos inline */}
@@ -1086,9 +1047,7 @@ export default function Oficios() {
                   anexos={anexos}
                   onChange={setAnexos}
                   onFileAdded={(file) => {
-                    // Auto-process PDFs/images for text extraction
                     if (file.type === "application/pdf" || file.type.startsWith("image/")) {
-                      const type = file.type.startsWith("image/") ? "image" : "audio";
                       // Could trigger analysis here if needed
                     }
                   }}
@@ -1169,12 +1128,8 @@ export default function Oficios() {
             <DialogTitle className="text-foreground flex items-center justify-between">
               <span>{viewingOficio?.assunto || "Ofício"}</span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => {
-                  if (viewingOficio?.conteudo) exportToWord(buildExportData(viewingOficio));
-                }}><FileText size={14} className="mr-1" /> Word</Button>
-                <Button size="sm" variant="outline" onClick={async () => {
-                  if (viewingOficio?.conteudo) await exportToPDF(buildExportData(viewingOficio));
-                }}><Download size={14} className="mr-1" /> PDF</Button>
+                <Button size="sm" variant="outline" onClick={() => { if (viewingOficio?.conteudo) exportToWord(buildExportData(viewingOficio)); }}><FileText size={14} className="mr-1" /> Word</Button>
+                <Button size="sm" variant="outline" onClick={async () => { if (viewingOficio?.conteudo) await exportToPDF(buildExportData(viewingOficio)); }}><Download size={14} className="mr-1" /> PDF</Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
