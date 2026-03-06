@@ -623,7 +623,7 @@ export default function Oficios() {
       } else {
         // Fallback: enviar como Word se conversão falhar
         uploadBlob = wordBlob;
-        uploadFileName = `${numLimpo}-${ano}-${operadorCode}.docx`;
+        uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.docx`;
         uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
       }
 
