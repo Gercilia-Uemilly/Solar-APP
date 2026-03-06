@@ -315,6 +315,8 @@ export default function Oficios() {
   }, [assunto, descricao, searchSimilarOficios]);
 
   const filtered = oficios.filter(o => {
+    // Show only user's own oficios
+    if (user && o.author_id !== user.id) return false;
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
     if (search) {
       const s = search.toLowerCase();
