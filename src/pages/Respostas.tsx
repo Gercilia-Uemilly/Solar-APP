@@ -145,59 +145,15 @@ export default function Respostas() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10">
-            <Heart className="text-primary" size={24} />
-          </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Respostas ao Cidadão</h1>
-            <p className="text-sm text-muted-foreground">Gere respostas naturais e acolhedoras com IA</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-primary/10">
+          <Heart className="text-primary" size={24} />
         </div>
-
-        {/* ZIP Import Button */}
-        {isAdmin && (
-          <div className="flex items-center gap-2">
-            <input
-              ref={zipInputRef}
-              type="file"
-              accept=".zip,.txt"
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files?.[0];
-                if (file) handleImportWhatsApp(file);
-              }}
-            />
-            <Button
-              variant="outline"
-              onClick={() => zipInputRef.current?.click()}
-              disabled={importing}
-              className="gap-2"
-            >
-              {importing ? <Loader2 size={16} className="animate-spin" /> : <Archive size={16} />}
-              {importing ? "Importando..." : "Importar Conversas WhatsApp"}
-            </Button>
-            {whatsappCount !== null && (
-              <Badge variant="secondary" className="text-xs gap-1">
-                <MessageSquare size={12} /> {whatsappCount} trechos
-              </Badge>
-            )}
-          </div>
-        )}
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Respostas ao Cidadão</h1>
+          <p className="text-sm text-muted-foreground">Gere respostas naturais e acolhedoras com IA</p>
+        </div>
       </div>
-
-      {/* Info banner about WhatsApp conversations */}
-      {isAdmin && (
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-start gap-3">
-          <MessageSquare size={18} className="text-primary mt-0.5 flex-shrink-0" />
-          <div className="text-xs text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Base de conversas WhatsApp</p>
-            <p>Importe o arquivo ZIP das conversas exportadas do WhatsApp para alimentar o estilo das respostas. A IA usará essas conversas como referência principal de tom e linguagem.</p>
-            <p className="mt-1 text-primary/70">WhatsApp → Conversa → ⋮ → Exportar conversa → Sem mídia → Enviar arquivo ZIP</p>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Input */}
