@@ -100,8 +100,8 @@ function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
           cursor: "text",
           outline: "none",
           minHeight: "50px",
-          fontFamily: "'Times New Roman', Times, serif",
-          fontSize: "12pt",
+          fontFamily: "Arial, Helvetica, sans-serif",
+          fontSize: "11pt",
           lineHeight: "1.5",
           color: "#000",
         }}
