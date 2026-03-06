@@ -442,69 +442,56 @@ export default function BancoInformacoes() {
           </div>
         </TabsContent>
 
-        {/* ─── TAB: INSTAGRAM ─── */}
+        {/* ─── TAB: INSTAGRAM (admin only) ─── */}
         <TabsContent value="instagram" className="space-y-4">
           <div className="bg-card rounded-xl p-6 border border-border space-y-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Instagram size={20} /> Importar do Instagram</h2>
-            
-            {/* Full feed import */}
-            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-3">
-              <h3 className="text-sm font-medium text-foreground">📥 Feed completo @fabaovereador</h3>
-              <p className="text-xs text-muted-foreground">Importa automaticamente os últimos 20 posts do perfil, incluindo legendas e links de imagens.</p>
-              <Button onClick={handleInstagramFeedImport} disabled={instaFeedImporting || instaImporting}>
-                {instaFeedImporting ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Download size={16} className="mr-1" />}
-                {instaFeedImporting ? "Importando feed..." : "Importar Feed Completo"}
-              </Button>
-              <p className="text-[10px] text-muted-foreground">⏰ Importação automática configurada a cada 6 horas.</p>
-            </div>
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Instagram size={20} /> Instagram - Cadastro Manual</h2>
+            <p className="text-sm text-muted-foreground">
+              A importação automática do Instagram não está disponível. Cadastre os posts manualmente colando a legenda e informações abaixo.
+            </p>
 
-            {/* Single post import */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-foreground">🔗 Importar post individual</h3>
-              <p className="text-xs text-muted-foreground">Cole a URL de um post ou reel específico.</p>
-              <div className="flex gap-2">
-                <Input placeholder="https://www.instagram.com/p/... ou /reel/..." value={instaUrl} onChange={e => setInstaUrl(e.target.value)} className="flex-1" />
-                <Button onClick={handleInstagramImport} disabled={instaImporting || instaFeedImporting || !instaUrl.trim()}>
-                  {instaImporting ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Download size={16} className="mr-1" />}
-                  Importar
+            {/* Manual entry form */}
+            <div className="space-y-3 border border-border rounded-lg p-4 bg-muted/30">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Título do Post</label>
+                <Input
+                  placeholder="Ex: Post sobre infraestrutura no bairro Fundinho"
+                  value={instaPreview?.titulo || ""}
+                  onChange={e => setInstaPreview(prev => ({ titulo: e.target.value, descricao: prev?.descricao || "", data: prev?.data || new Date().toISOString() }))}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Legenda / Conteúdo</label>
+                <Textarea
+                  placeholder="Cole aqui a legenda do post do Instagram..."
+                  value={instaPreview?.descricao || ""}
+                  onChange={e => setInstaPreview(prev => ({ titulo: prev?.titulo || "", descricao: e.target.value, data: prev?.data || new Date().toISOString() }))}
+                  rows={6}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Link do Post (opcional)</label>
+                <Input
+                  placeholder="https://www.instagram.com/p/..."
+                  value={instaUrl}
+                  onChange={e => setInstaUrl(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => { setInstaPreview(null); setInstaUrl(""); }}
+                >
+                  Limpar
+                </Button>
+                <Button
+                  onClick={saveInstaPreview}
+                  disabled={!instaPreview?.titulo?.trim() || !instaPreview?.descricao?.trim()}
+                >
+                  Salvar na Base
                 </Button>
               </div>
             </div>
-
-            {instaEditing && instaPreview && (
-              <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/30">
-                <h3 className="text-sm font-semibold">Prévia do Post</h3>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Título</label>
-                  <Input value={instaPreview.titulo} onChange={e => setInstaPreview({ ...instaPreview, titulo: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Descrição</label>
-                  <Textarea value={instaPreview.descricao} onChange={e => setInstaPreview({ ...instaPreview, descricao: e.target.value })} rows={6} />
-                </div>
-                {/* Image previews */}
-                {instaPreview.imagens && instaPreview.imagens.length > 0 && (
-                  <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Imagens encontradas ({instaPreview.imagens.length})</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {instaPreview.imagens.slice(0, 4).map((img, i) => (
-                        <img key={i} src={img} alt={`Post ${i + 1}`} className="w-20 h-20 object-cover rounded border border-border" />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {instaPreview.screenshot && (
-                  <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Screenshot do post</label>
-                    <img src={`data:image/png;base64,${instaPreview.screenshot}`} alt="Screenshot" className="max-w-full h-auto rounded border border-border max-h-[200px]" />
-                  </div>
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => { setInstaEditing(false); setInstaPreview(null); }}>Cancelar</Button>
-                  <Button onClick={saveInstaPreview}>Salvar na Base</Button>
-                </div>
-              </div>
-            )}
           </div>
         </TabsContent>
 
