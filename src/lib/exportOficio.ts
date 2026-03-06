@@ -15,13 +15,10 @@ function formatDate(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-function buildFileName(numero: string, ano: string, telefone?: string): string {
+function buildFileName(numero: string, ano: string, codigo?: string): string {
   const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-  const telSufixo = telefone
-    ? telefone.replace(/\D/g, '').slice(-4)
-    : '';
-  const parts = [`GVF-${numLimpo}`, ano];
-  if (telSufixo) parts.push(telSufixo);
+  const parts = [numLimpo || 'rascunho', ano];
+  if (codigo) parts.push(codigo);
   return parts.join('-');
 }
 
