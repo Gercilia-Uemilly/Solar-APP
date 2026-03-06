@@ -231,7 +231,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* Fecho */}
-        <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: "12pt" }}>
+        <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: "11pt" }}>
           Atenciosamente,
         </p>
 
