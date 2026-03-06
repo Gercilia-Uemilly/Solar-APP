@@ -22,7 +22,7 @@ async function createJWT(serviceAccount: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const claim = {
     iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
+    scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets",
     aud: "https://oauth2.googleapis.com/token",
     exp: now + 3600,
     iat: now,
@@ -78,6 +78,24 @@ async function getAccessToken(serviceAccount: any): Promise<string> {
   return data.access_token;
 }
 
+// ── Check folder access ─────────────────────────────────────────────
+
+async function checkFolderAccess(accessToken: string, folderId: string): Promise<void> {
+  const resp = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType&supportsAllDrives=true`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error(`Folder access check failed: ${resp.status} ${errText}`);
+    throw new Error(`Cannot access folder ${folderId}: ${resp.status} ${errText}`);
+  }
+  const folder = await resp.json();
+  console.log(`Folder accessible: ${folder.name} (${folder.id})`);
+}
+
 // ── Google Drive Upload ─────────────────────────────────────────────
 
 async function uploadToDrive(
@@ -86,10 +104,12 @@ async function uploadToDrive(
   fileName: string,
   mimeType: string
 ): Promise<{ id: string; webViewLink: string }> {
-  const metadata = {
+  const metadata: Record<string, unknown> = {
     name: fileName,
-    parents: [DRIVE_FOLDER_ID],
   };
+  if (DRIVE_FOLDER_ID) {
+    metadata.parents = [DRIVE_FOLDER_ID];
+  }
 
   // Note: driveId is NOT set in metadata — parents alone is sufficient
   // supportsAllDrives=true in the URL handles shared drive support
