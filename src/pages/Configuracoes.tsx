@@ -4,12 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings, Save, Phone } from "lucide-react";
+import { Settings, Save, Phone, HardDrive, CheckCircle2, ExternalLink } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserAvatar from "@/components/UserAvatar";
 
 export default function Configuracoes() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -17,10 +17,12 @@ export default function Configuracoes() {
   const [tel2, setTel2] = useState("");
   const [tel3, setTel3] = useState("");
   const [saving, setSaving] = useState(false);
+  const [driveAuthorized, setDriveAuthorized] = useState(false);
+  const [checkingDrive, setCheckingDrive] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
+    const fetchProfile = async () => {
       const { data } = await supabase.from("profiles").select("full_name, telefone1, telefone2, telefone3, avatar_url" as any).eq("id", user.id).single();
       if (data) {
         const d = data as any;
@@ -31,8 +33,23 @@ export default function Configuracoes() {
         setTel3(d.telefone3 || "");
       }
     };
-    fetch();
+    fetchProfile();
   }, [user]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const checkDriveAuth = async () => {
+      setCheckingDrive(true);
+      const { data } = await supabase
+        .from("app_settings" as any)
+        .select("value")
+        .eq("key", "google_refresh_token")
+        .single();
+      setDriveAuthorized(!!(data as any)?.value);
+      setCheckingDrive(false);
+    };
+    checkDriveAuth();
+  }, [isAdmin]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -49,6 +66,12 @@ export default function Configuracoes() {
       toast({ title: "Configurações salvas!" });
     }
     setSaving(false);
+  };
+
+  const handleAuthorizeDrive = () => {
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    const url = `https://${projectId}.supabase.co/functions/v1/google-oauth-callback`;
+    window.open(url, "_blank", "width=600,height=700");
   };
 
   return (
@@ -104,6 +127,32 @@ export default function Configuracoes() {
           <Input value={tel3} onChange={e => setTel3(e.target.value)} placeholder="(34) 99999-0003" className="bg-secondary border-border" />
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+            <HardDrive size={16} /> Google Drive
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Autorize sua conta Google para que os ofícios sejam salvos no seu Google Drive pessoal.
+          </p>
+          {checkingDrive ? (
+            <p className="text-xs text-muted-foreground">Verificando...</p>
+          ) : driveAuthorized ? (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-green-500" />
+              <span className="text-sm text-green-600 dark:text-green-400 font-medium">Google Drive autorizado</span>
+              <Button variant="outline" size="sm" onClick={handleAuthorizeDrive} className="ml-auto">
+                <ExternalLink size={14} className="mr-1" /> Reautorizar
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={handleAuthorizeDrive} className="bg-primary text-primary-foreground">
+              <ExternalLink size={16} className="mr-1" /> Autorizar Google Drive
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground">Aparência</h3>
