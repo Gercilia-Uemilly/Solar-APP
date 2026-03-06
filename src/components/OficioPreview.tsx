@@ -184,21 +184,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         <div style={{ borderBottom: "1px solid #000", marginTop: "8px", marginBottom: "16px" }} />
 
         {/* Data alinhada à direita */}
-        <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "12pt" }}>{dataFormatada}</p>
+        <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
 
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "24px" }}>
+        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "24px" }}>
           Ofício GVF n° {numeroFormatado}
         </p>
 
-        <p style={{ fontSize: "12pt", marginBottom: "8px" }}>
+        <p style={{ fontSize: "11pt", marginBottom: "8px" }}>
           <strong>DESTINATÁRIO:</strong> {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
         </p>
 
-        <p style={{ fontSize: "12pt", marginBottom: "30px" }}>
+        <p style={{ fontSize: "11pt", marginBottom: "30px" }}>
           <strong>Assunto:</strong> {assuntoFormatado}
         </p>
 
-        <p style={{ fontSize: "12pt", marginBottom: "30px", textIndent: "1.25cm" }}>
+        <p style={{ fontSize: "11pt", marginBottom: "30px", textIndent: "1.25cm" }}>
           Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,
         </p>
 
