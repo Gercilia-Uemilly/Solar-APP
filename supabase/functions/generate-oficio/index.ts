@@ -24,7 +24,7 @@ O documento final segue EXATAMENTE este padrão:
 ### Estrutura do Documento (NÃO incluir no corpo gerado)
 - Cabeçalho: Logos Câmara + Gabinete centralizados, linha separadora fina abaixo
 - Data: "Uberlândia, [dia] de [mês] de [ano]." alinhada à direita
-- Número: "Ofício GVF n° [NÚMERO]/2026" (automático)
+- Número: "Ofício n° [NÚMERO]/2026" (automático)
 - DESTINATÁRIO: em negrito, seguido do cargo e nome
 - Assunto: em negrito, seguido da descrição
 - Saudação: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,"

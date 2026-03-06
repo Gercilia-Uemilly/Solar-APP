@@ -31,7 +31,7 @@ Sua função é gerar respostas empáticas, cordiais e profissionais para cidad�
 
 "Olá Maria, agradecemos por entrar em contato com o Gabinete do Vereador Fabão. Recebemos sua mensagem e as imagens anexadas sobre os buracos na Rua Oscar Alvim, Bairro Fundinho. Compreendemos sua preocupação com a segurança dos moradores e pedestres da região.
 
-Sua solicitação foi registrada sob o protocolo 23/2026/GVF e será encaminhada à Secretaria Municipal de Infraestrutura Urbana para as devidas providências.
+Sua solicitação foi registrada sob o protocolo 23-2026 e será encaminhada à Secretaria Municipal de Infraestrutura Urbana para as devidas providências.
 
 Em breve retornaremos com mais informações sobre o andamento da sua demanda. Agradecemos pela colaboração e confiança no nosso trabalho."
 
