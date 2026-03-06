@@ -20,6 +20,41 @@ import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
+  const handleGenerateResposta = async () => {
+    setIsGeneratingResposta(true);
+    try {
+      const temMidias = processedResults.length > 0 || anexoImages.length > 0 || anexos.length > 0;
+      const tiposMidias = [
+        ...processedResults.map(r => r.type === "image" ? "imagens" : r.type === "video" ? "vídeos" : "áudios"),
+        ...anexoImages.map(() => "imagens"),
+        ...anexos.filter(a => a.tipo.includes("pdf")).map(() => "documentos PDF"),
+      ].filter((v, i, a) => a.indexOf(v) === i).join(", ");
+
+      const { data, error } = await supabase.functions.invoke("generate-resposta", {
+        body: {
+          numero: numero || null,
+          assunto,
+          destinatario,
+          descricao,
+          solicitante,
+          bairro,
+          local: localDemanda,
+          secretaria: secretaria || aiResult?.secretaria_identificada || "",
+          tipo_demanda: tipoServico || aiResult?.tipo_demanda || "",
+          urgencia: prioridade === "Urgente" ? "urgente" : "normal",
+          tem_midias: temMidias,
+          tipos_midias: tiposMidias || null,
+        },
+      });
+      if (error) throw error;
+      setEditedResposta(data.resposta || "");
+      toast({ title: "💬 Resposta empática gerada!", description: "Revise e edite antes de copiar." });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar resposta", description: e.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsGeneratingResposta(false);
+    }
+  };
 
 const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido", "Arquivado"];
 
