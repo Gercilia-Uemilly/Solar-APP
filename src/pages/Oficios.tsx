@@ -414,8 +414,26 @@ export default function Oficios() {
     setShowDialog(true);
   };
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
+
+  const validateForm = () => {
+    const errors: Record<string, boolean> = {};
+    if (!numero.trim()) errors.numero = true;
+    if (!contatoSolicitante.trim()) errors.contatoSolicitante = true;
+    return errors;
+  };
+
   const handleCreate = async () => {
     if (!user) return;
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setFormTab("dados");
+      toast({ title: "Campos obrigatórios", description: "Preencha o número do ofício e o WhatsApp do solicitante.", variant: "destructive" });
+      return;
+    }
+    setValidationErrors({});
     const payload = {
       numero: numero || null,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
@@ -530,6 +548,7 @@ export default function Oficios() {
     setHistoryIndex(-1);
     setProcessedResults([]);
     setProcessingQueue([]);
+    setValidationErrors({});
     setAnexoImages([]);
     setAnexos([]);
     setSuggestions([]);
@@ -707,7 +726,7 @@ export default function Oficios() {
 
       {/* Create Dialog with Tabs */}
       <Dialog open={showDialog} onOpenChange={open => { if (!open) resetForm(); else setShowDialog(true); }}>
-        <DialogContent className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-6">
+        <DialogContent className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-3 sm:p-6">
           <DialogHeader className="flex flex-row items-center justify-between">
             <div>
               <DialogTitle className="text-foreground">{editingOficioId ? "Editar Ofício" : "Novo Ofício"}</DialogTitle>
@@ -732,8 +751,9 @@ export default function Oficios() {
             <TabsContent value="dados" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício</label>
-                  <Input placeholder="Ex: 23/2026" value={numero} onChange={e => setNumero(e.target.value)} className="bg-secondary border-border" />
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
+                  <Input placeholder="Ex: 23/2026" value={numero} onChange={e => { setNumero(e.target.value); setValidationErrors(prev => ({ ...prev, numero: false })); }} className={`bg-secondary ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`} />
+                  {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
@@ -789,8 +809,9 @@ export default function Oficios() {
                   <Input placeholder="Nome do solicitante" value={solicitante} onChange={e => setSolicitante(e.target.value)} className="bg-secondary border-border" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Contato do Solicitante</label>
-                  <Input placeholder="Telefone / WhatsApp" value={contatoSolicitante} onChange={e => setContatoSolicitante(e.target.value)} className="bg-secondary border-border" />
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">WhatsApp do Solicitante <span className="text-destructive">*</span></label>
+                  <Input placeholder="(34) 99999-9999" value={contatoSolicitante} onChange={e => { setContatoSolicitante(e.target.value); setValidationErrors(prev => ({ ...prev, contatoSolicitante: false })); }} className={`bg-secondary ${validationErrors.contatoSolicitante ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`} />
+                  {validationErrors.contatoSolicitante && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
                 </div>
               </div>
 
@@ -880,7 +901,24 @@ export default function Oficios() {
 
               {/* Processing queue */}
               {processingQueue.length > 0 && (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
+                  {/* Overall progress bar */}
+                  {isProcessingFiles && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Processando arquivos...</span>
+                        <span className="font-medium text-primary">
+                          {Math.round((processingQueue.filter(p => p.status === "done" || p.status === "error").length / processingQueue.length) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${(processingQueue.filter(p => p.status === "done" || p.status === "error").length / processingQueue.length) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                   {processingQueue.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-secondary text-sm">
                       {item.type === "image" ? <Image size={14} /> : item.type === "video" ? <Video size={14} /> : <FileAudio size={14} />}
