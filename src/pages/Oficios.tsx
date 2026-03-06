@@ -169,6 +169,67 @@ export default function Oficios() {
     toast({ title: "✨ Sugestão aplicada!", description: `Dados preenchidos com base no ofício nº ${o.numero || "s/n"}.` });
   };
 
+  // ── Version history helpers ──────────────────────────────────────────────
+  const pushToHistory = useCallback((text: string) => {
+    if (historyTimeoutRef.current) clearTimeout(historyTimeoutRef.current);
+    historyTimeoutRef.current = setTimeout(() => {
+      setOficioHistory(prev => {
+        const trimmed = prev.slice(0, historyIndex + 1);
+        // Don't push if same as last entry
+        if (trimmed.length > 0 && trimmed[trimmed.length - 1] === text) return prev;
+        const updated = [...trimmed, text].slice(-50); // keep max 50 versions
+        setHistoryIndex(updated.length - 1);
+        return updated;
+      });
+    }, 600);
+  }, [historyIndex]);
+
+  const handleOficioChange = useCallback((text: string) => {
+    setEditedOficio(text);
+    pushToHistory(text);
+  }, [pushToHistory]);
+
+  const undoOficio = useCallback(() => {
+    if (historyIndex <= 0) return;
+    const newIdx = historyIndex - 1;
+    setHistoryIndex(newIdx);
+    setEditedOficio(oficioHistory[newIdx]);
+  }, [historyIndex, oficioHistory]);
+
+  const redoOficio = useCallback(() => {
+    if (historyIndex >= oficioHistory.length - 1) return;
+    const newIdx = historyIndex + 1;
+    setHistoryIndex(newIdx);
+    setEditedOficio(oficioHistory[newIdx]);
+  }, [historyIndex, oficioHistory]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undoOficio();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redoOficio();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undoOficio, redoOficio]);
+
+  // Generate solicitante code from user name+email
+  const generateSolicitanteCode = useCallback(() => {
+    if (!user) return "USR";
+    const name = user.user_metadata?.full_name || "";
+    const email = user.email || "";
+    // Take initials from name (up to 3 chars) + first 2 chars of email
+    const initials = name.split(/\s+/).map((w: string) => w[0]?.toUpperCase() || "").join("").slice(0, 3);
+    const emailCode = email.replace(/@.*/, "").slice(0, 2).toUpperCase();
+    return (initials || emailCode || "USR");
+  }, [user]);
+
   // Helpers to convert between HTML and plain text for the ofício
   const plainToHtml = (text: string) => {
     if (!text) return "";
