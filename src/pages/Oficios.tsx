@@ -701,8 +701,8 @@ export default function Oficios() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Ofícios</h1>
-          <p className="text-sm text-muted-foreground">{oficios.length} ofício(s)</p>
+          <h1 className="text-2xl font-bold text-foreground">Meus Ofícios</h1>
+          <p className="text-sm text-muted-foreground">{filtered.length} ofício(s)</p>
         </div>
         <Button onClick={() => { setNumero(generateNextNumero()); setShowDialog(true); }} className="bg-primary text-primary-foreground">
           <Plus size={16} className="mr-1" /> Novo Ofício
