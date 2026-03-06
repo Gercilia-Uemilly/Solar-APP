@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
-const SPREADSHEET_ID = "1fpwxcbeim-1UsH8YopTtbAiWoHgXitXLPQTfygz8pKc";
+
 
 // ── OAuth: get access token via refresh token ───────────────────────
 
@@ -112,33 +112,6 @@ async function uploadToDrive(
   return resp.json();
 }
 
-// ── Google Sheets Append ────────────────────────────────────────────
-
-async function appendToSheet(
-  accessToken: string,
-  row: string[]
-): Promise<void> {
-  const range = "Página1!A:Z";
-  const resp = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        values: [row],
-      }),
-    }
-  );
-
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`Sheets append error: ${resp.status} ${errText}`);
-  }
-}
-
 // ── Main Handler ────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -184,37 +157,10 @@ serve(async (req) => {
       fileBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     }
 
-    // 1. Upload to Google Drive
+    // Upload to Google Drive
     console.log(`Uploading ${fileName} to Drive...`);
     const driveResult = await uploadToDrive(accessToken, fileBytes, fileName, mimeType);
     console.log(`Uploaded! File ID: ${driveResult.id}`);
-
-    // 2. Append metadata to Google Sheets
-    const now = new Date();
-    const dataFormatada = now.toLocaleDateString("pt-BR");
-    const horaFormatada = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-    const row = [
-      metadata.numero || "",
-      dataFormatada,
-      horaFormatada,
-      metadata.assunto || "",
-      metadata.destinatario || "",
-      metadata.secretaria || "",
-      metadata.bairro || "",
-      metadata.solicitante || "",
-      metadata.contato_solicitante || "",
-      metadata.tipo_demanda || "",
-      metadata.urgencia || "",
-      metadata.operador || "",
-      metadata.status || "Gerado",
-      driveResult.webViewLink || "",
-      driveResult.id || "",
-    ];
-
-    console.log("Appending to Sheets...");
-    await appendToSheet(accessToken, row);
-    console.log("Sheet updated!");
 
     return new Response(
       JSON.stringify({
