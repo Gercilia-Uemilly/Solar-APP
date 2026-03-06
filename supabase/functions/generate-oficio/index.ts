@@ -47,6 +47,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 • demonstrar fundamentação institucional do pedido
 • manter tom impessoal e institucional
 • utilizar EXATAMENTE 3 parágrafos curtos e objetivos (MÁXIMO 3). O texto DEVE caber em uma única página A4 com as margens e fonte especificadas. Seja CONCISO.
+• DESTAQUE EM NEGRITO: coloque em **negrito** (usando tags <strong>) os termos mais relevantes do ofício, como: nomes de ruas, bairros, tipos de problema, órgãos responsáveis, e ações solicitadas. NÃO coloque parágrafos inteiros em negrito — apenas palavras ou trechos curtos e específicos.
 
 ESTRUTURA DO TEXTO (3 parágrafos apenas):
 
