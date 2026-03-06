@@ -41,7 +41,7 @@ function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
     const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
     return paras.map(p =>
-      `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:12pt;line-height:1.5">${p}</p>`
+      `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:11pt;line-height:1.5">${p}</p>`
     ).join("");
   };
 
