@@ -808,8 +808,9 @@ export default function Oficios() {
                   <Input placeholder="Nome do solicitante" value={solicitante} onChange={e => setSolicitante(e.target.value)} className="bg-secondary border-border" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Contato do Solicitante</label>
-                  <Input placeholder="Telefone / WhatsApp" value={contatoSolicitante} onChange={e => setContatoSolicitante(e.target.value)} className="bg-secondary border-border" />
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">WhatsApp do Solicitante <span className="text-destructive">*</span></label>
+                  <Input placeholder="(34) 99999-9999" value={contatoSolicitante} onChange={e => { setContatoSolicitante(e.target.value); setValidationErrors(prev => ({ ...prev, contatoSolicitante: false })); }} className={`bg-secondary ${validationErrors.contatoSolicitante ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`} />
+                  {validationErrors.contatoSolicitante && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
                 </div>
               </div>
 
