@@ -57,7 +57,8 @@ export default function BancoInformacoes() {
   // Instagram state
   const [instaUrl, setInstaUrl] = useState("");
   const [instaImporting, setInstaImporting] = useState(false);
-  const [instaPreview, setInstaPreview] = useState<{ titulo: string; descricao: string; data: string } | null>(null);
+  const [instaFeedImporting, setInstaFeedImporting] = useState(false);
+  const [instaPreview, setInstaPreview] = useState<{ titulo: string; descricao: string; data: string; imagens?: string[]; screenshot?: string } | null>(null);
   const [instaEditing, setInstaEditing] = useState(false);
 
   // Upload state
