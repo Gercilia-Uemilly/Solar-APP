@@ -414,7 +414,8 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   }
 
   const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.telefone);
+  const codigo = data.operadorNome ? generateOperatorCode(data.operadorNome, data.operadorEmail) : undefined;
+  const fileName = buildFileName(data.numero, ano, codigo);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
