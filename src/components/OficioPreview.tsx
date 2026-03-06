@@ -74,17 +74,6 @@ function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
 
   return (
     <div>
-      {hasChanges && (
-        <div className="flex justify-end mb-2 print:hidden">
-          <button
-            onClick={handleUndo}
-            className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-            title="Desfazer todas as edições"
-          >
-            <Undo2 size={12} /> Desfazer edições
-          </button>
-        </div>
-      )}
       <div
         ref={divRef}
         contentEditable
@@ -94,6 +83,12 @@ function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
         onBlur={() => {
           syncContent();
           isUserEditing.current = false;
+        }}
+        onKeyDown={(e) => {
+          // Ensure delete, backspace, space, enter work
+          if (["Backspace", "Delete", "Enter", " "].includes(e.key)) {
+            // Let default behavior happen
+          }
         }}
         style={{
           textAlign: "justify",
@@ -180,8 +175,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
         </div>
 
-        {/* Linha separadora fina */}
-        <div style={{ borderBottom: "1px solid #000", marginTop: "8px", marginBottom: "16px" }} />
+        {/* Spacing after header */}
+        <div style={{ marginTop: "8px", marginBottom: "16px" }} />
 
         {/* Data alinhada à direita */}
         <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>

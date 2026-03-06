@@ -1121,7 +1121,7 @@ export default function Oficios() {
 
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
-              <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
+              <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} hasChanges={editedOficio !== originalOficio} onUndo={() => setEditedOficio(originalOficio)} />
               <div className="flex gap-2 justify-end">
                 <Button size="sm" variant="outline" onClick={() => {
                   if (!destinatario || !assunto || !editedOficio) {

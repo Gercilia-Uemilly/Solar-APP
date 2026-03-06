@@ -1,14 +1,15 @@
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignJustify } from "lucide-react";
+import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignJustify, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useCallback } from "react";
 
 export interface FormatOptions {
-  fontSize: number;        // pt
-  lineSpacing: number;     // multiplier (1, 1.5, 2)
-  signatureHeight: number; // px for preview
+  fontSize: number;
+  lineSpacing: number;
+  signatureHeight: number;
   fontFamily: string;
   bold: boolean;
   italic: boolean;
@@ -30,39 +31,45 @@ export const defaultFormatOptions: FormatOptions = {
 interface Props {
   options: FormatOptions;
   onChange: (opts: FormatOptions) => void;
+  onUndo?: () => void;
+  hasChanges?: boolean;
 }
 
-export default function PreviewFormatToolbar({ options, onChange }: Props) {
+export default function PreviewFormatToolbar({ options, onChange, onUndo, hasChanges }: Props) {
   const update = (partial: Partial<FormatOptions>) => onChange({ ...options, ...partial });
+
+  const applyCommand = useCallback((command: string) => {
+    document.execCommand(command, false);
+  }, []);
 
   return (
     <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border text-sm">
-      {/* Bold / Italic / Underline */}
+      {/* Bold / Italic / Underline — applies to selected text */}
       <div className="flex items-center gap-1">
         <Button
           size="sm"
-          variant={options.bold ? "default" : "outline"}
+          variant="outline"
           className="h-8 w-8 p-0"
-          onClick={() => update({ bold: !options.bold })}
-          title="Negrito"
+          onMouseDown={e => { e.preventDefault(); applyCommand("bold"); }}
+          title="Negrito (selecione o texto)"
         >
           <Bold size={14} />
         </Button>
         <Button
           size="sm"
-          variant={options.italic ? "default" : "outline"}
+          variant="outline"
           className="h-8 w-8 p-0"
-          onClick={() => update({ italic: !options.italic })}
-          title="Itálico"
+          onMouseDown={e => { e.preventDefault(); applyCommand("italic"); }}
+          title="Itálico (selecione o texto)"
         >
           <Italic size={14} />
         </Button>
         <Button
           size="sm"
-          variant={options.underline ? "default" : "outline"}
+          variant="outline"
           className="h-8 w-8 p-0"
-          onClick={() => update({ underline: !options.underline })}
-          title="Sublinhado"
+          onMouseDown={e => { e.preventDefault(); applyCommand("underline"); }}
+          title="Sublinhado (selecione o texto)"
         >
           <Underline size={14} />
         </Button>
@@ -147,6 +154,22 @@ export default function PreviewFormatToolbar({ options, onChange }: Props) {
         />
         <span className="text-xs text-muted-foreground w-8">{options.signatureHeight}</span>
       </div>
+
+      {/* Desfazer alteração */}
+      {hasChanges && onUndo && (
+        <>
+          <Separator orientation="vertical" className="h-6" />
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-8 gap-1 text-xs"
+            onClick={onUndo}
+            title="Desfazer todas as edições"
+          >
+            <Undo2 size={13} /> Desfazer
+          </Button>
+        </>
+      )}
     </div>
   );
 }
