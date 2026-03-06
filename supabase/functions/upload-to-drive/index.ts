@@ -91,6 +91,9 @@ async function uploadToDrive(
     parents: [DRIVE_FOLDER_ID],
   };
 
+  // Note: driveId is NOT set in metadata — parents alone is sufficient
+  // supportsAllDrives=true in the URL handles shared drive support
+
   // Multipart upload
   const boundary = "===BOUNDARY===";
   const metadataPart = JSON.stringify(metadata);
