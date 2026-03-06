@@ -590,7 +590,8 @@ export default function Oficios() {
       });
       const ano = new Date().getFullYear().toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-      const operadorCode = generateOperatorCode(user?.user_metadata?.full_name || "", user?.email || "");
+      const codigoSolicitante = (oficio.contato_solicitante || "").replace(/[^a-zA-Z0-9]/g, '');
+      const fileSuffix = codigoSolicitante || "sem-codigo";
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
