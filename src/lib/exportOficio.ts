@@ -4,13 +4,10 @@ import { saveAs } from "file-saver";
 // ── Assets ──────────────────────────────────────────────────────────────────
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
 import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
-import assinaturaSrc from "@/assets/assinatura-fabao-clean.png";
+import assinaturaSrc1 from "@/assets/assinatura-fabao-clean.png";
+import assinaturaSrc2 from "@/assets/assinatura-fabao.png";
 
-const TEMPLATES = [
-  "/templates/modelo_oficio_assin_1.docx",
-  "/templates/modelo_oficio_assin_2.docx",
-  "/templates/modelo_oficio_assin_3.docx",
-];
+const SIGNATURE_SOURCES = [assinaturaSrc1, assinaturaSrc2];
 
 function formatDate(dateStr?: string): string {
   const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
@@ -46,6 +43,63 @@ interface OficioData {
   imagens?: File[];
 }
 
+// ── Parse HTML content into styled text runs ────────────────────────────────
+interface StyledRun {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+}
+
+function parseHtmlToParagraphs(html: string): StyledRun[][] {
+  if (!html || !html.includes("<")) {
+    // Plain text fallback
+    return html.split("\n").map(p => p.trim()).filter(Boolean)
+      .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
+      .map(p => [{ text: p }]);
+  }
+
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  const paragraphs: StyledRun[][] = [];
+
+  const extractRuns = (node: Node, inherited: { bold?: boolean; italic?: boolean; underline?: boolean }): StyledRun[] => {
+    const runs: StyledRun[] = [];
+    node.childNodes.forEach(child => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const text = child.textContent || "";
+        if (text) runs.push({ text, ...inherited });
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const el = child as HTMLElement;
+        const tag = el.tagName.toLowerCase();
+        const style = { ...inherited };
+        if (tag === "strong" || tag === "b") style.bold = true;
+        if (tag === "em" || tag === "i") style.italic = true;
+        if (tag === "u") style.underline = true;
+        runs.push(...extractRuns(el, style));
+      }
+    });
+    return runs;
+  };
+
+  const blockEls = div.querySelectorAll("p, div, li, h1, h2, h3");
+  if (blockEls.length > 0) {
+    blockEls.forEach(el => {
+      const runs = extractRuns(el, {});
+      const text = runs.map(r => r.text).join("").trim();
+      if (text && !text.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
+        paragraphs.push(runs);
+      }
+    });
+  } else {
+    const runs = extractRuns(div, {});
+    const text = runs.map(r => r.text).join("").trim();
+    if (text) paragraphs.push(runs);
+  }
+
+  return paragraphs;
+}
+
 // ── Fetch image as Uint8Array ───────────────────────────────────────────────
 async function fetchImageBytes(src: string): Promise<Uint8Array> {
   const resp = await fetch(src);
@@ -60,11 +114,14 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     operadorNome, operadorEmail, telefone,
   } = data;
 
+  // Randomly pick a signature
+  const signatureSrc = SIGNATURE_SOURCES[Math.floor(Math.random() * SIGNATURE_SOURCES.length)];
+
   // Fetch images
   const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
     fetchImageBytes(logoCamaraSrc),
     fetchImageBytes(logoFabaoSrc),
-    fetchImageBytes(assinaturaSrc),
+    fetchImageBytes(signatureSrc),
   ]);
 
   const hoje = new Date();
@@ -80,25 +137,17 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     assuntoFormatado = `${assunto} – ${bairroFormatado}`;
   }
 
-  // Parse content paragraphs (same logic as preview)
-  const paragraphs = conteudo
-    .split("\n")
-    .map(p => p.trim())
-    .filter(Boolean)
-    .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
+  // Parse content - supports HTML with bold/italic
+  const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
-  const fontSize = 22; // 11pt in half-points (11 * 2)
-  const fontName = "Arial";
-  const lineSpacing = 360; // 1.5 lines (240 twips per line * 1.5)
+  const fontSize = 24; // 12pt in half-points
+  const fontName = "Times New Roman";
+  const lineSpacing = 360; // 1.5 lines
 
-  // Build marca d'água text
-  const agora = new Date();
-  const dataHora = `${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-  const iniciais = operadorNome
-    ? operadorNome.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 3)
-    : operadorEmail?.split('@')[0].slice(0, 6).toUpperCase() || 'SIS';
-  const telSufixo = telefone ? telefone.replace(/\D/g, '').slice(-4) : '';
-  const marcaDagua = `${iniciais}${telSufixo ? '-' + telSufixo : ''} • ${dataHora}`;
+  // Build marca d'água text - operator name in lowercase
+  const operadorMarca = operadorNome
+    ? operadorNome.split(' ')[0].toLowerCase()
+    : operadorEmail?.split('@')[0].toLowerCase() || 'sistema';
 
   const doc = new Document({
     sections: [{
@@ -116,24 +165,29 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         default: new Header({
           children: [
             new Paragraph({
+              alignment: AlignmentType.CENTER,
               children: [
                 new ImageRun({
                   data: logoCamaraBytes,
                   transformation: { width: 240, height: 70 },
                   type: "jpg",
                 }),
-                new TextRun({ text: "\t", font: fontName, size: fontSize }),
+                new TextRun({ text: "    ", font: fontName, size: fontSize }),
                 new ImageRun({
                   data: logoFabaoBytes,
                   transformation: { width: 140, height: 70 },
                   type: "png",
                 }),
               ],
-              tabStops: [{
-                type: TabStopType.RIGHT,
-                position: TabStopPosition.MAX,
-              }],
               spacing: { before: 0, after: 0 },
+            }),
+            // Linha separadora fina abaixo dos logos
+            new Paragraph({
+              border: {
+                bottom: { style: BorderStyle.SINGLE, size: 1, space: 4, color: "000000" },
+              },
+              children: [new TextRun({ text: "", font: fontName, size: 2 })],
+              spacing: { before: 80, after: 0 },
             }),
           ],
         }),
@@ -141,16 +195,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       footers: {
         default: new Footer({
           children: [
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [new TextRun({
-                children: [PageNumber.CURRENT, " / ", PageNumber.TOTAL_PAGES],
-                font: fontName,
-                size: 16,
-                color: "444444",
-              })],
-              spacing: { before: 0, after: 80 },
-            }),
             new Paragraph({
               alignment: AlignmentType.CENTER,
               border: {
@@ -162,16 +206,29 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
                 size: 16,
                 color: "444444",
               })],
+              spacing: { before: 0, after: 40 },
+            }),
+            // Page number - only visible on multi-page
+            new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              children: [new TextRun({
+                children: [PageNumber.CURRENT],
+                font: fontName,
+                size: 14,
+                color: "888888",
+              })],
               spacing: { before: 0, after: 0 },
             }),
+            // Operator watermark - extremely small and discrete
             new Paragraph({
-              alignment: AlignmentType.CENTER,
+              alignment: AlignmentType.RIGHT,
               children: [new TextRun({
-                text: marcaDagua,
+                text: operadorMarca,
                 font: fontName,
-                size: 12,
-                color: "CCCCCC",
+                size: 12, // 6pt
+                color: "E8E8E8", // very light gray ≈5% opacity effect
               })],
+              spacing: { before: 0, after: 0 },
             }),
           ],
         }),
@@ -183,7 +240,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Data ──
+        // ── Data alinhada à direita ──
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
@@ -210,13 +267,19 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
         // ── Destinatário ──
         new Paragraph({
-          children: [new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: fontName, size: fontSize, bold: true })],
+          children: [
+            new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
+            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize }),
+          ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
         // ── Assunto ──
         new Paragraph({
-          children: [new TextRun({ text: `Assunto: ${assuntoFormatado}`, font: fontName, size: fontSize, bold: true })],
+          children: [
+            new TextRun({ text: "Assunto: ", font: fontName, size: fontSize, bold: true }),
+            new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize }),
+          ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
@@ -239,11 +302,18 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Parágrafos do corpo ──
-        ...paragraphs.map(p => new Paragraph({
+        // ── Parágrafos do corpo com formatação preservada ──
+        ...styledParagraphs.map(runs => new Paragraph({
           indent: { firstLine: 709 },
           alignment: AlignmentType.JUSTIFIED,
-          children: [new TextRun({ text: p, font: fontName, size: fontSize })],
+          children: runs.map(r => new TextRun({
+            text: r.text,
+            font: fontName,
+            size: fontSize,
+            bold: r.bold,
+            italics: r.italic,
+            underline: r.underline ? {} : undefined,
+          })),
           spacing: { before: 0, after: 0, line: lineSpacing },
         })),
 
@@ -253,7 +323,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Atenciosamente ──
+        // ── Fecho ──
         new Paragraph({
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Atenciosamente,", font: fontName, size: fontSize })],
@@ -293,14 +363,14 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0 },
         }),
 
-        // ── Nome (abaixo da assinatura) ──
+        // ── Nome ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "FABÃO", font: fontName, size: fontSize, bold: true })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Cargo (abaixo do nome) ──
+        // ── Cargo ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "Vereador", font: fontName, size: fontSize })],
@@ -342,7 +412,6 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
 export async function exportToWord(data: OficioData): Promise<Blob> {
   let blob = await buildWordBlob(data);
 
-  // Se houver imagens, enviar para edge function para adicionar anexo
   if (data.imagens && data.imagens.length > 0) {
     blob = await addAnexoImages(blob, data.imagens);
   }
@@ -353,28 +422,20 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   return blob;
 }
 
-
-
 // ── Export PDF (via Word→PDF conversion, with HTML fallback) ────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
   const ano = new Date().getFullYear().toString();
   const fileName = buildFileName(data.numero, ano, data.telefone);
 
   try {
-    // 1. Generate the Word blob (same as Word export)
     let wordBlob = await buildWordBlob(data);
-
-    // 2. If there are images, add them
     if (data.imagens && data.imagens.length > 0) {
       wordBlob = await addAnexoImages(wordBlob, data.imagens);
     }
-
-    // 3. Convert Word to PDF via edge function
     const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
     saveAs(pdfBlob, `${fileName}.pdf`);
   } catch (e) {
     console.warn("PDF conversion via server failed, opening print dialog for Save as PDF:", e);
-    // Fallback: open HTML print view so user can "Save as PDF" from browser
     const { printOficio } = await import("@/lib/printOficio");
     await printOficio(data);
   }
@@ -404,13 +465,8 @@ async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob>
 
 // ── Print via Word→PDF conversion ───────────────────────────────────────────
 export async function printOficioViaPdf(data: OficioData): Promise<void> {
-  // 1. Generate Word blob
   let wordBlob = await buildWordBlob(data);
-
-  // 2. Convert to PDF
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
-
-  // 3. Open PDF in new tab for printing
   const pdfUrl = URL.createObjectURL(pdfBlob);
   const printWindow = window.open(pdfUrl, "_blank");
   if (printWindow) {

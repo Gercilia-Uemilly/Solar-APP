@@ -2,9 +2,12 @@ import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
 import { Undo2 } from "lucide-react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
-import assinaturaFabaoImg from "@/assets/assinatura-fabao-clean.png";
+import assinaturaFabao1 from "@/assets/assinatura-fabao-clean.png";
+import assinaturaFabao2 from "@/assets/assinatura-fabao.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
+
+const SIGNATURES = [assinaturaFabao1, assinaturaFabao2];
 
 interface Props {
   numero: string;
@@ -22,21 +25,23 @@ interface Props {
   initialConteudo?: string;
 }
 
-function EditableBody({ conteudo, fmt, bodyStyle, onContentChange, initialConteudo }: {
+function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
   conteudo: string;
   fmt: FormatOptions;
-  bodyStyle: React.CSSProperties;
   onContentChange?: (newContent: string) => void;
   initialConteudo: string;
 }) {
   const divRef = useRef<HTMLDivElement>(null);
   const isUserEditing = useRef(false);
 
+  const isHtml = (text: string) => text.startsWith("<");
+
   const buildHtml = (text: string) => {
+    if (isHtml(text)) return text;
     const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
     return paras.map(p =>
-      `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:${fmt.fontSize}pt;line-height:${fmt.lineSpacing}">${p}</p>`
+      `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:12pt;line-height:1.5">${p}</p>`
     ).join("");
   };
 
@@ -48,11 +53,9 @@ function EditableBody({ conteudo, fmt, bodyStyle, onContentChange, initialConteu
 
   const syncContent = () => {
     if (divRef.current && onContentChange) {
-      const paragraphs = Array.from(divRef.current.querySelectorAll("p"))
-        .map(p => p.textContent?.trim() || "");
-      const text = paragraphs.filter(Boolean).join("\n") || divRef.current.innerText?.trim() || "";
+      const html = divRef.current.innerHTML;
       isUserEditing.current = true;
-      onContentChange(text);
+      onContentChange(html);
       requestAnimationFrame(() => { isUserEditing.current = false; });
     }
   };
@@ -93,11 +96,14 @@ function EditableBody({ conteudo, fmt, bodyStyle, onContentChange, initialConteu
           isUserEditing.current = false;
         }}
         style={{
-          textAlign: fmt.textAlign,
+          textAlign: "justify",
           cursor: "text",
           outline: "none",
           minHeight: "50px",
-          ...bodyStyle,
+          fontFamily: "'Times New Roman', Times, serif",
+          fontSize: "12pt",
+          lineHeight: "1.5",
+          color: "#000",
         }}
       />
     </div>
@@ -105,13 +111,19 @@ function EditableBody({ conteudo, fmt, bodyStyle, onContentChange, initialConteu
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, formatOptions, editable, onContentChange, initialConteudo }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
     const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 
-    const paragraphs = conteudo
+    // Random signature (stable per render cycle)
+    const [signatureIdx] = useState(() => Math.floor(Math.random() * SIGNATURES.length));
+    const assinaturaImg = SIGNATURES[signatureIdx];
+
+    const isHtml = conteudo.startsWith("<");
+
+    const paragraphs = isHtml ? [] : conteudo
       .split("\n")
       .map(p => p.trim())
       .filter(Boolean)
@@ -135,13 +147,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       assuntoFormatado = `${assunto} – ${bairroFormatado}`;
     }
 
-    const cargoSaudacao = (cargoDestinatario || "Secretário(a)").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "");
-
-    const bodyStyle: React.CSSProperties = {
-      fontWeight: fmt.bold ? "bold" : "normal",
-      fontStyle: fmt.italic ? "italic" : "normal",
-      textDecoration: fmt.underline ? "underline" : "none",
-    };
+    // Operator watermark
+    const operadorMarca = operadorNome ? operadorNome.split(' ')[0].toLowerCase() : '';
 
     return (
       <div
@@ -152,41 +159,46 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           paddingRight: "20mm",
           paddingBottom: "20mm",
           paddingLeft: "30mm",
-          fontFamily: `${fmt.fontFamily}, Helvetica, sans-serif`,
-          fontSize: `${fmt.fontSize}pt`,
-          lineHeight: String(fmt.lineSpacing),
+          fontFamily: "'Times New Roman', Times, serif",
+          fontSize: "12pt",
+          lineHeight: "1.5",
           color: "#000",
           backgroundColor: "#fff",
           position: "relative",
           boxSizing: "border-box",
         }}
       >
-        {/* CABEÇALHO */}
+        {/* CABEÇALHO - logos centralizados */}
         <div style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "center",
           alignItems: "center",
-          marginBottom: "8px",
+          gap: "24px",
+          marginBottom: "0",
         }}>
           <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
           <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
         </div>
 
-        <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px" }}>{dataFormatada}</p>
+        {/* Linha separadora fina */}
+        <div style={{ borderBottom: "1px solid #000", marginTop: "8px", marginBottom: "16px" }} />
 
-        <p style={{ fontWeight: "bold", fontSize: `${fmt.fontSize}pt`, marginBottom: "24px" }}>
+        {/* Data alinhada à direita */}
+        <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "12pt" }}>{dataFormatada}</p>
+
+        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "24px" }}>
           Ofício GVF n° {numeroFormatado}
         </p>
 
-        <p style={{ fontWeight: "bold", fontSize: `${fmt.fontSize}pt`, marginBottom: "8px" }}>
-          DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
+        <p style={{ fontSize: "12pt", marginBottom: "8px" }}>
+          <strong>DESTINATÁRIO:</strong> {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
         </p>
 
-        <p style={{ fontWeight: "bold", fontSize: `${fmt.fontSize}pt`, marginBottom: "30px" }}>
-          Assunto: {assuntoFormatado}
+        <p style={{ fontSize: "12pt", marginBottom: "30px" }}>
+          <strong>Assunto:</strong> {assuntoFormatado}
         </p>
 
-        <p style={{ fontSize: `${fmt.fontSize}pt`, marginBottom: "30px", textIndent: "1.25cm" }}>
+        <p style={{ fontSize: "12pt", marginBottom: "30px", textIndent: "1.25cm" }}>
           Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,
         </p>
 
@@ -195,19 +207,22 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <EditableBody
             conteudo={conteudo}
             fmt={fmt}
-            bodyStyle={bodyStyle}
             onContentChange={onContentChange}
             initialConteudo={initialConteudo || conteudo}
           />
+        ) : isHtml ? (
+          <div
+            style={{ textAlign: "justify", fontSize: "12pt", lineHeight: "1.5" }}
+            dangerouslySetInnerHTML={{ __html: conteudo }}
+          />
         ) : (
-          <div style={{ textAlign: fmt.textAlign }}>
+          <div style={{ textAlign: "justify" }}>
             {paragraphs.map((p, i) => (
               <p key={i} style={{
                 textIndent: "1.25cm",
                 marginBottom: "10px",
-                fontSize: `${fmt.fontSize}pt`,
-                lineHeight: String(fmt.lineSpacing),
-                ...bodyStyle,
+                fontSize: "12pt",
+                lineHeight: "1.5",
               }}>
                 {p}
               </p>
@@ -215,16 +230,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           </div>
         )}
 
-        {/* Espaço antes do fechamento */}
-
-        {/* ATENCIOSAMENTE + ASSINATURA (página 2) */}
-        <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: `${fmt.fontSize}pt` }}>
+        {/* Fecho */}
+        <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: "12pt" }}>
           Atenciosamente,
         </p>
 
+        {/* ASSINATURA */}
         <div style={{ marginTop: "40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <img
-            src={assinaturaFabaoImg}
+            src={assinaturaImg}
             alt="Assinatura Fabão"
             style={{
               height: `${fmt.signatureHeight}px`,
@@ -236,8 +250,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             }}
           />
           <div style={{ width: "300px", borderBottom: "1px solid #000", marginBottom: "4px" }} />
-          <p style={{ fontSize: `${fmt.fontSize}pt`, marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
-          <p style={{ fontSize: `${fmt.fontSize}pt`, marginTop: "0" }}>Vereador</p>
+          <p style={{ fontSize: "12pt", marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
+          <p style={{ fontSize: "12pt", marginTop: "0" }}>Vereador</p>
         </div>
 
         {/* RODAPÉ */}
@@ -249,8 +263,23 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           borderTop: "1px solid #ccc",
           paddingTop: "6px",
           paddingBottom: "6px",
+          position: "relative",
         }}>
           Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
+          {/* Marca d'água do operador */}
+          {operadorMarca && (
+            <span style={{
+              position: "absolute",
+              right: 0,
+              bottom: "2px",
+              fontSize: "6pt",
+              color: "rgba(200, 200, 200, 0.3)",
+              userSelect: "none",
+              pointerEvents: "none",
+            }}>
+              {operadorMarca}
+            </span>
+          )}
         </div>
       </div>
     );

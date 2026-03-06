@@ -1001,7 +1001,7 @@ export default function Oficios() {
                     )}
                     {editedOficio && (
                       <>
-                        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedOficio, "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>
+                        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(htmlToPlain(editedOficio), "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>
                         <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { handleOficioChange(""); }}><Trash2 size={14} className="mr-1" /> Limpar</Button>
                       </>
                     )}
