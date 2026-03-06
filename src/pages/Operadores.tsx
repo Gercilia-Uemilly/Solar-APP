@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
+import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2, KeyRound } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 
 interface Profile {
@@ -52,6 +52,12 @@ export default function Operadores() {
   // Delete confirmation
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Reset password
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetUserName, setResetUserName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -163,6 +169,25 @@ export default function Operadores() {
     setDeleting(false);
   };
 
+  const handleResetPassword = async () => {
+    if (!resetUserId || !newPassword) {
+      toast({ title: "Preencha a nova senha", variant: "destructive" });
+      return;
+    }
+    setResettingPassword(true);
+    const { data, error } = await supabase.functions.invoke("reset-user-password", {
+      body: { userId: resetUserId, newPassword },
+    });
+    if (error) {
+      toast({ title: "Erro ao resetar senha", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Senha alterada com sucesso!" });
+      setResetUserId(null);
+      setNewPassword("");
+    }
+    setResettingPassword(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -242,15 +267,24 @@ export default function Operadores() {
                         </button>
                       </>
                     )}
-                    <button onClick={() => openEdit(p)} className="p-2 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
+                    <button onClick={() => openEdit(p)} className="p-2 text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={16} /></button>
                     {isAdmin && (
-                      <button
-                        onClick={() => setDeleteUserId(p.id)}
-                        className="p-2 text-muted-foreground hover:text-destructive"
-                        title="Remover acesso"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => { setResetUserId(p.id); setResetUserName(p.full_name || p.email || ""); setNewPassword(""); }}
+                          className="p-2 text-muted-foreground hover:text-primary"
+                          title="Resetar senha"
+                        >
+                          <KeyRound size={16} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteUserId(p.id)}
+                          className="p-2 text-muted-foreground hover:text-destructive"
+                          title="Remover acesso"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
                     )}
                   </TableCell>
                 </TableRow>
@@ -334,6 +368,35 @@ export default function Operadores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetUserId} onOpenChange={(open) => { if (!open) { setResetUserId(null); setNewPassword(""); } }}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <KeyRound size={18} /> Resetar Senha
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Definir nova senha para <span className="font-medium text-foreground">{resetUserName}</span>
+            </p>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nova senha</label>
+              <Input
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                type="password"
+                className="bg-secondary border-border"
+              />
+            </div>
+            <Button onClick={handleResetPassword} disabled={resettingPassword || newPassword.length < 6} className="w-full bg-primary text-primary-foreground">
+              <KeyRound size={16} className="mr-1" /> {resettingPassword ? "Salvando..." : "Alterar Senha"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
