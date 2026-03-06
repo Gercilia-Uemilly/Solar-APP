@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import FileDropzone from "@/components/FileDropzone";
 import { DemandaAnexo } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
