@@ -590,7 +590,8 @@ export default function Oficios() {
       });
       const ano = new Date().getFullYear().toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-      const operadorCode = generateOperatorCode(user?.user_metadata?.full_name || "", user?.email || "");
+      const codigoSolicitante = (oficio.contato_solicitante || "").replace(/[^a-zA-Z0-9]/g, '');
+      const fileSuffix = codigoSolicitante || "sem-codigo";
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -611,18 +612,18 @@ export default function Oficios() {
         const contentType = convertResp.headers.get("content-type") || "";
         if (contentType.includes("application/pdf")) {
           uploadBlob = await convertResp.blob();
-          uploadFileName = `${numLimpo}-${ano}-${operadorCode}.pdf`;
+          uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.pdf`;
           uploadMimeType = "application/pdf";
         } else {
           // Fallback: conversão retornou erro JSON, enviar como Word
           uploadBlob = wordBlob;
-          uploadFileName = `${numLimpo}-${ano}-${operadorCode}.docx`;
+          uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.docx`;
           uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         }
       } else {
         // Fallback: enviar como Word se conversão falhar
         uploadBlob = wordBlob;
-        uploadFileName = `${numLimpo}-${ano}-${operadorCode}.docx`;
+        uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.docx`;
         uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
       }
 
