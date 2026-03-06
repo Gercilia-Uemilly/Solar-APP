@@ -306,8 +306,7 @@ serve(async (req) => {
     }
 
     if (action === "import_instagram") {
-      const { url: instaUrl } = await req.json().catch(() => ({ url: "" }));
-      const actualUrl = instaUrl || (await req.json()).url || "";
+      const actualUrl = instaUrl || "";
       
       // Use Firecrawl to scrape Instagram post
       const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
