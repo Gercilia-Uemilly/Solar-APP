@@ -900,7 +900,24 @@ export default function Oficios() {
 
               {/* Processing queue */}
               {processingQueue.length > 0 && (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
+                  {/* Overall progress bar */}
+                  {isProcessingFiles && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Processando arquivos...</span>
+                        <span className="font-medium text-primary">
+                          {Math.round((processingQueue.filter(p => p.status === "done" || p.status === "error").length / processingQueue.length) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${(processingQueue.filter(p => p.status === "done" || p.status === "error").length / processingQueue.length) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                   {processingQueue.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-secondary text-sm">
                       {item.type === "image" ? <Image size={14} /> : item.type === "video" ? <Video size={14} /> : <FileAudio size={14} />}
