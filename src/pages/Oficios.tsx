@@ -987,18 +987,29 @@ export default function Oficios() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-medium text-muted-foreground">Texto do Ofício</label>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 items-center">
+                    <Button variant="ghost" size="sm" onClick={undoOficio} disabled={historyIndex <= 0} title="Desfazer (Ctrl+Z)">
+                      <Undo2 size={14} />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={redoOficio} disabled={historyIndex >= oficioHistory.length - 1} title="Refazer (Ctrl+Y)">
+                      <Redo2 size={14} />
+                    </Button>
+                    {oficioHistory.length > 1 && (
+                      <span className="text-[10px] text-muted-foreground mx-1">
+                        v{historyIndex + 1}/{oficioHistory.length}
+                      </span>
+                    )}
                     {editedOficio && (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedOficio, "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { setEditedOficio(""); }}><Trash2 size={14} className="mr-1" /> Limpar</Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { handleOficioChange(""); }}><Trash2 size={14} className="mr-1" /> Limpar</Button>
                       </>
                     )}
                   </div>
                 </div>
                 <RichTextEditor
                   content={plainToHtml(editedOficio)}
-                  onChange={(html) => setEditedOficio(htmlToPlain(html))}
+                  onChange={(html) => handleOficioChange(htmlToPlain(html))}
                   placeholder="O texto será preenchido pela IA ou manualmente..."
                 />
               </div>
