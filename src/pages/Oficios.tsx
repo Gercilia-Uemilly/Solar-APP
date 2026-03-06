@@ -591,12 +591,43 @@ export default function Oficios() {
       const ano = new Date().getFullYear().toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
       const operadorCode = generateOperatorCode(user?.user_metadata?.full_name || "", user?.email || "");
-      const uploadFileName = `${numLimpo}-${ano}-${operadorCode}.docx`;
-      const uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      // Converter Word para PDF primeiro
+      const convertFormData = new FormData();
+      convertFormData.append("file", wordBlob, `${numLimpo}.docx`);
+      const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${supabaseKey}` },
+        body: convertFormData,
+      });
+
+      let uploadBlob: Blob;
+      let uploadFileName: string;
+      let uploadMimeType: string;
+
+      if (convertResp.ok) {
+        const contentType = convertResp.headers.get("content-type") || "";
+        if (contentType.includes("application/pdf")) {
+          uploadBlob = await convertResp.blob();
+          uploadFileName = `${numLimpo}-${ano}-${operadorCode}.pdf`;
+          uploadMimeType = "application/pdf";
+        } else {
+          // Fallback: conversão retornou erro JSON, enviar como Word
+          uploadBlob = wordBlob;
+          uploadFileName = `${numLimpo}-${ano}-${operadorCode}.docx`;
+          uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        }
+      } else {
+        // Fallback: enviar como Word se conversão falhar
+        uploadBlob = wordBlob;
+        uploadFileName = `${numLimpo}-${ano}-${operadorCode}.docx`;
+        uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      }
+
       const driveFormData = new FormData();
-      driveFormData.append("file", wordBlob, uploadFileName);
+      driveFormData.append("file", uploadBlob, uploadFileName);
       driveFormData.append("metadata", JSON.stringify({
         numero: oficio.numero || "",
         assunto: oficio.assunto,
@@ -624,7 +655,7 @@ export default function Oficios() {
         await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink }).eq("id", oficio.id);
         await fetchOficios();
       }
-      toast({ title: "✅ Enviado ao Drive!", description: "Arquivo enviado e registrado na planilha." });
+      toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado com sucesso!" : "Arquivo enviado (conversão PDF indisponível, enviado como Word)." });
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
