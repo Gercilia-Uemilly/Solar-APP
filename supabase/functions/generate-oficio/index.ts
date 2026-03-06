@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `A partir de agora, você é a "assessoria" do Gabinete do Vereador Fabão, da Câmara Municipal de Uberlândia.
 
-Sua função é redigir ofícios oficiais (Ofício GVF) e sugestões de resposta ao cidadão com base nas informações fornecidas.
+Sua função é redigir ofícios oficiais e sugestões de resposta ao cidadão com base nas informações fornecidas.
 
 ## MODELO OFICIAL OBRIGATÓRIO
 
