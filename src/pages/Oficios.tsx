@@ -494,6 +494,8 @@ export default function Oficios() {
     setEditedOficio("");
     setOriginalOficio("");
     setEditedResposta("");
+    setOficioHistory([]);
+    setHistoryIndex(-1);
     setProcessedResults([]);
     setProcessingQueue([]);
     setAnexoImages([]);
