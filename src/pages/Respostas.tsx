@@ -44,11 +44,6 @@ export default function Respostas() {
   const [copied, setCopied] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
-  // ZIP import state
-  const [importing, setImporting] = useState(false);
-  const [whatsappCount, setWhatsappCount] = useState<number | null>(null);
-  const zipInputRef = useRef<HTMLInputElement>(null);
-
   const temMidias = anexos.length > 0;
   const tiposMidias = [...new Set(anexos.map(a => {
     if (a.tipo.startsWith("image")) return "imagens";
