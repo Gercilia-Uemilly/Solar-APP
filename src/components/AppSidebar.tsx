@@ -8,6 +8,7 @@ const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
   { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
   { label: "Meus Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
+  { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
   { label: "Scripts", icon: MessageSquare, path: "/scripts", adminOnly: false },
   { label: "Banco de Info", icon: Database, path: "/banco-informacoes", adminOnly: false },
   { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
