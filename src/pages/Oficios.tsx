@@ -426,6 +426,14 @@ export default function Oficios() {
 
   const handleCreate = async () => {
     if (!user) return;
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setFormTab("dados");
+      toast({ title: "Campos obrigatórios", description: "Preencha o número do ofício e o WhatsApp do solicitante.", variant: "destructive" });
+      return;
+    }
+    setValidationErrors({});
     const payload = {
       numero: numero || null,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
