@@ -348,8 +348,11 @@ export default function Oficios() {
     setBairro(o.bairro || "");
     setSolicitante(o.solicitante || "");
     setContatoSolicitante(o.contato_solicitante || "");
-    setEditedOficio(o.conteudo || "");
-    setOriginalOficio(o.conteudo || "");
+    const content = o.conteudo || "";
+    setEditedOficio(content);
+    setOriginalOficio(content);
+    setOficioHistory(content ? [content] : []);
+    setHistoryIndex(content ? 0 : -1);
     setEditedResposta(o.resposta_cidadao || "");
     setDescricao("");
     setPrioridade("Normal");
