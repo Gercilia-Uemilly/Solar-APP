@@ -1008,8 +1008,8 @@ export default function Oficios() {
                   </div>
                 </div>
                 <RichTextEditor
-                  content={plainToHtml(editedOficio)}
-                  onChange={(html) => handleOficioChange(htmlToPlain(html))}
+                  content={editedOficio.startsWith("<") ? editedOficio : plainToHtml(editedOficio)}
+                  onChange={(html) => handleOficioChange(html)}
                   placeholder="O texto será preenchido pela IA ou manualmente..."
                 />
               </div>
