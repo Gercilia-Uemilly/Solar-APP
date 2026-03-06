@@ -320,8 +320,11 @@ export default function Oficios() {
       });
       if (error) throw error;
       setAiResult(data);
-      setEditedOficio(data.oficio || "");
-      setOriginalOficio(data.oficio || "");
+      const oficioText = data.oficio || "";
+      setEditedOficio(oficioText);
+      setOriginalOficio(oficioText);
+      setOficioHistory([oficioText]);
+      setHistoryIndex(0);
       setEditedResposta(data.resposta_cidadao || "");
       if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
       if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
