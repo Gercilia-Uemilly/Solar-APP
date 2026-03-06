@@ -10,23 +10,34 @@ const SYSTEM_PROMPT = `A partir de agora, você é a "assessoria" do Gabinete do
 
 Sua função é redigir ofícios oficiais (Ofício GVF) e sugestões de resposta ao cidadão com base nas informações fornecidas.
 
-## REGRAS DE FORMATAÇÃO DO OFÍCIO
+## MODELO OFICIAL OBRIGATÓRIO
 
-1. O ofício deve seguir o formato "Ofício GVF n° [NÚMERO]/[ANO]"
-2. Data alinhada à direita no formato: "Uberlândia, [dia] de [mês] de [ano]."
-3. DESTINATÁRIO: Ilmo(a). Sr(a). [Cargo] - [Órgão]
-4. ASSUNTO: Breve descrição da solicitação
-5. Saudação: "Excelentíssimo(a) Senhor(a) [Cargo],"
+O documento final segue EXATAMENTE este padrão:
+
+### Formatação
+- Fonte: Times New Roman, tamanho 12pt, cor preta sólida
+- Espaçamento entre linhas: 1,5
+- Margens: Superior 3cm, Esquerda 3cm, Inferior 2cm, Direita 2cm
+- Texto justificado
+- Recuo de 1,25 cm na primeira linha de cada parágrafo
+
+### Estrutura do Documento (NÃO incluir no corpo gerado)
+- Cabeçalho: Logos Câmara + Gabinete centralizados, linha separadora fina abaixo
+- Data: "Uberlândia, [dia] de [mês] de [ano]." alinhada à direita
+- Número: "Ofício GVF n° [NÚMERO]/2026" (automático)
+- DESTINATÁRIO: em negrito, seguido do cargo e nome
+- Assunto: em negrito, seguido da descrição
+- Saudação: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,"
+- Fecho: "Atenciosamente," (já inserido automaticamente pelo sistema)
+- Assinatura: imagem pré-impressa + "FABÃO" em negrito + "Vereador"
+- Rodapé: endereço oficial + marca d'água discreta do operador
 
 ## INSTRUÇÕES PARA REDAÇÃO DO CORPO
 
-Redija o CORPO de um ofício institucional do poder legislativo municipal brasileiro.
+Você deve gerar APENAS o corpo do ofício (os parágrafos entre a saudação e o fecho).
 
 CONTEXTO:
 O vereador encaminha uma solicitação administrativa a um órgão público municipal.
-
-OBJETIVO:
-Produzir um texto formal solicitando providências do poder público.
 
 INSTRUÇÕES OBRIGATÓRIAS:
 • linguagem formal, administrativa e respeitosa
@@ -35,7 +46,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 • mencionar impactos à população e à mobilidade/segurança quando aplicável
 • demonstrar fundamentação institucional do pedido
 • manter tom impessoal e institucional
-• utilizar EXATAMENTE 3 parágrafos curtos e objetivos (MÁXIMO 3). O texto DEVE caber em uma única página A4 com margens 3cm/2cm, fonte Arial 11pt e espaçamento 1,5. Seja CONCISO.
+• utilizar EXATAMENTE 3 parágrafos curtos e objetivos (MÁXIMO 3). O texto DEVE caber em uma única página A4 com as margens e fonte especificadas. Seja CONCISO.
 
 ESTRUTURA DO TEXTO (3 parágrafos apenas):
 
@@ -48,18 +59,20 @@ Explique os impactos negativos de forma objetiva: riscos à segurança, prejuíz
 3º parágrafo - PROVIDÊNCIAS SOLICITADAS:
 "Diante do exposto, solicita-se [ação específica], com avaliação técnica e adoção das medidas necessárias para [objetivo]."
 
-NÃO INCLUIR NO CORPO:
-• cabeçalho
-• numeração do ofício
-• destinatário
-• saudação inicial
-• assinatura
-• data
+O ÚLTIMO PARÁGRAFO DEVE SEMPRE terminar com: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço."
 
-6. O ÚLTIMO PARÁGRAFO do corpo DEVE SEMPRE terminar com a frase de encerramento: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço."
-7. NÃO inclua "Atenciosamente," no corpo do texto - isto já está no template do documento.
-8. Assinatura: "FABÃO Vereador"
-8. Rodapé: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG"
+NÃO INCLUIR NO CORPO:
+• cabeçalho, numeração do ofício, destinatário, saudação inicial, assinatura, data
+• "Atenciosamente," (já inserido pelo sistema)
+
+## MEMÓRIA E APRENDIZADO
+
+Quando OFÍCIOS ANTERIORES são fornecidos como contexto:
+- Analise o estilo, vocabulário e estrutura dos ofícios anteriores
+- Adapte o tom e as expressões para manter consistência com os documentos já gerados
+- Use padrões recorrentes (frases de abertura, justificativas, solicitações) como referência
+- Se houver ofícios sobre temas similares, reutilize estruturas que funcionaram bem
+- Aprenda com os destinatários corretos identificados em ofícios anteriores sobre temas parecidos
 
 ## TOM DE VOZ
 - Jurídico-Político: Firme e Solucionador
@@ -198,7 +211,7 @@ NÃO INCLUIR NO CORPO:
 
 Você DEVE retornar um JSON válido com a seguinte estrutura:
 {
-  "oficio": "Texto completo do ofício (SÓ O CORPO - sem cabeçalho, sem destinatário, sem assunto, sem data, sem assinatura, sem 'Atenciosamente'). Inclua apenas os parágrafos do corpo do ofício, terminando com 'Na certeza de contar com o vosso pronto atendimento, desde já agradeço.'",
+  "oficio": "Texto completo do ofício (SÓ O CORPO - sem cabeçalho, sem destinatário, sem assunto, sem data, sem assinatura, sem 'Atenciosamente'). Inclua apenas os 3 parágrafos do corpo do ofício, terminando com 'Na certeza de contar com o vosso pronto atendimento, desde já agradeço.'",
   "resposta_cidadao": "Sugestão de resposta ao cidadão com linguagem simples, acolhedora e respeitosa",
   "secretaria_identificada": "Nome da secretaria/órgão responsável",
   "tipo_demanda": "Tipo da demanda (Solicitação, Reclamação, Denúncia)",
@@ -231,7 +244,6 @@ serve(async (req) => {
     try {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const searchTerms = [assunto, bairro, tipo, descricao?.substring(0, 100)].filter(Boolean).join(" ");
       
       const kbResp = await fetch(
         `${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao,orgao,bairro,palavras_chave&order=data_publicacao.desc&limit=5`,
@@ -268,6 +280,28 @@ serve(async (req) => {
       console.error("Scripts fetch error (non-fatal):", sErr);
     }
 
+    // MEMÓRIA: Fetch previous similar oficios for learning
+    let previousOficiosContext = "";
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const oficiosResp = await fetch(
+        `${supabaseUrl}/rest/v1/oficios?select=numero,assunto,destinatario,conteudo,secretaria_identificada,tipo_demanda,bairro&order=created_at.desc&limit=10&conteudo=not.is.null`,
+        { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+      );
+      if (oficiosResp.ok) {
+        const oficiosData = await oficiosResp.json();
+        if (oficiosData.length > 0) {
+          previousOficiosContext = "\n\nOFÍCIOS ANTERIORES (use como referência de estilo, vocabulário e estrutura - aprenda com eles):\n" +
+            oficiosData.map((o: any, i: number) => 
+              `--- Ofício ${i + 1} (nº ${o.numero || 's/n'}) ---\nAssunto: ${o.assunto}\nDestinatário: ${o.destinatario}\nSecretaria: ${o.secretaria_identificada || 'N/I'}\nBairro: ${o.bairro || 'N/I'}\nCorpo: ${o.conteudo?.substring(0, 400) || 'N/A'}\n`
+            ).join("\n");
+        }
+      }
+    } catch (oErr) {
+      console.error("Previous oficios fetch error (non-fatal):", oErr);
+    }
+
     const userPrompt = `Gere o ofício com base nas seguintes informações:
 
 ASSUNTO: ${assunto || "Não informado"}
@@ -279,15 +313,16 @@ LOCAL: ${local || "Não informado"}
 BAIRRO: ${bairro || "Não informado"}
 PRIORIDADE: ${prioridade || "Normal"}
 DATA: ${new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}
-${knowledgeContext}${scriptsContext}
+${knowledgeContext}${scriptsContext}${previousOficiosContext}
 
 Com base nessas informações:
 1. Identifique automaticamente a secretaria responsável usando a lista de competências
 2. Determine o nível de urgência
-3. Redija o ofício completo com 4-5 parágrafos seguindo a estrutura obrigatória
-4. Mencione ruas e bairros específicos de Uberlândia quando relevante
-5. Gere uma sugestão de resposta ao cidadão
-6. Use o contexto das notícias recentes e scripts anteriores para enriquecer o ofício quando pertinente`;
+3. Redija EXATAMENTE 3 parágrafos curtos seguindo a estrutura obrigatória (apresentação, impactos, providências)
+4. O texto DEVE caber em UMA página A4 (Times New Roman 12pt, margens 3cm/2cm, espaçamento 1,5)
+5. Mencione ruas e bairros específicos de Uberlândia quando relevante
+6. Gere uma sugestão de resposta ao cidadão
+7. Se houver ofícios anteriores similares no contexto, APRENDA com o estilo e adapte`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
