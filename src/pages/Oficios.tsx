@@ -701,61 +701,12 @@ export default function Oficios() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Meus Ofícios</h1>
-          <p className="text-sm text-muted-foreground">{filtered.length} ofício(s)</p>
+          <h1 className="text-2xl font-bold text-foreground">Novo Ofício</h1>
+          <p className="text-sm text-muted-foreground">Crie um novo ofício</p>
         </div>
         <Button onClick={() => { setNumero(generateNextNumero()); setShowDialog(true); }} className="bg-primary text-primary-foreground">
           <Plus size={16} className="mr-1" /> Novo Ofício
         </Button>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex-1 min-w-[200px] relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar ofícios..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-card border-border" />
-        </div>
-        <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-          <SelectTrigger className="w-40 bg-card border-border"><SelectValue placeholder="Todos" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Todos">Todos</SelectItem>
-            {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* List */}
-      <div className="space-y-3">
-        {loading ? (
-          <p className="text-center text-muted-foreground py-8">Carregando...</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</p>
-        ) : filtered.map(o => (
-          <div key={o.id} className="bg-card rounded-xl p-5 flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary font-medium">{o.status}</span>
-                {o.numero && <span className="text-xs text-muted-foreground">Nº {o.numero}</span>}
-                <span className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString("pt-BR")}</span>
-              </div>
-              {o.assunto && <p className="text-sm font-semibold text-foreground">{o.assunto}</p>}
-              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                <Landmark size={12} />
-                {o.destinatario}
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => handleEdit(o)} className="p-2 text-muted-foreground hover:text-primary" title="Editar"><Pencil size={16} /></button>
-              <button onClick={() => { setViewingOficio(o); setShowPreviewDialog(true); }} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
-              <button onClick={() => { if (o.conteudo) exportToWord(buildExportData(o)); }} className="p-2 text-muted-foreground hover:text-foreground" title="Exportar Word"><FileText size={16} /></button>
-              <button onClick={() => { if (o.conteudo) exportToPDF(buildExportData(o)); }} className="p-2 text-muted-foreground hover:text-foreground" title="Exportar PDF"><Download size={16} /></button>
-              <button onClick={() => handleUploadToDrive(o)} disabled={isUploading} className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50" title="Enviar ao Drive + Planilha">
-                {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
-              </button>
-              <button onClick={() => handleDelete(o.id)} className="p-2 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Create Dialog with Tabs */}
