@@ -320,7 +320,8 @@ Com base nessas informações:
 1. Identifique automaticamente a secretaria responsável usando a lista de competências
 2. Determine o nível de urgência
 3. Redija EXATAMENTE 3 parágrafos curtos seguindo a estrutura obrigatória (apresentação, impactos, providências)
-4. O texto DEVE caber em UMA página A4 (Times New Roman 12pt, margens 3cm/2cm, espaçamento 1,5)
+4. O texto DEVE caber em UMA página A4 (Arial 11pt, margens 3cm/2cm, espaçamento 1,5)
+8. Use tags <strong> para destacar em negrito os termos mais relevantes (nomes de ruas, bairros, problemas, ações)
 5. Mencione ruas e bairros específicos de Uberlândia quando relevante
 6. Gere uma sugestão de resposta ao cidadão
 7. Se houver ofícios anteriores similares no contexto, APRENDA com o estilo e adapte`;

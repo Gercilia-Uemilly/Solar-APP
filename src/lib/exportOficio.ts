@@ -140,8 +140,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Parse content - supports HTML with bold/italic
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
-  const fontSize = 24; // 12pt in half-points
-  const fontName = "Times New Roman";
+  const fontSize = 22; // 11pt in half-points
+  const fontName = "Arial";
   const lineSpacing = 360; // 1.5 lines
 
   // Build marca d'água text - operator name in lowercase

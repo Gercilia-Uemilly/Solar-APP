@@ -250,8 +250,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             }}
           />
           <div style={{ width: "300px", borderBottom: "1px solid #000", marginBottom: "4px" }} />
-          <p style={{ fontSize: "12pt", marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
-          <p style={{ fontSize: "12pt", marginTop: "0" }}>Vereador</p>
+          <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
+          <p style={{ fontSize: "11pt", marginTop: "0" }}>Vereador</p>
         </div>
 
         {/* RODAPÉ */}
