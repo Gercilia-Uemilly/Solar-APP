@@ -121,6 +121,11 @@ export default function Oficios() {
   const [anexoImages, setAnexoImages] = useState<File[]>([]);
   const [anexos, setAnexos] = useState<DemandaAnexo[]>([]);
 
+  // Version history for undo/redo
+  const [oficioHistory, setOficioHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const historyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Smart suggestions state
   const [suggestions, setSuggestions] = useState<OficioRow[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
