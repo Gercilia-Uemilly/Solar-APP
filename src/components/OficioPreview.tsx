@@ -221,7 +221,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               <p key={i} style={{
                 textIndent: "1.25cm",
                 marginBottom: "10px",
-                fontSize: "12pt",
+                fontSize: "11pt",
                 lineHeight: "1.5",
               }}>
                 {p}
