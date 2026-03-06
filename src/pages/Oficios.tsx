@@ -414,6 +414,16 @@ export default function Oficios() {
     setShowDialog(true);
   };
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
+
+  const validateForm = () => {
+    const errors: Record<string, boolean> = {};
+    if (!numero.trim()) errors.numero = true;
+    if (!contatoSolicitante.trim()) errors.contatoSolicitante = true;
+    return errors;
+  };
+
   const handleCreate = async () => {
     if (!user) return;
     const payload = {
