@@ -184,7 +184,23 @@ export default function Oficios() {
     if (!tipoServico && (o as any).tipo_demanda) setTipoServico((o as any).tipo_demanda);
     setAppliedSuggestionId(o.id);
     setShowSuggestions(false);
+    // Track interaction for learning
+    if (user) {
+      supabase.from("suggestion_interactions" as any).insert({ user_id: user.id, source_type: "oficio", source_id: o.id, action: "accepted", context_assunto: assunto, context_bairro: bairro }).then(() => {});
+    }
     toast({ title: "✨ Sugestão aplicada!", description: `Dados preenchidos com base no ofício nº ${o.numero || "s/n"}.` });
+  };
+
+  const applyKbSuggestion = (kb: any) => {
+    if (!destinatario && kb.orgao) setDestinatario(kb.orgao);
+    if (!bairro && kb.bairro) setBairro(kb.bairro);
+    if (!assunto && kb.titulo) setAssunto(kb.titulo);
+    setAppliedSuggestionId(kb.id);
+    setShowSuggestions(false);
+    if (user) {
+      supabase.from("suggestion_interactions" as any).insert({ user_id: user.id, source_type: "base_conhecimento", source_id: kb.id, action: "accepted", context_assunto: assunto, context_bairro: bairro }).then(() => {});
+    }
+    toast({ title: "✨ Sugestão da base aplicada!", description: `Dados preenchidos com "${kb.titulo}".` });
   };
 
   // ── Version history helpers ──────────────────────────────────────────────
