@@ -368,6 +368,35 @@ export default function Operadores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetUserId} onOpenChange={(open) => { if (!open) { setResetUserId(null); setNewPassword(""); } }}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <KeyRound size={18} /> Resetar Senha
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Definir nova senha para <span className="font-medium text-foreground">{resetUserName}</span>
+            </p>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nova senha</label>
+              <Input
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                type="password"
+                className="bg-secondary border-border"
+              />
+            </div>
+            <Button onClick={handleResetPassword} disabled={resettingPassword || newPassword.length < 6} className="w-full bg-primary text-primary-foreground">
+              <KeyRound size={16} className="mr-1" /> {resettingPassword ? "Salvando..." : "Alterar Senha"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
