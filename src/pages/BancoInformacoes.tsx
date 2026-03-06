@@ -347,10 +347,10 @@ export default function BancoInformacoes() {
       </div>
 
       <Tabs value={mainTab} onValueChange={setMainTab}>
-        <TabsList className={`grid w-full max-w-xl ${isAdmin ? 'grid-cols-4' : 'grid-cols-2'}`}>
+        <TabsList className={`grid w-full max-w-xl ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="base">Base</TabsTrigger>
           {isAdmin && <TabsTrigger value="importar">SOS Uberlândia</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="instagram">Instagram</TabsTrigger>}
+          <TabsTrigger value="instagram">Instagram</TabsTrigger>
           <TabsTrigger value="upload">Upload</TabsTrigger>
         </TabsList>
 
