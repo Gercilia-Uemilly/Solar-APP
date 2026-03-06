@@ -267,15 +267,24 @@ export default function Operadores() {
                         </button>
                       </>
                     )}
-                    <button onClick={() => openEdit(p)} className="p-2 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
+                    <button onClick={() => openEdit(p)} className="p-2 text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={16} /></button>
                     {isAdmin && (
-                      <button
-                        onClick={() => setDeleteUserId(p.id)}
-                        className="p-2 text-muted-foreground hover:text-destructive"
-                        title="Remover acesso"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => { setResetUserId(p.id); setResetUserName(p.full_name || p.email || ""); setNewPassword(""); }}
+                          className="p-2 text-muted-foreground hover:text-primary"
+                          title="Resetar senha"
+                        >
+                          <KeyRound size={16} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteUserId(p.id)}
+                          className="p-2 text-muted-foreground hover:text-destructive"
+                          title="Remover acesso"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
                     )}
                   </TableCell>
                 </TableRow>
