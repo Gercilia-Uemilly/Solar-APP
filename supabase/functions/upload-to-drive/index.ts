@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
-const SPREADSHEET_ID = "1fpwxcbeim-1UsH8YopTtbAiWoHgXitXLPQTfygz8pKc";
+
 
 // ── OAuth: get access token via refresh token ───────────────────────
 
