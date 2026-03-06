@@ -548,6 +548,7 @@ export default function Oficios() {
     setHistoryIndex(-1);
     setProcessedResults([]);
     setProcessingQueue([]);
+    setValidationErrors({});
     setAnexoImages([]);
     setAnexos([]);
     setSuggestions([]);
