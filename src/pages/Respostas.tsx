@@ -254,7 +254,7 @@ export default function Respostas() {
               <div className="flex gap-2 pt-2">
                 <Button onClick={handleGenerate} disabled={generating} className="flex-1 gap-2">
                   {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  {generating ? "Gerando..." : "Gerar Resposta Empática"}
+                  {generating ? "Gerando..." : "Gerar Resposta"}
                 </Button>
                 <Button variant="outline" onClick={handleReset} title="Limpar tudo">
                   <RefreshCw size={16} />
@@ -312,7 +312,7 @@ export default function Respostas() {
                     <div>
                       <p className="font-medium text-sm">Nenhuma resposta gerada</p>
                       <p className="text-xs mt-1 max-w-[260px]">
-                        Preencha os dados da demanda e clique em "Gerar Resposta Empática" para criar uma sugestão de resposta ao cidadão.
+                        Preencha os dados da demanda e clique em "Gerar Resposta" para criar uma sugestão de resposta ao cidadão.
                       </p>
                     </div>
                   </motion.div>
