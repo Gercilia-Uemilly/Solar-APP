@@ -41,7 +41,11 @@ Em breve retornaremos com mais informações sobre o andamento da sua demanda. A
 - SEMPRE mencionar o órgão/secretaria quando identificado
 - Se não houver nome do solicitante, usar "Prezado(a) cidadão(ã)"
 - Manter entre 3-4 parágrafos curtos
-- Retorne APENAS o texto da resposta, sem JSON, sem markdown extra`;
+- Retorne APENAS o texto da resposta, sem JSON, sem markdown extra
+- Use os SCRIPTS DE ATENDIMENTO fornecidos como referência de tom e linguagem
+- Use as RESPOSTAS ANTERIORES de ofícios similares como referência de estilo
+- Use as CONVERSAS DO WHATSAPP para entender o contexto real das interações com cidadãos
+- Use as NOTÍCIAS E INFORMAÇÕES da base de conhecimento para contextualizar a resposta`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -54,33 +58,92 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Fetch relevant knowledge base for context
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const headers = { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` };
+
+    const searchTerms = [assunto, bairro, tipo_demanda].filter(Boolean).join(" ").split(/\s+/).slice(0, 3).join("%25");
+
+    // Fetch all context sources in parallel
+    const [kbResp, scriptsResp, oficiosResp, whatsappResp] = await Promise.all([
+      // 1. Knowledge base (SOS, Instagram, uploads)
+      fetch(
+        `${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao,orgao,fonte,categoria&or=(titulo.ilike.%25${searchTerms}%25,descricao.ilike.%25${searchTerms}%25)&limit=5`,
+        { headers }
+      ).catch(() => null),
+
+      // 2. Scripts de atendimento
+      fetch(
+        `${supabaseUrl}/rest/v1/scripts?select=titulo,conteudo,categoria&limit=5&order=favorito.desc,updated_at.desc`,
+        { headers }
+      ).catch(() => null),
+
+      // 3. Respostas de ofícios anteriores similares
+      fetch(
+        `${supabaseUrl}/rest/v1/oficios?select=assunto,resposta_cidadao,secretaria_identificada,bairro,tipo_demanda&resposta_cidadao=not.is.null&or=(assunto.ilike.%25${searchTerms}%25,bairro.ilike.%25${searchTerms}%25)&limit=5&order=created_at.desc`,
+        { headers }
+      ).catch(() => null),
+
+      // 4. Conversas WhatsApp (from base_conhecimento with categoria=WhatsApp)
+      fetch(
+        `${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao&categoria=eq.WhatsApp&limit=5&order=created_at.desc`,
+        { headers }
+      ).catch(() => null),
+    ]);
+
+    // Process knowledge base
     let kbContext = "";
     try {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const searchTerms = [assunto, bairro, tipo_demanda].filter(Boolean).join(" ").split(/\s+/).slice(0, 3).join("%25");
-      
-      const kbResp = await fetch(
-        `${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao,orgao,fonte&or=(titulo.ilike.%25${searchTerms}%25,descricao.ilike.%25${searchTerms}%25)&limit=3`,
-        { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
-      );
-      if (kbResp.ok) {
+      if (kbResp?.ok) {
         const kbData = await kbResp.json();
         if (kbData.length > 0) {
-          kbContext = "\n\nINFORMAÇÕES RELEVANTES DA BASE DE CONHECIMENTO (use para contextualizar a resposta):\n" +
-            kbData.map((k: any) => `- ${k.titulo}: ${k.descricao?.substring(0, 200) || ""}`).join("\n");
+          kbContext = "\n\nBASE DE CONHECIMENTO (notícias, Instagram, informações relevantes):\n" +
+            kbData.map((k: any) => `- [${k.fonte || k.categoria}] ${k.titulo}: ${k.descricao?.substring(0, 300) || ""}`).join("\n");
         }
       }
-    } catch (e) {
-      console.error("KB fetch error (non-fatal):", e);
-    }
+    } catch (e) { console.error("KB error:", e); }
+
+    // Process scripts
+    let scriptsContext = "";
+    try {
+      if (scriptsResp?.ok) {
+        const scriptsData = await scriptsResp.json();
+        if (scriptsData.length > 0) {
+          scriptsContext = "\n\nSCRIPTS DE ATENDIMENTO (use como referência de tom e linguagem):\n" +
+            scriptsData.map((s: any) => `- [${s.categoria}] ${s.titulo}: ${s.conteudo?.substring(0, 400) || ""}`).join("\n");
+        }
+      }
+    } catch (e) { console.error("Scripts error:", e); }
+
+    // Process previous oficio responses
+    let oficiosContext = "";
+    try {
+      if (oficiosResp?.ok) {
+        const oficiosData = await oficiosResp.json();
+        if (oficiosData.length > 0) {
+          oficiosContext = "\n\nRESPOSTAS ANTERIORES A CIDADÃOS (use como referência de estilo):\n" +
+            oficiosData.map((o: any) => `- Assunto: ${o.assunto} | Bairro: ${o.bairro || "?"} | Resposta: ${o.resposta_cidadao?.substring(0, 400) || ""}`).join("\n");
+        }
+      }
+    } catch (e) { console.error("Oficios error:", e); }
+
+    // Process WhatsApp conversations
+    let whatsappContext = "";
+    try {
+      if (whatsappResp?.ok) {
+        const whatsappData = await whatsappResp.json();
+        if (whatsappData.length > 0) {
+          whatsappContext = "\n\nCONVERSAS EXPORTADAS DO WHATSAPP (contexto real de interações):\n" +
+            whatsappData.map((w: any) => `- ${w.titulo}: ${w.descricao?.substring(0, 500) || ""}`).join("\n");
+        }
+      }
+    } catch (e) { console.error("WhatsApp error:", e); }
 
     const midiasInfo = tem_midias
       ? `\nMÍDIAS ANEXADAS: Sim (${tipos_midias || "imagens/documentos"}). Mencione que as mídias foram recebidas e serão consideradas na análise.`
       : "\nMÍDIAS ANEXADAS: Não";
 
-    const userPrompt = `Gere uma resposta empática para o cidadão com base nas seguintes informações:
+    const userPrompt = `Gere uma resposta para o cidadão com base nas seguintes informações:
 
 PROTOCOLO/NÚMERO: ${numero || "Não atribuído ainda"}
 SOLICITANTE: ${solicitante || "Cidadão(ã)"}
@@ -91,9 +154,9 @@ BAIRRO: ${bairro || "Não informado"}
 SECRETARIA/ÓRGÃO RESPONSÁVEL: ${secretaria || destinatario || "A ser identificado"}
 TIPO DE DEMANDA: ${tipo_demanda || "Solicitação"}
 URGÊNCIA: ${urgencia || "Normal"}
-${midiasInfo}${kbContext}
+${midiasInfo}${kbContext}${scriptsContext}${oficiosContext}${whatsappContext}
 
-Gere a resposta empática seguindo a estrutura e tom definidos.`;
+Gere a resposta seguindo a estrutura e tom definidos, utilizando todo o contexto disponível acima.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

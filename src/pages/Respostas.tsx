@@ -312,7 +312,7 @@ export default function Respostas() {
                     <div>
                       <p className="font-medium text-sm">Nenhuma resposta gerada</p>
                       <p className="text-xs mt-1 max-w-[260px]">
-                        Preencha os dados da demanda e clique em "Gerar Resposta Empática" para criar uma sugestão de resposta ao cidadão.
+                        Preencha os dados da demanda e clique em "Gerar Resposta" para criar uma sugestão de resposta ao cidadão.
                       </p>
                     </div>
                   </motion.div>
