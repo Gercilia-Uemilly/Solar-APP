@@ -9,6 +9,15 @@ import assinaturaSrc2 from "@/assets/assinatura-fabao.png";
 
 const SIGNATURE_SOURCES = [assinaturaSrc1, assinaturaSrc2];
 
+function generateOperatorCode(name: string, email?: string): string {
+  const parts = (name || "").trim().split(/\s+/);
+  const first = (parts[0] || "").toLowerCase();
+  const lastInitial = parts.length > 1
+    ? parts[parts.length - 1][0]?.toLowerCase() || ""
+    : (email || "").split("@")[0]?.[0]?.toLowerCase() || "";
+  return first ? `${first}.${lastInitial}` : email?.split("@")[0]?.toLowerCase() || "usr";
+}
+
 function formatDate(dateStr?: string): string {
   const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
   const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
