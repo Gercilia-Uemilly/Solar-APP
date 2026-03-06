@@ -132,16 +132,22 @@ export default function Oficios() {
   const [appliedSuggestionId, setAppliedSuggestionId] = useState<string | null>(null);
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const searchSimilarOficios = useCallback((query: string) => {
+  // Knowledge base suggestions
+  const [kbSuggestions, setKbSuggestions] = useState<{ id: string; titulo: string; descricao: string | null; orgao: string | null; bairro: string | null; fonte: string | null; modelo: boolean }[]>([]);
+
+  const searchSimilarOficios = useCallback(async (query: string) => {
     if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
     if (!query || query.length < 3) {
       setSuggestions([]);
+      setKbSuggestions([]);
       setShowSuggestions(false);
       return;
     }
-    suggestionTimeoutRef.current = setTimeout(() => {
+    suggestionTimeoutRef.current = setTimeout(async () => {
       const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      if (words.length === 0) { setSuggestions([]); setShowSuggestions(false); return; }
+      if (words.length === 0) { setSuggestions([]); setKbSuggestions([]); setShowSuggestions(false); return; }
+
+      // Search oficios
       const matches = oficios
         .filter(o => o.conteudo && o.id !== editingOficioId)
         .map(o => {
@@ -152,8 +158,20 @@ export default function Oficios() {
         .filter(o => (o as any).score >= Math.max(1, Math.floor(words.length * 0.3)))
         .sort((a, b) => (b as any).score - (a as any).score)
         .slice(0, 3) as OficioRow[];
+
+      // Search knowledge base
+      const searchTerm = words.slice(0, 3).join(" ");
+      const { data: kbData } = await supabase
+        .from("base_conhecimento" as any)
+        .select("id, titulo, descricao, orgao, bairro, fonte, modelo")
+        .or(`titulo.ilike.%${searchTerm}%,descricao.ilike.%${searchTerm}%`)
+        .order("modelo", { ascending: false })
+        .limit(3);
+
+      const kbMatches = (kbData as any[] || []);
+      setKbSuggestions(kbMatches);
       setSuggestions(matches);
-      setShowSuggestions(matches.length > 0);
+      setShowSuggestions(matches.length > 0 || kbMatches.length > 0);
     }, 400);
   }, [oficios, editingOficioId]);
 
