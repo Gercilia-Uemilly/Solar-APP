@@ -175,8 +175,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
         </div>
 
-        {/* Linha separadora fina */}
-        <div style={{ borderBottom: "1px solid #000", marginTop: "8px", marginBottom: "16px" }} />
+        {/* Spacing after header */}
+        <div style={{ marginTop: "8px", marginBottom: "16px" }} />
 
         {/* Data alinhada à direita */}
         <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
