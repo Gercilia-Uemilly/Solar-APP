@@ -187,14 +187,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               ],
               spacing: { before: 0, after: 0 },
             }),
-            // Linha separadora fina abaixo dos logos
-            new Paragraph({
-              border: {
-                bottom: { style: BorderStyle.SINGLE, size: 1, space: 4, color: "000000" },
-              },
-              children: [new TextRun({ text: "", font: fontName, size: 2 })],
-              spacing: { before: 80, after: 0 },
-            }),
           ],
         }),
       },
