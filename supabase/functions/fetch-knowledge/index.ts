@@ -152,7 +152,8 @@ serve(async (req) => {
   }
 
   try {
-    const { action, limit } = await req.json();
+    const body = await req.json();
+    const { action, limit, url: instaUrl } = body;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -300,6 +301,64 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, total: uniqueLinks.length, saved: savedCount }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (action === "import_instagram") {
+      const actualUrl = instaUrl || "";
+      
+      // Use Firecrawl to scrape Instagram post
+      const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+      
+      if (FIRECRAWL_API_KEY && actualUrl.includes("instagram.com")) {
+        try {
+          const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: actualUrl,
+              formats: ["markdown"],
+              onlyMainContent: true,
+            }),
+          });
+
+          if (scrapeResp.ok) {
+            const scrapeData = await scrapeResp.json();
+            const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+            const title = scrapeData.data?.metadata?.title || markdown.substring(0, 80).replace(/\n/g, " ").trim() || "Post Instagram";
+            
+            return new Response(
+              JSON.stringify({
+                success: true,
+                preview: {
+                  titulo: title,
+                  descricao: markdown.substring(0, 2000),
+                  data: new Date().toISOString(),
+                },
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch (e) {
+          console.error("Firecrawl Instagram error:", e);
+        }
+      }
+
+      // Fallback: save URL as reference
+      const titulo = `Post Instagram - ${new Date().toLocaleDateString("pt-BR")}`;
+      return new Response(
+        JSON.stringify({
+          success: true,
+          preview: {
+            titulo,
+            descricao: `Conteúdo do post: ${actualUrl}\n\nEdite a descrição com o texto da legenda do post.`,
+            data: new Date().toISOString(),
+          },
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

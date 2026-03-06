@@ -24,6 +24,7 @@ export type Database = {
           fonte: string | null
           id: string
           link: string | null
+          modelo: boolean
           orgao: string | null
           palavras_chave: string[] | null
           titulo: string
@@ -38,6 +39,7 @@ export type Database = {
           fonte?: string | null
           id?: string
           link?: string | null
+          modelo?: boolean
           orgao?: string | null
           palavras_chave?: string[] | null
           titulo: string
@@ -52,6 +54,7 @@ export type Database = {
           fonte?: string | null
           id?: string
           link?: string | null
+          modelo?: boolean
           orgao?: string | null
           palavras_chave?: string[] | null
           titulo?: string
@@ -206,6 +209,39 @@ export type Database = {
           tags?: string[] | null
           titulo?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      suggestion_interactions: {
+        Row: {
+          action: string
+          context_assunto: string | null
+          context_bairro: string | null
+          created_at: string
+          id: string
+          source_id: string
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          context_assunto?: string | null
+          context_bairro?: string | null
+          created_at?: string
+          id?: string
+          source_id: string
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          context_assunto?: string | null
+          context_bairro?: string | null
+          created_at?: string
+          id?: string
+          source_id?: string
+          source_type?: string
+          user_id?: string
         }
         Relationships: []
       }
