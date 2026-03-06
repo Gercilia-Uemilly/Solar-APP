@@ -354,7 +354,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           border: {
             bottom: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "000000" },
           },
-          children: [new TextRun({ text: "                                                              ", font: fontName, size: 2 })],
+          children: [new TextRun({ text: "                              ", font: fontName, size: 2 })],
           spacing: { before: 0, after: 0 },
         }),
 
