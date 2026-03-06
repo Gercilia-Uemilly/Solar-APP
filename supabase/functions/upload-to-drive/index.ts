@@ -78,6 +78,24 @@ async function getAccessToken(serviceAccount: any): Promise<string> {
   return data.access_token;
 }
 
+// ── Check folder access ─────────────────────────────────────────────
+
+async function checkFolderAccess(accessToken: string, folderId: string): Promise<void> {
+  const resp = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType&supportsAllDrives=true`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error(`Folder access check failed: ${resp.status} ${errText}`);
+    throw new Error(`Cannot access folder ${folderId}: ${resp.status} ${errText}`);
+  }
+  const folder = await resp.json();
+  console.log(`Folder accessible: ${folder.name} (${folder.id})`);
+}
+
 // ── Google Drive Upload ─────────────────────────────────────────────
 
 async function uploadToDrive(
