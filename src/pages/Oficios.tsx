@@ -243,6 +243,15 @@ export default function Oficios() {
     return () => window.removeEventListener("keydown", handler);
   }, [undoOficio, redoOficio]);
 
+  const generateOperatorCode = useCallback((name: string, email: string) => {
+    const parts = (name || "").trim().split(/\s+/);
+    const first = (parts[0] || "").toLowerCase();
+    const lastInitial = parts.length > 1
+      ? parts[parts.length - 1][0]?.toLowerCase() || ""
+      : email.split("@")[0]?.[0]?.toLowerCase() || "";
+    return first ? `${first}.${lastInitial}` : email.split("@")[0]?.toLowerCase() || "usr";
+  }, []);
+
   const generateSolicitanteCode = useCallback(() => {
     if (!user) return "USR";
     const name = user.user_metadata?.full_name || "";
@@ -560,9 +569,10 @@ export default function Oficios() {
         logoFabaoUrl: logoFabao,
         assinaturaUrl: assinaturaFabao,
       });
-      const numeroArquivo = (oficio.numero || "rascunho").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_");
-      const baseFileName = `Oficio_GVF_${numeroArquivo}`;
-      const uploadFileName = `${baseFileName}.docx`;
+      const ano = new Date().getFullYear().toString();
+      const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+      const operadorCode = generateOperatorCode(user?.user_metadata?.full_name || "", user?.email || "");
+      const uploadFileName = `${numLimpo}-${ano}-${operadorCode}.docx`;
       const uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;

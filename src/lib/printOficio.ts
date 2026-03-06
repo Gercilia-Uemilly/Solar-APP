@@ -64,7 +64,7 @@ export async function printOficio(data: PrintData) {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Ofício GVF nº ${numeroFormatado}</title>
+  <title>Ofício nº ${numeroFormatado}</title>
   <style>
     @page {
       size: A4;
@@ -140,7 +140,7 @@ export async function printOficio(data: PrintData) {
     </div>
 
     <p class="date">${dataFormatada}</p>
-    <p class="oficio-num">Ofício GVF n° ${numeroFormatado}</p>
+    <p class="oficio-num">Ofício n° ${numeroFormatado}</p>
     <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}</p>
     <p class="assunto">Assunto: ${assuntoFmt}</p>
     <p class="saudacao">Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,</p>

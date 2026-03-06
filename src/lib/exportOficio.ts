@@ -9,19 +9,25 @@ import assinaturaSrc2 from "@/assets/assinatura-fabao.png";
 
 const SIGNATURE_SOURCES = [assinaturaSrc1, assinaturaSrc2];
 
+function generateOperatorCode(name: string, email?: string): string {
+  const parts = (name || "").trim().split(/\s+/);
+  const first = (parts[0] || "").toLowerCase();
+  const lastInitial = parts.length > 1
+    ? parts[parts.length - 1][0]?.toLowerCase() || ""
+    : (email || "").split("@")[0]?.[0]?.toLowerCase() || "";
+  return first ? `${first}.${lastInitial}` : email?.split("@")[0]?.toLowerCase() || "usr";
+}
+
 function formatDate(dateStr?: string): string {
   const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
   const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-function buildFileName(numero: string, ano: string, telefone?: string): string {
+function buildFileName(numero: string, ano: string, codigo?: string): string {
   const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-  const telSufixo = telefone
-    ? telefone.replace(/\D/g, '').slice(-4)
-    : '';
-  const parts = [`GVF-${numLimpo}`, ano];
-  if (telSufixo) parts.push(telSufixo);
+  const parts = [numLimpo || 'rascunho', ano];
+  if (codigo) parts.push(codigo);
   return parts.join('-');
 }
 
@@ -255,7 +261,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
         // ── Número do ofício ──
         new Paragraph({
-          children: [new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: fontName, size: fontSize, bold: true })],
+          children: [new TextRun({ text: `Ofício n° ${numeroFormatado}`, font: fontName, size: fontSize, bold: true })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
@@ -417,7 +423,8 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   }
 
   const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.telefone);
+  const codigo = data.operadorNome ? generateOperatorCode(data.operadorNome, data.operadorEmail) : undefined;
+  const fileName = buildFileName(data.numero, ano, codigo);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
@@ -425,7 +432,8 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 // ── Export PDF (via Word→PDF conversion, with HTML fallback) ────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
   const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.telefone);
+  const codigo = data.operadorNome ? generateOperatorCode(data.operadorNome, data.operadorEmail) : undefined;
+  const fileName = buildFileName(data.numero, ano, codigo);
 
   try {
     let wordBlob = await buildWordBlob(data);
