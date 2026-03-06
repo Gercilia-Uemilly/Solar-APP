@@ -24,7 +24,6 @@ const urgencias = ["Normal", "Urgente", "Muito Urgente"];
 
 export default function Respostas() {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
 
   // Form fields
   const [solicitante, setSolicitante] = useState("");
