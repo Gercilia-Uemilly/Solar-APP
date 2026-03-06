@@ -442,55 +442,69 @@ export default function BancoInformacoes() {
           </div>
         </TabsContent>
 
-        {/* ─── TAB: INSTAGRAM (admin only) ─── */}
+        {/* ─── TAB: INSTAGRAM ─── */}
         <TabsContent value="instagram" className="space-y-4">
           <div className="bg-card rounded-xl p-6 border border-border space-y-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Instagram size={20} /> Instagram - Cadastro Manual</h2>
-            <p className="text-sm text-muted-foreground">
-              A importação automática do Instagram não está disponível. Cadastre os posts manualmente colando a legenda e informações abaixo.
-            </p>
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Instagram size={20} /> Posts do Instagram</h2>
 
-            {/* Manual entry form */}
-            <div className="space-y-3 border border-border rounded-lg p-4 bg-muted/30">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1">Título do Post</label>
-                <Input
-                  placeholder="Ex: Post sobre infraestrutura no bairro Fundinho"
-                  value={instaPreview?.titulo || ""}
-                  onChange={e => setInstaPreview(prev => ({ titulo: e.target.value, descricao: prev?.descricao || "", data: prev?.data || new Date().toISOString() }))}
-                />
+            {/* Admin: manual entry form */}
+            {isAdmin && (
+              <div className="space-y-3 border border-primary/20 rounded-lg p-4 bg-primary/5">
+                <h3 className="text-sm font-medium text-foreground">📥 Cadastrar novo post</h3>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Título do Post</label>
+                  <Input
+                    placeholder="Ex: Post sobre infraestrutura no bairro Fundinho"
+                    value={instaPreview?.titulo || ""}
+                    onChange={e => setInstaPreview(prev => ({ titulo: e.target.value, descricao: prev?.descricao || "", data: prev?.data || new Date().toISOString() }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Legenda / Conteúdo</label>
+                  <Textarea
+                    placeholder="Cole aqui a legenda do post do Instagram..."
+                    value={instaPreview?.descricao || ""}
+                    onChange={e => setInstaPreview(prev => ({ titulo: prev?.titulo || "", descricao: e.target.value, data: prev?.data || new Date().toISOString() }))}
+                    rows={5}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Link do Post (opcional)</label>
+                  <Input
+                    placeholder="https://www.instagram.com/p/..."
+                    value={instaUrl}
+                    onChange={e => setInstaUrl(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => { setInstaPreview(null); setInstaUrl(""); }}>Limpar</Button>
+                  <Button size="sm" onClick={saveInstaPreview} disabled={!instaPreview?.titulo?.trim() || !instaPreview?.descricao?.trim()}>Salvar na Base</Button>
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1">Legenda / Conteúdo</label>
-                <Textarea
-                  placeholder="Cole aqui a legenda do post do Instagram..."
-                  value={instaPreview?.descricao || ""}
-                  onChange={e => setInstaPreview(prev => ({ titulo: prev?.titulo || "", descricao: e.target.value, data: prev?.data || new Date().toISOString() }))}
-                  rows={6}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1">Link do Post (opcional)</label>
-                <Input
-                  placeholder="https://www.instagram.com/p/..."
-                  value={instaUrl}
-                  onChange={e => setInstaUrl(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => { setInstaPreview(null); setInstaUrl(""); }}
-                >
-                  Limpar
-                </Button>
-                <Button
-                  onClick={saveInstaPreview}
-                  disabled={!instaPreview?.titulo?.trim() || !instaPreview?.descricao?.trim()}
-                >
-                  Salvar na Base
-                </Button>
-              </div>
+            )}
+
+            {/* List of Instagram posts (visible to all) */}
+            <div className="space-y-3">
+              {entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Instagram size={40} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">Nenhum post do Instagram cadastrado ainda.</p>
+                </div>
+              ) : entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").map(entry => (
+                <div key={entry.id} className="bg-muted/30 rounded-lg p-3 border border-border">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-foreground">{entry.titulo}</h4>
+                      {entry.descricao && <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{entry.descricao}</p>}
+                      <div className="flex items-center gap-2 mt-2">
+                        {entry.data_publicacao && <span className="text-[10px] text-muted-foreground"><Clock size={10} className="inline mr-0.5" />{new Date(entry.data_publicacao).toLocaleDateString("pt-BR")}</span>}
+                        {entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline"><ExternalLink size={10} className="inline mr-0.5" />Ver post</a>}
+                      </div>
+                    </div>
+                    {isAdmin && <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </TabsContent>
