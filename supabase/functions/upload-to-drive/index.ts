@@ -197,6 +197,8 @@ serve(async (req) => {
     }
 
     const serviceAccount = JSON.parse(serviceAccountJson);
+    console.log(`Service Account email: ${serviceAccount.client_email}`);
+    console.log(`Project ID: ${serviceAccount.project_id}`);
     const accessToken = await getAccessToken(serviceAccount);
 
     const contentType = req.headers.get("content-type") || "";
