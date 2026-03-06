@@ -77,33 +77,6 @@ export default function Respostas() {
     }
   }, [toast]);
 
-  const handleImportWhatsApp = async (file: File) => {
-    if (!file) return;
-    setImporting(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const { data, error } = await supabase.functions.invoke("import-whatsapp", { body: formData });
-      if (error) throw error;
-
-      if (data?.success) {
-        setWhatsappCount(data.count);
-        toast({
-          title: "✅ Conversas importadas!",
-          description: data.message,
-        });
-      } else if (data?.error) {
-        throw new Error(data.error);
-      }
-    } catch (e: any) {
-      toast({ title: "Erro ao importar", description: e.message, variant: "destructive" });
-    } finally {
-      setImporting(false);
-      if (zipInputRef.current) zipInputRef.current.value = "";
-    }
-  };
-
   const handleGenerate = async () => {
     if (!descricao.trim() && !assunto.trim()) {
       toast({ title: "Dados insuficientes", description: "Preencha ao menos o assunto ou a descrição da demanda.", variant: "destructive" });
