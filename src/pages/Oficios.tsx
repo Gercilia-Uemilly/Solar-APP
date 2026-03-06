@@ -104,6 +104,7 @@ export default function Oficios() {
 
   // AI state
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingResposta, setIsGeneratingResposta] = useState(false);
   const [aiResult, setAiResult] = useState<AIResult | null>(null);
   const [editedOficio, setEditedOficio] = useState("");
   const [originalOficio, setOriginalOficio] = useState("");
