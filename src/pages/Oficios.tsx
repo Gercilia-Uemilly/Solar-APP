@@ -750,8 +750,9 @@ export default function Oficios() {
             <TabsContent value="dados" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício</label>
-                  <Input placeholder="Ex: 23/2026" value={numero} onChange={e => setNumero(e.target.value)} className="bg-secondary border-border" />
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
+                  <Input placeholder="Ex: 23/2026" value={numero} onChange={e => { setNumero(e.target.value); setValidationErrors(prev => ({ ...prev, numero: false })); }} className={`bg-secondary ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`} />
+                  {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
