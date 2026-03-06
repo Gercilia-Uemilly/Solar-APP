@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const DRIVE_FOLDER_ID = ""; // temporarily disabled for testing
+const DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 const SPREADSHEET_ID = "1fpwxcbeim-1UsH8YopTtbAiWoHgXitXLPQTfygz8pKc";
 
 // ── Google Auth via Service Account JWT ──────────────────────────────
