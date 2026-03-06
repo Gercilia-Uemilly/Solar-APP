@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { Heart, Copy, Sparkles, Loader2, Paperclip, Send, RefreshCw, Check, FileText, Image, Mic, Video } from "lucide-react";
+import { useState, useCallback, useRef } from "react";
+import { Heart, Copy, Sparkles, Loader2, Paperclip, Send, RefreshCw, Check, FileText, Image, Mic, Video, Upload, MessageSquare, Archive, X, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import FileDropzone from "@/components/FileDropzone";
 import { DemandaAnexo } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +24,7 @@ const urgencias = ["Normal", "Urgente", "Muito Urgente"];
 
 export default function Respostas() {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
   // Form fields
   const [solicitante, setSolicitante] = useState("");
@@ -42,6 +44,11 @@ export default function Respostas() {
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+
+  // ZIP import state
+  const [importing, setImporting] = useState(false);
+  const [whatsappCount, setWhatsappCount] = useState<number | null>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
 
   const temMidias = anexos.length > 0;
   const tiposMidias = [...new Set(anexos.map(a => {
@@ -76,6 +83,33 @@ export default function Respostas() {
     }
   }, [toast]);
 
+  const handleImportWhatsApp = async (file: File) => {
+    if (!file) return;
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const { data, error } = await supabase.functions.invoke("import-whatsapp", { body: formData });
+      if (error) throw error;
+
+      if (data?.success) {
+        setWhatsappCount(data.count);
+        toast({
+          title: "✅ Conversas importadas!",
+          description: data.message,
+        });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (e: any) {
+      toast({ title: "Erro ao importar", description: e.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+      if (zipInputRef.current) zipInputRef.current.value = "";
+    }
+  };
+
   const handleGenerate = async () => {
     if (!descricao.trim() && !assunto.trim()) {
       toast({ title: "Dados insuficientes", description: "Preencha ao menos o assunto ou a descrição da demanda.", variant: "destructive" });
@@ -102,7 +136,7 @@ export default function Respostas() {
       if (error) throw error;
       if (data?.resposta) {
         setResposta(data.resposta);
-        toast({ title: "Resposta gerada!", description: "Revise e edite antes de enviar ao cidadão." });
+        toast({ title: "💬 Resposta gerada!", description: "Revise e edite antes de enviar." });
       } else if (data?.error) {
         throw new Error(data.error);
       }
@@ -118,6 +152,11 @@ export default function Respostas() {
     setCopied(true);
     toast({ title: "Copiado!", description: "Resposta copiada para a área de transferência." });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleWhatsAppShare = () => {
+    const encoded = encodeURIComponent(resposta);
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
 
   const handleReset = () => {
@@ -139,15 +178,59 @@ export default function Respostas() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-primary/10">
-          <Heart className="text-primary" size={24} />
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-primary/10">
+            <Heart className="text-primary" size={24} />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Respostas ao Cidadão</h1>
+            <p className="text-sm text-muted-foreground">Gere respostas naturais e acolhedoras com IA</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-foreground">Respostas ao Cidadão</h1>
-          <p className="text-sm text-muted-foreground">Gere respostas empáticas e profissionais com IA</p>
-        </div>
+
+        {/* ZIP Import Button */}
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <input
+              ref={zipInputRef}
+              type="file"
+              accept=".zip,.txt"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) handleImportWhatsApp(file);
+              }}
+            />
+            <Button
+              variant="outline"
+              onClick={() => zipInputRef.current?.click()}
+              disabled={importing}
+              className="gap-2"
+            >
+              {importing ? <Loader2 size={16} className="animate-spin" /> : <Archive size={16} />}
+              {importing ? "Importando..." : "Importar Conversas WhatsApp"}
+            </Button>
+            {whatsappCount !== null && (
+              <Badge variant="secondary" className="text-xs gap-1">
+                <MessageSquare size={12} /> {whatsappCount} trechos
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Info banner about WhatsApp conversations */}
+      {isAdmin && (
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-start gap-3">
+          <MessageSquare size={18} className="text-primary mt-0.5 flex-shrink-0" />
+          <div className="text-xs text-muted-foreground">
+            <p className="font-medium text-foreground mb-1">Base de conversas WhatsApp</p>
+            <p>Importe o arquivo ZIP das conversas exportadas do WhatsApp para alimentar o estilo das respostas. A IA usará essas conversas como referência principal de tom e linguagem.</p>
+            <p className="mt-1 text-primary/70">WhatsApp → Conversa → ⋮ → Exportar conversa → Sem mídia → Enviar arquivo ZIP</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Input */}
@@ -167,7 +250,7 @@ export default function Respostas() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Nº Protocolo / Ofício</label>
-                  <Input placeholder="Ex: 45-2026" value={numero} onChange={e => setNumero(e.target.value)} />
+                  <Input placeholder="Ex: 45-2026-MARIA123" value={numero} onChange={e => setNumero(e.target.value)} />
                 </div>
               </div>
 
@@ -218,10 +301,10 @@ export default function Respostas() {
               </div>
 
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição da Demanda</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Demanda do Cidadão</label>
                 <Textarea
                   rows={5}
-                  placeholder="Cole ou digite a demanda completa do cidadão aqui..."
+                  placeholder="Cole ou digite a mensagem completa do cidadão aqui... A IA vai analisar o texto e gerar uma resposta personalizada."
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
                   className="resize-none"
@@ -269,9 +352,9 @@ export default function Respostas() {
           <Card className="border-border min-h-[400px] flex flex-col">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Heart size={16} className="text-primary" />
+                <MessageSquare size={16} className="text-primary" />
                 Resposta Sugerida
-                {resposta && <Badge variant="secondary" className="text-[10px]">IA</Badge>}
+                {resposta && <Badge variant="secondary" className="text-[10px] gap-1"><Sparkles size={10} /> IA</Badge>}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
@@ -292,7 +375,10 @@ export default function Respostas() {
                     <div className="flex gap-2">
                       <Button onClick={handleCopy} variant="outline" className="flex-1 gap-2">
                         {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                        {copied ? "Copiado!" : "Copiar Resposta"}
+                        {copied ? "Copiado!" : "Copiar"}
+                      </Button>
+                      <Button onClick={handleWhatsAppShare} variant="outline" className="gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950">
+                        <Send size={16} /> WhatsApp
                       </Button>
                       <Button onClick={handleGenerate} variant="ghost" disabled={generating} title="Regenerar">
                         {generating ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
@@ -307,13 +393,19 @@ export default function Respostas() {
                     className="flex-1 flex flex-col items-center justify-center text-center gap-3 text-muted-foreground py-10"
                   >
                     <div className="p-4 rounded-full bg-muted/50">
-                      <Heart size={32} className="text-muted-foreground/50" />
+                      <MessageSquare size={32} className="text-muted-foreground/50" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">Nenhuma resposta gerada</p>
-                      <p className="text-xs mt-1 max-w-[260px]">
-                        Preencha os dados da demanda e clique em "Gerar Resposta" para criar uma sugestão de resposta ao cidadão.
+                      <p className="text-xs mt-1 max-w-[280px]">
+                        Preencha os dados da demanda e clique em "Gerar Resposta". A IA vai criar uma mensagem personalizada baseada nas conversas reais do WhatsApp e no Banco de Informações.
                       </p>
+                    </div>
+                    <div className="mt-4 space-y-2 text-left w-full max-w-[340px]">
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70">Exemplo de resposta:</p>
+                      <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground/80 italic leading-relaxed">
+                        "Bom dia, Maria! Recebi sua mensagem e as fotos da Rua Oscar Alvim. Entendi perfeitamente sua preocupação com os buracos. Já registrei como protocolo 45-2026. Vou encaminhar pra Secretaria de Obras e assim que tiver retorno volto a falar com você, ok?"
+                      </div>
                     </div>
                   </motion.div>
                 )}
