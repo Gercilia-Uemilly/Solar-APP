@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback, ChangeEvent } from "react";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2 } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -121,6 +121,11 @@ export default function Oficios() {
   const [anexoImages, setAnexoImages] = useState<File[]>([]);
   const [anexos, setAnexos] = useState<DemandaAnexo[]>([]);
 
+  // Version history for undo/redo
+  const [oficioHistory, setOficioHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const historyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Smart suggestions state
   const [suggestions, setSuggestions] = useState<OficioRow[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -164,6 +169,67 @@ export default function Oficios() {
     toast({ title: "✨ Sugestão aplicada!", description: `Dados preenchidos com base no ofício nº ${o.numero || "s/n"}.` });
   };
 
+  // ── Version history helpers ──────────────────────────────────────────────
+  const pushToHistory = useCallback((text: string) => {
+    if (historyTimeoutRef.current) clearTimeout(historyTimeoutRef.current);
+    historyTimeoutRef.current = setTimeout(() => {
+      setOficioHistory(prev => {
+        const trimmed = prev.slice(0, historyIndex + 1);
+        // Don't push if same as last entry
+        if (trimmed.length > 0 && trimmed[trimmed.length - 1] === text) return prev;
+        const updated = [...trimmed, text].slice(-50); // keep max 50 versions
+        setHistoryIndex(updated.length - 1);
+        return updated;
+      });
+    }, 600);
+  }, [historyIndex]);
+
+  const handleOficioChange = useCallback((text: string) => {
+    setEditedOficio(text);
+    pushToHistory(text);
+  }, [pushToHistory]);
+
+  const undoOficio = useCallback(() => {
+    if (historyIndex <= 0) return;
+    const newIdx = historyIndex - 1;
+    setHistoryIndex(newIdx);
+    setEditedOficio(oficioHistory[newIdx]);
+  }, [historyIndex, oficioHistory]);
+
+  const redoOficio = useCallback(() => {
+    if (historyIndex >= oficioHistory.length - 1) return;
+    const newIdx = historyIndex + 1;
+    setHistoryIndex(newIdx);
+    setEditedOficio(oficioHistory[newIdx]);
+  }, [historyIndex, oficioHistory]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undoOficio();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redoOficio();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undoOficio, redoOficio]);
+
+  // Generate solicitante code from user name+email
+  const generateSolicitanteCode = useCallback(() => {
+    if (!user) return "USR";
+    const name = user.user_metadata?.full_name || "";
+    const email = user.email || "";
+    // Take initials from name (up to 3 chars) + first 2 chars of email
+    const initials = name.split(/\s+/).map((w: string) => w[0]?.toUpperCase() || "").join("").slice(0, 3);
+    const emailCode = email.replace(/@.*/, "").slice(0, 2).toUpperCase();
+    return (initials || emailCode || "USR");
+  }, [user]);
+
   // Helpers to convert between HTML and plain text for the ofício
   const plainToHtml = (text: string) => {
     if (!text) return "";
@@ -189,9 +255,10 @@ export default function Oficios() {
 
   useEffect(() => { fetchOficios(); }, []);
 
-  // Auto-generate next sequential number
+  // Auto-generate next sequential number with format: NUM/YEAR/CODE
   const generateNextNumero = () => {
     const year = new Date().getFullYear();
+    const code = generateSolicitanteCode();
     const existingNumbers = oficios
       .map(o => o.numero)
       .filter(Boolean)
@@ -201,7 +268,7 @@ export default function Oficios() {
       })
       .filter(n => n > 0);
     const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-    return `${nextNum}/${year}`;
+    return `${nextNum}/${year}/${code}`;
   };
 
   // Fetch user phone lines
@@ -253,8 +320,11 @@ export default function Oficios() {
       });
       if (error) throw error;
       setAiResult(data);
-      setEditedOficio(data.oficio || "");
-      setOriginalOficio(data.oficio || "");
+      const oficioText = data.oficio || "";
+      setEditedOficio(oficioText);
+      setOriginalOficio(oficioText);
+      setOficioHistory([oficioText]);
+      setHistoryIndex(0);
       setEditedResposta(data.resposta_cidadao || "");
       if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
       if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
@@ -278,8 +348,11 @@ export default function Oficios() {
     setBairro(o.bairro || "");
     setSolicitante(o.solicitante || "");
     setContatoSolicitante(o.contato_solicitante || "");
-    setEditedOficio(o.conteudo || "");
-    setOriginalOficio(o.conteudo || "");
+    const content = o.conteudo || "";
+    setEditedOficio(content);
+    setOriginalOficio(content);
+    setOficioHistory(content ? [content] : []);
+    setHistoryIndex(content ? 0 : -1);
     setEditedResposta(o.resposta_cidadao || "");
     setDescricao("");
     setPrioridade("Normal");
@@ -421,6 +494,8 @@ export default function Oficios() {
     setEditedOficio("");
     setOriginalOficio("");
     setEditedResposta("");
+    setOficioHistory([]);
+    setHistoryIndex(-1);
     setProcessedResults([]);
     setProcessingQueue([]);
     setAnexoImages([]);
@@ -912,18 +987,29 @@ export default function Oficios() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-medium text-muted-foreground">Texto do Ofício</label>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 items-center">
+                    <Button variant="ghost" size="sm" onClick={undoOficio} disabled={historyIndex <= 0} title="Desfazer (Ctrl+Z)">
+                      <Undo2 size={14} />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={redoOficio} disabled={historyIndex >= oficioHistory.length - 1} title="Refazer (Ctrl+Y)">
+                      <Redo2 size={14} />
+                    </Button>
+                    {oficioHistory.length > 1 && (
+                      <span className="text-[10px] text-muted-foreground mx-1">
+                        v{historyIndex + 1}/{oficioHistory.length}
+                      </span>
+                    )}
                     {editedOficio && (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedOficio, "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { setEditedOficio(""); }}><Trash2 size={14} className="mr-1" /> Limpar</Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { handleOficioChange(""); }}><Trash2 size={14} className="mr-1" /> Limpar</Button>
                       </>
                     )}
                   </div>
                 </div>
                 <RichTextEditor
                   content={plainToHtml(editedOficio)}
-                  onChange={(html) => setEditedOficio(htmlToPlain(html))}
+                  onChange={(html) => handleOficioChange(htmlToPlain(html))}
                   placeholder="O texto será preenchido pela IA ou manualmente..."
                 />
               </div>
