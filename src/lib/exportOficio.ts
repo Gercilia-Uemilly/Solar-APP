@@ -187,14 +187,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               ],
               spacing: { before: 0, after: 0 },
             }),
-            // Linha separadora fina abaixo dos logos
-            new Paragraph({
-              border: {
-                bottom: { style: BorderStyle.SINGLE, size: 1, space: 4, color: "000000" },
-              },
-              children: [new TextRun({ text: "", font: fontName, size: 2 })],
-              spacing: { before: 80, after: 0 },
-            }),
           ],
         }),
       },
@@ -203,9 +195,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
-              border: {
-                top: { style: BorderStyle.SINGLE, size: 1, space: 4, color: "CCCCCC" },
-              },
               children: [new TextRun({
                 text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
                 font: fontName,
@@ -365,7 +354,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           border: {
             bottom: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "000000" },
           },
-          children: [new TextRun({ text: "                                                              ", font: fontName, size: 2 })],
+          children: [new TextRun({ text: "                              ", font: fontName, size: 2 })],
           spacing: { before: 0, after: 0 },
         }),
 
