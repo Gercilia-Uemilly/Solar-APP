@@ -6,7 +6,7 @@ import logoSolar from "@/assets/logo-solar.png";
 
 const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
-  { label: "Meus Ofícios", icon: FileText, path: "/oficios", adminOnly: false },
+  { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
   { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
   { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
   { label: "Scripts", icon: MessageSquare, path: "/scripts", adminOnly: false },
