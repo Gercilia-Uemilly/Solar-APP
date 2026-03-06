@@ -612,7 +612,7 @@ export default function Oficios() {
         const contentType = convertResp.headers.get("content-type") || "";
         if (contentType.includes("application/pdf")) {
           uploadBlob = await convertResp.blob();
-          uploadFileName = `${numLimpo}-${ano}-${operadorCode}.pdf`;
+          uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.pdf`;
           uploadMimeType = "application/pdf";
         } else {
           // Fallback: conversão retornou erro JSON, enviar como Word
