@@ -169,6 +169,25 @@ export default function Operadores() {
     setDeleting(false);
   };
 
+  const handleResetPassword = async () => {
+    if (!resetUserId || !newPassword) {
+      toast({ title: "Preencha a nova senha", variant: "destructive" });
+      return;
+    }
+    setResettingPassword(true);
+    const { data, error } = await supabase.functions.invoke("reset-user-password", {
+      body: { userId: resetUserId, newPassword },
+    });
+    if (error) {
+      toast({ title: "Erro ao resetar senha", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Senha alterada com sucesso!" });
+      setResetUserId(null);
+      setNewPassword("");
+    }
+    setResettingPassword(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
