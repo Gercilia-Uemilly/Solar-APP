@@ -53,6 +53,12 @@ export default function Operadores() {
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Reset password
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetUserName, setResetUserName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
+
   const fetchProfiles = async () => {
     setLoading(true);
     const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: true });
