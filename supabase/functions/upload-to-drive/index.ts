@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,91 +10,52 @@ const corsHeaders = {
 const DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 const SPREADSHEET_ID = "1fpwxcbeim-1UsH8YopTtbAiWoHgXitXLPQTfygz8pKc";
 
-// ── Google Auth via Service Account JWT ──────────────────────────────
+// ── OAuth: get access token via refresh token ───────────────────────
 
-function base64url(data: Uint8Array): string {
-  let binary = "";
-  for (const byte of data) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-async function createJWT(serviceAccount: any): Promise<string> {
-  const header = { alg: "RS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const claim = {
-    iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now,
-  };
-
-  const encoder = new TextEncoder();
-  const headerB64 = base64url(encoder.encode(JSON.stringify(header)));
-  const claimB64 = base64url(encoder.encode(JSON.stringify(claim)));
-  const signInput = `${headerB64}.${claimB64}`;
-
-  // Import private key
-  const pemContents = serviceAccount.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\n/g, "");
-  const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
+async function getAccessTokenViaRefreshToken(): Promise<string> {
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    encoder.encode(signInput)
-  );
+  const { data, error } = await supabaseAdmin
+    .from("app_settings")
+    .select("value")
+    .eq("key", "google_refresh_token")
+    .single();
 
-  const sigB64 = base64url(new Uint8Array(signature));
-  return `${signInput}.${sigB64}`;
-}
+  if (error || !data?.value) {
+    throw new Error(
+      "Google Drive não autorizado. Vá em Configurações e clique em 'Autorizar Google Drive'."
+    );
+  }
 
-async function getAccessToken(serviceAccount: any): Promise<string> {
-  const jwt = await createJWT(serviceAccount);
+  const refreshToken = data.value;
+  const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+  const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+
+  if (!clientId || !clientSecret) {
+    throw new Error("GOOGLE_CLIENT_ID ou GOOGLE_CLIENT_SECRET não configurados.");
+  }
+
   const resp = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
     }),
   });
 
   if (!resp.ok) {
     const errText = await resp.text();
-    throw new Error(`Google OAuth error: ${resp.status} ${errText}`);
+    throw new Error(`Google OAuth refresh error: ${resp.status} ${errText}`);
   }
 
-  const data = await resp.json();
-  return data.access_token;
-}
-
-// ── Check folder access ─────────────────────────────────────────────
-
-async function checkFolderAccess(accessToken: string, folderId: string): Promise<void> {
-  const resp = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType&supportsAllDrives=true`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
-  if (!resp.ok) {
-    const errText = await resp.text();
-    console.error(`Folder access check failed: ${resp.status} ${errText}`);
-    throw new Error(`Cannot access folder ${folderId}: ${resp.status} ${errText}`);
-  }
-  const folder = await resp.json();
-  console.log(`Folder accessible: ${folder.name} (${folder.id})`);
+  const tokens = await resp.json();
+  return tokens.access_token;
 }
 
 // ── Google Drive Upload ─────────────────────────────────────────────
@@ -111,13 +73,8 @@ async function uploadToDrive(
     metadata.parents = [DRIVE_FOLDER_ID];
   }
 
-  // Note: driveId is NOT set in metadata — parents alone is sufficient
-  // supportsAllDrives=true in the URL handles shared drive support
-
-  // Multipart upload
   const boundary = "===BOUNDARY===";
   const metadataPart = JSON.stringify(metadata);
-
   const encoder = new TextEncoder();
   const parts = [
     encoder.encode(
@@ -127,7 +84,6 @@ async function uploadToDrive(
     encoder.encode(`\r\n--${boundary}--`),
   ];
 
-  // Combine parts
   const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
   const body = new Uint8Array(totalLength);
   let offset = 0;
@@ -191,15 +147,9 @@ serve(async (req) => {
   }
 
   try {
-    const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
-    if (!serviceAccountJson) {
-      throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY not configured");
-    }
-
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    console.log(`Service Account email: ${serviceAccount.client_email}`);
-    console.log(`Project ID: ${serviceAccount.project_id}`);
-    const accessToken = await getAccessToken(serviceAccount);
+    console.log("Getting access token via OAuth refresh token...");
+    const accessToken = await getAccessTokenViaRefreshToken();
+    console.log("Access token obtained successfully!");
 
     const contentType = req.headers.get("content-type") || "";
 
@@ -221,14 +171,12 @@ serve(async (req) => {
       mimeType = file.type || "application/pdf";
       fileBytes = new Uint8Array(await file.arrayBuffer());
 
-      // Extract metadata from form
       const metaStr = formData.get("metadata") as string | null;
       if (metaStr) {
         try { metadata = JSON.parse(metaStr); } catch {}
       }
     } else {
       const body = await req.json();
-      // Base64 encoded file
       const base64Data = body.file;
       fileName = body.fileName || "oficio.pdf";
       mimeType = body.mimeType || "application/pdf";
@@ -268,7 +216,6 @@ serve(async (req) => {
     await appendToSheet(accessToken, row);
     console.log("Sheet updated!");
 
-    // 3. Return result
     return new Response(
       JSON.stringify({
         success: true,
