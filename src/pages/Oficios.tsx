@@ -535,6 +535,7 @@ export default function Oficios() {
     setAnexoImages([]);
     setAnexos([]);
     setSuggestions([]);
+    setKbSuggestions([]);
     setShowSuggestions(false);
     setAppliedSuggestionId(null);
   };
