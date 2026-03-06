@@ -195,9 +195,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
-              border: {
-                top: { style: BorderStyle.SINGLE, size: 1, space: 4, color: "CCCCCC" },
-              },
               children: [new TextRun({
                 text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
                 font: fontName,
