@@ -152,7 +152,8 @@ serve(async (req) => {
   }
 
   try {
-    const { action, limit } = await req.json();
+    const body = await req.json();
+    const { action, limit, url: instaUrl } = body;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
