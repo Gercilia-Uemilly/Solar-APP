@@ -86,10 +86,12 @@ async function uploadToDrive(
   fileName: string,
   mimeType: string
 ): Promise<{ id: string; webViewLink: string }> {
-  const metadata = {
+  const metadata: Record<string, unknown> = {
     name: fileName,
-    parents: [DRIVE_FOLDER_ID],
   };
+  if (DRIVE_FOLDER_ID) {
+    metadata.parents = [DRIVE_FOLDER_ID];
+  }
 
   // Note: driveId is NOT set in metadata — parents alone is sufficient
   // supportsAllDrives=true in the URL handles shared drive support
