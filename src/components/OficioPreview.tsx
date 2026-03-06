@@ -41,7 +41,7 @@ function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
     const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
     return paras.map(p =>
-      `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:12pt;line-height:1.5">${p}</p>`
+      `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:11pt;line-height:1.5">${p}</p>`
     ).join("");
   };
 
@@ -100,8 +100,8 @@ function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
           cursor: "text",
           outline: "none",
           minHeight: "50px",
-          fontFamily: "'Times New Roman', Times, serif",
-          fontSize: "12pt",
+          fontFamily: "Arial, Helvetica, sans-serif",
+          fontSize: "11pt",
           lineHeight: "1.5",
           color: "#000",
         }}
@@ -159,8 +159,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           paddingRight: "20mm",
           paddingBottom: "20mm",
           paddingLeft: "30mm",
-          fontFamily: "'Times New Roman', Times, serif",
-          fontSize: "12pt",
+          fontFamily: "Arial, Helvetica, sans-serif",
+          fontSize: "11pt",
           lineHeight: "1.5",
           color: "#000",
           backgroundColor: "#fff",
@@ -184,21 +184,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         <div style={{ borderBottom: "1px solid #000", marginTop: "8px", marginBottom: "16px" }} />
 
         {/* Data alinhada à direita */}
-        <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "12pt" }}>{dataFormatada}</p>
+        <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
 
-        <p style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "24px" }}>
+        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "24px" }}>
           Ofício GVF n° {numeroFormatado}
         </p>
 
-        <p style={{ fontSize: "12pt", marginBottom: "8px" }}>
+        <p style={{ fontSize: "11pt", marginBottom: "8px" }}>
           <strong>DESTINATÁRIO:</strong> {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
         </p>
 
-        <p style={{ fontSize: "12pt", marginBottom: "30px" }}>
+        <p style={{ fontSize: "11pt", marginBottom: "30px" }}>
           <strong>Assunto:</strong> {assuntoFormatado}
         </p>
 
-        <p style={{ fontSize: "12pt", marginBottom: "30px", textIndent: "1.25cm" }}>
+        <p style={{ fontSize: "11pt", marginBottom: "30px", textIndent: "1.25cm" }}>
           Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,
         </p>
 
@@ -212,7 +212,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         ) : isHtml ? (
           <div
-            style={{ textAlign: "justify", fontSize: "12pt", lineHeight: "1.5" }}
+            style={{ textAlign: "justify", fontSize: "11pt", lineHeight: "1.5" }}
             dangerouslySetInnerHTML={{ __html: conteudo }}
           />
         ) : (
@@ -221,7 +221,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               <p key={i} style={{
                 textIndent: "1.25cm",
                 marginBottom: "10px",
-                fontSize: "12pt",
+                fontSize: "11pt",
                 lineHeight: "1.5",
               }}>
                 {p}
@@ -231,7 +231,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* Fecho */}
-        <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: "12pt" }}>
+        <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: "11pt" }}>
           Atenciosamente,
         </p>
 
@@ -250,8 +250,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             }}
           />
           <div style={{ width: "300px", borderBottom: "1px solid #000", marginBottom: "4px" }} />
-          <p style={{ fontSize: "12pt", marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
-          <p style={{ fontSize: "12pt", marginTop: "0" }}>Vereador</p>
+          <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
+          <p style={{ fontSize: "11pt", marginTop: "0" }}>Vereador</p>
         </div>
 
         {/* RODAPÉ */}

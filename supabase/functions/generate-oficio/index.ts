@@ -15,7 +15,7 @@ Sua função é redigir ofícios oficiais (Ofício GVF) e sugestões de resposta
 O documento final segue EXATAMENTE este padrão:
 
 ### Formatação
-- Fonte: Times New Roman, tamanho 12pt, cor preta sólida
+- Fonte: Arial, tamanho 11pt, cor preta sólida
 - Espaçamento entre linhas: 1,5
 - Margens: Superior 3cm, Esquerda 3cm, Inferior 2cm, Direita 2cm
 - Texto justificado
@@ -47,6 +47,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 • demonstrar fundamentação institucional do pedido
 • manter tom impessoal e institucional
 • utilizar EXATAMENTE 3 parágrafos curtos e objetivos (MÁXIMO 3). O texto DEVE caber em uma única página A4 com as margens e fonte especificadas. Seja CONCISO.
+• DESTAQUE EM NEGRITO: coloque em **negrito** (usando tags <strong>) os termos mais relevantes do ofício, como: nomes de ruas, bairros, tipos de problema, órgãos responsáveis, e ações solicitadas. NÃO coloque parágrafos inteiros em negrito — apenas palavras ou trechos curtos e específicos.
 
 ESTRUTURA DO TEXTO (3 parágrafos apenas):
 
@@ -319,7 +320,8 @@ Com base nessas informações:
 1. Identifique automaticamente a secretaria responsável usando a lista de competências
 2. Determine o nível de urgência
 3. Redija EXATAMENTE 3 parágrafos curtos seguindo a estrutura obrigatória (apresentação, impactos, providências)
-4. O texto DEVE caber em UMA página A4 (Times New Roman 12pt, margens 3cm/2cm, espaçamento 1,5)
+4. O texto DEVE caber em UMA página A4 (Arial 11pt, margens 3cm/2cm, espaçamento 1,5)
+8. Use tags <strong> para destacar em negrito os termos mais relevantes (nomes de ruas, bairros, problemas, ações)
 5. Mencione ruas e bairros específicos de Uberlândia quando relevante
 6. Gere uma sugestão de resposta ao cidadão
 7. Se houver ofícios anteriores similares no contexto, APRENDA com o estilo e adapte`;
