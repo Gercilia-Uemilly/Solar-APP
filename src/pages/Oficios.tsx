@@ -844,11 +844,11 @@ export default function Oficios() {
                </div>
 
               {/* Smart Suggestions */}
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && (suggestions.length > 0 || kbSuggestions.length > 0) && (
                 <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-primary flex items-center gap-1">
-                      <Lightbulb size={14} /> Sugestões baseadas em ofícios anteriores
+                      <Lightbulb size={14} /> Sugestões inteligentes (ofícios + base de conhecimento)
                     </span>
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setShowSuggestions(false)}>
                       <X size={14} />
@@ -863,14 +863,34 @@ export default function Oficios() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-foreground">
-                          {s.numero ? `Ofício nº ${s.numero}` : "Ofício"} — {s.assunto?.slice(0, 60)}{(s.assunto?.length || 0) > 60 ? "…" : ""}
+                          📄 {s.numero ? `Ofício nº ${s.numero}` : "Ofício"} — {s.assunto?.slice(0, 60)}{(s.assunto?.length || 0) > 60 ? "…" : ""}
                         </span>
                         <ArrowRight size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
                       <div className="flex gap-2 mt-1 flex-wrap">
                         {s.destinatario && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{s.destinatario}</span>}
                         {s.bairro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{s.bairro}</span>}
-                        {(s as any).tipo_demanda && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{(s as any).tipo_demanda}</span>}
+                      </div>
+                    </button>
+                  ))}
+                  {kbSuggestions.map(kb => (
+                    <button
+                      key={kb.id}
+                      type="button"
+                      onClick={() => applyKbSuggestion(kb)}
+                      className="w-full text-left p-2.5 rounded-md bg-card border border-border hover:border-accent/50 hover:bg-accent/10 transition-colors group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-foreground">
+                          {kb.fonte === "Instagram" ? "📸" : kb.fonte === "Upload" ? "📁" : "📰"} {kb.titulo?.slice(0, 70)}{(kb.titulo?.length || 0) > 70 ? "…" : ""}
+                        </span>
+                        <ArrowRight size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <div className="flex gap-2 mt-1 flex-wrap">
+                        {kb.orgao && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{kb.orgao}</span>}
+                        {kb.bairro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{kb.bairro}</span>}
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/30 text-accent-foreground">{kb.fonte}</span>
+                        {kb.modelo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">⭐ Modelo</span>}
                       </div>
                     </button>
                   ))}
