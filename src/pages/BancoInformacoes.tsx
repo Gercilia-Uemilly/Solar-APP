@@ -143,7 +143,7 @@ export default function BancoInformacoes() {
     toast({ title: newVal ? "Marcado como modelo" : "Modelo removido" });
   };
 
-  // Instagram import
+  // Instagram single post import
   const handleInstagramImport = async () => {
     if (!instaUrl.trim()) return;
     setInstaImporting(true);
@@ -155,8 +155,8 @@ export default function BancoInformacoes() {
       if (data.preview) {
         setInstaPreview(data.preview);
         setInstaEditing(true);
-      } else if (data.saved) {
-        toast({ title: "Post importado!", description: `"${data.titulo}" salvo na base.` });
+      } else if (data.saved !== undefined) {
+        toast({ title: "Posts importados!", description: `${data.saved} de ${data.total} posts salvos na base.` });
         await fetchEntries();
         setInstaUrl("");
       }
@@ -164,6 +164,23 @@ export default function BancoInformacoes() {
       toast({ title: "Erro ao importar Instagram", description: err.message, variant: "destructive" });
     } finally {
       setInstaImporting(false);
+    }
+  };
+
+  // Instagram full feed import
+  const handleInstagramFeedImport = async () => {
+    setInstaFeedImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-knowledge", {
+        body: { action: "import_instagram", url: "https://www.instagram.com/fabaovereador/", limit: 20 },
+      });
+      if (error) throw error;
+      toast({ title: "Feed importado!", description: `${data.saved} de ${data.total} posts salvos na base.` });
+      await fetchEntries();
+    } catch (err: any) {
+      toast({ title: "Erro ao importar feed", description: err.message, variant: "destructive" });
+    } finally {
+      setInstaFeedImporting(false);
     }
   };
 
