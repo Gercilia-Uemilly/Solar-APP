@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
+import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2, KeyRound } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 
 interface Profile {
