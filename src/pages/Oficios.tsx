@@ -255,9 +255,10 @@ export default function Oficios() {
 
   useEffect(() => { fetchOficios(); }, []);
 
-  // Auto-generate next sequential number
+  // Auto-generate next sequential number with format: NUM/YEAR/CODE
   const generateNextNumero = () => {
     const year = new Date().getFullYear();
+    const code = generateSolicitanteCode();
     const existingNumbers = oficios
       .map(o => o.numero)
       .filter(Boolean)
@@ -267,7 +268,7 @@ export default function Oficios() {
       })
       .filter(n => n > 0);
     const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-    return `${nextNum}/${year}`;
+    return `${nextNum}/${year}/${code}`;
   };
 
   // Fetch user phone lines
