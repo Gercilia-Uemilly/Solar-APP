@@ -15,7 +15,7 @@ Sua função é redigir ofícios oficiais (Ofício GVF) e sugestões de resposta
 O documento final segue EXATAMENTE este padrão:
 
 ### Formatação
-- Fonte: Times New Roman, tamanho 12pt, cor preta sólida
+- Fonte: Arial, tamanho 11pt, cor preta sólida
 - Espaçamento entre linhas: 1,5
 - Margens: Superior 3cm, Esquerda 3cm, Inferior 2cm, Direita 2cm
 - Texto justificado
