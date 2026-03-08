@@ -80,6 +80,63 @@ export type Database = {
         }
         Relationships: []
       }
+      clippings: {
+        Row: {
+          author_id: string
+          author_nome: string | null
+          created_at: string
+          data_publicacao: string | null
+          descricao: string | null
+          estrategico: boolean
+          fonte: string
+          id: string
+          link: string | null
+          observacoes: string | null
+          respondido: boolean
+          sentimento: string
+          tema: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          author_nome?: string | null
+          created_at?: string
+          data_publicacao?: string | null
+          descricao?: string | null
+          estrategico?: boolean
+          fonte?: string
+          id?: string
+          link?: string | null
+          observacoes?: string | null
+          respondido?: boolean
+          sentimento?: string
+          tema?: string | null
+          tipo?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          author_nome?: string | null
+          created_at?: string
+          data_publicacao?: string | null
+          descricao?: string | null
+          estrategico?: boolean
+          fonte?: string
+          id?: string
+          link?: string | null
+          observacoes?: string | null
+          respondido?: boolean
+          sentimento?: string
+          tema?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       oficios: {
         Row: {
           ano: number | null
