@@ -179,15 +179,15 @@ export default function GuidedTour({ open, onClose }: GuidedTourProps) {
                 {current.title}
               </motion.h2>
 
-              <motion.p
+              <motion.div
                 key={`desc-${step}`}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.05 }}
-                className="text-sm text-muted-foreground leading-relaxed"
+                className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line max-h-[50vh] overflow-y-auto pr-1"
               >
                 {current.description}
-              </motion.p>
+              </motion.div>
             </div>
 
             {/* Footer */}
