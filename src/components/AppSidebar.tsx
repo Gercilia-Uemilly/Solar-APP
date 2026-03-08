@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Database, Heart } from "lucide-react";
+import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Database, Heart, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoSolar from "@/assets/logo-solar.png";
