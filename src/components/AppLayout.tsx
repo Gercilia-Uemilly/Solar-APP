@@ -118,6 +118,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Guided Tour */}
       <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
+      {/* Support Drawer */}
+      <SupportDrawer open={supportOpen} onClose={() => setSupportOpen(false)} />
     </div>
   );
 }
