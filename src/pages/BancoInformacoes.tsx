@@ -63,7 +63,9 @@ export default function BancoInformacoes() {
 
   // Upload state
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -311,6 +313,53 @@ export default function BancoInformacoes() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // Dedicated audio upload handler
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingAudio(true);
+
+    for (const file of Array.from(files)) {
+      try {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "mp3";
+
+        // Transcribe
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("type", file.type.startsWith("video") ? "video" : "audio");
+        const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
+        if (error) throw error;
+        const extractedText = data.text || "";
+
+        // Upload original to storage
+        const storagePath = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, file);
+        let audioUrl: string | undefined;
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath);
+          audioUrl = urlData.publicUrl;
+        }
+
+        const entry = {
+          titulo: `🎤 ${file.name.replace(/\.[^.]+$/, "")}`,
+          descricao: extractedText.substring(0, 2000),
+          fonte: "Upload",
+          categoria: "Áudio",
+          link: audioUrl || null,
+          modelo: true,
+        };
+        await supabase.from("base_conhecimento" as any).insert(entry);
+        toast({ title: `Áudio "${file.name}" salvo!`, description: audioUrl ? "Disponível para download e WhatsApp." : "Transcrição salva." });
+      } catch (err: any) {
+        toast({ title: `Erro em "${file.name}"`, description: err.message, variant: "destructive" });
+      }
+    }
+
+    setUploadingAudio(false);
+    await fetchEntries();
+    if (audioInputRef.current) audioInputRef.current.value = "";
+  };
+
   // Script dialog helpers
   const checkDuplicate = async (titulo: string) => {
     setCheckingDuplicate(true);
@@ -378,10 +427,11 @@ export default function BancoInformacoes() {
       </div>
 
       <Tabs value={mainTab} onValueChange={setMainTab}>
-        <TabsList className={`grid w-full max-w-xl ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        <TabsList className={`grid w-full max-w-2xl ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
           <TabsTrigger value="base">Base</TabsTrigger>
           {isAdmin && <TabsTrigger value="importar">SOS Uberlândia</TabsTrigger>}
           <TabsTrigger value="instagram">Instagram</TabsTrigger>
+          <TabsTrigger value="audios" className="gap-1"><Mic size={12} /> Áudios</TabsTrigger>
           <TabsTrigger value="upload">Upload</TabsTrigger>
         </TabsList>
 
@@ -540,69 +590,161 @@ export default function BancoInformacoes() {
           </div>
         </TabsContent>
 
-        {/* ─── TAB: UPLOAD ─── */}
-        <TabsContent value="upload" className="space-y-4">
+        {/* ─── TAB: ÁUDIOS ─── */}
+        <TabsContent value="audios" className="space-y-4">
+          {/* Upload section */}
           <div className="bg-card rounded-xl p-6 border border-border space-y-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Upload size={20} /> Upload de Arquivos</h2>
-            <p className="text-sm text-muted-foreground">Envie PDF, DOCX, CSV, imagens ou <strong>áudios</strong> para extração automática de conteúdo.</p>
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1"><FileText size={12} /> PDF/DOCX: extrai texto</span>
-              <span className="inline-flex items-center gap-1"><FileSpreadsheet size={12} /> CSV: importa linhas</span>
-              <span className="inline-flex items-center gap-1"><Image size={12} /> Imagens: OCR</span>
-              <span className="inline-flex items-center gap-1"><Mic size={12} /> Áudios: transcrição + download</span>
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <FileAudio size={20} /> Banco de Áudios
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Envie áudios de referência para os operadores baixarem e encaminharem ao solicitante via WhatsApp.
+              A IA transcreve automaticamente cada áudio, e o arquivo original fica disponível para download.
+            </p>
+
+            <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-2">
+              <p className="text-xs font-medium text-foreground">📌 Como funciona:</p>
+              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Clique em <strong>"Enviar Áudios"</strong> e selecione os arquivos (MP3, WAV, M4A, OGG, etc.)</li>
+                <li>A IA transcreve o conteúdo automaticamente</li>
+                <li>O áudio original fica salvo para download</li>
+                <li>Use <strong>"Baixar"</strong> para salvar no celular/PC, depois envie pelo WhatsApp</li>
+                <li>Ou clique <strong>"Enviar via WhatsApp"</strong> para compartilhar o link diretamente</li>
+              </ol>
             </div>
-            <input ref={fileInputRef} type="file" multiple accept=".pdf,.docx,.doc,.csv,.jpg,.jpeg,.png,.webp,.mp3,.wav,.m4a,.ogg,.webm,.aac,.mp4" onChange={handleFileUpload} className="hidden" />
-            <Button onClick={() => fileInputRef.current?.click()} disabled={uploadingFile}>
-              {uploadingFile ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Upload size={16} className="mr-1" />}
-              {uploadingFile ? "Processando..." : "Selecionar Arquivos"}
-            </Button>
+
+            <div className="flex gap-2 flex-wrap">
+              <input
+                ref={audioInputRef}
+                type="file"
+                multiple
+                accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.mpeg"
+                onChange={handleAudioUpload}
+                className="hidden"
+              />
+              <Button onClick={() => audioInputRef.current?.click()} disabled={uploadingAudio} className="gap-2">
+                {uploadingAudio ? <Loader2 size={16} className="animate-spin" /> : <Mic size={16} />}
+                {uploadingAudio ? "Processando áudios..." : "Enviar Áudios"}
+              </Button>
+            </div>
           </div>
 
-          {/* Audio entries from base */}
+          {/* Audio listing */}
           <div className="bg-card rounded-xl p-6 border border-border space-y-4">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2"><FileAudio size={16} /> Áudios na Base</h3>
-            <p className="text-xs text-muted-foreground">Áudios enviados ficam disponíveis para download e envio via WhatsApp.</p>
-            <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Mic size={16} /> Áudios Disponíveis ({entries.filter(e => e.categoria === "Áudio").length})
+              </h3>
+            </div>
+
+            <div className="space-y-3">
               {entries.filter(e => e.categoria === "Áudio").length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Mic size={32} className="mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Nenhum áudio cadastrado ainda.</p>
-                  <p className="text-xs mt-1">Envie áudios acima para transcrever e disponibilizar para os operadores.</p>
+                <div className="text-center py-10 text-muted-foreground">
+                  <FileAudio size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium">Nenhum áudio cadastrado ainda</p>
+                  <p className="text-xs mt-1">Clique em "Enviar Áudios" acima para começar.</p>
                 </div>
               ) : entries.filter(e => e.categoria === "Áudio").map(entry => (
-                <div key={entry.id} className="bg-muted/30 rounded-lg p-3 border border-border">
-                  <div className="flex items-start justify-between gap-2">
+                <div key={entry.id} className="bg-muted/30 rounded-xl p-4 border border-border hover:border-primary/30 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-foreground">{entry.titulo}</h4>
-                      {entry.descricao && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{entry.descricao}</p>}
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <span className="text-[10px] text-muted-foreground"><Clock size={10} className="inline mr-0.5" />{new Date(entry.created_at).toLocaleDateString("pt-BR")}</span>
+                      <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                        <FileAudio size={14} className="text-primary flex-shrink-0" />
+                        {entry.titulo.replace("🎤 ", "")}
+                      </h4>
+
+                      {/* Inline audio player */}
+                      {entry.link && (
+                        <audio controls preload="none" className="w-full mt-2 h-8 rounded" style={{ maxWidth: 400 }}>
+                          <source src={entry.link} />
+                        </audio>
+                      )}
+
+                      {/* Transcription */}
+                      {entry.descricao && (
+                        <details className="mt-2">
+                          <summary className="text-[10px] text-primary cursor-pointer hover:underline">Ver transcrição</summary>
+                          <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap bg-background/50 p-2 rounded border border-border max-h-32 overflow-y-auto">
+                            {entry.descricao}
+                          </p>
+                        </details>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 mt-3 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground">
+                          <Clock size={10} className="inline mr-0.5" />
+                          {new Date(entry.created_at).toLocaleDateString("pt-BR")}
+                        </span>
                         {entry.link && (
                           <>
-                            <a href={entry.link} download target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                              <Download size={10} /> Baixar áudio
+                            <a
+                              href={entry.link}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+                            >
+                              <Download size={12} /> Baixar
                             </a>
                             <button
                               onClick={() => {
-                                const waText = encodeURIComponent(entry.link!);
+                                const waText = encodeURIComponent(`Áudio de referência: ${entry.link}`);
                                 window.open(`https://wa.me/?text=${waText}`, "_blank");
                               }}
-                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors"
+                              className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors font-medium"
                             >
-                              <MessageSquare size={10} /> Enviar via WhatsApp
+                              <MessageSquare size={12} /> Enviar via WhatsApp
                             </button>
                           </>
                         )}
-                        <button onClick={() => openDialog(entry)} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors">
-                          <Sparkles size={10} /> Criar script
+                        <button
+                          onClick={() => {
+                            if (entry.descricao) {
+                              navigator.clipboard.writeText(entry.descricao);
+                              toast({ title: "Transcrição copiada!" });
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-lg bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+                        >
+                          📋 Copiar texto
+                        </button>
+                        <button
+                          onClick={() => openDialog(entry)}
+                          className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-lg bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+                        >
+                          <Sparkles size={12} /> Criar script
                         </button>
                       </div>
                     </div>
-                    {isAdmin && <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>}
+                    {isAdmin && (
+                      <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        </TabsContent>
+
+        {/* ─── TAB: UPLOAD ─── */}
+        <TabsContent value="upload" className="space-y-4">
+          <div className="bg-card rounded-xl p-6 border border-border space-y-4">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Upload size={20} /> Upload de Arquivos</h2>
+            <p className="text-sm text-muted-foreground">Envie PDF, DOCX, CSV ou imagens para extração automática de conteúdo textual.</p>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><FileText size={12} /> PDF/DOCX: extrai texto</span>
+              <span className="inline-flex items-center gap-1"><FileSpreadsheet size={12} /> CSV: importa linhas</span>
+              <span className="inline-flex items-center gap-1"><Image size={12} /> Imagens: OCR</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">💡 Para áudios, use a aba <strong>"Áudios"</strong> dedicada.</p>
+            <input ref={fileInputRef} type="file" multiple accept=".pdf,.docx,.doc,.csv,.jpg,.jpeg,.png,.webp" onChange={handleFileUpload} className="hidden" />
+            <Button onClick={() => fileInputRef.current?.click()} disabled={uploadingFile}>
+              {uploadingFile ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Upload size={16} className="mr-1" />}
+              {uploadingFile ? "Processando..." : "Selecionar Arquivos"}
+            </Button>
           </div>
         </TabsContent>
       </Tabs>

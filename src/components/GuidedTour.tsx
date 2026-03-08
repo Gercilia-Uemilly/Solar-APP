@@ -15,47 +15,72 @@ const tourSteps: TourStep[] = [
   {
     title: "Bem-vindo ao Solar! ☀️",
     description:
-      "Este é o Sistema de Gerenciamento de Mandato. Vamos fazer um tour rápido pelas principais funcionalidades.",
+      "Este é o Sistema de Gerenciamento de Mandato. Vamos fazer um tour completo, passo a passo, mostrando onde clicar e como usar cada funcionalidade. Use as setas ← → ou clique em Próximo.",
   },
   {
-    title: "📊 Painel / Dashboard",
+    title: "📊 Painel (Dashboard)",
     description:
-      "No Painel você encontra um resumo de todos os ofícios, gráficos por operador e bairro, e atalhos rápidos para as principais ações.",
+      "Esta é a tela inicial ao fazer login. Aqui você vê:\n\n• Resumo geral: total de ofícios, pendentes, em andamento e concluídos\n• Gráficos por operador e por bairro\n• Ranking dos bairros com mais demandas\n• Atalhos rápidos para as principais páginas\n\n👉 Clique em \"Painel\" no menu lateral esquerdo para voltar a esta tela a qualquer momento.",
   },
   {
-    title: "📝 Novo Ofício",
+    title: "📝 Criar um Novo Ofício (1/3)",
     description:
-      "Crie ofícios rapidamente. Preencha os dados da demanda, use a IA para gerar o texto automaticamente, visualize e exporte em Word ou PDF.",
+      "Para criar um ofício:\n\n1. Clique em \"Novo Ofício\" no menu lateral\n2. Clique no botão azul \"+ Novo Ofício\" no topo da página\n3. Na aba \"Dados\", preencha: tipo de serviço, assunto, destinatário, bairro e solicitante\n4. A secretaria é preenchida automaticamente conforme o tipo de serviço selecionado\n\n💡 Enquanto preenche, sugestões de ofícios similares aparecem automaticamente.",
+  },
+  {
+    title: "📝 Texto e Mídias (2/3)",
+    description:
+      "Na aba \"Texto\" do ofício:\n\n1. Escreva ou cole a descrição da demanda\n2. Ou arraste/clique em \"Anexar Mídias\" para enviar fotos, áudios ou vídeos\n3. A IA transcreve áudios e extrai texto de imagens automaticamente\n4. Clique \"Inserir tudo na descrição\" para adicionar o conteúdo extraído\n5. Clique no botão \"✨ Gerar Ofício com IA\" para criar o texto formal\n\n🎤 Áudios enviados aqui ficam disponíveis para download — use os botões \"Baixar\" e \"WhatsApp\" para encaminhar ao solicitante.",
+  },
+  {
+    title: "📝 Visualizar e Exportar (3/3)",
+    description:
+      "Na aba \"Visualizar\":\n\n1. Veja a prévia do ofício formatado com cabeçalho oficial\n2. Use a barra de formatação para ajustar tamanho da fonte, margens e espaçamento\n3. Clique \"📥 Word\" para exportar como documento editável\n4. Clique \"📄 PDF\" para gerar o PDF final\n5. Clique \"☁️ Drive\" para enviar direto ao Google Drive\n\nNa aba \"Status\", altere o status do ofício e veja/edite a resposta ao cidadão.",
   },
   {
     title: "📂 Todos os Ofícios",
     description:
-      "Consulte, filtre e gerencie todos os ofícios já criados. Você pode buscar por assunto, status, operador ou período. Também é possível exportar e enviar ao Google Drive.",
+      "Para consultar ofícios já criados:\n\n1. Clique em \"Todos os Ofícios\" no menu lateral\n2. Use a barra de busca para pesquisar por assunto, destinatário ou número\n3. Filtre por status (Rascunho, Gerado, Enviado, etc.)\n4. Filtre por operador ou período de datas\n5. Clique no ícone 👁️ para visualizar, 📥 para exportar ou 🗑️ para excluir\n\n💡 Administradores podem ver ofícios de todos os operadores.",
   },
   {
-    title: "💬 Respostas",
+    title: "💬 Respostas ao Cidadão",
     description:
-      "Gere respostas empáticas para os cidadãos com apoio da IA. Basta preencher os dados da demanda e clicar em gerar — a resposta fica pronta para copiar ou enviar via WhatsApp.",
+      "Para gerar uma resposta empática ao cidadão:\n\n1. Clique em \"Respostas\" no menu lateral\n2. Preencha: nome do solicitante, assunto, descrição da demanda\n3. Selecione secretaria, tipo de demanda e urgência\n4. Anexe fotos ou áudios se necessário\n5. Clique \"✨ Gerar Resposta\" — a IA cria um texto acolhedor e profissional\n6. Use \"📋 Copiar\" ou \"📱 WhatsApp\" para enviar a resposta",
   },
   {
-    title: "📋 Scripts",
+    title: "📋 Scripts de Atendimento",
     description:
-      "Salve modelos de texto prontos para atendimento. Organize por categoria, favorite os mais usados e encontre rapidamente com a busca.",
+      "Para gerenciar modelos de texto prontos:\n\n1. Clique em \"Scripts\" no menu lateral\n2. Pesquise por título ou filtre por categoria\n3. Clique no ícone 📋 ao lado de qualquer script para copiar o texto\n4. Use a ⭐ para favoritar os scripts mais usados\n5. Clique \"+ Novo Script\" para criar um novo modelo\n\n💡 Scripts são usados pela IA como referência ao gerar respostas.",
+  },
+  {
+    title: "🎤 Banco de Áudios",
+    description:
+      "Para gerenciar áudios de referência:\n\n1. Clique em \"Banco de Info\" no menu lateral\n2. Acesse a aba \"🎤 Áudios\"\n3. Clique \"Enviar Áudios\" para fazer upload (MP3, WAV, M4A, etc.)\n4. A IA transcreve o áudio automaticamente\n5. Para cada áudio você pode:\n   • ▶️ Ouvir direto no player\n   • 📥 Baixar o arquivo original\n   • 📱 Enviar o link via WhatsApp\n   • 📋 Copiar a transcrição\n   • ✨ Criar script a partir do conteúdo\n\n💡 Os áudios ficam em formato compatível com WhatsApp Web e celular.",
   },
   {
     title: "📚 Banco de Informações",
     description:
-      "Importe notícias, dados do Instagram e arquivos (PDF, DOCX, imagens) para alimentar a base de conhecimento. A IA usa essa base para gerar ofícios e respostas mais precisos.",
+      "Para alimentar a base de conhecimento da IA:\n\n1. Aba \"Base\": pesquise e filtre todas as entradas cadastradas\n2. Aba \"SOS Uberlândia\" (admin): importe notícias automaticamente\n3. Aba \"Instagram\": importe posts do Instagram por URL\n4. Aba \"Upload\": envie PDF, DOCX, CSV ou imagens para extração de texto\n\n⭐ Marque entradas como \"Modelo\" para priorizar na geração de respostas.\n💡 A IA consulta toda esta base ao gerar ofícios e respostas.",
+  },
+  {
+    title: "👥 Operadores (Admin)",
+    description:
+      "Para gerenciar os operadores do sistema (apenas administradores):\n\n1. Clique em \"Operadores\" no menu lateral\n2. Para convidar: clique \"+ Convidar Operador\" e preencha e-mail e nome\n3. Para ativar/desativar: use o botão ao lado do nome do operador\n4. Para promover a admin: clique no ícone de escudo\n\n⚠️ Apenas administradores veem esta opção no menu.",
   },
   {
     title: "⚙️ Configurações",
     description:
-      "Atualize seu perfil, telefones de contato e aparência do sistema. Administradores também podem autorizar o Google Drive aqui.",
+      "Para ajustar seu perfil e preferências:\n\n1. Clique em \"Configurações\" no menu lateral\n2. Atualize seu nome e foto de perfil\n3. Configure até 3 números de telefone (aparecem nas opções do ofício)\n4. Alterne entre tema claro e escuro\n5. Administradores podem autorizar o Google Drive aqui",
   },
   {
-    title: "🎉 Pronto!",
+    title: "📞 Suporte",
     description:
-      "Agora você já conhece as principais funcionalidades. Clique no botão de ajuda (?) na barra lateral sempre que quiser rever este tutorial. Bom trabalho!",
+      "Precisa de ajuda?\n\n1. Clique no botão \"🎧 Suporte\" na parte inferior do menu lateral\n2. Escolha entre:\n   • 💬 Chat via WhatsApp — para resposta rápida\n   • ✉️ Formulário de e-mail — descreva seu problema ou sugestão\n\nSuas mensagens ficam registradas e serão respondidas o mais breve possível.",
+  },
+  {
+    title: "🎉 Tutorial Completo!",
+    description:
+      "Agora você conhece todas as funcionalidades do Solar!\n\nResumo rápido:\n• Painel → visão geral\n• Novo Ofício → criar ofícios com IA\n• Todos os Ofícios → consultar e exportar\n• Respostas → gerar textos para cidadãos\n• Scripts → modelos prontos\n• Áudios → banco de áudios para WhatsApp\n• Banco de Info → alimentar a IA\n\n👉 Clique em \"Tutorial\" no menu lateral sempre que precisar rever.",
   },
 ];
 
@@ -154,15 +179,15 @@ export default function GuidedTour({ open, onClose }: GuidedTourProps) {
                 {current.title}
               </motion.h2>
 
-              <motion.p
+              <motion.div
                 key={`desc-${step}`}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.05 }}
-                className="text-sm text-muted-foreground leading-relaxed"
+                className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line max-h-[50vh] overflow-y-auto pr-1"
               >
                 {current.description}
-              </motion.p>
+              </motion.div>
             </div>
 
             {/* Footer */}
