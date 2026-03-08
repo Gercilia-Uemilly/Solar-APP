@@ -853,6 +853,7 @@ export default function BancoInformacoes() {
                     <Button size="sm" onClick={saveInstaPreview} disabled={!instaPreview?.titulo?.trim() || !instaPreview?.descricao?.trim()}>Salvar na Base</Button>
                   </div>
                 </div>
+                </>
               )}
               <div className="grid gap-3 md:grid-cols-2">
                 {entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length === 0 ? (
