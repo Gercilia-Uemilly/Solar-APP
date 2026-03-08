@@ -313,6 +313,53 @@ export default function BancoInformacoes() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // Dedicated audio upload handler
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingAudio(true);
+
+    for (const file of Array.from(files)) {
+      try {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "mp3";
+
+        // Transcribe
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("type", file.type.startsWith("video") ? "video" : "audio");
+        const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
+        if (error) throw error;
+        const extractedText = data.text || "";
+
+        // Upload original to storage
+        const storagePath = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, file);
+        let audioUrl: string | undefined;
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath);
+          audioUrl = urlData.publicUrl;
+        }
+
+        const entry = {
+          titulo: `🎤 ${file.name.replace(/\.[^.]+$/, "")}`,
+          descricao: extractedText.substring(0, 2000),
+          fonte: "Upload",
+          categoria: "Áudio",
+          link: audioUrl || null,
+          modelo: true,
+        };
+        await supabase.from("base_conhecimento" as any).insert(entry);
+        toast({ title: `Áudio "${file.name}" salvo!`, description: audioUrl ? "Disponível para download e WhatsApp." : "Transcrição salva." });
+      } catch (err: any) {
+        toast({ title: `Erro em "${file.name}"`, description: err.message, variant: "destructive" });
+      }
+    }
+
+    setUploadingAudio(false);
+    await fetchEntries();
+    if (audioInputRef.current) audioInputRef.current.value = "";
+  };
+
   // Script dialog helpers
   const checkDuplicate = async (titulo: string) => {
     setCheckingDuplicate(true);
