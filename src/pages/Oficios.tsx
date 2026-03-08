@@ -113,7 +113,7 @@ export default function Oficios() {
   // Multi-file processing state
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [processingQueue, setProcessingQueue] = useState<{ file: File; type: string; status: "pending" | "processing" | "done" | "error"; text?: string }[]>([]);
-  const [processedResults, setProcessedResults] = useState<{ type: string; text: string; fileName: string }[]>([]);
+  const [processedResults, setProcessedResults] = useState<{ type: string; text: string; fileName: string; storageUrl?: string }[]>([]);
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
   // Edit state
@@ -484,7 +484,7 @@ export default function Oficios() {
     const queue = fileArray.map(f => ({ file: f, type: getFileMediaType(f), status: "pending" as const, text: undefined as string | undefined }));
     setProcessingQueue(queue);
     setIsProcessingFiles(true);
-    const results: { type: string; text: string; fileName: string }[] = [];
+    const results: { type: string; text: string; fileName: string; storageUrl?: string }[] = [];
     const processFile = async (idx: number) => {
       const item = queue[idx];
       setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "processing" } : p));
@@ -495,7 +495,20 @@ export default function Oficios() {
         const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
         if (error) throw error;
         const text = data.text || "";
-        results.push({ type: item.type, text, fileName: item.file.name });
+
+        // Upload audio/video to storage for later download
+        let storageUrl: string | undefined;
+        if (item.type === "audio" || item.type === "video") {
+          const ext = item.file.name.split(".").pop() || "mp3";
+          const path = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: upErr } = await supabase.storage.from("midias").upload(path, item.file);
+          if (!upErr) {
+            const { data: urlData } = supabase.storage.from("midias").getPublicUrl(path);
+            storageUrl = urlData.publicUrl;
+          }
+        }
+
+        results.push({ type: item.type, text, fileName: item.file.name, storageUrl });
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
         if (item.type === "image") setAnexoImages(prev => [...prev, item.file]);
       } catch (err: any) {
@@ -931,9 +944,33 @@ export default function Oficios() {
                   </div>
                   {processedResults.map((r, i) => (
                     <div key={i} className="bg-background/50 p-2 rounded border border-border">
-                      <span className="text-[10px] font-medium text-muted-foreground">
-                        {r.type === "image" ? "📷" : r.type === "video" ? "🎬" : "🎤"} {r.fileName}
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          {r.type === "image" ? "📷" : r.type === "video" ? "🎬" : "🎤"} {r.fileName}
+                        </span>
+                        {r.storageUrl && (
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={r.storageUrl}
+                              download={r.fileName}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            >
+                              <Download size={10} /> Baixar
+                            </a>
+                            <button
+                              onClick={() => {
+                                const waText = encodeURIComponent(r.storageUrl!);
+                                window.open(`https://wa.me/?text=${waText}`, "_blank");
+                              }}
+                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors"
+                            >
+                              <MessageSquare size={10} /> WhatsApp
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <div className="max-h-[80px] overflow-y-auto text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
                         {r.text.slice(0, 300)}{r.text.length > 300 ? "…" : ""}
                       </div>
