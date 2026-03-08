@@ -66,6 +66,28 @@ export default function UserAvatar({
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+
+  // Resolve avatar URL: if it's a storage path (not a full URL), generate a signed URL
+  useEffect(() => {
+    if (!avatarUrl) {
+      setResolvedUrl(null);
+      return;
+    }
+    // If it's already a full URL (old format or signed URL passed from upload), use directly
+    if (avatarUrl.startsWith("http")) {
+      setResolvedUrl(avatarUrl);
+      return;
+    }
+    // It's a storage path — create signed URL
+    const getSignedUrl = async () => {
+      const { data, error } = await supabase.storage.from("avatars").createSignedUrl(avatarUrl, 60 * 60); // 1 hour
+      if (!error && data?.signedUrl) {
+        setResolvedUrl(data.signedUrl);
+      }
+    };
+    getSignedUrl();
+  }, [avatarUrl]);
 
   const handleUpload = async (file: File) => {
     if (!userId) return;
