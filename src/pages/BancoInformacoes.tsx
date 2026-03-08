@@ -256,6 +256,37 @@ export default function BancoInformacoes() {
           const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
           if (error) throw error;
           extractedText = data.text || "";
+        } else if (["mp3", "wav", "m4a", "ogg", "webm", "aac", "mp4", "mpeg"].includes(ext)) {
+          // Transcribe audio via process-file
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("type", file.type.startsWith("video") ? "video" : "audio");
+          const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
+          if (error) throw error;
+          extractedText = data.text || "";
+
+          // Also upload original file to storage
+          const storagePath = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, file);
+          let audioUrl: string | undefined;
+          if (!upErr) {
+            const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath);
+            audioUrl = urlData.publicUrl;
+          }
+
+          // Save with link to audio file
+          const titulo = `🎤 Áudio: ${file.name}`;
+          const entry = {
+            titulo,
+            descricao: extractedText.substring(0, 2000),
+            fonte: "Upload",
+            categoria: "Áudio",
+            link: audioUrl || null,
+            modelo: true, // mark as modelo so it's prioritized for scripts
+          };
+          await supabase.from("base_conhecimento" as any).insert(entry);
+          toast({ title: `Áudio "${file.name}" transcrito!`, description: `Transcrição salva na base. ${audioUrl ? "Link do áudio disponível." : ""}` });
+          continue; // skip default text insertion below
         }
 
         if (extractedText) {
