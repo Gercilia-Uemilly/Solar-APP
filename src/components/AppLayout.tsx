@@ -7,12 +7,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import UserAvatar from "@/components/UserAvatar";
 import GuidedTour from "@/components/GuidedTour";
+import SupportDrawer from "@/components/SupportDrawer";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -66,12 +68,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               transition={{ duration: 0.2, ease: "easeInOut" }}
               className="fixed left-0 top-0 bottom-0 z-50"
             >
-              <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} onOpenTour={() => setTourOpen(true)} />
+              <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} onOpenTour={() => setTourOpen(true)} onOpenSupport={() => setSupportOpen(true)} />
             </motion.div>
           )}
         </AnimatePresence>
       ) : (
-        <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} onOpenTour={() => setTourOpen(true)} />
+        <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} onOpenTour={() => setTourOpen(true)} onOpenSupport={() => setSupportOpen(true)} />
       )}
 
       <div className="flex-1 flex flex-col" style={{ marginLeft: sidebarWidth }}>
@@ -116,6 +118,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Guided Tour */}
       <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
+      {/* Support Drawer */}
+      <SupportDrawer open={supportOpen} onClose={() => setSupportOpen(false)} />
     </div>
   );
 }
