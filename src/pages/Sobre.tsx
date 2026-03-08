@@ -1,8 +1,10 @@
-import { Headphones, Library, FileText, Search, MessageSquare, BarChart3, Newspaper, Shield, Sun, Database, Users, Zap } from "lucide-react";
+import { Headphones, Library, FileText, Search, MessageSquare, BarChart3, Newspaper, Shield, Database, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import logoSolar from "@/assets/logo-solar.png";
-import logoSolarLabs from "@/assets/logo-solar-labs.png";
+import solarLabsIcon from "@/assets/solar-labs-icon.png";
+import solarLabsHorizontal from "@/assets/solar-labs-horizontal.png";
+import solarLabsDark from "@/assets/solar-labs-dark-bg.png";
 
 const features = [
   { icon: Headphones, title: "Arquivamento de Falas", desc: "Armazene e organize áudios de posicionamentos, reuniões e falas do vereador com transcrição automática por IA." },
@@ -96,17 +98,44 @@ export default function Sobre() {
       <Separator />
 
       {/* Desenvolvido por */}
-      <div className="text-center space-y-4">
-        <h2 className="text-xl font-semibold text-foreground">Desenvolvido por</h2>
-        <div className="flex flex-col items-center gap-3">
-          <img src={logoSolarLabs} alt="Solar Labs" className="w-16 h-16 rounded-xl object-contain" />
-          <div>
-            <p className="text-base font-semibold text-foreground">Solar Labs</p>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed mt-1">
-              Empresa especializada em desenvolvimento de tecnologia para gestão pública e inteligência de mandatos.
-            </p>
-          </div>
-        </div>
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-foreground text-center">Desenvolvido por</h2>
+        <Card className="overflow-hidden">
+          <CardContent className="p-6 md:p-8 flex flex-col items-center text-center space-y-4">
+            <img src={solarLabsIcon} alt="Solar Labs" className="w-20 h-20 object-contain" />
+            <div>
+              <p className="text-lg font-bold text-foreground">Solar Labs</p>
+              <p className="text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed mt-2">
+                Empresa especializada em desenvolvimento de tecnologia para gestão pública e inteligência de mandatos. 
+                Criamos sistemas digitais que transformam a forma como gabinetes parlamentares organizam informações e atendem a população.
+              </p>
+            </div>
+            {/* Logo versions showcase */}
+            <div className="w-full pt-4 border-t border-border mt-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4">Identidade Visual</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="bg-background border border-border rounded-xl p-4 w-full flex items-center justify-center min-h-[80px]">
+                    <img src={solarLabsIcon} alt="Ícone Solar Labs" className="w-14 h-14 object-contain" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Ícone</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="bg-background border border-border rounded-xl p-4 w-full flex items-center justify-center min-h-[80px]">
+                    <img src={solarLabsHorizontal} alt="Logo Horizontal" className="h-10 object-contain" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Horizontal</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="bg-foreground rounded-xl p-4 w-full flex items-center justify-center min-h-[80px]">
+                    <img src={solarLabsDark} alt="Logo Fundo Escuro" className="h-10 object-contain" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Fundo escuro</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Footer */}
