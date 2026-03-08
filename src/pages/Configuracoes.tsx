@@ -68,10 +68,27 @@ export default function Configuracoes() {
     setSaving(false);
   };
 
-  const handleAuthorizeDrive = () => {
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    const url = `https://${projectId}.supabase.co/functions/v1/google-oauth-callback`;
-    window.open(url, "_blank", "width=600,height=700");
+  const handleAuthorizeDrive = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast({ title: "Erro", description: "Você precisa estar logado.", variant: "destructive" });
+        return;
+      }
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(`https://${projectId}.supabase.co/functions/v1/google-oauth-callback`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await resp.json();
+      if (!resp.ok) {
+        toast({ title: "Erro", description: result.error || "Falha na autorização", variant: "destructive" });
+        return;
+      }
+      window.open(result.authUrl, "_blank", "width=600,height=700");
+    } catch (e) {
+      toast({ title: "Erro", description: "Falha ao iniciar autorização Google.", variant: "destructive" });
+    }
   };
 
   return (
