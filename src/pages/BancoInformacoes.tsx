@@ -129,13 +129,26 @@ export default function BancoInformacoes() {
 
   const audioEntries = useMemo(() => {
     let result = entries.filter(e => e.categoria === "Áudio");
+    if (audioOriginFilter !== "Todas") result = result.filter(e => e.fonte === audioOriginFilter);
+    if (audioTagFilter !== "Todos") result = result.filter(e => e.palavras_chave?.includes(audioTagFilter));
     if (!audioSearch) return result;
     const s = audioSearch.toLowerCase();
     return result.filter(e =>
       e.titulo.toLowerCase().includes(s) ||
-      e.descricao?.toLowerCase().includes(s)
+      e.descricao?.toLowerCase().includes(s) ||
+      e.palavras_chave?.some(k => k.toLowerCase().includes(s))
     );
-  }, [entries, audioSearch]);
+  }, [entries, audioSearch, audioOriginFilter, audioTagFilter]);
+
+  const audioOrigins = useMemo(() => {
+    const s = new Set(entries.filter(e => e.categoria === "Áudio").map(e => e.fonte).filter(Boolean));
+    return ["Todas", ...Array.from(s)] as string[];
+  }, [entries]);
+
+  const audioTags = useMemo(() => {
+    const s = new Set(entries.filter(e => e.categoria === "Áudio").flatMap(e => e.palavras_chave || []).filter(Boolean));
+    return ["Todos", ...Array.from(s)] as string[];
+  }, [entries]);
 
   // ─── Stats ───
   const stats = useMemo(() => ({
