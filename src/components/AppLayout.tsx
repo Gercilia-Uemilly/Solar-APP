@@ -14,6 +14,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
