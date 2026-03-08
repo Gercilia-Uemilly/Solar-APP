@@ -71,7 +71,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           )}
         </AnimatePresence>
       ) : (
-        <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+        <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} onOpenTour={() => setTourOpen(true)} />
       )}
 
       <div className="flex-1 flex flex-col" style={{ marginLeft: sidebarWidth }}>
