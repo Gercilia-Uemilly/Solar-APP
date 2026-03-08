@@ -143,8 +143,8 @@ export default function UserAvatar({
   return (
     <div className={cn("relative inline-flex group", className)}>
       <Avatar className={cn(sizeMap[size], "ring-2 ring-border shadow-sm")}>
-        {avatarUrl ? (
-          <AvatarImage src={avatarUrl} alt={fullName || "Avatar"} className="object-cover" />
+        {resolvedUrl ? (
+          <AvatarImage src={resolvedUrl} alt={fullName || "Avatar"} className="object-cover" />
         ) : null}
         <AvatarFallback className={cn("font-semibold", colorClass)}>
           {uploading ? <Loader2 size={iconSizeMap[size]} className="animate-spin" /> : initials}
