@@ -114,6 +114,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         >
           {children}
         </motion.main>
+        {/* Footer */}
+        <footer className="border-t border-border px-4 py-3 text-center">
+          <p className="text-[10px] text-muted-foreground">
+            Desenvolvido por <strong className="text-foreground/70">Solar Labs</strong>
+          </p>
+        </footer>
       </div>
 
       {/* Guided Tour */}
