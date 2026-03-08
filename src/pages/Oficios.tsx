@@ -944,9 +944,33 @@ export default function Oficios() {
                   </div>
                   {processedResults.map((r, i) => (
                     <div key={i} className="bg-background/50 p-2 rounded border border-border">
-                      <span className="text-[10px] font-medium text-muted-foreground">
-                        {r.type === "image" ? "📷" : r.type === "video" ? "🎬" : "🎤"} {r.fileName}
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          {r.type === "image" ? "📷" : r.type === "video" ? "🎬" : "🎤"} {r.fileName}
+                        </span>
+                        {r.storageUrl && (
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={r.storageUrl}
+                              download={r.fileName}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            >
+                              <Download size={10} /> Baixar
+                            </a>
+                            <button
+                              onClick={() => {
+                                const waText = encodeURIComponent(r.storageUrl!);
+                                window.open(`https://wa.me/?text=${waText}`, "_blank");
+                              }}
+                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors"
+                            >
+                              <MessageSquare size={10} /> WhatsApp
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <div className="max-h-[80px] overflow-y-auto text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
                         {r.text.slice(0, 300)}{r.text.length > 300 ? "…" : ""}
                       </div>
