@@ -6,19 +6,20 @@ import { Menu, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import UserAvatar from "@/components/UserAvatar";
-import { useEffect as useEffectAvatar, useState as useStateAvatar } from "react";
+import GuidedTour from "@/components/GuidedTour";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
-  const [avatarUrl, setAvatarUrl] = useStateAvatar<string | null>(null);
-  const [profileName, setProfileName] = useStateAvatar<string | null>(null);
-  const [profileTel, setProfileTel] = useStateAvatar<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [profileTel, setProfileTel] = useState<string | null>(null);
 
-  useEffectAvatar(() => {
+  useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("avatar_url, full_name, telefone1").eq("id", user.id).single().then(({ data }: any) => {
       if (data) {
@@ -65,12 +66,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               transition={{ duration: 0.2, ease: "easeInOut" }}
               className="fixed left-0 top-0 bottom-0 z-50"
             >
-              <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
+              <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} onOpenTour={() => setTourOpen(true)} />
             </motion.div>
           )}
         </AnimatePresence>
       ) : (
-        <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+        <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} onOpenTour={() => setTourOpen(true)} />
       )}
 
       <div className="flex-1 flex flex-col" style={{ marginLeft: sidebarWidth }}>
@@ -112,6 +113,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </motion.main>
       </div>
+
+      {/* Guided Tour */}
+      <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
     </div>
   );
 }

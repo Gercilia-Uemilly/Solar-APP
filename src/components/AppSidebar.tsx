@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Database, Heart } from "lucide-react";
+import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Database, Heart, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoSolar from "@/assets/logo-solar.png";
@@ -19,9 +19,10 @@ const menuItems = [
 interface Props {
   collapsed: boolean;
   onToggle: () => void;
+  onOpenTour?: () => void;
 }
 
-export default function AppSidebar({ collapsed, onToggle }: Props) {
+export default function AppSidebar({ collapsed, onToggle, onOpenTour }: Props) {
   const location = useLocation();
   const { isAdmin } = useAuth();
 
@@ -76,8 +77,16 @@ export default function AppSidebar({ collapsed, onToggle }: Props) {
         })}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="p-2 border-t border-sidebar-border">
+      {/* Help & Collapse */}
+      <div className="p-2 border-t border-sidebar-border space-y-1">
+        <button
+          onClick={onOpenTour}
+          title="Tutorial de uso"
+          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+        >
+          <HelpCircle size={16} className="flex-shrink-0" />
+          {!collapsed && <span>Tutorial</span>}
+        </button>
         <button
           onClick={onToggle}
           className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
