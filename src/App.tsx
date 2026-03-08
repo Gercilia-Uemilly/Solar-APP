@@ -16,6 +16,7 @@ import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
 import BancoInformacoes from "./pages/BancoInformacoes";
 import Respostas from "./pages/Respostas";
+import Sobre from "./pages/Sobre";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import { ReactNode } from "react";
