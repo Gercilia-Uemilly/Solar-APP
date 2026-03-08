@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Play, Copy, Share2, Calendar, Tag, Globe, Headphones, Radio, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Settings2, Info } from "lucide-react";
+import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Copy, Share2, Calendar, Tag, Globe, Headphones, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Info, Smartphone, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -34,14 +34,35 @@ interface ExistingScript {
   categoria: string;
 }
 
-// ─── Tab config with consistent icons ───
 const TAB_CONFIG = [
-  { value: "base", label: "Base", icon: Library, description: "Todas as entradas" },
-  { value: "audios", label: "Áudios", icon: Headphones, description: "Áudios de referência" },
-  { value: "importar", label: "SOS Uberlândia", icon: Rss, description: "Notícias locais", adminOnly: true },
-  { value: "instagram", label: "Instagram", icon: InstagramIcon, description: "Posts do vereador" },
-  { value: "upload", label: "Upload", icon: UploadCloud, description: "Enviar arquivos" },
+  { value: "base", label: "Base", icon: Library, adminOnly: false },
+  { value: "audios", label: "Áudios", icon: Headphones, adminOnly: false },
+  { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: true },
+  { value: "instagram", label: "Instagram", icon: InstagramIcon, adminOnly: false },
+  { value: "upload", label: "Upload", icon: UploadCloud, adminOnly: false },
 ] as const;
+
+/** Build a smart download filename: 2026-03-04_tarifa-zero-criancas_fala-vereador.mp3 */
+function buildDownloadName(entry: KnowledgeEntry): string {
+  const date = new Date(entry.created_at).toISOString().slice(0, 10);
+  const slug = entry.titulo
+    .replace(/🎤\s*/g, "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .substring(0, 50);
+  const origem = (entry.fonte || "upload").toLowerCase().replace(/\s+/g, "-");
+  const ext = entry.link?.split(".").pop()?.split("?")[0] || "mp3";
+  return `${date}_${slug}_${origem}.${ext}`;
+}
+
+/** Build WhatsApp message */
+function buildWhatsAppMessage(entry: KnowledgeEntry): string {
+  const title = entry.titulo.replace(/🎤\s*/g, "");
+  const tags = entry.palavras_chave?.length ? `\nTemas: ${entry.palavras_chave.join(", ")}` : "";
+  return `Segue áudio sobre *${title}*${tags}\n\n${entry.link || ""}`;
+}
 
 export default function BancoInformacoes() {
   const { toast } = useToast();
@@ -56,7 +77,6 @@ export default function BancoInformacoes() {
   const [themeFilter, setThemeFilter] = useState("Todos");
   const [mainTab, setMainTab] = useState("base");
 
-  // Dialog state
   const [showDialog, setShowDialog] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -66,21 +86,21 @@ export default function BancoInformacoes() {
   const [existingScript, setExistingScript] = useState<ExistingScript | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
-  // Instagram state
   const [instaUrl, setInstaUrl] = useState("");
   const [instaImporting, setInstaImporting] = useState(false);
   const [instaFeedImporting, setInstaFeedImporting] = useState(false);
   const [instaPreview, setInstaPreview] = useState<{ titulo: string; descricao: string; data: string; imagens?: string[]; screenshot?: string } | null>(null);
   const [instaEditing, setInstaEditing] = useState(false);
 
-  // Upload state
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // Audio search
+  // Audio filters
   const [audioSearch, setAudioSearch] = useState("");
+  const [audioOriginFilter, setAudioOriginFilter] = useState("Todas");
+  const [audioTagFilter, setAudioTagFilter] = useState("Todos");
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -129,15 +149,27 @@ export default function BancoInformacoes() {
 
   const audioEntries = useMemo(() => {
     let result = entries.filter(e => e.categoria === "Áudio");
+    if (audioOriginFilter !== "Todas") result = result.filter(e => e.fonte === audioOriginFilter);
+    if (audioTagFilter !== "Todos") result = result.filter(e => e.palavras_chave?.includes(audioTagFilter));
     if (!audioSearch) return result;
     const s = audioSearch.toLowerCase();
     return result.filter(e =>
       e.titulo.toLowerCase().includes(s) ||
-      e.descricao?.toLowerCase().includes(s)
+      e.descricao?.toLowerCase().includes(s) ||
+      e.palavras_chave?.some(k => k.toLowerCase().includes(s))
     );
-  }, [entries, audioSearch]);
+  }, [entries, audioSearch, audioOriginFilter, audioTagFilter]);
 
-  // ─── Stats ───
+  const audioOrigins = useMemo(() => {
+    const s = new Set(entries.filter(e => e.categoria === "Áudio").map(e => e.fonte).filter(Boolean));
+    return ["Todas", ...Array.from(s)] as string[];
+  }, [entries]);
+
+  const audioTags = useMemo(() => {
+    const s = new Set(entries.filter(e => e.categoria === "Áudio").flatMap(e => e.palavras_chave || []).filter(Boolean));
+    return ["Todos", ...Array.from(s)] as string[];
+  }, [entries]);
+
   const stats = useMemo(() => ({
     total: entries.length,
     audios: entries.filter(e => e.categoria === "Áudio").length,
@@ -145,13 +177,13 @@ export default function BancoInformacoes() {
     modelos: entries.filter(e => e.modelo).length,
   }), [entries]);
 
-  // ─── Handlers (unchanged logic) ───
+  // ─── Handlers ───
   const handleImport = async () => {
     setImporting(true);
     try {
       const { data, error } = await supabase.functions.invoke("fetch-knowledge", { body: { action: "fetch_rss", limit: 20 } });
       if (error) throw error;
-      toast({ title: "Importação concluída!", description: `${data.saved} novas notícias importadas de ${data.total} encontradas.` });
+      toast({ title: "Importação concluída!", description: `${data.saved} novas notícias importadas.` });
       await fetchEntries();
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
@@ -163,7 +195,7 @@ export default function BancoInformacoes() {
     try {
       const { data, error } = await supabase.functions.invoke("fetch-knowledge", { body: { action: "scrape_all", limit: 100 } });
       if (error) throw error;
-      toast({ title: "Scraping concluído!", description: `${data.saved} novas notícias importadas de ${data.total} encontradas no site.` });
+      toast({ title: "Scraping concluído!", description: `${data.saved} novas notícias.` });
       await fetchEntries();
     } catch (err: any) {
       toast({ title: "Erro no scraping", description: err.message, variant: "destructive" });
@@ -191,7 +223,7 @@ export default function BancoInformacoes() {
       if (error) throw error;
       if (data.preview) { setInstaPreview(data.preview); setInstaEditing(true); }
       else if (data.saved !== undefined) {
-        toast({ title: "Posts importados!", description: `${data.saved} de ${data.total} posts salvos na base.` });
+        toast({ title: "Posts importados!", description: `${data.saved} posts salvos.` });
         await fetchEntries(); setInstaUrl("");
       }
     } catch (err: any) {
@@ -204,7 +236,7 @@ export default function BancoInformacoes() {
     try {
       const { data, error } = await supabase.functions.invoke("fetch-knowledge", { body: { action: "import_instagram", url: "https://www.instagram.com/fabaovereador/", limit: 20 } });
       if (error) throw error;
-      toast({ title: "Feed importado!", description: `${data.saved} de ${data.total} posts salvos na base.` });
+      toast({ title: "Feed importado!", description: `${data.saved} posts salvos.` });
       await fetchEntries();
     } catch (err: any) {
       toast({ title: "Erro ao importar feed", description: err.message, variant: "destructive" });
@@ -242,7 +274,7 @@ export default function BancoInformacoes() {
               headers.forEach((h, j) => { row[h] = cols[j]?.trim() || ""; });
               await supabase.from("base_conhecimento" as any).insert({ titulo: row.titulo || row.title || `Linha ${i}`, descricao: row.descricao || row.description || row.assunto || null, bairro: row.bairro || null, fonte: "Upload", categoria: "Upload CSV" });
             }
-            toast({ title: `CSV importado!`, description: `${Math.min(lines.length - 1, 99)} linhas processadas.` });
+            toast({ title: `CSV importado!`, description: `${Math.min(lines.length - 1, 99)} linhas.` });
             await fetchEntries(); continue;
           }
         } else if (["jpg", "jpeg", "png", "webp"].includes(ext)) {
@@ -274,6 +306,7 @@ export default function BancoInformacoes() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  /** Audio upload with AI auto-analysis for title, tags, and theme */
   const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -281,17 +314,54 @@ export default function BancoInformacoes() {
     for (const file of Array.from(files)) {
       try {
         const ext = file.name.split(".").pop()?.toLowerCase() || "mp3";
+
+        // 1. Transcribe
         const formData = new FormData(); formData.append("file", file);
         formData.append("type", file.type.startsWith("video") ? "video" : "audio");
         const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
         if (error) throw error;
         const extractedText = data.text || "";
+
+        // 2. Upload original to storage
         const storagePath = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, file);
         let audioUrl: string | undefined;
         if (!upErr) { const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath); audioUrl = urlData.publicUrl; }
-        await supabase.from("base_conhecimento" as any).insert({ titulo: `🎤 ${file.name.replace(/\.[^.]+$/, "")}`, descricao: extractedText.substring(0, 2000), fonte: "Upload", categoria: "Áudio", link: audioUrl || null, modelo: true });
-        toast({ title: `Áudio "${file.name}" salvo!`, description: audioUrl ? "Disponível para download e WhatsApp." : "Transcrição salva." });
+
+        // 3. AI analysis for smart title and tags
+        let aiTitle = file.name.replace(/\.[^.]+$/, "");
+        let aiTags: string[] = [];
+        let aiTema = "Geral";
+        let aiResumo = extractedText.substring(0, 200);
+
+        if (extractedText.length > 20) {
+          try {
+            const { data: analysis, error: aiErr } = await supabase.functions.invoke("analyze-audio", {
+              body: { transcription: extractedText },
+            });
+            if (!aiErr && analysis) {
+              aiTitle = analysis.titulo || aiTitle;
+              aiTags = analysis.tags || [];
+              aiTema = analysis.tema_principal || "Geral";
+              aiResumo = analysis.resumo || aiResumo;
+            }
+          } catch {
+            // AI analysis failed, use fallback
+          }
+        }
+
+        // 4. Save to knowledge base
+        await supabase.from("base_conhecimento" as any).insert({
+          titulo: aiTitle,
+          descricao: extractedText.substring(0, 2000),
+          fonte: "Upload",
+          categoria: "Áudio",
+          link: audioUrl || null,
+          modelo: true,
+          palavras_chave: aiTags.length > 0 ? aiTags : null,
+          orgao: aiTema !== "Geral" ? aiTema : null,
+        });
+        toast({ title: `Áudio salvo!`, description: `"${aiTitle}" — ${aiTags.length} tags geradas.` });
       } catch (err: any) {
         toast({ title: `Erro em "${file.name}"`, description: err.message, variant: "destructive" });
       }
@@ -342,7 +412,8 @@ export default function BancoInformacoes() {
 
   const fonteIcon = (fonte: string | null) => {
     if (fonte === "Instagram") return <InstagramIcon size={12} className="text-pink-500" />;
-    if (fonte === "Upload") return <UploadCloud size={12} className="text-blue-500" />;
+    if (fonte === "Upload") return <UploadCloud size={12} className="text-primary" />;
+    if (fonte === "WhatsApp") return <Smartphone size={12} className="text-green-600" />;
     if (fonte === "SOS Uberlândia") return <Rss size={12} className="text-orange-500" />;
     return <Library size={12} className="text-primary" />;
   };
@@ -350,15 +421,36 @@ export default function BancoInformacoes() {
   const categoriaIcon = (cat: string | null) => {
     if (cat === "Áudio") return <Headphones size={12} className="text-primary" />;
     if (cat === "Instagram") return <InstagramIcon size={12} className="text-pink-500" />;
-    if (cat?.startsWith("Upload")) return <UploadCloud size={12} className="text-blue-500" />;
+    if (cat?.startsWith("Upload")) return <UploadCloud size={12} className="text-primary" />;
     return <FileText size={12} className="text-muted-foreground" />;
   };
 
-  const visibleTabs = TAB_CONFIG.filter(t => !('adminOnly' in t) || !t.adminOnly || isAdmin);
+  const visibleTabs = TAB_CONFIG.filter(t => !t.adminOnly || isAdmin);
+
+  // ─── Smart download handler ───
+  const handleSmartDownload = async (entry: KnowledgeEntry) => {
+    if (!entry.link) return;
+    try {
+      const resp = await fetch(entry.link);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = buildDownloadName(entry);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Download iniciado!", description: buildDownloadName(entry) });
+    } catch {
+      // fallback: open in new tab
+      window.open(entry.link, "_blank");
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* ─── Header ─── */}
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -371,13 +463,11 @@ export default function BancoInformacoes() {
         </Button>
       </div>
 
-      {/* ─── Stats Cards ─── */}
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMainTab("base")}>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10">
-              <Library size={20} className="text-primary" />
-            </div>
+            <div className="p-2.5 rounded-xl bg-primary/10"><Library size={20} className="text-primary" /></div>
             <div>
               <p className="text-2xl font-bold text-foreground leading-none">{stats.total}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Total na base</p>
@@ -386,9 +476,7 @@ export default function BancoInformacoes() {
         </Card>
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMainTab("audios")}>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-accent">
-              <Headphones size={20} className="text-primary" />
-            </div>
+            <div className="p-2.5 rounded-xl bg-accent"><Headphones size={20} className="text-primary" /></div>
             <div>
               <p className="text-2xl font-bold text-foreground leading-none">{stats.audios}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Áudios</p>
@@ -397,9 +485,7 @@ export default function BancoInformacoes() {
         </Card>
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMainTab("instagram")}>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-pink-500/10">
-              <InstagramIcon size={20} className="text-pink-500" />
-            </div>
+            <div className="p-2.5 rounded-xl bg-pink-500/10"><InstagramIcon size={20} className="text-pink-500" /></div>
             <div>
               <p className="text-2xl font-bold text-foreground leading-none">{stats.instagram}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Instagram</p>
@@ -408,9 +494,7 @@ export default function BancoInformacoes() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-yellow-500/10">
-              <Star size={20} className="text-yellow-500" />
-            </div>
+            <div className="p-2.5 rounded-xl bg-yellow-500/10"><Star size={20} className="text-yellow-500" /></div>
             <div>
               <p className="text-2xl font-bold text-foreground leading-none">{stats.modelos}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Modelos</p>
@@ -419,7 +503,7 @@ export default function BancoInformacoes() {
         </Card>
       </div>
 
-      {/* ─── Tabs ─── */}
+      {/* Tabs */}
       <Tabs value={mainTab} onValueChange={setMainTab}>
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap gap-1">
           {visibleTabs.map(tab => (
@@ -431,7 +515,6 @@ export default function BancoInformacoes() {
 
         {/* ═══════════ TAB: BASE ═══════════ */}
         <TabsContent value="base" className="space-y-4">
-          {/* Smart search & filters */}
           <Card>
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-3 flex-wrap">
@@ -441,58 +524,35 @@ export default function BancoInformacoes() {
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Filter size={12} /> Filtros:
-                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter size={12} /> Filtros:</div>
                 <Select value={fonteFilter} onValueChange={setFonteFilter}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
-                    <Globe size={12} className="mr-1 flex-shrink-0" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fontes.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-                  </SelectContent>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><Globe size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
+                  <SelectContent>{fontes.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                 </Select>
                 <Select value={themeFilter} onValueChange={setThemeFilter}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
-                    <Tag size={12} className="mr-1 flex-shrink-0" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {themes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><Tag size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
+                  <SelectContent>{themes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                 </Select>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger className="w-[120px] h-8 text-xs">
-                    <Calendar size={12} className="mr-1 flex-shrink-0" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dateOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                  </SelectContent>
+                  <SelectTrigger className="w-[120px] h-8 text-xs"><Calendar size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
+                  <SelectContent>{dateOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                 </Select>
                 {(fonteFilter !== "Todas" || themeFilter !== "Todos" || dateFilter !== "Todas") && (
-                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setFonteFilter("Todas"); setThemeFilter("Todos"); setDateFilter("Todas"); }}>
-                    Limpar filtros
-                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setFonteFilter("Todas"); setThemeFilter("Todos"); setDateFilter("Todas"); }}>Limpar</Button>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{filtered.length} resultado(s)</p>
             </CardContent>
           </Card>
 
-          {/* Entry cards */}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {loading ? (
               <div className="col-span-full text-center py-12 text-muted-foreground">
-                <Loader2 size={32} className="mx-auto mb-3 animate-spin opacity-40" />
-                <p>Carregando base...</p>
+                <Loader2 size={32} className="mx-auto mb-3 animate-spin opacity-40" /><p>Carregando...</p>
               </div>
             ) : filtered.length === 0 ? (
               <div className="col-span-full text-center py-12 text-muted-foreground">
-                <Library size={48} className="mx-auto mb-3 opacity-30" />
-                <p className="font-medium">Nenhuma entrada encontrada</p>
-                <p className="text-xs mt-1">Tente ajustar os filtros ou importar dados.</p>
+                <Library size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhuma entrada encontrada</p>
               </div>
             ) : filtered.map(entry => (
               <Card key={entry.id} className={`group hover:shadow-md transition-all ${entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
@@ -504,9 +564,7 @@ export default function BancoInformacoes() {
                     </div>
                     {entry.modelo && <Badge variant="default" className="text-[9px] px-1.5 flex-shrink-0">Modelo</Badge>}
                   </div>
-
                   {entry.descricao && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{entry.descricao}</p>}
-
                   <div className="flex flex-wrap items-center gap-1.5 mt-3">
                     <span className="inline-flex items-center gap-1 text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-full">
                       {fonteIcon(entry.fonte)} {entry.fonte || "—"}
@@ -515,26 +573,19 @@ export default function BancoInformacoes() {
                     {entry.bairro && <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><MapPin size={10} /> {entry.bairro}</span>}
                     {entry.data_publicacao && <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Clock size={10} /> {new Date(entry.data_publicacao).toLocaleDateString("pt-BR")}</span>}
                   </div>
-
                   {entry.palavras_chave && entry.palavras_chave.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {entry.palavras_chave.slice(0, 4).map((kw, i) => <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0">{kw}</Badge>)}
                       {entry.palavras_chave.length > 4 && <Badge variant="outline" className="text-[9px] px-1.5 py-0">+{entry.palavras_chave.length - 4}</Badge>}
                     </div>
                   )}
-
-                  {/* Actions */}
                   <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border opacity-0 group-hover:opacity-100 transition-opacity">
                     {isAdmin && (
-                      <button onClick={() => toggleModelo(entry)} className={`p-1.5 rounded-md ${entry.modelo ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`} title={entry.modelo ? "Remover modelo" : "Marcar como modelo"}>
-                        {entry.modelo ? <Star size={14} /> : <StarOff size={14} />}
-                      </button>
+                      <button onClick={() => toggleModelo(entry)} className={`p-1.5 rounded-md ${entry.modelo ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>{entry.modelo ? <Star size={14} /> : <StarOff size={14} />}</button>
                     )}
-                    <button onClick={() => openDialog(entry)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors" title="Criar Script">
-                      <MessageSquare size={14} />
-                    </button>
+                    <button onClick={() => openDialog(entry)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"><MessageSquare size={14} /></button>
                     {entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><ExternalLink size={14} /></a>}
-                    {isAdmin && <button onClick={() => handleDelete(entry.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto" title="Excluir"><Trash2 size={14} /></button>}
+                    {isAdmin && <button onClick={() => handleDelete(entry.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto"><Trash2 size={14} /></button>}
                   </div>
                 </CardContent>
               </Card>
@@ -544,7 +595,7 @@ export default function BancoInformacoes() {
 
         {/* ═══════════ TAB: ÁUDIOS ═══════════ */}
         <TabsContent value="audios" className="space-y-4">
-          {/* Upload + instructions */}
+          {/* Upload area */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
@@ -553,79 +604,125 @@ export default function BancoInformacoes() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Envie áudios de referência. A IA transcreve automaticamente, e o operador pode baixar ou compartilhar via WhatsApp.
+                Envie áudios de referência. A IA transcreve, gera título e tags automaticamente.
               </p>
 
               <div className="bg-muted/50 rounded-lg p-4 border border-border">
-                <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5"><Info size={14} className="text-primary" /> Como usar:</p>
+                <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5"><Info size={14} className="text-primary" /> Fluxo do operador:</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0 mt-0.5">1</div>
-                    <p className="text-xs text-muted-foreground">Clique em <strong>"Enviar Áudios"</strong> e selecione MP3, WAV, M4A etc.</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0 mt-0.5">2</div>
-                    <p className="text-xs text-muted-foreground">A IA transcreve o conteúdo automaticamente</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0 mt-0.5">3</div>
-                    <p className="text-xs text-muted-foreground">Ouça pelo player, leia a transcrição e entenda o tema rapidamente</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0 mt-0.5">4</div>
-                    <p className="text-xs text-muted-foreground">Baixe o áudio ou envie via WhatsApp direto ao solicitante</p>
-                  </div>
+                  {[
+                    { n: "1", t: 'Envie áudios (MP3, WAV, M4A, OGG etc.)' },
+                    { n: "2", t: 'IA transcreve e gera título + tags automaticamente' },
+                    { n: "3", t: 'Ouça pelo player e entenda o tema rapidamente' },
+                    { n: "4", t: 'Baixe com nome inteligente ou envie via WhatsApp' },
+                  ].map(step => (
+                    <div key={step.n} className="flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0 mt-0.5">{step.n}</div>
+                      <p className="text-xs text-muted-foreground">{step.t}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <input ref={audioInputRef} type="file" multiple accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.mpeg" onChange={handleAudioUpload} className="hidden" />
                 <Button onClick={() => audioInputRef.current?.click()} disabled={uploadingAudio} className="gap-2">
                   {uploadingAudio ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
                   {uploadingAudio ? "Processando áudios..." : "Enviar Áudios"}
                 </Button>
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Monitor size={12} /> Desktop
+                  <span className="mx-1">·</span>
+                  <Smartphone size={12} /> Celular
+                  <span className="mx-1">·</span>
+                  compatível com WhatsApp
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Audio search */}
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar áudios por título ou conteúdo..." value={audioSearch} onChange={e => setAudioSearch(e.target.value)} className="pl-9" />
-          </div>
+          {/* Search & filters */}
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Buscar áudios por título, conteúdo ou tag..." value={audioSearch} onChange={e => setAudioSearch(e.target.value)} className="pl-9" />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter size={12} /> Filtros:</div>
+                <Select value={audioOriginFilter} onValueChange={setAudioOriginFilter}>
+                  <SelectTrigger className="w-[130px] h-8 text-xs"><Globe size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
+                  <SelectContent>{audioOrigins.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                </Select>
+                {audioTags.length > 1 && (
+                  <Select value={audioTagFilter} onValueChange={setAudioTagFilter}>
+                    <SelectTrigger className="w-[150px] h-8 text-xs"><Tag size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
+                    <SelectContent>{audioTags.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                  </Select>
+                )}
+                {(audioOriginFilter !== "Todas" || audioTagFilter !== "Todos") && (
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setAudioOriginFilter("Todas"); setAudioTagFilter("Todos"); }}>Limpar</Button>
+                )}
+                <span className="text-xs text-muted-foreground ml-auto">{audioEntries.length} áudio(s)</span>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Audio listing */}
+          {/* Audio cards */}
           <div className="space-y-3">
             {audioEntries.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-12 text-muted-foreground">
                   <Headphones size={48} className="mx-auto mb-3 opacity-20" />
-                  <p className="font-medium">Nenhum áudio cadastrado ainda</p>
-                  <p className="text-xs mt-1">Clique em "Enviar Áudios" para começar.</p>
+                  <p className="font-medium">Nenhum áudio encontrado</p>
+                  <p className="text-xs mt-1">Envie áudios ou ajuste os filtros.</p>
                 </CardContent>
               </Card>
             ) : audioEntries.map(entry => (
               <Card key={entry.id} className="group hover:shadow-md transition-all">
-                <CardContent className="p-4">
+                <CardContent className="p-4 md:p-5">
                   <div className="flex items-start gap-4">
-                    {/* Play icon area */}
+                    {/* Audio icon */}
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <Headphones size={24} className="text-primary" />
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-semibold text-foreground">{entry.titulo.replace("🎤 ", "")}</h4>
+                      {/* Title */}
+                      <h4 className="text-sm font-semibold text-foreground leading-tight">
+                        {entry.titulo.replace(/🎤\s*/g, "")}
+                      </h4>
 
-                      <div className="flex items-center gap-2 mt-1">
+                      {/* Meta: date, origin, theme */}
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Clock size={10} /> {new Date(entry.created_at).toLocaleDateString("pt-BR")}
                         </span>
-                        {entry.descricao && (
-                          <span className="text-[10px] text-muted-foreground">
-                            · {entry.descricao.length > 60 ? entry.descricao.substring(0, 60) + "..." : entry.descricao}
+                        <span className="inline-flex items-center gap-1 text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-full">
+                          {fonteIcon(entry.fonte)} {entry.fonte || "Upload"}
+                        </span>
+                        {entry.orgao && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {entry.orgao}
                           </span>
                         )}
                       </div>
+
+                      {/* Tags */}
+                      {entry.palavras_chave && entry.palavras_chave.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {entry.palavras_chave.map((kw, i) => (
+                            <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0">{kw}</Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Short description */}
+                      {entry.descricao && (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                          {entry.descricao}
+                        </p>
+                      )}
 
                       {/* Audio player */}
                       {entry.link && (
@@ -634,8 +731,8 @@ export default function BancoInformacoes() {
                         </audio>
                       )}
 
-                      {/* Transcription */}
-                      {entry.descricao && (
+                      {/* Full transcription */}
+                      {entry.descricao && entry.descricao.length > 100 && (
                         <details className="mt-2">
                           <summary className="text-[11px] text-primary cursor-pointer hover:underline font-medium">📝 Ver transcrição completa</summary>
                           <p className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap bg-muted/50 p-3 rounded-lg border border-border max-h-40 overflow-y-auto">
@@ -644,18 +741,19 @@ export default function BancoInformacoes() {
                         </details>
                       )}
 
-                      {/* Quick actions */}
+                      {/* Action buttons */}
                       <div className="flex items-center gap-2 mt-3 flex-wrap">
                         {entry.link && (
                           <>
-                            <a href={entry.link} download target="_blank" rel="noopener noreferrer"
+                            <button
+                              onClick={() => handleSmartDownload(entry)}
                               className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium shadow-sm"
                             >
-                              <Download size={13} /> Baixar
-                            </a>
+                              <Download size={13} /> Baixar Áudio
+                            </button>
                             <button
                               onClick={() => {
-                                const waText = encodeURIComponent(`Áudio de referência: ${entry.link}`);
+                                const waText = encodeURIComponent(buildWhatsAppMessage(entry));
                                 window.open(`https://wa.me/?text=${waText}`, "_blank");
                               }}
                               className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors font-medium shadow-sm"
@@ -694,10 +792,10 @@ export default function BancoInformacoes() {
         <TabsContent value="importar" className="space-y-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2"><Rss size={18} className="text-orange-500" /> Importar do SOS Uberlândia</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2"><Rss size={18} className="text-orange-500" /> SOS Uberlândia</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">Importe notícias automaticamente via RSS ou scraping completo do site.</p>
+              <p className="text-sm text-muted-foreground">Importe notícias via RSS ou scraping do site.</p>
               <div className="flex gap-3 flex-wrap">
                 <Button onClick={handleImport} disabled={importing || scraping} variant="outline" className="gap-2">
                   {importing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
@@ -705,10 +803,10 @@ export default function BancoInformacoes() {
                 </Button>
                 <Button onClick={handleScrapeAll} disabled={importing || scraping} className="gap-2">
                   {scraping ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
-                  {scraping ? "Buscando todas..." : "Importar Todas (Site)"}
+                  {scraping ? "Buscando..." : "Importar Todas (Site)"}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Importação automática a cada 6 horas.</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Automática a cada 6h.</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -725,11 +823,11 @@ export default function BancoInformacoes() {
                   <h3 className="text-sm font-medium text-foreground flex items-center gap-2"><UploadCloud size={14} /> Cadastrar novo post</h3>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Título do Post</label>
-                    <Input placeholder="Ex: Post sobre infraestrutura no bairro Fundinho" value={instaPreview?.titulo || ""} onChange={e => setInstaPreview(prev => ({ titulo: e.target.value, descricao: prev?.descricao || "", data: prev?.data || new Date().toISOString() }))} />
+                    <Input placeholder="Ex: Post sobre infraestrutura" value={instaPreview?.titulo || ""} onChange={e => setInstaPreview(prev => ({ titulo: e.target.value, descricao: prev?.descricao || "", data: prev?.data || new Date().toISOString() }))} />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Legenda / Conteúdo</label>
-                    <Textarea placeholder="Cole aqui a legenda do post do Instagram..." value={instaPreview?.descricao || ""} onChange={e => setInstaPreview(prev => ({ titulo: prev?.titulo || "", descricao: e.target.value, data: prev?.data || new Date().toISOString() }))} rows={5} />
+                    <Textarea placeholder="Cole a legenda do post..." value={instaPreview?.descricao || ""} onChange={e => setInstaPreview(prev => ({ titulo: prev?.titulo || "", descricao: e.target.value, data: prev?.data || new Date().toISOString() }))} rows={5} />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Link do Post (opcional)</label>
@@ -741,12 +839,10 @@ export default function BancoInformacoes() {
                   </div>
                 </div>
               )}
-
               <div className="grid gap-3 md:grid-cols-2">
                 {entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length === 0 ? (
                   <div className="col-span-full text-center py-10 text-muted-foreground">
-                    <InstagramIcon size={40} className="mx-auto mb-2 opacity-30" />
-                    <p className="text-sm font-medium">Nenhum post cadastrado ainda</p>
+                    <InstagramIcon size={40} className="mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">Nenhum post cadastrado</p>
                   </div>
                 ) : entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").map(entry => (
                   <Card key={entry.id} className="group hover:shadow-md transition-all">
@@ -774,16 +870,16 @@ export default function BancoInformacoes() {
         <TabsContent value="upload" className="space-y-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2"><UploadCloud size={18} className="text-blue-500" /> Upload de Arquivos</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2"><UploadCloud size={18} className="text-primary" /> Upload de Arquivos</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">Envie PDF, DOCX, CSV ou imagens para extração automática de conteúdo textual.</p>
+              <p className="text-sm text-muted-foreground">Envie PDF, DOCX, CSV ou imagens para extração automática.</p>
               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-lg"><FileText size={14} /> PDF/DOCX</span>
                 <span className="inline-flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-lg"><FileSpreadsheet size={14} /> CSV</span>
                 <span className="inline-flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-lg"><ImageIcon size={14} /> Imagens (OCR)</span>
               </div>
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Headphones size={12} /> Para áudios, use a aba <strong>"Áudios"</strong> dedicada.</p>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Headphones size={12} /> Para áudios, use a aba <strong>"Áudios"</strong>.</p>
               <input ref={fileInputRef} type="file" multiple accept=".pdf,.docx,.doc,.csv,.jpg,.jpeg,.png,.webp" onChange={handleFileUpload} className="hidden" />
               <Button onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="gap-2">
                 {uploadingFile ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
@@ -798,8 +894,8 @@ export default function BancoInformacoes() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2"><Sparkles size={18} /> Criar Script de Atendimento</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">Script para resposta via WhatsApp ao cidadão.</DialogDescription>
+            <DialogTitle className="text-foreground flex items-center gap-2"><Sparkles size={18} /> Criar Script</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Script para resposta via WhatsApp.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {existingScript && (
