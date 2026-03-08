@@ -66,7 +66,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               transition={{ duration: 0.2, ease: "easeInOut" }}
               className="fixed left-0 top-0 bottom-0 z-50"
             >
-              <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
+              <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} onOpenTour={() => setTourOpen(true)} />
             </motion.div>
           )}
         </AnimatePresence>
