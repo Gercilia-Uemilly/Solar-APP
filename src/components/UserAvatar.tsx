@@ -83,11 +83,14 @@ export default function UserAvatar({
       const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
       if (uploadErr) throw uploadErr;
 
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      // Use signed URL (bucket is private)
+      const { data: signedData, error: signedErr } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signedErr) throw signedErr;
+      const signedUrl = signedData.signedUrl;
 
-      await supabase.from("profiles").update({ avatar_url: publicUrl } as any).eq("id", userId);
-      onAvatarChange?.(publicUrl);
+      // Store the path (not the signed URL) so we can regenerate signed URLs later
+      await supabase.from("profiles").update({ avatar_url: path } as any).eq("id", userId);
+      onAvatarChange?.(signedUrl);
       toast({ title: "Foto atualizada!" });
     } catch (err: any) {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
