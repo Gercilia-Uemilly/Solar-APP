@@ -20,6 +20,7 @@ interface Props {
   collapsed: boolean;
   onToggle: () => void;
   onOpenTour?: () => void;
+  onOpenSupport?: () => void;
 }
 
 export default function AppSidebar({ collapsed, onToggle, onOpenTour }: Props) {
