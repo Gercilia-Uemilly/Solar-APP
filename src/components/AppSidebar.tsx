@@ -23,7 +23,7 @@ interface Props {
   onOpenSupport?: () => void;
 }
 
-export default function AppSidebar({ collapsed, onToggle, onOpenTour }: Props) {
+export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupport }: Props) {
   const location = useLocation();
   const { isAdmin } = useAuth();
 
