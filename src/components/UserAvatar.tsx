@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera, Loader2, X } from "lucide-react";
@@ -66,6 +66,28 @@ export default function UserAvatar({
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+
+  // Resolve avatar URL: if it's a storage path (not a full URL), generate a signed URL
+  useEffect(() => {
+    if (!avatarUrl) {
+      setResolvedUrl(null);
+      return;
+    }
+    // If it's already a full URL (old format or signed URL passed from upload), use directly
+    if (avatarUrl.startsWith("http")) {
+      setResolvedUrl(avatarUrl);
+      return;
+    }
+    // It's a storage path — create signed URL
+    const getSignedUrl = async () => {
+      const { data, error } = await supabase.storage.from("avatars").createSignedUrl(avatarUrl, 60 * 60); // 1 hour
+      if (!error && data?.signedUrl) {
+        setResolvedUrl(data.signedUrl);
+      }
+    };
+    getSignedUrl();
+  }, [avatarUrl]);
 
   const handleUpload = async (file: File) => {
     if (!userId) return;
@@ -83,11 +105,14 @@ export default function UserAvatar({
       const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
       if (uploadErr) throw uploadErr;
 
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      // Use signed URL (bucket is private)
+      const { data: signedData, error: signedErr } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signedErr) throw signedErr;
+      const signedUrl = signedData.signedUrl;
 
-      await supabase.from("profiles").update({ avatar_url: publicUrl } as any).eq("id", userId);
-      onAvatarChange?.(publicUrl);
+      // Store the path (not the signed URL) so we can regenerate signed URLs later
+      await supabase.from("profiles").update({ avatar_url: path } as any).eq("id", userId);
+      onAvatarChange?.(signedUrl);
       toast({ title: "Foto atualizada!" });
     } catch (err: any) {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
@@ -118,8 +143,8 @@ export default function UserAvatar({
   return (
     <div className={cn("relative inline-flex group", className)}>
       <Avatar className={cn(sizeMap[size], "ring-2 ring-border shadow-sm")}>
-        {avatarUrl ? (
-          <AvatarImage src={avatarUrl} alt={fullName || "Avatar"} className="object-cover" />
+        {resolvedUrl ? (
+          <AvatarImage src={resolvedUrl} alt={fullName || "Avatar"} className="object-cover" />
         ) : null}
         <AvatarFallback className={cn("font-semibold", colorClass)}>
           {uploading ? <Loader2 size={iconSizeMap[size]} className="animate-spin" /> : initials}

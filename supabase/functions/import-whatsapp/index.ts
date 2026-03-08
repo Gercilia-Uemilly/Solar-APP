@@ -17,10 +17,25 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Verify auth
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Não autenticado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     const token = authHeader.replace("Bearer ", "");
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) throw new Error("Não autenticado");
+
+    // Verify admin role - only admins can import into knowledge base
+    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Apenas administradores podem importar conversas." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
