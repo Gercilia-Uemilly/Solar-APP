@@ -317,12 +317,157 @@ serve(async (req) => {
     }
 
     if (action === "import_instagram") {
-      // Instagram is not supported by Firecrawl - return error with guidance
-      return new Response(
-        JSON.stringify({ 
-          error: "O Instagram não é suportado para importação automática. Use a importação manual: cole a legenda e adicione as imagens diretamente na base de conhecimento." 
+      const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+      if (!FIRECRAWL_API_KEY) {
+        throw new Error("Firecrawl não configurado. Conecte o Firecrawl nas configurações.");
+      }
+
+      const targetUrl = instaUrl || "https://www.instagram.com/fabaovereador/";
+      const isSinglePost = targetUrl.includes("/p/") || targetUrl.includes("/reel/");
+
+      if (isSinglePost) {
+        // Scrape single post
+        console.log("Scraping single Instagram post:", targetUrl);
+        const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: targetUrl,
+            formats: ["markdown"],
+            onlyMainContent: true,
+          }),
+        });
+
+        if (!scrapeResp.ok) {
+          const err = await scrapeResp.text();
+          throw new Error(`Firecrawl scrape failed: ${err}`);
+        }
+
+        const scrapeData = await scrapeResp.json();
+        const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+        const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
+
+        // Extract title and description from markdown
+        const lines = markdown.split("\n").filter((l: string) => l.trim());
+        const titulo = metadata.title || lines[0]?.replace(/^#+\s*/, "").slice(0, 120) || "Post Instagram";
+        const descricao = lines.slice(0, 10).join("\n").slice(0, 2000);
+
+        return new Response(
+          JSON.stringify({
+            preview: {
+              titulo,
+              descricao,
+              data: new Date().toISOString(),
+            },
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Scrape profile/feed page
+      console.log("Scraping Instagram profile:", targetUrl);
+      const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: targetUrl,
+          formats: ["markdown", "links"],
+          onlyMainContent: true,
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      });
+
+      if (!scrapeResp.ok) {
+        const err = await scrapeResp.text();
+        throw new Error(`Firecrawl scrape failed: ${err}`);
+      }
+
+      const scrapeData = await scrapeResp.json();
+      const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+      const allLinks: string[] = scrapeData.data?.links || scrapeData.links || [];
+
+      // Extract post links
+      const postLinks = allLinks.filter((l: string) =>
+        l.includes("instagram.com/p/") || l.includes("instagram.com/reel/")
+      );
+      const uniquePostLinks = [...new Set(postLinks)].slice(0, limit || 20);
+
+      console.log(`Found ${uniquePostLinks.length} post links from profile`);
+
+      // Try to extract post info from the markdown content
+      // Instagram markdown usually has captions and dates
+      const postBlocks = markdown.split(/\n(?=#{1,3}\s|\*\*|!\[)/).filter((b: string) => b.trim().length > 20);
+
+      let savedCount = 0;
+      const newEntries: { index: number; entry: any }[] = [];
+
+      // Save each unique post link as an entry
+      for (let i = 0; i < uniquePostLinks.length; i++) {
+        const postLink = uniquePostLinks[i];
+        const relatedBlock = postBlocks[i] || "";
+
+        // Extract a title from the block content
+        const blockLines = relatedBlock.split("\n").filter((l: string) => l.trim());
+        const titulo = blockLines[0]?.replace(/^[#*!\[\]()]+\s*/g, "").slice(0, 120) || `Post Instagram #${i + 1}`;
+        const descricao = blockLines.slice(0, 5).join("\n").replace(/^[#*!\[\]()]+\s*/g, "").slice(0, 1000) || null;
+
+        const entry = {
+          titulo,
+          descricao,
+          link: postLink,
+          fonte: "Instagram",
+          categoria: "Instagram",
+          data_publicacao: new Date().toISOString(),
+        };
+
+        const id = await saveEntry(entry, supabaseUrl, supabaseKey);
+        if (id) {
+          savedCount++;
+          newEntries.push({ index: newEntries.length, entry: { ...entry, id } });
+        }
+      }
+
+      // If no post links found, try to extract content blocks directly
+      if (uniquePostLinks.length === 0 && postBlocks.length > 0) {
+        for (let i = 0; i < Math.min(postBlocks.length, limit || 20); i++) {
+          const block = postBlocks[i];
+          const blockLines = block.split("\n").filter((l: string) => l.trim());
+          const titulo = blockLines[0]?.replace(/^[#*!\[\]()]+\s*/g, "").slice(0, 120) || `Post Instagram #${i + 1}`;
+          const descricao = blockLines.slice(0, 5).join("\n").slice(0, 1000) || null;
+
+          if (titulo.length < 5) continue;
+
+          const entry = {
+            titulo,
+            descricao,
+            link: targetUrl,
+            fonte: "Instagram",
+            categoria: "Instagram",
+            data_publicacao: new Date().toISOString(),
+          };
+
+          const id = await saveEntry(entry, supabaseUrl, supabaseKey);
+          if (id) {
+            savedCount++;
+            newEntries.push({ index: newEntries.length, entry: { ...entry, id } });
+          }
+        }
+      }
+
+      // Enrich with AI
+      if (newEntries.length > 0) {
+        console.log(`Saved ${savedCount} Instagram posts. Enriching with AI...`);
+        await enrichWithAI(newEntries, supabaseUrl, supabaseKey);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, total: uniquePostLinks.length || postBlocks.length, saved: savedCount }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

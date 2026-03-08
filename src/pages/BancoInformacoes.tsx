@@ -819,8 +819,23 @@ export default function BancoInformacoes() {
             </CardHeader>
             <CardContent className="space-y-4">
               {isAdmin && (
+                <>
+                <div className="flex flex-wrap gap-2 border border-pink-500/20 rounded-lg p-4 bg-pink-500/5">
+                  <h3 className="text-sm font-medium text-foreground flex items-center gap-2 w-full mb-2"><Rss size={14} className="text-pink-500" /> Importação automática</h3>
+                  <div className="flex-1 min-w-[200px]">
+                    <Input placeholder="Link do post ou perfil do Instagram" value={instaUrl} onChange={e => setInstaUrl(e.target.value)} />
+                  </div>
+                  <Button size="sm" onClick={handleInstagramImport} disabled={instaImporting || !instaUrl.trim()} className="gap-1.5">
+                    {instaImporting ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />}
+                    Importar Link
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleInstagramFeedImport} disabled={instaFeedImporting} className="gap-1.5">
+                    {instaFeedImporting ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    Importar Feed @fabaovereador
+                  </Button>
+                </div>
                 <div className="space-y-3 border border-primary/20 rounded-lg p-4 bg-primary/5">
-                  <h3 className="text-sm font-medium text-foreground flex items-center gap-2"><UploadCloud size={14} /> Cadastrar novo post</h3>
+                  <h3 className="text-sm font-medium text-foreground flex items-center gap-2"><UploadCloud size={14} /> Cadastrar manualmente</h3>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Título do Post</label>
                     <Input placeholder="Ex: Post sobre infraestrutura" value={instaPreview?.titulo || ""} onChange={e => setInstaPreview(prev => ({ titulo: e.target.value, descricao: prev?.descricao || "", data: prev?.data || new Date().toISOString() }))} />
@@ -838,6 +853,7 @@ export default function BancoInformacoes() {
                     <Button size="sm" onClick={saveInstaPreview} disabled={!instaPreview?.titulo?.trim() || !instaPreview?.descricao?.trim()}>Salvar na Base</Button>
                   </div>
                 </div>
+                </>
               )}
               <div className="grid gap-3 md:grid-cols-2">
                 {entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length === 0 ? (
