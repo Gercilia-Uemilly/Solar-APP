@@ -12,11 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
-  const [avatarUrl, setAvatarUrl] = useStateAvatar<string | null>(null);
-  const [profileName, setProfileName] = useStateAvatar<string | null>(null);
-  const [profileTel, setProfileTel] = useStateAvatar<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [profileTel, setProfileTel] = useState<string | null>(null);
 
   useEffectAvatar(() => {
     if (!user) return;
