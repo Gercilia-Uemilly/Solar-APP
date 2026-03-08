@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profileTel, setProfileTel] = useState<string | null>(null);
 
-  useEffectAvatar(() => {
+  useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("avatar_url, full_name, telefone1").eq("id", user.id).single().then(({ data }: any) => {
       if (data) {
