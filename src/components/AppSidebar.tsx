@@ -19,6 +19,7 @@ const menuItems = [
 interface Props {
   collapsed: boolean;
   onToggle: () => void;
+  onOpenTour?: () => void;
 }
 
 export default function AppSidebar({ collapsed, onToggle }: Props) {
