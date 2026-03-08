@@ -113,6 +113,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </motion.main>
       </div>
+
+      {/* Guided Tour */}
+      <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
     </div>
   );
 }
