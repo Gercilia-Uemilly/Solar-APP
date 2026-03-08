@@ -78,7 +78,7 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
         })}
       </nav>
 
-      {/* Help & Collapse */}
+      {/* Help, Support & Collapse */}
       <div className="p-2 border-t border-sidebar-border space-y-1">
         <button
           onClick={onOpenTour}
@@ -87,6 +87,14 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
         >
           <HelpCircle size={16} className="flex-shrink-0" />
           {!collapsed && <span>Tutorial</span>}
+        </button>
+        <button
+          onClick={onOpenSupport}
+          title="Suporte"
+          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+        >
+          <Headphones size={16} className="flex-shrink-0" />
+          {!collapsed && <span>Suporte</span>}
         </button>
         <button
           onClick={onToggle}
