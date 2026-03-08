@@ -77,8 +77,16 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour }: Props) {
         })}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="p-2 border-t border-sidebar-border">
+      {/* Help & Collapse */}
+      <div className="p-2 border-t border-sidebar-border space-y-1">
+        <button
+          onClick={onOpenTour}
+          title="Tutorial de uso"
+          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+        >
+          <HelpCircle size={16} className="flex-shrink-0" />
+          {!collapsed && <span>Tutorial</span>}
+        </button>
         <button
           onClick={onToggle}
           className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
