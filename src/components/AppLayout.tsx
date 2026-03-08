@@ -6,7 +6,7 @@ import { Menu, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import UserAvatar from "@/components/UserAvatar";
-import { useEffect as useEffectAvatar, useState as useStateAvatar } from "react";
+import GuidedTour from "@/components/GuidedTour";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
