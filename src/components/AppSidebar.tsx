@@ -10,10 +10,11 @@ const menuItems = [
   { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
   { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
   { label: "Scripts", icon: MessageSquare, path: "/scripts", adminOnly: false },
-  { label: "Banco de Info", icon: Database, path: "/banco-informacoes", adminOnly: false },
+  { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
   { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
   { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
   { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
+  { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },
 ];
 
 interface Props {
