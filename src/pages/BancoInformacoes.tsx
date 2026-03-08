@@ -63,7 +63,9 @@ export default function BancoInformacoes() {
 
   // Upload state
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const fetchEntries = async () => {
     setLoading(true);
