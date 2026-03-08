@@ -113,7 +113,7 @@ export default function Oficios() {
   // Multi-file processing state
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [processingQueue, setProcessingQueue] = useState<{ file: File; type: string; status: "pending" | "processing" | "done" | "error"; text?: string }[]>([]);
-  const [processedResults, setProcessedResults] = useState<{ type: string; text: string; fileName: string }[]>([]);
+  const [processedResults, setProcessedResults] = useState<{ type: string; text: string; fileName: string; storageUrl?: string }[]>([]);
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
   // Edit state
