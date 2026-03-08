@@ -12,12 +12,58 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
   try {
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
+    const returnedState = url.searchParams.get("state");
 
     if (!code) {
-      // No code = start OAuth flow, redirect to Google
+      // === STEP 1: Initiate OAuth — require admin auth ===
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(
+          JSON.stringify({ error: "Não autorizado. Faça login primeiro." }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const supabaseUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: userData, error: userError } = await supabaseUser.auth.getUser();
+      if (userError || !userData?.user) {
+        return new Response(
+          JSON.stringify({ error: "Token inválido." }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Check admin role
+      const { data: isAdmin } = await supabaseAdmin.rpc("is_admin", { _user_id: userData.user.id });
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ error: "Apenas administradores podem autorizar o Google Drive." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Generate CSRF state token and store it
+      const state = crypto.randomUUID();
+      await supabaseAdmin
+        .from("app_settings")
+        .upsert(
+          { key: "google_oauth_state", value: state, updated_at: new Date().toISOString() },
+          { onConflict: "key" }
+        );
+
       const clientId = Deno.env.get("GOOGLE_CLIENT_ID")!;
       const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/google-oauth-callback`;
       const scope = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets";
@@ -29,12 +75,34 @@ serve(async (req) => {
       authUrl.searchParams.set("scope", scope);
       authUrl.searchParams.set("access_type", "offline");
       authUrl.searchParams.set("prompt", "consent");
+      authUrl.searchParams.set("state", state);
 
-      return new Response(null, {
-        status: 302,
-        headers: { Location: authUrl.toString() },
-      });
+      // Return the auth URL for the frontend to open (instead of 302 redirect)
+      return new Response(
+        JSON.stringify({ authUrl: authUrl.toString() }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    // === STEP 2: Google callback with code — verify state ===
+    // Verify CSRF state
+    const { data: storedStateRow } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "google_oauth_state")
+      .single();
+
+    const storedState = (storedStateRow as any)?.value;
+
+    if (!returnedState || !storedState || returnedState !== storedState) {
+      throw new Error("Estado OAuth inválido. Possível ataque CSRF. Tente novamente.");
+    }
+
+    // Clear the used state token
+    await supabaseAdmin
+      .from("app_settings")
+      .delete()
+      .eq("key", "google_oauth_state");
 
     // Exchange code for tokens
     const clientId = Deno.env.get("GOOGLE_CLIENT_ID")!;
@@ -65,12 +133,7 @@ serve(async (req) => {
       throw new Error("No refresh_token returned. Make sure prompt=consent and access_type=offline.");
     }
 
-    // Store refresh token in app_settings table
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
+    // Store refresh token
     const { error: upsertError } = await supabaseAdmin
       .from("app_settings")
       .upsert(
@@ -82,7 +145,6 @@ serve(async (req) => {
       throw new Error(`Failed to store refresh token: ${upsertError.message}`);
     }
 
-    // Return success HTML
     const html = `<!DOCTYPE html>
 <html><head><title>Autorização concluída</title></head>
 <body style="font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f0f9ff;">
