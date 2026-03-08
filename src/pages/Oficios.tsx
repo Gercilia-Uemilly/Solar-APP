@@ -484,7 +484,7 @@ export default function Oficios() {
     const queue = fileArray.map(f => ({ file: f, type: getFileMediaType(f), status: "pending" as const, text: undefined as string | undefined }));
     setProcessingQueue(queue);
     setIsProcessingFiles(true);
-    const results: { type: string; text: string; fileName: string }[] = [];
+    const results: { type: string; text: string; fileName: string; storageUrl?: string }[] = [];
     const processFile = async (idx: number) => {
       const item = queue[idx];
       setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "processing" } : p));
@@ -495,7 +495,20 @@ export default function Oficios() {
         const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
         if (error) throw error;
         const text = data.text || "";
-        results.push({ type: item.type, text, fileName: item.file.name });
+
+        // Upload audio/video to storage for later download
+        let storageUrl: string | undefined;
+        if (item.type === "audio" || item.type === "video") {
+          const ext = item.file.name.split(".").pop() || "mp3";
+          const path = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: upErr } = await supabase.storage.from("midias").upload(path, item.file);
+          if (!upErr) {
+            const { data: urlData } = supabase.storage.from("midias").getPublicUrl(path);
+            storageUrl = urlData.publicUrl;
+          }
+        }
+
+        results.push({ type: item.type, text, fileName: item.file.name, storageUrl });
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
         if (item.type === "image") setAnexoImages(prev => [...prev, item.file]);
       } catch (err: any) {
