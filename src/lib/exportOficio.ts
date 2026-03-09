@@ -245,33 +245,17 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         }),
       },
       children: [
-        // Blank line after header
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
         // Date
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
+          spacing: { before: 120, after: 0, line: lineSpacing },
         }),
 
         // Ofício number
         new Paragraph({
           children: [new TextRun({ text: `Ofício n° ${numeroFormatado}`, font: fontName, size: fontSize, bold: true })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
+          spacing: { before: 160, after: 0, line: lineSpacing },
         }),
 
         // Destinatário
@@ -280,7 +264,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
             new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
             new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize }),
           ],
-          spacing: { before: 0, after: 0, line: lineSpacing },
+          spacing: { before: 160, after: 0, line: lineSpacing },
         }),
 
         // Assunto
@@ -292,52 +276,25 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
         // Greeting
         new Paragraph({
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
+          spacing: { before: 200, after: 100, line: lineSpacing },
         }),
 
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
-        // Body paragraphs (last 2 have keepNext for signature)
+        // Body paragraphs
         ...bodyParagraphs,
 
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        }),
-
-        // Closing - keepNext to stay with signature
+        // Closing
         new Paragraph({
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Atenciosamente,", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
+          spacing: { before: 160, after: 0, line: lineSpacing },
           keepNext: true,
         }),
 
-        // Blank lines before signature - keepNext
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-          keepNext: true,
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: "", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-          keepNext: true,
-        }),
-
-        // Signature image - larger: ~4cm × 2cm (300×120 in docx units)
+        // Signature image
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
@@ -347,7 +304,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               type: "png",
             }),
           ],
-          spacing: { before: 0, after: 0 },
+          spacing: { before: 200, after: 0 },
           keepNext: true,
           keepLines: true,
         }),
