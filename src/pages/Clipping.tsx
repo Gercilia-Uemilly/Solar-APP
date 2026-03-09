@@ -115,6 +115,14 @@ export default function Clipping() {
   const [importResult, setImportResult] = useState<{ inserted: number; skipped: number } | null>(null);
   const wpInputRef = useRef<HTMLInputElement>(null);
 
+  // Instagram import state
+  const [igDialogOpen, setIgDialogOpen] = useState(false);
+  const [igLinks, setIgLinks] = useState("");
+  const [igImporting, setIgImporting] = useState(false);
+  const [igProgress, setIgProgress] = useState(0);
+  const [igResult, setIgResult] = useState<{ inserted: number; skipped: number; failed: number } | null>(null);
+  const igFileRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     fetchClippings();
     if (user) {
