@@ -867,6 +867,36 @@ export default function BancoInformacoes() {
                     Importar Feed @fabaovereador
                   </Button>
                 </div>
+                <div className="flex flex-wrap gap-2 border border-purple-500/20 rounded-lg p-4 bg-purple-500/5">
+                  <h3 className="text-sm font-medium text-foreground flex items-center gap-2 w-full mb-2">
+                    <Sparkles size={14} className="text-purple-500" /> Classificação com IA
+                  </h3>
+                  <p className="text-xs text-muted-foreground w-full mb-2">
+                    Processa posts não classificados usando IA para gerar título, tema e tags automaticamente.
+                    {entries.filter(e => (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
+                      (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
+                    ).length > 0 && (
+                      <span className="ml-1 font-medium text-purple-600">
+                        ({entries.filter(e => (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
+                          (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
+                        ).length} pendentes)
+                      </span>
+                    )}
+                  </p>
+                  <Button 
+                    size="sm" 
+                    onClick={handleInstagramClassify} 
+                    disabled={instaClassifying}
+                    className="gap-1.5 bg-purple-600 hover:bg-purple-700"
+                  >
+                    {instaClassifying ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {instaClassifying 
+                      ? instaClassifyProgress 
+                        ? `Classificando... ${instaClassifyProgress.processed}/${instaClassifyProgress.total}` 
+                        : "Classificando..." 
+                      : "Classificar Posts com IA"}
+                  </Button>
+                </div>
                 <div className="space-y-3 border border-primary/20 rounded-lg p-4 bg-primary/5">
                   <h3 className="text-sm font-medium text-foreground flex items-center gap-2"><UploadCloud size={14} /> Cadastrar manualmente</h3>
                   <div>
