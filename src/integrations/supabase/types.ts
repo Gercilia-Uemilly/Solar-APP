@@ -150,6 +150,9 @@ export type Database = {
           data_geracao: string | null
           destinatario: string
           id: string
+          last_edited_at: string | null
+          last_edited_by: string | null
+          last_edited_by_name: string | null
           linha_telefonica: string | null
           link_pdf_drive: string | null
           local_demanda: string | null
@@ -175,6 +178,9 @@ export type Database = {
           data_geracao?: string | null
           destinatario?: string
           id?: string
+          last_edited_at?: string | null
+          last_edited_by?: string | null
+          last_edited_by_name?: string | null
           linha_telefonica?: string | null
           link_pdf_drive?: string | null
           local_demanda?: string | null
@@ -200,6 +206,9 @@ export type Database = {
           data_geracao?: string | null
           destinatario?: string
           id?: string
+          last_edited_at?: string | null
+          last_edited_by?: string | null
+          last_edited_by_name?: string | null
           linha_telefonica?: string | null
           link_pdf_drive?: string | null
           local_demanda?: string | null
