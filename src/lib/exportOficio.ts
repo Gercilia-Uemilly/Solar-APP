@@ -298,7 +298,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [
             new ImageRun({
               data: assinaturaBytes,
-              transformation: { width: 150, height: 75 },
+              transformation: { width: 300, height: 150 },
               type: "png",
             }),
           ],
