@@ -692,7 +692,7 @@ export default function Oficios() {
     dataGeracao: o.data_geracao || undefined,
     operadorNome: (o as any).operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
     telefone: (o as any).linha_telefonica || undefined,
-    solicitante: o.solicitante || undefined,
+    contatoSolicitante: o.contato_solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
