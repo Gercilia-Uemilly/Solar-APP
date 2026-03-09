@@ -75,6 +75,7 @@ interface OficioRow {
 export default function Oficios() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
 
   const [oficios, setOficios] = useState<OficioRow[]>([]);
   const [loading, setLoading] = useState(true);
