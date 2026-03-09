@@ -57,7 +57,7 @@ export interface OficioData {
   operadorEmail?: string;
   telefone?: string;
   imagens?: File[];
-  solicitante?: string;
+  contatoSolicitante?: string;
 }
 
 // ── Parse HTML content into styled text runs ────────────────────────────────
