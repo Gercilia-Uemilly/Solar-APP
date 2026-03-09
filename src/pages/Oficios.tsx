@@ -1172,6 +1172,9 @@ export default function Oficios() {
             <TabsContent value="preview" className="space-y-3 mt-4">
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} hasChanges={editedOficio !== originalOficio} onUndo={() => setEditedOficio(originalOficio)} />
               <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="default" onClick={handleCreate}>
+                  <Save size={14} className="mr-1" /> {editingOficioId ? "Atualizar Ofício" : "Salvar Ofício"}
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => {
                   if (!destinatario || !assunto || !editedOficio) {
                     alert("Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.");
