@@ -929,7 +929,7 @@ export default function BancoInformacoes() {
                             {entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5"><ExternalLink size={10} />Ver post</a>}
                           </div>
                         </div>
-                        {isAdmin && <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14} /></button>}
+                        <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14} /></button>
                       </div>
                     </CardContent>
                   </Card>
