@@ -1,5 +1,6 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Footer, Header, Tab, TabStopType, TabStopPosition, PageNumber } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Footer, Header, PageNumber } from "docx";
 import { saveAs } from "file-saver";
+import { supabase } from "@/integrations/supabase/client";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
@@ -24,15 +25,14 @@ function formatDate(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-function buildFileName(numero: string, ano: string, codigo?: string): string {
+/** Build file name: just number-year, no "Ofício" prefix */
+function buildFileName(numero: string, ano: string): string {
   const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-  const parts = [numLimpo || 'rascunho', ano];
-  if (codigo) parts.push(codigo);
-  return parts.join('-');
+  return `${numLimpo || 'rascunho'}-${ano}`;
 }
 
 // ── Dados comuns ─────────────────────────────────────────────────────────────
-interface OficioData {
+export interface OficioData {
   numero: string;
   destinatario: string;
   assunto: string;
@@ -59,7 +59,6 @@ interface StyledRun {
 
 function parseHtmlToParagraphs(html: string): StyledRun[][] {
   if (!html || !html.includes("<")) {
-    // Plain text fallback
     return html.split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
       .map(p => [{ text: p }]);
@@ -112,18 +111,22 @@ async function fetchImageBytes(src: string): Promise<Uint8Array> {
   return new Uint8Array(await resp.arrayBuffer());
 }
 
+// ── Get user session token ──────────────────────────────────────────────────
+async function getAuthToken(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+}
+
 // ── Build Word blob programmatically ────────────────────────────────────────
 async function buildWordBlob(data: OficioData): Promise<Blob> {
   const {
     numero, destinatario, assunto, conteudo,
     bairro, cargoDestinatario, dataGeracao,
-    operadorNome, operadorEmail, telefone,
+    operadorNome, operadorEmail,
   } = data;
 
-  // Randomly pick a signature
   const signatureSrc = SIGNATURE_SOURCES[Math.floor(Math.random() * SIGNATURE_SOURCES.length)];
 
-  // Fetch images
   const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
     fetchImageBytes(logoCamaraSrc),
     fetchImageBytes(logoFabaoSrc),
@@ -143,17 +146,32 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     assuntoFormatado = `${assunto} – ${bairroFormatado}`;
   }
 
-  // Parse content - supports HTML with bold/italic
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
   const fontSize = 22; // 11pt in half-points
   const fontName = "Arial";
   const lineSpacing = 360; // 1.5 lines
 
-  // Build marca d'água text - operator name in lowercase
   const operadorMarca = operadorNome
     ? operadorNome.split(' ')[0].toLowerCase()
     : operadorEmail?.split('@')[0].toLowerCase() || 'sistema';
+
+  // Get the last body paragraph to set keepNext on it
+  const bodyParagraphs = styledParagraphs.map((runs, idx) => new Paragraph({
+    indent: { firstLine: 709 },
+    alignment: AlignmentType.JUSTIFIED,
+    children: runs.map(r => new TextRun({
+      text: r.text,
+      font: fontName,
+      size: fontSize,
+      bold: r.bold,
+      italics: r.italic,
+      underline: r.underline ? {} : undefined,
+    })),
+    spacing: { before: 0, after: 0, line: lineSpacing },
+    // Keep last 2 paragraphs with signature block
+    keepNext: idx >= styledParagraphs.length - 2,
+  }));
 
   const doc = new Document({
     sections: [{
@@ -203,7 +221,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               })],
               spacing: { before: 0, after: 40 },
             }),
-            // Page number - only visible on multi-page
             new Paragraph({
               alignment: AlignmentType.RIGHT,
               children: [new TextRun({
@@ -214,14 +231,13 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               })],
               spacing: { before: 0, after: 0 },
             }),
-            // Operator watermark - extremely small and discrete
             new Paragraph({
               alignment: AlignmentType.RIGHT,
               children: [new TextRun({
                 text: operadorMarca,
                 font: fontName,
-                size: 12, // 6pt
-                color: "E8E8E8", // very light gray ≈5% opacity effect
+                size: 12,
+                color: "E8E8E8",
               })],
               spacing: { before: 0, after: 0 },
             }),
@@ -229,38 +245,36 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         }),
       },
       children: [
-        // ── Linha em branco após cabeçalho ──
+        // Blank line after header
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Data alinhada à direita ──
+        // Date
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Linha em branco ──
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Número do ofício ──
+        // Ofício number
         new Paragraph({
           children: [new TextRun({ text: `Ofício n° ${numeroFormatado}`, font: fontName, size: fontSize, bold: true })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Linha em branco ──
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Destinatário ──
+        // Destinatário
         new Paragraph({
           children: [
             new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
@@ -269,7 +283,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Assunto ──
+        // Assunto
         new Paragraph({
           children: [
             new TextRun({ text: "Assunto: ", font: fontName, size: fontSize, bold: true }),
@@ -278,77 +292,67 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Linha em branco ──
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Saudação ──
+        // Greeting
         new Paragraph({
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Linha em branco ──
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Parágrafos do corpo com formatação preservada ──
-        ...styledParagraphs.map(runs => new Paragraph({
-          indent: { firstLine: 709 },
-          alignment: AlignmentType.JUSTIFIED,
-          children: runs.map(r => new TextRun({
-            text: r.text,
-            font: fontName,
-            size: fontSize,
-            bold: r.bold,
-            italics: r.italic,
-            underline: r.underline ? {} : undefined,
-          })),
-          spacing: { before: 0, after: 0, line: lineSpacing },
-        })),
+        // Body paragraphs (last 2 have keepNext for signature)
+        ...bodyParagraphs,
 
-        // ── Linha em branco ──
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // ── Fecho ──
+        // Closing - keepNext to stay with signature
         new Paragraph({
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Atenciosamente,", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
+          keepNext: true,
         }),
 
-        // ── Linhas em branco antes da assinatura ──
+        // Blank lines before signature - keepNext
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
+          keepNext: true,
         }),
         new Paragraph({
           children: [new TextRun({ text: "", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
+          keepNext: true,
         }),
 
-        // ── Assinatura (imagem) ──
+        // Signature image - larger: ~4cm × 2cm (300×120 in docx units)
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
             new ImageRun({
               data: assinaturaBytes,
-              transformation: { width: 200, height: 80 },
+              transformation: { width: 300, height: 120 },
               type: "png",
             }),
           ],
           spacing: { before: 0, after: 0 },
+          keepNext: true,
+          keepLines: true,
         }),
 
-        // ── Linha separadora (mesma largura da assinatura: ~200px ≈ 150pt) ──
+        // Signature line
         new Paragraph({
           alignment: AlignmentType.CENTER,
           indent: { left: 4540, right: 4540 },
@@ -357,20 +361,23 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           },
           children: [new TextRun({ text: " ", font: fontName, size: 2 })],
           spacing: { before: 0, after: 0 },
+          keepNext: true,
         }),
 
-        // ── Nome ──
+        // Name
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "FABÃO", font: fontName, size: fontSize, bold: true })],
           spacing: { before: 0, after: 0, line: lineSpacing },
+          keepNext: true,
         }),
 
-        // ── Cargo ──
+        // Title
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "Vereador", font: fontName, size: fontSize })],
           spacing: { before: 0, after: 0, line: lineSpacing },
+          keepLines: true,
         }),
       ],
     }],
@@ -388,11 +395,11 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
   });
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const token = await getAuthToken();
 
   const resp = await fetch(`${supabaseUrl}/functions/v1/add-anexo-images`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${supabaseKey}` },
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
 
@@ -413,17 +420,15 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   }
 
   const ano = new Date().getFullYear().toString();
-  const codigo = data.operadorNome ? generateOperatorCode(data.operadorNome, data.operadorEmail) : undefined;
-  const fileName = buildFileName(data.numero, ano, codigo);
+  const fileName = buildFileName(data.numero, ano);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
 
-// ── Export PDF (via Word→PDF conversion, with HTML fallback) ────────────────
+// ── Export PDF (via Word→PDF conversion, with print fallback) ───────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
   const ano = new Date().getFullYear().toString();
-  const codigo = data.operadorNome ? generateOperatorCode(data.operadorNome, data.operadorEmail) : undefined;
-  const fileName = buildFileName(data.numero, ano, codigo);
+  const fileName = buildFileName(data.numero, ano);
 
   try {
     let wordBlob = await buildWordBlob(data);
@@ -442,14 +447,14 @@ export async function exportToPDF(data: OficioData): Promise<void> {
 // ── Convert Word blob to PDF via edge function ──────────────────────────────
 async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const token = await getAuthToken();
 
   const formData = new FormData();
   formData.append("file", docxBlob, filename);
 
   const resp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${supabaseKey}` },
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
 
@@ -479,11 +484,12 @@ export function exportToCSV(oficios: Array<{
   destinatario: string;
   status: string;
   created_at: string;
+  operador_nome?: string;
   profiles?: { full_name?: string };
 }>) {
   const header = "Número,Assunto,Destinatário,Status,Data,Autor";
   const rows = oficios.map(o =>
-    `"${o.numero || ""}","${o.assunto}","${o.destinatario}","${o.status}","${new Date(o.created_at).toLocaleDateString("pt-BR")}","${o.profiles?.full_name || ""}"`
+    `"${o.numero || ""}","${o.assunto}","${o.destinatario}","${o.status}","${new Date(o.created_at).toLocaleDateString("pt-BR")}","${o.operador_nome || o.profiles?.full_name || ""}"`
   );
   const csv = [header, ...rows].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
