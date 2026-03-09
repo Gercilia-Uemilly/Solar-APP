@@ -354,7 +354,16 @@ export default function MeusOficios() {
                 <TableCell>{o.assunto || "-"}</TableCell>
                 <TableCell>{o.destinatario}</TableCell>
                 <TableCell>
-                  <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary font-medium">{o.status}</span>
+                  <span className={cn(
+                    "text-xs px-2 py-0.5 rounded font-medium",
+                    o.status === "Rascunho" && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
+                    o.status === "Salvo" && "bg-green-500/20 text-green-700 dark:text-green-400",
+                    o.status === "Exportado" && "bg-blue-500/20 text-blue-700 dark:text-blue-400",
+                    o.status === "Salvo no Drive" && "bg-sky-500/20 text-sky-700 dark:text-sky-400",
+                    !["Rascunho","Salvo","Exportado","Salvo no Drive"].includes(o.status) && "bg-primary/20 text-primary",
+                  )}>
+                    {o.status === "Rascunho" && "🟡 "}{o.status === "Salvo" && "🟢 "}{o.status === "Exportado" && "🔵 "}{o.status === "Salvo no Drive" && "☁️ "}{o.status}
+                  </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{new Date(o.created_at).toLocaleDateString("pt-BR")}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{o.operador_nome || "-"}</TableCell>
