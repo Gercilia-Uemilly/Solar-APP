@@ -348,13 +348,14 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0 },
         }),
 
-        // ── Linha separadora ──
+        // ── Linha separadora (mesma largura da assinatura: ~200px ≈ 150pt) ──
         new Paragraph({
           alignment: AlignmentType.CENTER,
+          indent: { left: 4540, right: 4540 },
           border: {
             bottom: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "000000" },
           },
-          children: [new TextRun({ text: "                  ", font: fontName, size: 2 })],
+          children: [new TextRun({ text: " ", font: fontName, size: 2 })],
           spacing: { before: 0, after: 0 },
         }),
 
