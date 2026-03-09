@@ -24,7 +24,12 @@ interface SessionRow {
   id: string;
   user_id: string;
   logged_in_at: string;
-  profiles?: { full_name: string | null; email: string | null } | null;
+}
+
+interface ProfileRow {
+  id: string;
+  full_name: string | null;
+  email: string | null;
 }
 
 interface UserAccessSummary {
@@ -41,18 +46,21 @@ const COLORS = ["hsl(220,70%,50%)", "hsl(25,80%,50%)", "hsl(145,60%,40%)", "hsl(
 export default function Relatorios() {
   const [oficios, setOficios] = useState<OficioRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("todos");
   const [selectedUser, setSelectedUser] = useState<UserAccessSummary | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [oficiosRes, sessionsRes] = await Promise.all([
+      const [oficiosRes, sessionsRes, profilesRes] = await Promise.all([
         supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, created_at"),
-        supabase.from("user_sessions").select("id, user_id, logged_in_at, profiles(full_name, email)").order("logged_in_at", { ascending: false })
+        supabase.from("user_sessions").select("id, user_id, logged_in_at").order("logged_in_at", { ascending: false }),
+        supabase.from("profiles").select("id, full_name, email")
       ]);
       setOficios((oficiosRes.data as OficioRow[]) || []);
       setSessions((sessionsRes.data as SessionRow[]) || []);
+      setProfiles((profilesRes.data as ProfileRow[]) || []);
       setLoading(false);
     };
     fetchData();
