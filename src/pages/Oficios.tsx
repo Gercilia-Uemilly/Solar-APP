@@ -453,7 +453,7 @@ export default function Oficios() {
     const fullNumero = numero
       ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}/${code}`)
       : null;
-    const payload = {
+    const payload: Record<string, any> = {
       numero: fullNumero,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
       destinatario: destinatario || aiResult?.secretaria_identificada || "A definir",
@@ -471,6 +471,9 @@ export default function Oficios() {
       solicitante: solicitante || null,
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
+      last_edited_by: user.id,
+      last_edited_by_name: user.user_metadata?.full_name || user.email || null,
+      last_edited_at: new Date().toISOString(),
     };
 
     let error;
