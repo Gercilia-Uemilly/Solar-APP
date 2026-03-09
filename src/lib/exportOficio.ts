@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 // ── Assets ──────────────────────────────────────────────────────────────────
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
 import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
-import assinaturaSrc1 from "@/assets/assinatura-fabao-clean.png";
-import assinaturaSrc2 from "@/assets/assinatura-fabao.png";
+import assinaturaSrc1 from "@/assets/assinatura-1.png";
+import assinaturaSrc2 from "@/assets/assinatura-2.png";
+import assinaturaSrc3 from "@/assets/assinatura-3.png";
 
-const SIGNATURE_SOURCES = [assinaturaSrc1, assinaturaSrc2];
+const SIGNATURE_SOURCES = [assinaturaSrc1, assinaturaSrc2, assinaturaSrc3];
 
 function generateOperatorCode(name: string, email?: string): string {
   const parts = (name || "").trim().split(/\s+/);
