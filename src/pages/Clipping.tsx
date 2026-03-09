@@ -293,13 +293,24 @@ export default function Clipping() {
             Monitore postagens, matérias e menções ao mandato
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAdd} className="gap-2">
-              <Plus size={16} /> Adicionar Clipping
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => wpInputRef.current?.click()} disabled={importing}>
+            <Upload size={16} /> {importing ? "Importando..." : "Importar WordPress"}
+          </Button>
+          <input
+            ref={wpInputRef}
+            type="file"
+            accept=".xml"
+            className="hidden"
+            onChange={handleWordPressImport}
+          />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openAdd} className="gap-2">
+                <Plus size={16} /> Adicionar Clipping
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingId ? "Editar Clipping" : "Novo Clipping"}</DialogTitle>
             </DialogHeader>
