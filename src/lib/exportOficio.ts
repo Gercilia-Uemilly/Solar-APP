@@ -461,7 +461,7 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   }
 
   const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.contatoSolicitante);
+  const fileName = buildFileName(data.numero, ano, data.solicitante);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
