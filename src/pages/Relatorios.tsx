@@ -111,6 +111,7 @@ export default function Relatorios() {
   const linhaData = Object.entries(linhaCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
 
   // User access summary
+  const profileMap = new Map(profiles.map(p => [p.id, p]));
   const userAccessMap = new Map<string, UserAccessSummary>();
   sessions.forEach(s => {
     const existing = userAccessMap.get(s.user_id);
@@ -119,14 +120,15 @@ export default function Relatorios() {
       date: format(sessionDate, "dd/MM/yyyy", { locale: ptBR }),
       time: format(sessionDate, "HH:mm:ss", { locale: ptBR })
     };
+    const profile = profileMap.get(s.user_id);
     if (existing) {
       existing.total++;
       existing.sessions.push(sessionInfo);
     } else {
       userAccessMap.set(s.user_id, {
         user_id: s.user_id,
-        name: s.profiles?.full_name || "Sem nome",
-        email: s.profiles?.email || "Sem email",
+        name: profile?.full_name || "Sem nome",
+        email: profile?.email || "Sem email",
         total: 1,
         lastAccess: format(sessionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
         sessions: [sessionInfo]
