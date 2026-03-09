@@ -449,7 +449,7 @@ export default function Oficios() {
     }
     setValidationErrors({});
     const payload = {
-      numero: numero || null,
+      numero: numero ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}`) : null,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
       destinatario: destinatario || aiResult?.secretaria_identificada || "A definir",
       status: aiResult ? "Gerado" : "Rascunho",
