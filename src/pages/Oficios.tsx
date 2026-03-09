@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2, Heart } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2, Heart, Save } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -1172,6 +1172,9 @@ export default function Oficios() {
             <TabsContent value="preview" className="space-y-3 mt-4">
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} hasChanges={editedOficio !== originalOficio} onUndo={() => setEditedOficio(originalOficio)} />
               <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="default" onClick={handleCreate}>
+                  <Save size={14} className="mr-1" /> {editingOficioId ? "Atualizar Ofício" : "Salvar Ofício"}
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => {
                   if (!destinatario || !assunto || !editedOficio) {
                     alert("Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.");
