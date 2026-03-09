@@ -205,7 +205,7 @@ export default function MeusOficios() {
 
       if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
         uploadBlob = await convertResp.blob();
-        uploadFileName = `${numLimpo}-${ano}.pdf`;
+        uploadFileName = `${baseFileName}.pdf`;
       } else {
         uploadBlob = wordBlob;
         uploadFileName = `${numLimpo}-${ano}.docx`;
