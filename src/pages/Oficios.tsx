@@ -449,8 +449,12 @@ export default function Oficios() {
       return;
     }
     setValidationErrors({});
+    const code = generateSolicitanteCode();
+    const fullNumero = numero
+      ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}/${code}`)
+      : null;
     const payload = {
-      numero: numero ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}`) : null,
+      numero: fullNumero,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
       destinatario: destinatario || aiResult?.secretaria_identificada || "A definir",
       status: aiResult ? "Gerado" : "Rascunho",
