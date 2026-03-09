@@ -1,13 +1,7 @@
 import { forwardRef, useState } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
-import assinaturaFabao1 from "@/assets/assinatura-fabao-clean.png";
-import assinaturaFabao2 from "@/assets/assinatura-fabao.png";
-import type { FormatOptions } from "./PreviewFormatToolbar";
-import { defaultFormatOptions } from "./PreviewFormatToolbar";
-import OficioPreviewEditor from "./OficioPreviewEditor";
-
-const SIGNATURES = [assinaturaFabao1, assinaturaFabao2];
+import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 
 interface Props {
   numero: string;
