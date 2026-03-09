@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -6,7 +6,7 @@ import { format, startOfWeek, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Newspaper, TrendingUp, TrendingDown, Minus, Plus, ExternalLink, Pencil, Star, CheckCircle2,
-  Filter, Instagram, Facebook, Globe, Tv, BookOpen, Search, BarChart3, X, Trash2, Video, MessageCircle
+  Filter, Instagram, Facebook, Globe, Tv, BookOpen, Search, BarChart3, X, Trash2, Video, MessageCircle, Upload
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Clipping = {
@@ -105,6 +106,12 @@ export default function Clipping() {
   const [filterSentimento, setFilterSentimento] = useState("all");
   const [filterTema, setFilterTema] = useState("all");
   const [profileName, setProfileName] = useState("");
+  
+  // WordPress import state
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importResult, setImportResult] = useState<{ inserted: number; skipped: number } | null>(null);
+  const wpInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchClippings();
@@ -226,6 +233,53 @@ export default function Clipping() {
     if (!error) { toast({ title: "Clipping removido" }); fetchClippings(); }
   };
 
+  const handleWordPressImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportProgress(10);
+    setImportResult(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
+
+      setImportProgress(30);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-wordpress`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
+
+      setImportProgress(80);
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error || "Erro na importação");
+
+      setImportProgress(100);
+      setImportResult({ inserted: result.inserted, skipped: result.skipped });
+      toast({
+        title: "Importação concluída!",
+        description: `${result.inserted} clippings importados, ${result.skipped} ignorados.`,
+      });
+      fetchClippings();
+    } catch (err: any) {
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+      if (wpInputRef.current) wpInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -239,13 +293,24 @@ export default function Clipping() {
             Monitore postagens, matérias e menções ao mandato
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAdd} className="gap-2">
-              <Plus size={16} /> Adicionar Clipping
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => wpInputRef.current?.click()} disabled={importing}>
+            <Upload size={16} /> {importing ? "Importando..." : "Importar WordPress"}
+          </Button>
+          <input
+            ref={wpInputRef}
+            type="file"
+            accept=".xml"
+            className="hidden"
+            onChange={handleWordPressImport}
+          />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openAdd} className="gap-2">
+                <Plus size={16} /> Adicionar Clipping
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingId ? "Editar Clipping" : "Novo Clipping"}</DialogTitle>
             </DialogHeader>
@@ -308,6 +373,7 @@ export default function Clipping() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Dashboard Cards */}
