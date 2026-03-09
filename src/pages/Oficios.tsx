@@ -623,10 +623,9 @@ export default function Oficios() {
         logoFabaoUrl: logoFabao,
         assinaturaUrl: assinaturaFabao,
       });
-      const ano = (oficio.ano || new Date().getFullYear()).toString();
-      const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+      const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '').trim();
       const solCode = (oficio.solicitante || "").trim().split(/\s+/)[0]?.replace(/[<>:"/\\|?*]/g, '').substring(0, 30) || "";
-      const baseFileName = solCode ? `${numLimpo}-${ano} ${solCode}` : `${numLimpo}-${ano}`;
+      const baseFileName = solCode ? `${numLimpo} ${solCode}` : numLimpo;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
