@@ -1,11 +1,11 @@
-import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
-import { Undo2 } from "lucide-react";
+import { forwardRef, useState } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao1 from "@/assets/assinatura-fabao-clean.png";
 import assinaturaFabao2 from "@/assets/assinatura-fabao.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
+import OficioPreviewEditor from "./OficioPreviewEditor";
 
 const SIGNATURES = [assinaturaFabao1, assinaturaFabao2];
 
@@ -25,89 +25,6 @@ interface Props {
   initialConteudo?: string;
 }
 
-function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
-  conteudo: string;
-  fmt: FormatOptions;
-  onContentChange?: (newContent: string) => void;
-  initialConteudo: string;
-}) {
-  const divRef = useRef<HTMLDivElement>(null);
-  const isUserEditing = useRef(false);
-
-  const isHtml = (text: string) => text.startsWith("<");
-
-  const buildHtml = (text: string) => {
-    if (isHtml(text)) return text;
-    const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
-      .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
-    return paras.map(p =>
-      `<p style="text-indent:1.25cm;margin-bottom:10px;font-size:11pt;line-height:1.5">${p}</p>`
-    ).join("");
-  };
-
-  useEffect(() => {
-    if (divRef.current && !isUserEditing.current) {
-      divRef.current.innerHTML = buildHtml(conteudo);
-    }
-  }, [conteudo]);
-
-  const syncContent = () => {
-    if (divRef.current && onContentChange) {
-      const html = divRef.current.innerHTML;
-      isUserEditing.current = true;
-      onContentChange(html);
-      requestAnimationFrame(() => { isUserEditing.current = false; });
-    }
-  };
-
-  const handleUndo = () => {
-    if (onContentChange) {
-      isUserEditing.current = false;
-      onContentChange(initialConteudo);
-      if (divRef.current) {
-        divRef.current.innerHTML = buildHtml(initialConteudo);
-      }
-    }
-  };
-
-  const hasChanges = conteudo !== initialConteudo;
-
-  return (
-    <div>
-      <div
-        ref={divRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={syncContent}
-        onFocus={() => { isUserEditing.current = true; }}
-        onBlur={() => {
-          // Delay to allow toolbar button clicks (onMouseDown preventDefault) to fire first
-          setTimeout(() => {
-            syncContent();
-            isUserEditing.current = false;
-          }, 200);
-        }}
-        onKeyDown={(e) => {
-          // Ensure delete, backspace, space, enter work
-          if (["Backspace", "Delete", "Enter", " "].includes(e.key)) {
-            // Let default behavior happen
-          }
-        }}
-        style={{
-          textAlign: "justify",
-          cursor: "text",
-          outline: "none",
-          minHeight: "50px",
-          fontFamily: "Arial, Helvetica, sans-serif",
-          fontSize: "11pt",
-          lineHeight: "1.5",
-          color: "#000",
-        }}
-      />
-    </div>
-  );
-}
-
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
@@ -115,7 +32,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
     const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 
-    // Random signature (stable per render cycle)
     const [signatureIdx] = useState(() => Math.floor(Math.random() * SIGNATURES.length));
     const assinaturaImg = SIGNATURES[signatureIdx];
 
@@ -145,8 +61,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       assuntoFormatado = `${assunto} – ${bairroFormatado}`;
     }
 
-    // Operator watermark
     const operadorMarca = operadorNome ? operadorNome.split(' ')[0].toLowerCase() : '';
+
+    // Build HTML content for TipTap from plain text
+    const buildEditorContent = (text: string) => {
+      if (text.startsWith("<")) return text;
+      const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
+        .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
+      return paras.map(p => `<p>${p}</p>`).join("");
+    };
 
     return (
       <div
@@ -166,7 +89,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           boxSizing: "border-box",
         }}
       >
-        {/* CABEÇALHO - logos centralizados */}
+        {/* CABEÇALHO */}
         <div style={{
           display: "flex",
           justifyContent: "center",
@@ -178,10 +101,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
         </div>
 
-        {/* Spacing after header */}
         <div style={{ marginTop: "8px", marginBottom: "16px" }} />
 
-        {/* Data alinhada à direita */}
         <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
 
         <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "24px" }}>
@@ -201,12 +122,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* CORPO */}
-        {editable ? (
-          <EditableBody
-            conteudo={conteudo}
-            fmt={fmt}
-            onContentChange={onContentChange}
-            initialConteudo={initialConteudo || conteudo}
+        {editable && onContentChange ? (
+          <OficioPreviewEditor
+            content={buildEditorContent(conteudo)}
+            onChange={onContentChange}
           />
         ) : isHtml ? (
           <div
@@ -264,7 +183,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           position: "relative",
         }}>
           Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
-          {/* Marca d'água do operador */}
           {operadorMarca && (
             <span style={{
               position: "absolute",
