@@ -226,6 +226,7 @@ export type Database = {
           telefone1: string | null
           telefone2: string | null
           telefone3: string | null
+          username: string | null
         }
         Insert: {
           active?: boolean
@@ -237,6 +238,7 @@ export type Database = {
           telefone1?: string | null
           telefone2?: string | null
           telefone3?: string | null
+          username?: string | null
         }
         Update: {
           active?: boolean
@@ -248,6 +250,7 @@ export type Database = {
           telefone1?: string | null
           telefone2?: string | null
           telefone3?: string | null
+          username?: string | null
         }
         Relationships: []
       }
@@ -374,11 +377,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          id: string
+          ip_address: string | null
+          logged_in_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ip_address?: string | null
+          logged_in_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ip_address?: string | null
+          logged_in_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_email_by_username: { Args: { _username: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_active: { Args: { _user_id: string }; Returns: boolean }
     }
