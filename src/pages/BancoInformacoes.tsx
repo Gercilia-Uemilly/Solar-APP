@@ -89,6 +89,8 @@ export default function BancoInformacoes() {
   const [instaUrl, setInstaUrl] = useState("");
   const [instaImporting, setInstaImporting] = useState(false);
   const [instaFeedImporting, setInstaFeedImporting] = useState(false);
+  const [instaClassifying, setInstaClassifying] = useState(false);
+  const [instaClassifyProgress, setInstaClassifyProgress] = useState<{ processed: number; total: number } | null>(null);
   const [instaPreview, setInstaPreview] = useState<{ titulo: string; descricao: string; data: string; imagens?: string[]; screenshot?: string } | null>(null);
   const [instaEditing, setInstaEditing] = useState(false);
 
