@@ -772,20 +772,17 @@ export default function Oficios() {
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
                   <div className="flex items-center gap-0">
                     <Input
-                      placeholder="Ex: 23"
-                      value={numero.includes("/") ? numero.split("/")[0] : numero}
+                      placeholder="Ex: 23/ÁMA"
+                      value={numero.includes(`/${new Date().getFullYear()}`) ? numero.replace(`/${new Date().getFullYear()}`, "") : numero}
                       onChange={e => {
-                        const num = e.target.value.replace(/[^0-9]/g, "");
-                        // Preserve the year/code suffix if present
-                        const parts = numero.split("/");
-                        const code = parts.length >= 3 ? parts.slice(2).join("/") : generateSolicitanteCode();
-                        setNumero(num ? `${num}/${new Date().getFullYear()}/${code}` : num);
+                        const val = e.target.value;
+                        setNumero(val ? `${val}/${new Date().getFullYear()}` : "");
                         setValidationErrors(prev => ({ ...prev, numero: false }));
                       }}
                       className={`bg-secondary rounded-r-none ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`}
                     />
                     <span className="inline-flex items-center px-3 h-9 bg-muted border border-l-0 border-border rounded-r-md text-sm text-muted-foreground whitespace-nowrap">
-                      /{new Date().getFullYear()}/{numero.includes("/") && numero.split("/").length >= 3 ? numero.split("/").slice(2).join("/") : generateSolicitanteCode()}
+                      /{new Date().getFullYear()}
                     </span>
                   </div>
                   {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
