@@ -139,21 +139,7 @@ export default function PreviewFormatToolbar({ options, onChange, onUndo, hasCha
         </Select>
       </div>
 
-      <Separator orientation="vertical" className="h-6" />
-
-      {/* Assinatura */}
-      <div className="flex items-center gap-2 min-w-[180px]">
-        <Label className="text-xs text-muted-foreground whitespace-nowrap">Assinatura:</Label>
-        <Slider
-          value={[options.signatureHeight]}
-          min={60}
-          max={300}
-          step={10}
-          onValueChange={([v]) => update({ signatureHeight: v })}
-          className="w-[100px]"
-        />
-        <span className="text-xs text-muted-foreground w-8">{options.signatureHeight}</span>
-      </div>
+      {/* Assinatura slider removido — tamanho fixo 6cm x proporcional */}
 
       {/* Desfazer alteração */}
       {hasChanges && onUndo && (
