@@ -646,7 +646,7 @@ export default function Oficios() {
           uploadFileName = `${baseFileName}.pdf`;
         } else {
           uploadBlob = wordBlob;
-          uploadFileName = `${numLimpo}-${ano}.docx`;
+          uploadFileName = `${baseFileName}.docx`;
         }
       } else {
         uploadBlob = wordBlob;
