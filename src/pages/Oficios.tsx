@@ -643,7 +643,7 @@ export default function Oficios() {
         const contentType = convertResp.headers.get("content-type") || "";
         if (contentType.includes("application/pdf")) {
           uploadBlob = await convertResp.blob();
-          uploadFileName = `${numLimpo}-${ano}.pdf`;
+          uploadFileName = `${baseFileName}.pdf`;
         } else {
           uploadBlob = wordBlob;
           uploadFileName = `${numLimpo}-${ano}.docx`;
