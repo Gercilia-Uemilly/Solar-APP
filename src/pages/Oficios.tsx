@@ -298,10 +298,10 @@ export default function Oficios() {
 
   const generateNextNumero = () => {
     const year = new Date().getFullYear();
-    const code = generateSolicitanteCode();
     const existingNumbers = oficios.map(o => o.numero).filter(Boolean).map(n => { const match = n!.match(/^(\d+)/); return match ? parseInt(match[1], 10) : 0; }).filter(n => n > 0);
     const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-    return `${nextNum}/${year}/${code}`;
+    return `${nextNum}/${year}`;
+    
   };
 
   useEffect(() => {
@@ -449,10 +449,8 @@ export default function Oficios() {
       return;
     }
     setValidationErrors({});
-    const code = generateSolicitanteCode();
-    const fullNumero = numero
-      ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}/${code}`)
-      : null;
+    const fullNumero = numero || null;
+    // On edit, preserve the original author name; only set on new creation
     const payload: Record<string, any> = {
       numero: fullNumero,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
@@ -464,7 +462,7 @@ export default function Oficios() {
       tipo_demanda: aiResult?.tipo_demanda || tipoServico || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      operador_nome: user.user_metadata?.full_name || user.email || null,
+      ...(editingOficioId ? {} : { operador_nome: user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: cargoDestinatario || null,
       local_demanda: localDemanda || null,
       bairro: bairro || null,
@@ -772,20 +770,17 @@ export default function Oficios() {
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
                   <div className="flex items-center gap-0">
                     <Input
-                      placeholder="Ex: 23"
-                      value={numero.includes("/") ? numero.split("/")[0] : numero}
+                      placeholder="Ex: 23/ÁMA"
+                      value={numero.includes(`/${new Date().getFullYear()}`) ? numero.replace(`/${new Date().getFullYear()}`, "") : numero}
                       onChange={e => {
-                        const num = e.target.value.replace(/[^0-9]/g, "");
-                        // Preserve the year/code suffix if present
-                        const parts = numero.split("/");
-                        const code = parts.length >= 3 ? parts.slice(2).join("/") : generateSolicitanteCode();
-                        setNumero(num ? `${num}/${new Date().getFullYear()}/${code}` : num);
+                        const val = e.target.value;
+                        setNumero(val ? `${val}/${new Date().getFullYear()}` : "");
                         setValidationErrors(prev => ({ ...prev, numero: false }));
                       }}
                       className={`bg-secondary rounded-r-none ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`}
                     />
                     <span className="inline-flex items-center px-3 h-9 bg-muted border border-l-0 border-border rounded-r-md text-sm text-muted-foreground whitespace-nowrap">
-                      /{new Date().getFullYear()}/{numero.includes("/") && numero.split("/").length >= 3 ? numero.split("/").slice(2).join("/") : generateSolicitanteCode()}
+                      /{new Date().getFullYear()}
                     </span>
                   </div>
                   {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
