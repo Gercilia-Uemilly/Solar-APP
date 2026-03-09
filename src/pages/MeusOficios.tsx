@@ -12,10 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil } from "lucide-react";
+import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
-import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
+import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
+import type { FormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV } from "@/lib/exportOficio";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
@@ -386,20 +387,31 @@ export default function MeusOficios() {
       </div>
 
       {/* Preview Dialog */}
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+      <Dialog open={showPreview} onOpenChange={(open) => {
+        if (!open && editedContent !== originalContent) {
+          if (!confirm("Você tem edições não salvas. Deseja sair mesmo assim?")) return;
+        }
+        setShowPreview(open);
+      }}>
         <DialogContent className="bg-card border-border max-w-[900px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center justify-between">
-              <span>Visualizar Ofício</span>
-              <div className="flex gap-2">
+            <DialogTitle className="text-foreground flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
                 {viewOficio && canEditOrDelete(viewOficio) && (
-                  <Button size="sm" variant="outline" onClick={() => { if (viewOficio) handleEditForm(viewOficio); setShowPreview(false); }}>
-                    <Pencil size={14} className="mr-1" /> Editar Dados
+                  <Button size="sm" variant="ghost" onClick={() => {
+                    if (editedContent !== originalContent && !confirm("Você tem edições no preview. Deseja voltar mesmo assim?")) return;
+                    handleEditForm(viewOficio);
+                    setShowPreview(false);
+                  }}>
+                    <ArrowLeft size={14} className="mr-1" /> Editar Dados
                   </Button>
                 )}
+                <span>Visualizar Ofício</span>
+              </div>
+              <div className="flex gap-2">
                 {editedContent !== originalContent && (
                   <Button size="sm" variant="default" onClick={handleSaveContent}>
-                    Salvar Alterações
+                    <Save size={14} className="mr-1" /> Salvar
                   </Button>
                 )}
                 <Button size="sm" variant="outline" onClick={() => { if (viewOficio) exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
@@ -417,29 +429,21 @@ export default function MeusOficios() {
             </DialogTitle>
           </DialogHeader>
           {viewOficio && (
-            <div className="space-y-3">
-              <PreviewFormatToolbar
-                options={formatOptions}
-                onChange={setFormatOptions}
-                hasChanges={editedContent !== originalContent}
-                onUndo={() => setEditedContent(originalContent)}
+            <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "65vh", overflowY: "auto" }}>
+              <OficioPreview
+                ref={previewRef}
+                numero={viewOficio.numero || ""}
+                destinatario={viewOficio.destinatario}
+                assunto={viewOficio.assunto}
+                conteudo={editedContent}
+                bairro={viewOficio.bairro || undefined}
+                cargoDestinatario={viewOficio.cargo_destinatario || undefined}
+                operadorNome={viewOficio.operador_nome || undefined}
+                formatOptions={formatOptions}
+                editable
+                onContentChange={setEditedContent}
+                initialConteudo={originalContent}
               />
-              <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview
-                  ref={previewRef}
-                  numero={viewOficio.numero || ""}
-                  destinatario={viewOficio.destinatario}
-                  assunto={viewOficio.assunto}
-                  conteudo={editedContent}
-                  bairro={viewOficio.bairro || undefined}
-                  cargoDestinatario={viewOficio.cargo_destinatario || undefined}
-                  operadorNome={viewOficio.operador_nome || undefined}
-                  formatOptions={formatOptions}
-                  editable
-                  onContentChange={setEditedContent}
-                  initialConteudo={originalContent}
-                />
-              </div>
             </div>
           )}
         </DialogContent>
