@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -6,7 +6,7 @@ import { format, startOfWeek, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Newspaper, TrendingUp, TrendingDown, Minus, Plus, ExternalLink, Pencil, Star, CheckCircle2,
-  Filter, Instagram, Facebook, Globe, Tv, BookOpen, Search, BarChart3, X, Trash2, Video, MessageCircle
+  Filter, Instagram, Facebook, Globe, Tv, BookOpen, Search, BarChart3, X, Trash2, Video, MessageCircle, Upload
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Clipping = {
