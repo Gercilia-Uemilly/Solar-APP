@@ -22,7 +22,7 @@ import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
 
-const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido", "Arquivado"];
+const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
 
 const tiposServico = [
   { label: "Operação Tapa-Buracos / Pavimentação", secretaria: "Secretaria Municipal de Infraestrutura Urbana" },
@@ -301,7 +301,6 @@ export default function Oficios() {
     const existingNumbers = oficios.map(o => o.numero).filter(Boolean).map(n => { const match = n!.match(/^(\d+)/); return match ? parseInt(match[1], 10) : 0; }).filter(n => n > 0);
     const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
     return `${nextNum}/${year}`;
-    
   };
 
   useEffect(() => {
@@ -454,8 +453,8 @@ export default function Oficios() {
     const payload: Record<string, any> = {
       numero: fullNumero,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
-      destinatario: destinatario || aiResult?.secretaria_identificada || "A definir",
-      status: aiResult ? "Gerado" : "Rascunho",
+      destinatario: tipoServico === "Outro" ? (destinatario || "A definir") : (aiResult?.secretaria_identificada || secretaria || "A definir"),
+      status: "Salvo",
       conteudo: editedOficio || null,
       resposta_cidadao: editedResposta || null,
       secretaria_identificada: aiResult?.secretaria_identificada || secretaria || null,
@@ -610,6 +609,8 @@ export default function Oficios() {
     }
     setIsUploading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const wordBlob = await exportToWord({
         numero: oficio.numero || "",
         destinatario: oficio.destinatario,
@@ -623,41 +624,31 @@ export default function Oficios() {
       });
       const ano = new Date().getFullYear().toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-      const codigoSolicitante = (oficio.contato_solicitante || "").replace(/[^a-zA-Z0-9]/g, '');
-      const fileSuffix = codigoSolicitante || "sem-codigo";
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      // Converter Word para PDF primeiro
       const convertFormData = new FormData();
       convertFormData.append("file", wordBlob, `${numLimpo}.docx`);
       const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${supabaseKey}` },
+        headers: { Authorization: `Bearer ${authToken}` },
         body: convertFormData,
       });
 
       let uploadBlob: Blob;
       let uploadFileName: string;
-      let uploadMimeType: string;
 
       if (convertResp.ok) {
         const contentType = convertResp.headers.get("content-type") || "";
         if (contentType.includes("application/pdf")) {
           uploadBlob = await convertResp.blob();
-          uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.pdf`;
-          uploadMimeType = "application/pdf";
+          uploadFileName = `${numLimpo}-${ano}.pdf`;
         } else {
-          // Fallback: conversão retornou erro JSON, enviar como Word
           uploadBlob = wordBlob;
-          uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.docx`;
-          uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+          uploadFileName = `${numLimpo}-${ano}.docx`;
         }
       } else {
-        // Fallback: enviar como Word se conversão falhar
         uploadBlob = wordBlob;
-        uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.docx`;
-        uploadMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        uploadFileName = `${numLimpo}-${ano}.docx`;
       }
 
       const driveFormData = new FormData();
@@ -666,18 +657,10 @@ export default function Oficios() {
         numero: oficio.numero || "",
         assunto: oficio.assunto,
         destinatario: oficio.destinatario,
-        secretaria: (oficio as any).secretaria_identificada || "",
-        bairro: oficio.bairro || "",
-        solicitante: oficio.solicitante || "",
-        contato_solicitante: oficio.contato_solicitante || "",
-        tipo_demanda: (oficio as any).tipo_demanda || "",
-        urgencia: (oficio as any).urgencia || "",
-        operador: (oficio as any).operador_nome || user?.user_metadata?.full_name || user?.email || "",
-        status: oficio.status,
       }));
       const driveResp = await fetch(`${supabaseUrl}/functions/v1/upload-to-drive`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${supabaseKey}` },
+        headers: { Authorization: `Bearer ${authToken}` },
         body: driveFormData,
       });
       if (!driveResp.ok) {
@@ -686,10 +669,10 @@ export default function Oficios() {
       }
       const driveResult = await driveResp.json();
       if (driveResult.driveLink) {
-        await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink }).eq("id", oficio.id);
+        await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink, status: "Salvo no Drive" }).eq("id", oficio.id);
         await fetchOficios();
       }
-      toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado com sucesso!" : "Arquivo enviado (conversão PDF indisponível, enviado como Word)." });
+      toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado com sucesso!" : "Arquivo enviado como Word." });
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
@@ -769,11 +752,11 @@ export default function Oficios() {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
                   <div className="flex items-center gap-0">
-                    <Input
-                      placeholder="Ex: 23/ÁMA"
+                  <Input
+                      placeholder="Ex: 23"
                       value={numero.includes(`/${new Date().getFullYear()}`) ? numero.replace(`/${new Date().getFullYear()}`, "") : numero}
                       onChange={e => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/[^0-9]/g, '');
                         setNumero(val ? `${val}/${new Date().getFullYear()}` : "");
                         setValidationErrors(prev => ({ ...prev, numero: false }));
                       }}
@@ -811,16 +794,18 @@ export default function Oficios() {
                 <Input placeholder="Preenchido automaticamente" value={secretaria} onChange={e => setSecretaria(e.target.value)} className="bg-secondary border-border" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Destinatário *</label>
-                  <Input placeholder="Nome do destinatário" value={destinatario} onChange={e => setDestinatario(e.target.value)} className="bg-secondary border-border" />
+              {tipoServico === "Outro" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Destinatário <span className="text-destructive">*</span></label>
+                    <Input placeholder="Nome do destinatário" value={destinatario} onChange={e => setDestinatario(e.target.value)} className="bg-secondary border-border" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Cargo do Destinatário <span className="text-destructive">*</span></label>
+                    <Input placeholder="Ex: Ilmo(a). Sr(a)..." value={cargoDestinatario} onChange={e => setCargoDestinatario(e.target.value)} className="bg-secondary border-border" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Cargo do Destinatário</label>
-                  <Input placeholder="Ex: Ilmo(a). Sr(a)..." value={cargoDestinatario} onChange={e => setCargoDestinatario(e.target.value)} className="bg-secondary border-border" />
-                </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>

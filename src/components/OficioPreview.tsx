@@ -63,7 +63,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const operadorMarca = operadorNome ? operadorNome.split(' ')[0].toLowerCase() : '';
 
-    // Build HTML content for TipTap from plain text
     const buildEditorContent = (text: string) => {
       if (text.startsWith("<")) return text;
       const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
@@ -152,13 +151,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           Atenciosamente,
         </p>
 
-        {/* ASSINATURA */}
-        <div style={{ marginTop: "40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        {/* ASSINATURA - block that should never break across pages */}
+        <div style={{
+          marginTop: "40px",
+          textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          pageBreakInside: "avoid",
+          breakInside: "avoid",
+        }}>
           <img
             src={assinaturaImg}
             alt="Assinatura Fabão"
             style={{
-              height: `${fmt.signatureHeight}px`,
+              height: `${Math.max(fmt.signatureHeight, 150)}px`,
               width: "auto",
               objectFit: "contain",
               marginBottom: "-8px",

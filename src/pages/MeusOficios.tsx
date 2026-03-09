@@ -47,7 +47,7 @@ interface OficioRow {
   linha_telefonica: string | null;
 }
 
-const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido", "Arquivado"];
+const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
 
 export default function MeusOficios() {
   const { user, isAdmin } = useAuth();
@@ -96,6 +96,7 @@ export default function MeusOficios() {
     if (!viewOficio || editedContent === originalContent) return;
     const updatePayload: Record<string, any> = { 
       conteudo: editedContent,
+      status: "Salvo",
       last_edited_by: user?.id || null,
       last_edited_by_name: user?.user_metadata?.full_name || user?.email || null,
       last_edited_at: new Date().toISOString(),
@@ -106,8 +107,8 @@ export default function MeusOficios() {
     } else {
       toast({ title: "Conteúdo salvo!" });
       setOriginalContent(editedContent);
-      setViewOficio({ ...viewOficio, conteudo: editedContent });
-      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: editedContent } : o));
+      setViewOficio({ ...viewOficio, conteudo: editedContent, status: "Salvo" });
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: editedContent, status: "Salvo" } : o));
     }
   };
 
@@ -171,6 +172,8 @@ export default function MeusOficios() {
     }
     setIsUploading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const wordBlob = await exportToWord({
         numero: oficio.numero || "",
         destinatario: oficio.destinatario,
@@ -184,16 +187,13 @@ export default function MeusOficios() {
       });
       const ano = new Date().getFullYear().toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-      const codigoSolicitante = (oficio.contato_solicitante || "").replace(/[^a-zA-Z0-9]/g, '');
-      const fileSuffix = codigoSolicitante || "sem-codigo";
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
       const convertFormData = new FormData();
       convertFormData.append("file", wordBlob, `${numLimpo}.docx`);
       const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${supabaseKey}` },
+        headers: { Authorization: `Bearer ${authToken}` },
         body: convertFormData,
       });
 
@@ -202,10 +202,10 @@ export default function MeusOficios() {
 
       if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
         uploadBlob = await convertResp.blob();
-        uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.pdf`;
+        uploadFileName = `${numLimpo}-${ano}.pdf`;
       } else {
         uploadBlob = wordBlob;
-        uploadFileName = `${numLimpo}-${ano}-${fileSuffix}.docx`;
+        uploadFileName = `${numLimpo}-${ano}.docx`;
       }
 
       const driveFormData = new FormData();
@@ -214,18 +214,10 @@ export default function MeusOficios() {
         numero: oficio.numero || "",
         assunto: oficio.assunto,
         destinatario: oficio.destinatario,
-        secretaria: oficio.secretaria_identificada || "",
-        bairro: oficio.bairro || "",
-        solicitante: oficio.solicitante || "",
-        contato_solicitante: oficio.contato_solicitante || "",
-        tipo_demanda: oficio.tipo_demanda || "",
-        urgencia: oficio.urgencia || "",
-        operador: oficio.operador_nome || user?.user_metadata?.full_name || user?.email || "",
-        status: oficio.status,
       }));
       const driveResp = await fetch(`${supabaseUrl}/functions/v1/upload-to-drive`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${supabaseKey}` },
+        headers: { Authorization: `Bearer ${authToken}` },
         body: driveFormData,
       });
       if (!driveResp.ok) {
@@ -234,7 +226,7 @@ export default function MeusOficios() {
       }
       const driveResult = await driveResp.json();
       if (driveResult.driveLink) {
-        await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink }).eq("id", oficio.id);
+        await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink, status: "Salvo no Drive" }).eq("id", oficio.id);
         await fetchOficios();
       }
       toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado!" : "Enviado como Word." });
@@ -362,7 +354,16 @@ export default function MeusOficios() {
                 <TableCell>{o.assunto || "-"}</TableCell>
                 <TableCell>{o.destinatario}</TableCell>
                 <TableCell>
-                  <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary font-medium">{o.status}</span>
+                  <span className={cn(
+                    "text-xs px-2 py-0.5 rounded font-medium",
+                    o.status === "Rascunho" && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
+                    o.status === "Salvo" && "bg-green-500/20 text-green-700 dark:text-green-400",
+                    o.status === "Exportado" && "bg-blue-500/20 text-blue-700 dark:text-blue-400",
+                    o.status === "Salvo no Drive" && "bg-sky-500/20 text-sky-700 dark:text-sky-400",
+                    !["Rascunho","Salvo","Exportado","Salvo no Drive"].includes(o.status) && "bg-primary/20 text-primary",
+                  )}>
+                    {o.status === "Rascunho" && "🟡 "}{o.status === "Salvo" && "🟢 "}{o.status === "Exportado" && "🔵 "}{o.status === "Salvo no Drive" && "☁️ "}{o.status}
+                  </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{new Date(o.created_at).toLocaleDateString("pt-BR")}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{o.operador_nome || "-"}</TableCell>
