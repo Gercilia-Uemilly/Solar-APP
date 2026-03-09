@@ -11,6 +11,10 @@ import assinaturaSrc3 from "@/assets/assinatura-3.png";
 
 const SIGNATURE_SOURCES = [assinaturaSrc1, assinaturaSrc2, assinaturaSrc3];
 
+// ── FIXED signature dimensions — NEVER change these ─────────────────────────
+const ASSINATURA_LARGURA = 150; // ~4cm — IMMUTABLE
+const ASSINATURA_ALTURA = 75;   // ~2cm — IMMUTABLE
+
 function generateOperatorCode(name: string, email?: string): string {
   const parts = (name || "").trim().split(/\s+/);
   const first = (parts[0] || "").toLowerCase();
