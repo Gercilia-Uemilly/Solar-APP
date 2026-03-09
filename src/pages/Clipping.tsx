@@ -373,6 +373,7 @@ export default function Clipping() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Dashboard Cards */}
