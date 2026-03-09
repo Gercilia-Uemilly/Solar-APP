@@ -407,7 +407,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     }],
   });
 
-  return await Packer.toBlob(doc);
+  const rawBlob = await Packer.toBlob(doc);
+  return await fixDocxRelationshipIds(rawBlob);
 }
 
 // ── Enviar docx + imagens para edge function add-anexo-images ───────────────
