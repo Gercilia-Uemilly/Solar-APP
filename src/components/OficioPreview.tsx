@@ -165,12 +165,11 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             src={assinaturaImg}
             alt="Assinatura Fabão"
             style={{
-              height: `${Math.max(fmt.signatureHeight, 150)}px`,
-              width: "auto",
+              width: "227px",
+              height: "auto",
               objectFit: "contain",
               marginBottom: "-8px",
               display: "block",
-              maxWidth: "80%",
             }}
           />
           <div style={{ width: "200px", borderBottom: "1px solid #000", marginBottom: "4px" }} />
