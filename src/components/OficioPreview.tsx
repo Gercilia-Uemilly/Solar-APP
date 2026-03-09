@@ -110,7 +110,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "8px" }}>
-          <strong>DESTINATÁRIO:</strong> {cargoDestinatario || "Ilmo(a). Sr(a)."} {destinatario || "___"}
+          <strong>DESTINATÁRIO:</strong> {cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"} {destinatario || "___"}
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "30px" }}>
