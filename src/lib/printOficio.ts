@@ -104,12 +104,11 @@ export async function printOficio(data: PrintData) {
       align-items: center;
     }
     .assinatura img {
-      height: 80px;
-      width: auto;
+      width: 227px;
+      height: auto;
       object-fit: contain;
       margin-bottom: -8px;
       display: block;
-      max-width: 80%;
     }
     .assinatura .linha { width: 200px; border-bottom: 1px solid #000; margin-bottom: 4px; }
     .assinatura .nome { font-weight: bold; margin: 0; }
