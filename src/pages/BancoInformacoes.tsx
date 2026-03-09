@@ -37,7 +37,7 @@ interface ExistingScript {
 const TAB_CONFIG = [
   { value: "base", label: "Base", icon: Library, adminOnly: false },
   { value: "audios", label: "Áudios", icon: Headphones, adminOnly: false },
-  { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: true },
+  { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: false },
   { value: "instagram", label: "Instagram", icon: InstagramIcon, adminOnly: false },
   { value: "upload", label: "Upload", icon: UploadCloud, adminOnly: false },
 ] as const;
