@@ -768,11 +768,11 @@ export default function Oficios() {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
                   <div className="flex items-center gap-0">
-                    <Input
-                      placeholder="Ex: 23/ÁMA"
+                  <Input
+                      placeholder="Ex: 23"
                       value={numero.includes(`/${new Date().getFullYear()}`) ? numero.replace(`/${new Date().getFullYear()}`, "") : numero}
                       onChange={e => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/[^0-9]/g, '');
                         setNumero(val ? `${val}/${new Date().getFullYear()}` : "");
                         setValidationErrors(prev => ({ ...prev, numero: false }));
                       }}
