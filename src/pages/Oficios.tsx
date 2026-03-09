@@ -449,10 +449,8 @@ export default function Oficios() {
       return;
     }
     setValidationErrors({});
-    const code = generateSolicitanteCode();
-    const fullNumero = numero
-      ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}/${code}`)
-      : null;
+    const fullNumero = numero || null;
+    // On edit, preserve the original author name; only set on new creation
     const payload: Record<string, any> = {
       numero: fullNumero,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
