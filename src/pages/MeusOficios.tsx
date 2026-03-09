@@ -363,6 +363,7 @@ export default function MeusOficios() {
                     </button>
                     {canEditOrDelete(o) && (
                       <>
+                        <button onClick={() => handleEditForm(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={16} /></button>
                         <button
                           onClick={() => handleUploadToDrive(o)}
                           disabled={isUploading}
