@@ -208,7 +208,7 @@ export default function MeusOficios() {
         uploadFileName = `${baseFileName}.pdf`;
       } else {
         uploadBlob = wordBlob;
-        uploadFileName = `${numLimpo}-${ano}.docx`;
+        uploadFileName = `${baseFileName}.docx`;
       }
 
       const driveFormData = new FormData();
