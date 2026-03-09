@@ -346,7 +346,7 @@ export default function MeusOficios() {
                 <TableCell className="text-sm text-muted-foreground">{o.operador_nome || "-"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => { setViewOficio(o); setShowPreview(true); }} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
+                    <button onClick={() => handleOpenPreview(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
                     <button
                       onClick={() => { if (o.conteudo) exportToWord(buildExportData(o)); }}
                       className="p-2 text-muted-foreground hover:text-foreground"
