@@ -650,7 +650,7 @@ export default function Oficios() {
         }
       } else {
         uploadBlob = wordBlob;
-        uploadFileName = `${numLimpo}-${ano}.docx`;
+        uploadFileName = `${baseFileName}.docx`;
       }
 
       const driveFormData = new FormData();
