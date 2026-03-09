@@ -47,7 +47,7 @@ interface OficioRow {
   linha_telefonica: string | null;
 }
 
-const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido", "Arquivado"];
+const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
 
 export default function MeusOficios() {
   const { user, isAdmin } = useAuth();
