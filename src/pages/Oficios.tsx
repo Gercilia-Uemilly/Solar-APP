@@ -624,8 +624,8 @@ export default function Oficios() {
       });
       const ano = new Date().getFullYear().toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-      const solName = (oficio.solicitante || "").trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 60);
-      const baseFileName = solName ? `${numLimpo}-${ano} ${solName}` : `${numLimpo}-${ano}`;
+      const contatoCode = (oficio.contato_solicitante || "").trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
+      const baseFileName = contatoCode ? `${numLimpo}-${ano} ${contatoCode}` : `${numLimpo}-${ano}`;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
@@ -692,7 +692,7 @@ export default function Oficios() {
     dataGeracao: o.data_geracao || undefined,
     operadorNome: (o as any).operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
     telefone: (o as any).linha_telefonica || undefined,
-    solicitante: o.solicitante || undefined,
+    contatoSolicitante: o.contato_solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -708,7 +708,7 @@ export default function Oficios() {
     dataGeracao: dataGeracao || undefined,
     operadorNome: user?.user_metadata?.full_name || user?.email || undefined,
     telefone: linhaTelefonica || undefined,
-    solicitante: solicitante || undefined,
+    contatoSolicitante: contatoSolicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
