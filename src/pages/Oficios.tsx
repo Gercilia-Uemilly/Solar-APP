@@ -301,7 +301,7 @@ export default function Oficios() {
     const existingNumbers = oficios.map(o => o.numero).filter(Boolean).map(n => { const match = n!.match(/^(\d+)/); return match ? parseInt(match[1], 10) : 0; }).filter(n => n > 0);
     const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
     return `${nextNum}/${year}`;
-    return `${nextNum}/${year}/${code}`;
+    
   };
 
   useEffect(() => {
