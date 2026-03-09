@@ -160,6 +160,7 @@ export default function MeusOficios() {
     dataGeracao: o.data_geracao || undefined,
     operadorNome: o.operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
     telefone: o.linha_telefonica || undefined,
+    solicitante: o.solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -187,6 +188,8 @@ export default function MeusOficios() {
       });
       const ano = new Date().getFullYear().toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+      const solName = (oficio.solicitante || "").trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 60);
+      const baseFileName = solName ? `${numLimpo}-${ano} ${solName}` : `${numLimpo}-${ano}`;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
@@ -202,10 +205,10 @@ export default function MeusOficios() {
 
       if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
         uploadBlob = await convertResp.blob();
-        uploadFileName = `${numLimpo}-${ano}.pdf`;
+        uploadFileName = `${baseFileName}.pdf`;
       } else {
         uploadBlob = wordBlob;
-        uploadFileName = `${numLimpo}-${ano}.docx`;
+        uploadFileName = `${baseFileName}.docx`;
       }
 
       const driveFormData = new FormData();

@@ -624,6 +624,8 @@ export default function Oficios() {
       });
       const ano = new Date().getFullYear().toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+      const solName = (oficio.solicitante || "").trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 60);
+      const baseFileName = solName ? `${numLimpo}-${ano} ${solName}` : `${numLimpo}-${ano}`;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
@@ -641,14 +643,14 @@ export default function Oficios() {
         const contentType = convertResp.headers.get("content-type") || "";
         if (contentType.includes("application/pdf")) {
           uploadBlob = await convertResp.blob();
-          uploadFileName = `${numLimpo}-${ano}.pdf`;
+          uploadFileName = `${baseFileName}.pdf`;
         } else {
           uploadBlob = wordBlob;
-          uploadFileName = `${numLimpo}-${ano}.docx`;
+          uploadFileName = `${baseFileName}.docx`;
         }
       } else {
         uploadBlob = wordBlob;
-        uploadFileName = `${numLimpo}-${ano}.docx`;
+        uploadFileName = `${baseFileName}.docx`;
       }
 
       const driveFormData = new FormData();
@@ -690,6 +692,7 @@ export default function Oficios() {
     dataGeracao: o.data_geracao || undefined,
     operadorNome: (o as any).operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
     telefone: (o as any).linha_telefonica || undefined,
+    solicitante: o.solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -705,6 +708,7 @@ export default function Oficios() {
     dataGeracao: dataGeracao || undefined,
     operadorNome: user?.user_metadata?.full_name || user?.email || undefined,
     telefone: linhaTelefonica || undefined,
+    solicitante: solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
