@@ -2,6 +2,9 @@ import { forwardRef, useState } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
+import type { FormatOptions } from "./PreviewFormatToolbar";
+import { defaultFormatOptions } from "./PreviewFormatToolbar";
+import OficioPreviewEditor from "./OficioPreviewEditor";
 
 interface Props {
   numero: string;
@@ -26,8 +29,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
     const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 
-    const [signatureIdx] = useState(() => Math.floor(Math.random() * SIGNATURES.length));
-    const assinaturaImg = SIGNATURES[signatureIdx];
+    const assinaturaImg = assinaturaFabao;
 
     const isHtml = conteudo.startsWith("<");
 
