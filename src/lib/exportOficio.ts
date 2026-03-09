@@ -468,7 +468,7 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 // ── Export PDF (via Word→PDF conversion, with print fallback) ───────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
   const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano);
+  const fileName = buildFileName(data.numero, ano, data.solicitante);
 
   try {
     let wordBlob = await buildWordBlob(data);
