@@ -286,6 +286,16 @@ export default function Oficios() {
 
   useEffect(() => { fetchOficios(); }, []);
 
+  // Handle incoming edit from MeusOficios
+  useEffect(() => {
+    const state = location.state as { editOficio?: any } | null;
+    if (state?.editOficio) {
+      handleEdit(state.editOficio);
+      // Clear the state so it doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const generateNextNumero = () => {
     const year = new Date().getFullYear();
     const code = generateSolicitanteCode();
