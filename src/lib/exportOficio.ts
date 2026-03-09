@@ -1,6 +1,7 @@
 import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Footer, Header, PageNumber } from "docx";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
+import JSZip from "jszip";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
