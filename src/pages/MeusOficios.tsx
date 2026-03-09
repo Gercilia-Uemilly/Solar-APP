@@ -96,6 +96,7 @@ export default function MeusOficios() {
     if (!viewOficio || editedContent === originalContent) return;
     const updatePayload: Record<string, any> = { 
       conteudo: editedContent,
+      status: "Salvo",
       last_edited_by: user?.id || null,
       last_edited_by_name: user?.user_metadata?.full_name || user?.email || null,
       last_edited_at: new Date().toISOString(),
@@ -106,8 +107,8 @@ export default function MeusOficios() {
     } else {
       toast({ title: "Conteúdo salvo!" });
       setOriginalContent(editedContent);
-      setViewOficio({ ...viewOficio, conteudo: editedContent });
-      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: editedContent } : o));
+      setViewOficio({ ...viewOficio, conteudo: editedContent, status: "Salvo" });
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: editedContent, status: "Salvo" } : o));
     }
   };
 
