@@ -4,9 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfWeek, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import * as XLSX from "xlsx";
 import {
   Newspaper, TrendingUp, TrendingDown, Minus, Plus, ExternalLink, Pencil, Star, CheckCircle2,
-  Filter, Instagram, Facebook, Globe, Tv, BookOpen, Search, BarChart3, X, Trash2, Video, MessageCircle, Upload
+  Filter, Instagram, Facebook, Globe, Tv, BookOpen, Search, BarChart3, X, Trash2, Video, MessageCircle, Upload, FileSpreadsheet
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Clipping = {
@@ -112,6 +114,14 @@ export default function Clipping() {
   const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<{ inserted: number; skipped: number } | null>(null);
   const wpInputRef = useRef<HTMLInputElement>(null);
+
+  // Instagram import state
+  const [igDialogOpen, setIgDialogOpen] = useState(false);
+  const [igLinks, setIgLinks] = useState("");
+  const [igImporting, setIgImporting] = useState(false);
+  const [igProgress, setIgProgress] = useState(0);
+  const [igResult, setIgResult] = useState<{ inserted: number; skipped: number; failed: number } | null>(null);
+  const igFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchClippings();
@@ -280,6 +290,110 @@ export default function Clipping() {
     }
   };
 
+  const handleInstagramImport = async (links: string[]) => {
+    if (links.length === 0) {
+      toast({ title: "Nenhum link fornecido", variant: "destructive" });
+      return;
+    }
+
+    setIgImporting(true);
+    setIgProgress(10);
+    setIgResult(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
+
+      setIgProgress(30);
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-instagram-clippings`,
+        {
+          method: "POST",
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ links }),
+        }
+      );
+
+      setIgProgress(80);
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error || "Erro na importação");
+
+      setIgProgress(100);
+      setIgResult({ 
+        inserted: result.inserted, 
+        skipped: result.skipped, 
+        failed: result.failed || 0 
+      });
+      
+      toast({
+        title: "Importação concluída!",
+        description: `${result.inserted} links importados, ${result.skipped} duplicados, ${result.failed || 0} falharam.`,
+      });
+      
+      fetchClippings();
+      setIgDialogOpen(false);
+      setIgLinks("");
+    } catch (err: any) {
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+    } finally {
+      setIgImporting(false);
+    }
+  };
+
+  const handleManualImport = () => {
+    const links = igLinks
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l);
+    handleInstagramImport(links);
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // Extract all text values that look like Instagram URLs
+        const links: string[] = [];
+        for (const row of jsonData as any[][]) {
+          for (const cell of row) {
+            if (typeof cell === "string" && 
+                (cell.includes("instagram.com") || cell.includes("instagr.am"))) {
+              links.push(cell);
+            }
+          }
+        }
+
+        if (links.length === 0) {
+          toast({ title: "Nenhum link do Instagram encontrado na planilha", variant: "destructive" });
+          return;
+        }
+
+        handleInstagramImport(links);
+      } catch (err: any) {
+        toast({ title: "Erro ao processar arquivo", description: err.message, variant: "destructive" });
+      }
+    };
+    reader.readAsBinaryString(file);
+    
+    // Reset input
+    if (igFileRef.current) igFileRef.current.value = "";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -304,6 +418,100 @@ export default function Clipping() {
             className="hidden"
             onChange={handleWordPressImport}
           />
+          <Dialog open={igDialogOpen} onOpenChange={setIgDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2" disabled={igImporting}>
+                <Instagram size={16} /> Importar Instagram
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Instagram size={20} />
+                  Importar Links do Instagram
+                </DialogTitle>
+              </DialogHeader>
+              
+              <Tabs defaultValue="manual" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="manual">Colar Links</TabsTrigger>
+                  <TabsTrigger value="file">Upload Planilha</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="manual" className="space-y-4 mt-4">
+                  <div>
+                    <Label htmlFor="links">Links do Instagram (um por linha)</Label>
+                    <Textarea
+                      id="links"
+                      placeholder="https://instagram.com/p/example1
+https://instagram.com/reel/example2
+https://instagr.am/p/example3"
+                      value={igLinks}
+                      onChange={(e) => setIgLinks(e.target.value)}
+                      rows={8}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleManualImport} 
+                    disabled={igImporting || !igLinks.trim()} 
+                    className="w-full gap-2"
+                  >
+                    <Instagram size={16} />
+                    {igImporting ? "Importando..." : "Importar Links"}
+                  </Button>
+                </TabsContent>
+                
+                <TabsContent value="file" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Upload de Planilha Excel/CSV</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Faça upload de um arquivo .xlsx ou .csv contendo links do Instagram em qualquer coluna.
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => igFileRef.current?.click()}
+                      disabled={igImporting}
+                      className="w-full gap-2"
+                    >
+                      <FileSpreadsheet size={16} />
+                      {igImporting ? "Processando..." : "Selecionar Arquivo"}
+                    </Button>
+                    <input
+                      ref={igFileRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      className="hidden"
+                      onChange={handleFileImport}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {igImporting && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Importando...</span>
+                    <span>{igProgress}%</span>
+                  </div>
+                  <Progress value={igProgress} className="w-full" />
+                </div>
+              )}
+
+              {igResult && (
+                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                  <div className="font-medium mb-1">Resultado da Importação:</div>
+                  <div className="space-y-1 text-muted-foreground">
+                    <div>✅ {igResult.inserted} clippings importados</div>
+                    <div>⏭️ {igResult.skipped} duplicados ignorados</div>
+                    {igResult.failed > 0 && (
+                      <div>❌ {igResult.failed} falharam</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={openAdd} className="gap-2">
