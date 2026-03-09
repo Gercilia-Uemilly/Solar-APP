@@ -290,6 +290,110 @@ export default function Clipping() {
     }
   };
 
+  const handleInstagramImport = async (links: string[]) => {
+    if (links.length === 0) {
+      toast({ title: "Nenhum link fornecido", variant: "destructive" });
+      return;
+    }
+
+    setIgImporting(true);
+    setIgProgress(10);
+    setIgResult(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
+
+      setIgProgress(30);
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-instagram-clippings`,
+        {
+          method: "POST",
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ links }),
+        }
+      );
+
+      setIgProgress(80);
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error || "Erro na importação");
+
+      setIgProgress(100);
+      setIgResult({ 
+        inserted: result.inserted, 
+        skipped: result.skipped, 
+        failed: result.failed || 0 
+      });
+      
+      toast({
+        title: "Importação concluída!",
+        description: `${result.inserted} links importados, ${result.skipped} duplicados, ${result.failed || 0} falharam.`,
+      });
+      
+      fetchClippings();
+      setIgDialogOpen(false);
+      setIgLinks("");
+    } catch (err: any) {
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+    } finally {
+      setIgImporting(false);
+    }
+  };
+
+  const handleManualImport = () => {
+    const links = igLinks
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l);
+    handleInstagramImport(links);
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // Extract all text values that look like Instagram URLs
+        const links: string[] = [];
+        for (const row of jsonData as any[][]) {
+          for (const cell of row) {
+            if (typeof cell === "string" && 
+                (cell.includes("instagram.com") || cell.includes("instagr.am"))) {
+              links.push(cell);
+            }
+          }
+        }
+
+        if (links.length === 0) {
+          toast({ title: "Nenhum link do Instagram encontrado na planilha", variant: "destructive" });
+          return;
+        }
+
+        handleInstagramImport(links);
+      } catch (err: any) {
+        toast({ title: "Erro ao processar arquivo", description: err.message, variant: "destructive" });
+      }
+    };
+    reader.readAsBinaryString(file);
+    
+    // Reset input
+    if (igFileRef.current) igFileRef.current.value = "";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
