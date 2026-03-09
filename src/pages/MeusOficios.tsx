@@ -70,7 +70,22 @@ export default function MeusOficios() {
   const previewRef = useRef<HTMLDivElement>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
 
-  const handleOpenPreview = (o: OficioRow) => {
+  const handleOpenPreview = async (o: OficioRow) => {
+    // Check for concurrent edits before opening
+    const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at").eq("id", o.id).single();
+    if (latest && latest.last_edited_by_name && latest.last_edited_at) {
+      const editDate = new Date(latest.last_edited_at);
+      const timeDiff = Date.now() - editDate.getTime();
+      // Show warning if edited by someone else in last 30 minutes
+      if (timeDiff < 30 * 60 * 1000 && latest.last_edited_by_name !== (user?.user_metadata?.full_name || user?.email)) {
+        const formattedDate = editDate.toLocaleString("pt-BR");
+        if (!confirm(`Este ofício foi editado por ${latest.last_edited_by_name} em ${formattedDate}. Deseja carregar a versão mais recente?`)) {
+          return;
+        }
+        // Use latest version from DB
+        o = { ...o, conteudo: latest.conteudo };
+      }
+    }
     setViewOficio(o);
     setEditedContent(o.conteudo || "");
     setOriginalContent(o.conteudo || "");
@@ -79,7 +94,13 @@ export default function MeusOficios() {
 
   const handleSaveContent = async () => {
     if (!viewOficio || editedContent === originalContent) return;
-    const { error } = await supabase.from("oficios").update({ conteudo: editedContent }).eq("id", viewOficio.id);
+    const updatePayload: Record<string, any> = { 
+      conteudo: editedContent,
+      last_edited_by: user?.id || null,
+      last_edited_by_name: user?.user_metadata?.full_name || user?.email || null,
+      last_edited_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
