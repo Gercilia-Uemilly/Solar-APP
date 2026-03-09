@@ -458,7 +458,7 @@ export default function BancoInformacoes() {
     return <FileText size={12} className="text-muted-foreground" />;
   };
 
-  const visibleTabs = TAB_CONFI);
+  const visibleTabs = TAB_CONFIG;
 
   // ─── Smart download handler ───
   const handleSmartDownload = async (entry: KnowledgeEntry) => {
