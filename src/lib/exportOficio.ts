@@ -30,13 +30,14 @@ function formatDate(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-/** Build file name: [numero]-[ano] [contatoSolicitante] */
-function buildFileName(numero: string, ano: string, contatoSolicitante?: string): string {
+/** Build file name: [numero]-[ano] [código solicitante] */
+function buildFileName(numero: string, ano: string, solicitante?: string): string {
   const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
   const base = `${numLimpo || 'rascunho'}-${ano}`;
-  if (contatoSolicitante?.trim()) {
-    const contato = contatoSolicitante.trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
-    return `${base} ${contato}`;
+  if (solicitante?.trim()) {
+    // Extract only the code part (e.g. "R20752" from "R20752 Ingride")
+    const code = solicitante.trim().split(/\s+/)[0].replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
+    if (code) return `${base} ${code}`;
   }
   return base;
 }
@@ -57,7 +58,7 @@ export interface OficioData {
   operadorEmail?: string;
   telefone?: string;
   imagens?: File[];
-  contatoSolicitante?: string;
+  solicitante?: string;
 }
 
 // ── Parse HTML content into styled text runs ────────────────────────────────
@@ -460,7 +461,7 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   }
 
   const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.contatoSolicitante);
+  const fileName = buildFileName(data.numero, ano, data.solicitante);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
@@ -468,7 +469,7 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 // ── Export PDF (via Word→PDF conversion, with print fallback) ───────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
   const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.contatoSolicitante);
+  const fileName = buildFileName(data.numero, ano, data.solicitante);
 
   try {
     let wordBlob = await buildWordBlob(data);

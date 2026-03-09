@@ -161,7 +161,7 @@ export default function MeusOficios() {
     dataGeracao: o.data_geracao || undefined,
     operadorNome: o.operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
     telefone: o.linha_telefonica || undefined,
-    contatoSolicitante: o.contato_solicitante || undefined,
+    solicitante: o.solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -189,8 +189,8 @@ export default function MeusOficios() {
       });
       const ano = (oficio.ano || new Date().getFullYear()).toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-      const contatoCode = (oficio.contato_solicitante || "").trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
-      const baseFileName = contatoCode ? `${numLimpo}-${ano} ${contatoCode}` : `${numLimpo}-${ano}`;
+      const solCode = (oficio.solicitante || "").trim().split(/\s+/)[0]?.replace(/[<>:"/\\|?*]/g, '').substring(0, 30) || "";
+      const baseFileName = solCode ? `${numLimpo}-${ano} ${solCode}` : `${numLimpo}-${ano}`;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
