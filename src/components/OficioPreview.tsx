@@ -218,9 +218,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                 marginBottom: "10px",
                 fontSize: "11pt",
                 lineHeight: "1.5",
-              }}>
-                {p}
-              </p>
+              }}
+                dangerouslySetInnerHTML={{ __html: p }}
+              />
             ))}
           </div>
         )}
