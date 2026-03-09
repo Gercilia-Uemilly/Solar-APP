@@ -187,7 +187,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     operadorNome, operadorEmail,
   } = data;
 
-  const signatureSrc = SIGNATURE_SOURCES[Math.floor(Math.random() * SIGNATURE_SOURCES.length)];
+  const signatureSrc = assinaturaClean;
 
   const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
     fetchImageBytes(logoCamaraSrc),
