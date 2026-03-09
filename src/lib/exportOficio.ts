@@ -229,28 +229,24 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     ? operadorNome.split(' ')[0].toLowerCase()
     : operadorEmail?.split('@')[0].toLowerCase() || 'sistema';
 
-  // Body paragraphs — NO keepNext, spacing adapts via lineSpacing
-  const bodyParagraphs = styledParagraphs.map((runs) => new Paragraph({
-    indent: { firstLine: 709 },
-    alignment: AlignmentType.JUSTIFIED,
-    children: runs.map(r => new TextRun({
-      text: r.text,
-      font: fontName,
-      size: fontSize,
-      bold: r.bold,
-      italics: r.italic,
-      underline: r.underline ? {} : undefined,
-    })),
-    spacing: { before: 0, after: 0, line: lineSpacing },
-  }));
-
-  // Keep last 2 body paragraphs together with signature block
-  if (bodyParagraphs.length >= 2) {
-    const secondToLast = bodyParagraphs[bodyParagraphs.length - 2];
-    const last = bodyParagraphs[bodyParagraphs.length - 1];
-    (secondToLast as any).root[1] = { ...((secondToLast as any).root[1] || {}), keepNext: true };
-    (last as any).root[1] = { ...((last as any).root[1] || {}), keepNext: true };
-  }
+  // Body paragraphs
+  const bodyParagraphs = styledParagraphs.map((runs, idx) => {
+    const isLastTwo = idx >= styledParagraphs.length - 2;
+    return new Paragraph({
+      indent: { firstLine: 709 },
+      alignment: AlignmentType.JUSTIFIED,
+      children: runs.map(r => new TextRun({
+        text: r.text,
+        font: fontName,
+        size: fontSize,
+        bold: r.bold,
+        italics: r.italic,
+        underline: r.underline ? {} : undefined,
+      })),
+      spacing: { before: 0, after: 0, line: lineSpacing },
+      keepNext: isLastTwo,  // keep last 2 paragraphs with signature
+    });
+  });
 
   const doc = new Document({
     sections: [{
