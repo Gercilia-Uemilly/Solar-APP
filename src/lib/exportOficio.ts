@@ -30,10 +30,15 @@ function formatDate(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-/** Build file name: just number-year, no "Ofício" prefix */
-function buildFileName(numero: string, ano: string): string {
+/** Build file name: [numero]-[ano] [solicitante] */
+function buildFileName(numero: string, ano: string, solicitante?: string): string {
   const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-  return `${numLimpo || 'rascunho'}-${ano}`;
+  const base = `${numLimpo || 'rascunho'}-${ano}`;
+  if (solicitante?.trim()) {
+    const sol = solicitante.trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 60);
+    return `${base} ${sol}`;
+  }
+  return base;
 }
 
 // ── Dados comuns ─────────────────────────────────────────────────────────────
