@@ -50,6 +50,7 @@ const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido"
 export default function MeusOficios() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [oficios, setOficios] = useState<OficioRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -62,7 +63,33 @@ export default function MeusOficios() {
   // View
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [editedContent, setEditedContent] = useState<string>("");
+  const [originalContent, setOriginalContent] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenPreview = (o: OficioRow) => {
+    setViewOficio(o);
+    setEditedContent(o.conteudo || "");
+    setOriginalContent(o.conteudo || "");
+    setShowPreview(true);
+  };
+
+  const handleSaveContent = async () => {
+    if (!viewOficio || editedContent === originalContent) return;
+    const { error } = await supabase.from("oficios").update({ conteudo: editedContent }).eq("id", viewOficio.id);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Conteúdo salvo!" });
+      setOriginalContent(editedContent);
+      setViewOficio({ ...viewOficio, conteudo: editedContent });
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: editedContent } : o));
+    }
+  };
+
+  const handleEditForm = (o: OficioRow) => {
+    navigate("/oficios", { state: { editOficio: o } });
+  };
 
   const fetchOficios = async () => {
     setLoading(true);
