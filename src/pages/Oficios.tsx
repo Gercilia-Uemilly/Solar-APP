@@ -708,7 +708,7 @@ export default function Oficios() {
     dataGeracao: dataGeracao || undefined,
     operadorNome: user?.user_metadata?.full_name || user?.email || undefined,
     telefone: linhaTelefonica || undefined,
-    solicitante: solicitante || undefined,
+    contatoSolicitante: contatoSolicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
