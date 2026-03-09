@@ -67,6 +67,7 @@ export default function MeusOficios() {
   const [editedContent, setEditedContent] = useState<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
+  const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
 
   const handleOpenPreview = (o: OficioRow) => {
     setViewOficio(o);
