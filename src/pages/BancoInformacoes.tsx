@@ -89,6 +89,8 @@ export default function BancoInformacoes() {
   const [instaUrl, setInstaUrl] = useState("");
   const [instaImporting, setInstaImporting] = useState(false);
   const [instaFeedImporting, setInstaFeedImporting] = useState(false);
+  const [instaClassifying, setInstaClassifying] = useState(false);
+  const [instaClassifyProgress, setInstaClassifyProgress] = useState<{ processed: number; total: number } | null>(null);
   const [instaPreview, setInstaPreview] = useState<{ titulo: string; descricao: string; data: string; imagens?: string[]; screenshot?: string } | null>(null);
   const [instaEditing, setInstaEditing] = useState(false);
 
@@ -250,6 +252,37 @@ export default function BancoInformacoes() {
     if (error) { toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Post salvo na base!" });
     setInstaPreview(null); setInstaEditing(false); setInstaUrl(""); await fetchEntries();
+  };
+
+  const handleInstagramClassify = async () => {
+    setInstaClassifying(true);
+    setInstaClassifyProgress(null);
+    try {
+      const instagramEntries = entries.filter(e => 
+        (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
+        (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
+      );
+      
+      const totalToProcess = Math.min(instagramEntries.length, 50);
+      setInstaClassifyProgress({ processed: 0, total: totalToProcess });
+
+      const { data, error } = await supabase.functions.invoke("classify-instagram", {
+        body: { limit: 50 },
+      });
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Classificação concluída!", 
+        description: `${data.updated} posts atualizados de ${data.processed} processados.` 
+      });
+      await fetchEntries();
+    } catch (err: any) {
+      toast({ title: "Erro na classificação", description: err.message, variant: "destructive" });
+    } finally { 
+      setInstaClassifying(false); 
+      setInstaClassifyProgress(null);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -832,6 +865,36 @@ export default function BancoInformacoes() {
                   <Button size="sm" variant="outline" onClick={handleInstagramFeedImport} disabled={instaFeedImporting} className="gap-1.5">
                     {instaFeedImporting ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     Importar Feed @fabaovereador
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 border border-purple-500/20 rounded-lg p-4 bg-purple-500/5">
+                  <h3 className="text-sm font-medium text-foreground flex items-center gap-2 w-full mb-2">
+                    <Sparkles size={14} className="text-purple-500" /> Classificação com IA
+                  </h3>
+                  <p className="text-xs text-muted-foreground w-full mb-2">
+                    Processa posts não classificados usando IA para gerar título, tema e tags automaticamente.
+                    {entries.filter(e => (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
+                      (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
+                    ).length > 0 && (
+                      <span className="ml-1 font-medium text-purple-600">
+                        ({entries.filter(e => (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
+                          (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
+                        ).length} pendentes)
+                      </span>
+                    )}
+                  </p>
+                  <Button 
+                    size="sm" 
+                    onClick={handleInstagramClassify} 
+                    disabled={instaClassifying}
+                    className="gap-1.5 bg-purple-600 hover:bg-purple-700"
+                  >
+                    {instaClassifying ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {instaClassifying 
+                      ? instaClassifyProgress 
+                        ? `Classificando... ${instaClassifyProgress.processed}/${instaClassifyProgress.total}` 
+                        : "Classificando..." 
+                      : "Classificar Posts com IA"}
                   </Button>
                 </div>
                 <div className="space-y-3 border border-primary/20 rounded-lg p-4 bg-primary/5">

@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.google-oauth-callback]
 verify_jwt = false
+
+[functions.classify-instagram]
+verify_jwt = false
+
+[functions.bulk-import-instagram]
+verify_jwt = false
+
+[functions.import-instagram-clippings]
+verify_jwt = false
