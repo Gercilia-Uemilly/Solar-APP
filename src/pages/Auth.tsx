@@ -14,7 +14,7 @@ export default function Auth() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
   const [regName, setRegName] = useState("");
@@ -29,7 +29,16 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      await signIn(loginEmail, loginPassword);
+      let email = loginIdentifier;
+      // Check if it's not an email (username)
+      if (!loginIdentifier.includes("@")) {
+        const { data, error } = await supabase.rpc("get_email_by_username", { _username: loginIdentifier });
+        if (error || !data) {
+          throw new Error("Usuário não encontrado");
+        }
+        email = data;
+      }
+      await signIn(email, loginPassword);
     } catch (err: any) {
       toast({ title: "Erro ao entrar", description: err.message, variant: "destructive" });
     } finally {
@@ -97,7 +106,13 @@ export default function Auth() {
               </TabsList>
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4 mt-4">
-                  <Input placeholder="E-mail" type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="bg-secondary border-border" />
+                  <Input 
+                    placeholder="E-mail ou nome de usuário" 
+                    value={loginIdentifier} 
+                    onChange={e => setLoginIdentifier(e.target.value)} 
+                    required 
+                    className="bg-secondary border-border" 
+                  />
                   <Input placeholder="Senha" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="bg-secondary border-border" />
                   <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={loading}>
                     {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Entrar
