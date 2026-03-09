@@ -45,6 +45,7 @@ interface OficioRow {
   local_demanda: string | null;
   data_geracao: string | null;
   linha_telefonica: string | null;
+  ano: number | null;
 }
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
@@ -186,7 +187,7 @@ export default function MeusOficios() {
         logoFabaoUrl: logoFabao,
         assinaturaUrl: assinaturaFabao,
       });
-      const ano = new Date().getFullYear().toString();
+      const ano = (oficio.ano || new Date().getFullYear()).toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
       const contatoCode = (oficio.contato_solicitante || "").trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
       const baseFileName = contatoCode ? `${numLimpo}-${ano} ${contatoCode}` : `${numLimpo}-${ano}`;
