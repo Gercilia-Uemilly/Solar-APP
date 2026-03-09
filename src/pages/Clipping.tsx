@@ -106,6 +106,12 @@ export default function Clipping() {
   const [filterSentimento, setFilterSentimento] = useState("all");
   const [filterTema, setFilterTema] = useState("all");
   const [profileName, setProfileName] = useState("");
+  
+  // WordPress import state
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importResult, setImportResult] = useState<{ inserted: number; skipped: number } | null>(null);
+  const wpInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchClippings();
