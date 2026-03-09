@@ -37,7 +37,7 @@ interface ExistingScript {
 const TAB_CONFIG = [
   { value: "base", label: "Base", icon: Library, adminOnly: false },
   { value: "audios", label: "Áudios", icon: Headphones, adminOnly: false },
-  { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: false },
+  { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: falsse },
   { value: "instagram", label: "Instagram", icon: InstagramIcon, adminOnly: false },
   { value: "upload", label: "Upload", icon: UploadCloud, adminOnly: false },
 ] as const;
@@ -458,7 +458,7 @@ export default function BancoInformacoes() {
     return <FileText size={12} className="text-muted-foreground" />;
   };
 
-  const visibleTabs = TAB_CONFIG.filter(t => !t.adminOnly || isAdmin);
+  const visibleTabs = TAB_CONFI);
 
   // ─── Smart download handler ───
   const handleSmartDownload = async (entry: KnowledgeEntry) => {
