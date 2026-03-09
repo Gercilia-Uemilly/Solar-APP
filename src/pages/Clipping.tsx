@@ -233,6 +233,53 @@ export default function Clipping() {
     if (!error) { toast({ title: "Clipping removido" }); fetchClippings(); }
   };
 
+  const handleWordPressImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportProgress(10);
+    setImportResult(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
+
+      setImportProgress(30);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-wordpress`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
+
+      setImportProgress(80);
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error || "Erro na importação");
+
+      setImportProgress(100);
+      setImportResult({ inserted: result.inserted, skipped: result.skipped });
+      toast({
+        title: "Importação concluída!",
+        description: `${result.inserted} clippings importados, ${result.skipped} ignorados.`,
+      });
+      fetchClippings();
+    } catch (err: any) {
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+      if (wpInputRef.current) wpInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
