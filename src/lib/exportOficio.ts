@@ -30,12 +30,11 @@ function formatDate(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-/** Build file name: [numero]-[ano] [código solicitante] */
-function buildFileName(numero: string, ano: string, solicitante?: string): string {
-  const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-  const base = `${numLimpo || 'rascunho'}-${ano}`;
+/** Build file name: [numero com ano] [código solicitante] — numero já contém /ANO */
+function buildFileName(numero: string, solicitante?: string): string {
+  const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '').trim();
+  const base = numLimpo || 'rascunho';
   if (solicitante?.trim()) {
-    // Extract only the code part (e.g. "R20752" from "R20752 Ingride")
     const code = solicitante.trim().split(/\s+/)[0].replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
     if (code) return `${base} ${code}`;
   }
@@ -460,16 +459,14 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
     blob = await addAnexoImages(blob, data.imagens);
   }
 
-  const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.solicitante);
+  const fileName = buildFileName(data.numero, data.solicitante);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
 
 // ── Export PDF (via Word→PDF conversion, with print fallback) ───────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
-  const ano = new Date().getFullYear().toString();
-  const fileName = buildFileName(data.numero, ano, data.solicitante);
+  const fileName = buildFileName(data.numero, data.solicitante);
 
   try {
     let wordBlob = await buildWordBlob(data);
