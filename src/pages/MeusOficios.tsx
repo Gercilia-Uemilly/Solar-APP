@@ -390,10 +390,20 @@ export default function MeusOficios() {
             <DialogTitle className="text-foreground flex items-center justify-between">
               <span>Visualizar Ofício</span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { if (viewOficio?.conteudo) exportToWord(buildExportData(viewOficio)); }}>
+                {viewOficio && canEditOrDelete(viewOficio) && (
+                  <Button size="sm" variant="outline" onClick={() => { if (viewOficio) handleEditForm(viewOficio); setShowPreview(false); }}>
+                    <Pencil size={14} className="mr-1" /> Editar Dados
+                  </Button>
+                )}
+                {editedContent !== originalContent && (
+                  <Button size="sm" variant="default" onClick={handleSaveContent}>
+                    Salvar Alterações
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => { if (viewOficio) exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => { if (viewOficio?.conteudo) await exportToPDF(buildExportData(viewOficio)); }}>
+                <Button size="sm" variant="outline" onClick={async () => { if (viewOficio) await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
                 {viewOficio && canEditOrDelete(viewOficio) && (
@@ -411,7 +421,13 @@ export default function MeusOficios() {
                 numero={viewOficio.numero || ""}
                 destinatario={viewOficio.destinatario}
                 assunto={viewOficio.assunto}
-                conteudo={viewOficio.conteudo || ""}
+                conteudo={editedContent}
+                bairro={viewOficio.bairro || undefined}
+                cargoDestinatario={viewOficio.cargo_destinatario || undefined}
+                operadorNome={viewOficio.operador_nome || undefined}
+                editable
+                onContentChange={setEditedContent}
+                initialConteudo={originalContent}
               />
             </div>
           )}
