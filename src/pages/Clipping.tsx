@@ -331,9 +331,10 @@ export default function Clipping() {
         failed: result.failed || 0 
       });
       
+      const baseMsg = result.baseInserted > 0 ? ` | ${result.baseInserted} na Base de Conhecimento` : "";
       toast({
         title: "Importação concluída!",
-        description: `${result.inserted} links importados, ${result.skipped} duplicados, ${result.failed || 0} falharam.`,
+        description: `${result.inserted} clippings${baseMsg}, ${result.skipped} duplicados, ${result.failed || 0} falharam.`,
       });
       
       fetchClippings();
