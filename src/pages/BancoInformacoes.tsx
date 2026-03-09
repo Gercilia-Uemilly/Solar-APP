@@ -847,9 +847,7 @@ export default function BancoInformacoes() {
               <CardTitle className="text-base flex items-center gap-2"><InstagramIcon size={18} className="text-pink-500" /> Posts do Instagram</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isAdmin && (
-                <>
-                <div className="flex flex-wrap gap-2 border border-pink-500/20 rounded-lg p-4 bg-pink-500/5">
+              <div className="flex flex-wrap gap-2 border border-pink-500/20 rounded-lg p-4 bg-pink-500/5">
                   <h3 className="text-sm font-medium text-foreground flex items-center gap-2 w-full mb-2"><Rss size={14} className="text-pink-500" /> Importação automática</h3>
                   <div className="flex-1 min-w-[200px]">
                     <Input placeholder="Link do post ou perfil do Instagram" value={instaUrl} onChange={e => setInstaUrl(e.target.value)} />
