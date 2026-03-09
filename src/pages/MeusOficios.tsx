@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
+import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV } from "@/lib/exportOficio";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
@@ -66,6 +67,7 @@ export default function MeusOficios() {
   const [editedContent, setEditedContent] = useState<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
+  const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
 
   const handleOpenPreview = (o: OficioRow) => {
     setViewOficio(o);
@@ -415,20 +417,29 @@ export default function MeusOficios() {
             </DialogTitle>
           </DialogHeader>
           {viewOficio && (
-            <div className="overflow-x-auto">
-              <OficioPreview
-                ref={previewRef}
-                numero={viewOficio.numero || ""}
-                destinatario={viewOficio.destinatario}
-                assunto={viewOficio.assunto}
-                conteudo={editedContent}
-                bairro={viewOficio.bairro || undefined}
-                cargoDestinatario={viewOficio.cargo_destinatario || undefined}
-                operadorNome={viewOficio.operador_nome || undefined}
-                editable
-                onContentChange={setEditedContent}
-                initialConteudo={originalContent}
+            <div className="space-y-3">
+              <PreviewFormatToolbar
+                options={formatOptions}
+                onChange={setFormatOptions}
+                hasChanges={editedContent !== originalContent}
+                onUndo={() => setEditedContent(originalContent)}
               />
+              <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                <OficioPreview
+                  ref={previewRef}
+                  numero={viewOficio.numero || ""}
+                  destinatario={viewOficio.destinatario}
+                  assunto={viewOficio.assunto}
+                  conteudo={editedContent}
+                  bairro={viewOficio.bairro || undefined}
+                  cargoDestinatario={viewOficio.cargo_destinatario || undefined}
+                  operadorNome={viewOficio.operador_nome || undefined}
+                  formatOptions={formatOptions}
+                  editable
+                  onContentChange={setEditedContent}
+                  initialConteudo={originalContent}
+                />
+              </div>
             </div>
           )}
         </DialogContent>
