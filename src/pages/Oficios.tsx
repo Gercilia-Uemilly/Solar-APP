@@ -709,7 +709,7 @@ export default function Oficios() {
     dataGeracao: dataGeracao || undefined,
     operadorNome: user?.user_metadata?.full_name || user?.email || undefined,
     telefone: linhaTelefonica || undefined,
-    contatoSolicitante: contatoSolicitante || undefined,
+    solicitante: solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
