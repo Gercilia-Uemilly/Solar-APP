@@ -302,7 +302,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               type: "png",
             }),
           ],
-          spacing: { before: 200, after: 0 },
+          spacing: { before: 80, after: 0 },
           keepNext: true,
           keepLines: true,
         }),
