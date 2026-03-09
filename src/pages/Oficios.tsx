@@ -406,7 +406,8 @@ export default function Oficios() {
 
   const handleEdit = (o: OficioRow) => {
     setEditingOficioId(o.id);
-    setNumero(o.numero || "");
+    const rawNum = o.numero || "";
+    setNumero(rawNum.includes("/") ? rawNum.split("/")[0] : rawNum);
     setDataGeracao(o.data_geracao || new Date().toISOString().split("T")[0]);
     setAssunto(o.assunto || "");
     setDestinatario(o.destinatario || "");
@@ -449,7 +450,7 @@ export default function Oficios() {
     }
     setValidationErrors({});
     const payload = {
-      numero: numero || null,
+      numero: numero ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}`) : null,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
       destinatario: destinatario || aiResult?.secretaria_identificada || "A definir",
       status: aiResult ? "Gerado" : "Rascunho",
@@ -762,7 +763,21 @@ export default function Oficios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
-                  <Input placeholder="Ex: 23/2026" value={numero} onChange={e => { setNumero(e.target.value); setValidationErrors(prev => ({ ...prev, numero: false })); }} className={`bg-secondary ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`} />
+                  <div className="flex items-center gap-0">
+                    <Input
+                      placeholder="Ex: 23"
+                      value={numero.includes("/") ? numero.split("/")[0] : numero}
+                      onChange={e => {
+                        const num = e.target.value.replace(/[^0-9]/g, "");
+                        setNumero(num);
+                        setValidationErrors(prev => ({ ...prev, numero: false }));
+                      }}
+                      className={`bg-secondary rounded-r-none ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`}
+                    />
+                    <span className="inline-flex items-center px-3 h-9 bg-muted border border-l-0 border-border rounded-r-md text-sm text-muted-foreground whitespace-nowrap">
+                      /{new Date().getFullYear()}
+                    </span>
+                  </div>
                   {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
                 </div>
                 <div>
