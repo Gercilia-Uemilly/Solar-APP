@@ -155,14 +155,28 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const fontSize = 22; // 11pt in half-points
   const fontName = "Arial";
-  const lineSpacing = 360; // 1.5 lines
+
+  // ── Adaptive line spacing: reduce spacing to fit on 1 page, NEVER reduce signature ──
+  // Approximate: each paragraph ~1 line, usable page height ~700pt (A4 minus margins/header/footer)
+  const contentParagraphCount = styledParagraphs.length + 6; // body + header elements
+  const estimatedHeight1_5 = contentParagraphCount * 18 * 1.5; // 18pt line * 1.5
+  const estimatedHeight1_15 = contentParagraphCount * 18 * 1.15;
+
+  let lineSpacing: number;
+  if (estimatedHeight1_5 <= 620) {
+    lineSpacing = 360; // 1.5 lines
+  } else if (estimatedHeight1_15 <= 620) {
+    lineSpacing = 276; // 1.15 lines
+  } else {
+    lineSpacing = 240; // 1.0 lines — minimum, let it flow to page 2 if needed
+  }
 
   const operadorMarca = operadorNome
     ? operadorNome.split(' ')[0].toLowerCase()
     : operadorEmail?.split('@')[0].toLowerCase() || 'sistema';
 
-  // Get the last body paragraph to set keepNext on it
-  const bodyParagraphs = styledParagraphs.map((runs, idx) => new Paragraph({
+  // Body paragraphs — NO keepNext, spacing adapts via lineSpacing
+  const bodyParagraphs = styledParagraphs.map((runs) => new Paragraph({
     indent: { firstLine: 709 },
     alignment: AlignmentType.JUSTIFIED,
     children: runs.map(r => new TextRun({
@@ -175,6 +189,14 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     })),
     spacing: { before: 0, after: 0, line: lineSpacing },
   }));
+
+  // Keep last 2 body paragraphs together with signature block
+  if (bodyParagraphs.length >= 2) {
+    const secondToLast = bodyParagraphs[bodyParagraphs.length - 2];
+    const last = bodyParagraphs[bodyParagraphs.length - 1];
+    (secondToLast as any).root[1] = { ...((secondToLast as any).root[1] || {}), keepNext: true };
+    (last as any).root[1] = { ...((last as any).root[1] || {}), keepNext: true };
+  }
 
   const doc = new Document({
     sections: [{
