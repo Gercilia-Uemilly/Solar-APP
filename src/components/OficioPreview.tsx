@@ -81,8 +81,11 @@ function EditableBody({ conteudo, fmt, onContentChange, initialConteudo }: {
         onInput={syncContent}
         onFocus={() => { isUserEditing.current = true; }}
         onBlur={() => {
-          syncContent();
-          isUserEditing.current = false;
+          // Delay to allow toolbar button clicks (onMouseDown preventDefault) to fire first
+          setTimeout(() => {
+            syncContent();
+            isUserEditing.current = false;
+          }, 200);
         }}
         onKeyDown={(e) => {
           // Ensure delete, backspace, space, enter work
