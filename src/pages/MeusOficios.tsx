@@ -115,7 +115,7 @@ export default function MeusOficios() {
 
   const canEditOrDelete = (o: OficioRow) => {
     if (!user) return false;
-    return isAdmin || o.author_id === user.id;
+    return true;
   };
 
   const handleDelete = async (id: string) => {
@@ -264,11 +264,9 @@ export default function MeusOficios() {
           <h1 className="text-2xl font-bold text-foreground">Todos os Ofícios</h1>
           <p className="text-sm text-muted-foreground">{oficios.length} ofício(s) encontrado(s)</p>
         </div>
-        {isAdmin && (
-          <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
-            <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
-          </Button>
-        )}
+        <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
+          <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
+        </Button>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">

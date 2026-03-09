@@ -37,7 +37,7 @@ interface ExistingScript {
 const TAB_CONFIG = [
   { value: "base", label: "Base", icon: Library, adminOnly: false },
   { value: "audios", label: "Áudios", icon: Headphones, adminOnly: false },
-  { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: true },
+  { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: false },
   { value: "instagram", label: "Instagram", icon: InstagramIcon, adminOnly: false },
   { value: "upload", label: "Upload", icon: UploadCloud, adminOnly: false },
 ] as const;
@@ -458,7 +458,7 @@ export default function BancoInformacoes() {
     return <FileText size={12} className="text-muted-foreground" />;
   };
 
-  const visibleTabs = TAB_CONFIG.filter(t => !t.adminOnly || isAdmin);
+  const visibleTabs = TAB_CONFIG;
 
   // ─── Smart download handler ───
   const handleSmartDownload = async (entry: KnowledgeEntry) => {
@@ -613,12 +613,10 @@ export default function BancoInformacoes() {
                     </div>
                   )}
                   <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border opacity-0 group-hover:opacity-100 transition-opacity">
-                    {isAdmin && (
-                      <button onClick={() => toggleModelo(entry)} className={`p-1.5 rounded-md ${entry.modelo ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>{entry.modelo ? <Star size={14} /> : <StarOff size={14} />}</button>
-                    )}
+                    <button onClick={() => toggleModelo(entry)} className={`p-1.5 rounded-md ${entry.modelo ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>{entry.modelo ? <Star size={14} /> : <StarOff size={14} />}</button>
                     <button onClick={() => openDialog(entry)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"><MessageSquare size={14} /></button>
                     {entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><ExternalLink size={14} /></a>}
-                    {isAdmin && <button onClick={() => handleDelete(entry.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto"><Trash2 size={14} /></button>}
+                    <button onClick={() => handleDelete(entry.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto"><Trash2 size={14} /></button>
                   </div>
                 </CardContent>
               </Card>
@@ -809,11 +807,9 @@ export default function BancoInformacoes() {
                       </div>
                     </div>
 
-                    {isAdmin && (
-                      <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+                    <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </CardContent>
               </Card>
@@ -851,9 +847,7 @@ export default function BancoInformacoes() {
               <CardTitle className="text-base flex items-center gap-2"><InstagramIcon size={18} className="text-pink-500" /> Posts do Instagram</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isAdmin && (
-                <>
-                <div className="flex flex-wrap gap-2 border border-pink-500/20 rounded-lg p-4 bg-pink-500/5">
+              <div className="flex flex-wrap gap-2 border border-pink-500/20 rounded-lg p-4 bg-pink-500/5">
                   <h3 className="text-sm font-medium text-foreground flex items-center gap-2 w-full mb-2"><Rss size={14} className="text-pink-500" /> Importação automática</h3>
                   <div className="flex-1 min-w-[200px]">
                     <Input placeholder="Link do post ou perfil do Instagram" value={instaUrl} onChange={e => setInstaUrl(e.target.value)} />
@@ -916,8 +910,6 @@ export default function BancoInformacoes() {
                     <Button size="sm" onClick={saveInstaPreview} disabled={!instaPreview?.titulo?.trim() || !instaPreview?.descricao?.trim()}>Salvar na Base</Button>
                   </div>
                 </div>
-                </>
-              )}
               <div className="grid gap-3 md:grid-cols-2">
                 {entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length === 0 ? (
                   <div className="col-span-full text-center py-10 text-muted-foreground">
@@ -935,7 +927,7 @@ export default function BancoInformacoes() {
                             {entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5"><ExternalLink size={10} />Ver post</a>}
                           </div>
                         </div>
-                        {isAdmin && <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14} /></button>}
+                        <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14} /></button>
                       </div>
                     </CardContent>
                   </Card>
