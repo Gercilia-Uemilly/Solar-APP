@@ -417,20 +417,29 @@ export default function MeusOficios() {
             </DialogTitle>
           </DialogHeader>
           {viewOficio && (
-            <div className="overflow-x-auto">
-              <OficioPreview
-                ref={previewRef}
-                numero={viewOficio.numero || ""}
-                destinatario={viewOficio.destinatario}
-                assunto={viewOficio.assunto}
-                conteudo={editedContent}
-                bairro={viewOficio.bairro || undefined}
-                cargoDestinatario={viewOficio.cargo_destinatario || undefined}
-                operadorNome={viewOficio.operador_nome || undefined}
-                editable
-                onContentChange={setEditedContent}
-                initialConteudo={originalContent}
+            <div className="space-y-3">
+              <PreviewFormatToolbar
+                options={formatOptions}
+                onChange={setFormatOptions}
+                hasChanges={editedContent !== originalContent}
+                onUndo={() => setEditedContent(originalContent)}
               />
+              <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                <OficioPreview
+                  ref={previewRef}
+                  numero={viewOficio.numero || ""}
+                  destinatario={viewOficio.destinatario}
+                  assunto={viewOficio.assunto}
+                  conteudo={editedContent}
+                  bairro={viewOficio.bairro || undefined}
+                  cargoDestinatario={viewOficio.cargo_destinatario || undefined}
+                  operadorNome={viewOficio.operador_nome || undefined}
+                  formatOptions={formatOptions}
+                  editable
+                  onContentChange={setEditedContent}
+                  initialConteudo={originalContent}
+                />
+              </div>
             </div>
           )}
         </DialogContent>
