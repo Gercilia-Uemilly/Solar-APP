@@ -622,7 +622,7 @@ export default function Oficios() {
         logoFabaoUrl: logoFabao,
         assinaturaUrl: assinaturaFabao,
       });
-      const ano = new Date().getFullYear().toString();
+      const ano = (oficio.ano || new Date().getFullYear()).toString();
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '');
       const contatoCode = (oficio.contato_solicitante || "").trim().replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
       const baseFileName = contatoCode ? `${numLimpo}-${ano} ${contatoCode}` : `${numLimpo}-${ano}`;
