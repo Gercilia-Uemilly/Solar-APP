@@ -254,6 +254,37 @@ export default function BancoInformacoes() {
     setInstaPreview(null); setInstaEditing(false); setInstaUrl(""); await fetchEntries();
   };
 
+  const handleInstagramClassify = async () => {
+    setInstaClassifying(true);
+    setInstaClassifyProgress(null);
+    try {
+      const instagramEntries = entries.filter(e => 
+        (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
+        (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
+      );
+      
+      const totalToProcess = Math.min(instagramEntries.length, 50);
+      setInstaClassifyProgress({ processed: 0, total: totalToProcess });
+
+      const { data, error } = await supabase.functions.invoke("classify-instagram", {
+        body: { limit: 50 },
+      });
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Classificação concluída!", 
+        description: `${data.updated} posts atualizados de ${data.processed} processados.` 
+      });
+      await fetchEntries();
+    } catch (err: any) {
+      toast({ title: "Erro na classificação", description: err.message, variant: "destructive" });
+    } finally { 
+      setInstaClassifying(false); 
+      setInstaClassifyProgress(null);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
