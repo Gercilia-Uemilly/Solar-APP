@@ -112,43 +112,56 @@ function parseHtmlToParagraphs(html: string): StyledRun[][] {
 
 // ── Fix rId0 in DOCX rels files (OOXML requires rId >= 1) ───────────────────
 async function fixDocxRelationshipIds(blob: Blob): Promise<Blob> {
-  const zip = await JSZip.loadAsync(blob);
-  const relsFiles: string[] = [];
+  try {
+    const zip = await JSZip.loadAsync(blob);
+    const relsFiles: string[] = [];
 
-  zip.forEach((path) => {
-    if (path.endsWith(".rels")) relsFiles.push(path);
-  });
+    zip.forEach((path) => {
+      if (path.endsWith(".rels")) relsFiles.push(path);
+    });
 
-  for (const relsPath of relsFiles) {
-    let relsXml = await zip.file(relsPath)!.async("string");
-    if (!relsXml.includes('"rId0"')) continue;
+    let modified = false;
+    for (const relsPath of relsFiles) {
+      const file = zip.file(relsPath);
+      if (!file) continue;
+      let relsXml = await file.async("string");
+      if (!relsXml.includes('"rId0"')) continue;
 
-    // Find the max existing rId number
-    const idMatches = [...relsXml.matchAll(/Id="rId(\d+)"/g)];
-    const maxId = Math.max(0, ...idMatches.map(m => parseInt(m[1], 10)));
+      console.log(`[fixDocxRIds] Found rId0 in ${relsPath}`);
+      modified = true;
 
-    // Shift rId0 to maxId+1
-    const newId = maxId + 1;
-    relsXml = relsXml.replace(/Id="rId0"/g, `Id="rId${newId}"`);
-    zip.file(relsPath, relsXml);
+      const idMatches = [...relsXml.matchAll(/Id="rId(\d+)"/g)];
+      const maxId = Math.max(0, ...idMatches.map(m => parseInt(m[1], 10)));
+      const newId = maxId + 1;
 
-    // Find and fix corresponding XML files that reference rId0
-    // e.g. word/_rels/header1.xml.rels → word/header1.xml
-    const xmlPath = relsPath
-      .replace("/_rels/", "/")
-      .replace(".xml.rels", ".xml");
+      relsXml = relsXml.replace(/Id="rId0"/g, `Id="rId${newId}"`);
+      zip.file(relsPath, relsXml);
 
-    const xmlFile = zip.file(xmlPath);
-    if (xmlFile) {
-      let xml = await xmlFile.async("string");
-      // Replace r:embed="rId0" and r:id="rId0" patterns
-      xml = xml.replace(/r:embed="rId0"/g, `r:embed="rId${newId}"`);
-      xml = xml.replace(/r:id="rId0"/g, `r:id="rId${newId}"`);
-      zip.file(xmlPath, xml);
+      // Fix corresponding XML references
+      const xmlPath = relsPath.replace("/_rels/", "/").replace(".xml.rels", ".xml");
+      const xmlFile = zip.file(xmlPath);
+      if (xmlFile) {
+        let xml = await xmlFile.async("string");
+        xml = xml.replace(/r:embed="rId0"/g, `r:embed="rId${newId}"`);
+        xml = xml.replace(/r:id="rId0"/g, `r:id="rId${newId}"`);
+        zip.file(xmlPath, xml);
+      }
     }
-  }
 
-  return await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    if (!modified) {
+      console.log("[fixDocxRIds] No rId0 found, returning original blob");
+      return blob;
+    }
+
+    return await zip.generateAsync({
+      type: "blob",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      compression: "DEFLATE",
+    });
+  } catch (err) {
+    console.error("[fixDocxRIds] Error during post-processing, returning original:", err);
+    return blob;
+  }
 }
 
 // ── Fetch image as Uint8Array ───────────────────────────────────────────────
