@@ -302,6 +302,8 @@ async function convertWithConvertApi(
       Parameters: [
         { Name: "File", FileValue: { Name: filename, Data: base64 } },
         { Name: "StoreFile", Value: true },
+        { Name: "ImageResolution", Value: 300 },
+        { Name: "ImageQuality", Value: 100 },
       ],
     }),
   });
