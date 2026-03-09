@@ -161,7 +161,7 @@ export default function MeusOficios() {
     dataGeracao: o.data_geracao || undefined,
     operadorNome: o.operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
     telefone: o.linha_telefonica || undefined,
-    contatoSolicitante: o.contato_solicitante || undefined,
+    solicitante: o.solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
