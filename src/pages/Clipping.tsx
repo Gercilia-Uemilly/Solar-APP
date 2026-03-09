@@ -4,9 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfWeek, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import * as XLSX from "xlsx";
 import {
   Newspaper, TrendingUp, TrendingDown, Minus, Plus, ExternalLink, Pencil, Star, CheckCircle2,
-  Filter, Instagram, Facebook, Globe, Tv, BookOpen, Search, BarChart3, X, Trash2, Video, MessageCircle, Upload
+  Filter, Instagram, Facebook, Globe, Tv, BookOpen, Search, BarChart3, X, Trash2, Video, MessageCircle, Upload, FileSpreadsheet
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Clipping = {
