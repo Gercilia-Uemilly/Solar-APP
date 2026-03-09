@@ -135,7 +135,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
     : "___";
 
-  const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a)."} ${destinatario || "___"}`;
+  const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"} ${destinatario || "___"}`;
   const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
 
   let assuntoFormatado = assunto || "___";
