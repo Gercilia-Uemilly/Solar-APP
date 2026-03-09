@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,6 +50,7 @@ const statusOptions = ["Rascunho", "Gerado", "Assinado", "Enviado", "Respondido"
 export default function MeusOficios() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [oficios, setOficios] = useState<OficioRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -61,7 +63,33 @@ export default function MeusOficios() {
   // View
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [editedContent, setEditedContent] = useState<string>("");
+  const [originalContent, setOriginalContent] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenPreview = (o: OficioRow) => {
+    setViewOficio(o);
+    setEditedContent(o.conteudo || "");
+    setOriginalContent(o.conteudo || "");
+    setShowPreview(true);
+  };
+
+  const handleSaveContent = async () => {
+    if (!viewOficio || editedContent === originalContent) return;
+    const { error } = await supabase.from("oficios").update({ conteudo: editedContent }).eq("id", viewOficio.id);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Conteúdo salvo!" });
+      setOriginalContent(editedContent);
+      setViewOficio({ ...viewOficio, conteudo: editedContent });
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: editedContent } : o));
+    }
+  };
+
+  const handleEditForm = (o: OficioRow) => {
+    navigate("/oficios", { state: { editOficio: o } });
+  };
 
   const fetchOficios = async () => {
     setLoading(true);
@@ -318,7 +346,7 @@ export default function MeusOficios() {
                 <TableCell className="text-sm text-muted-foreground">{o.operador_nome || "-"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => { setViewOficio(o); setShowPreview(true); }} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
+                    <button onClick={() => handleOpenPreview(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
                     <button
                       onClick={() => { if (o.conteudo) exportToWord(buildExportData(o)); }}
                       className="p-2 text-muted-foreground hover:text-foreground"
@@ -335,6 +363,7 @@ export default function MeusOficios() {
                     </button>
                     {canEditOrDelete(o) && (
                       <>
+                        <button onClick={() => handleEditForm(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={16} /></button>
                         <button
                           onClick={() => handleUploadToDrive(o)}
                           disabled={isUploading}
@@ -361,10 +390,20 @@ export default function MeusOficios() {
             <DialogTitle className="text-foreground flex items-center justify-between">
               <span>Visualizar Ofício</span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { if (viewOficio?.conteudo) exportToWord(buildExportData(viewOficio)); }}>
+                {viewOficio && canEditOrDelete(viewOficio) && (
+                  <Button size="sm" variant="outline" onClick={() => { if (viewOficio) handleEditForm(viewOficio); setShowPreview(false); }}>
+                    <Pencil size={14} className="mr-1" /> Editar Dados
+                  </Button>
+                )}
+                {editedContent !== originalContent && (
+                  <Button size="sm" variant="default" onClick={handleSaveContent}>
+                    Salvar Alterações
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => { if (viewOficio) exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => { if (viewOficio?.conteudo) await exportToPDF(buildExportData(viewOficio)); }}>
+                <Button size="sm" variant="outline" onClick={async () => { if (viewOficio) await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
                 {viewOficio && canEditOrDelete(viewOficio) && (
@@ -382,7 +421,13 @@ export default function MeusOficios() {
                 numero={viewOficio.numero || ""}
                 destinatario={viewOficio.destinatario}
                 assunto={viewOficio.assunto}
-                conteudo={viewOficio.conteudo || ""}
+                conteudo={editedContent}
+                bairro={viewOficio.bairro || undefined}
+                cargoDestinatario={viewOficio.cargo_destinatario || undefined}
+                operadorNome={viewOficio.operador_nome || undefined}
+                editable
+                onContentChange={setEditedContent}
+                initialConteudo={originalContent}
               />
             </div>
           )}
