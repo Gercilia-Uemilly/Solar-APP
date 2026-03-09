@@ -45,6 +45,7 @@ interface OficioRow {
   local_demanda: string | null;
   data_geracao: string | null;
   linha_telefonica: string | null;
+  ano: number | null;
 }
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];

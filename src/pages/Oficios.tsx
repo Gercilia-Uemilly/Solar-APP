@@ -70,6 +70,7 @@ interface OficioRow {
   solicitante: string | null;
   contato_solicitante: string | null;
   data_geracao: string | null;
+  ano: number | null;
 }
 
 export default function Oficios() {
