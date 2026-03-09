@@ -170,8 +170,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       underline: r.underline ? {} : undefined,
     })),
     spacing: { before: 0, after: 0, line: lineSpacing },
-    // Keep last 2 paragraphs with signature block
-    keepNext: idx >= styledParagraphs.length - 2,
   }));
 
   const doc = new Document({
@@ -284,7 +282,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 200, after: 100, line: lineSpacing },
         }),
 
-        // Body paragraphs
+        // Body paragraphs (NO keepNext on body — only signature block keeps together)
         ...bodyParagraphs,
 
         // Closing
@@ -292,16 +290,15 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Atenciosamente,", font: fontName, size: fontSize })],
           spacing: { before: 160, after: 0, line: lineSpacing },
-          keepNext: true,
         }),
 
-        // Signature image
+        // Signature image — inline, no background, transparent PNG
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
             new ImageRun({
               data: assinaturaBytes,
-              transformation: { width: 400, height: 160 },
+              transformation: { width: 150, height: 75 },
               type: "png",
             }),
           ],
@@ -320,6 +317,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [new TextRun({ text: " ", font: fontName, size: 2 })],
           spacing: { before: 0, after: 0 },
           keepNext: true,
+          keepLines: true,
         }),
 
         // Name
@@ -328,6 +326,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [new TextRun({ text: "FABÃO", font: fontName, size: fontSize, bold: true })],
           spacing: { before: 0, after: 0, line: lineSpacing },
           keepNext: true,
+          keepLines: true,
         }),
 
         // Title
