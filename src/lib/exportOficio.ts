@@ -5,11 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 // ── Assets ──────────────────────────────────────────────────────────────────
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
 import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
-import assinaturaSrc1 from "@/assets/assinatura-1.png";
-import assinaturaSrc2 from "@/assets/assinatura-2.png";
-import assinaturaSrc3 from "@/assets/assinatura-3.png";
+import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
+import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
-const SIGNATURE_SOURCES = [assinaturaSrc1, assinaturaSrc2, assinaturaSrc3];
+const SIGNATURE_SOURCES = [assinaturaClean, assinaturaFabao];
 
 // ── FIXED signature dimensions — NEVER change these ─────────────────────────
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi — IMMUTABLE
