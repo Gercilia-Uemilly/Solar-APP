@@ -406,7 +406,8 @@ export default function Oficios() {
 
   const handleEdit = (o: OficioRow) => {
     setEditingOficioId(o.id);
-    setNumero(o.numero || "");
+    const rawNum = o.numero || "";
+    setNumero(rawNum.includes("/") ? rawNum.split("/")[0] : rawNum);
     setDataGeracao(o.data_geracao || new Date().toISOString().split("T")[0]);
     setAssunto(o.assunto || "");
     setDestinatario(o.destinatario || "");
