@@ -807,11 +807,9 @@ export default function BancoInformacoes() {
                       </div>
                     </div>
 
-                    {isAdmin && (
-                      <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+                    <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </CardContent>
               </Card>
