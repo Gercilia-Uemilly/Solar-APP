@@ -449,8 +449,12 @@ export default function Oficios() {
       return;
     }
     setValidationErrors({});
+    const code = generateSolicitanteCode();
+    const fullNumero = numero
+      ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}/${code}`)
+      : null;
     const payload = {
-      numero: numero ? (numero.includes("/") ? numero : `${numero}/${new Date().getFullYear()}`) : null,
+      numero: fullNumero,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
       destinatario: destinatario || aiResult?.secretaria_identificada || "A definir",
       status: aiResult ? "Gerado" : "Rascunho",
@@ -769,13 +773,16 @@ export default function Oficios() {
                       value={numero.includes("/") ? numero.split("/")[0] : numero}
                       onChange={e => {
                         const num = e.target.value.replace(/[^0-9]/g, "");
-                        setNumero(num);
+                        // Preserve the year/code suffix if present
+                        const parts = numero.split("/");
+                        const code = parts.length >= 3 ? parts.slice(2).join("/") : generateSolicitanteCode();
+                        setNumero(num ? `${num}/${new Date().getFullYear()}/${code}` : num);
                         setValidationErrors(prev => ({ ...prev, numero: false }));
                       }}
                       className={`bg-secondary rounded-r-none ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`}
                     />
                     <span className="inline-flex items-center px-3 h-9 bg-muted border border-l-0 border-border rounded-r-md text-sm text-muted-foreground whitespace-nowrap">
-                      /{new Date().getFullYear()}
+                      /{new Date().getFullYear()}/{numero.includes("/") && numero.split("/").length >= 3 ? numero.split("/").slice(2).join("/") : generateSolicitanteCode()}
                     </span>
                   </div>
                   {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
