@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2, KeyRound } from "lucide-react";
+import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2, KeyRound, Mail, Eye, Copy, Calendar, Hash } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 
 interface Profile {
@@ -29,18 +29,49 @@ interface UserRole {
   role: "admin" | "user";
 }
 
+// Generate short ID based on name and email
+function generateShortId(name: string | null, email: string | null): string {
+  const base = `${name || ""}${email || ""}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!base) return "usr000";
+  
+  // Create a simple hash
+  let hash = 0;
+  for (let i = 0; i < base.length; i++) {
+    hash = ((hash << 5) - hash) + base.charCodeAt(i);
+    hash = hash & hash;
+  }
+  const hashStr = Math.abs(hash).toString(36).substring(0, 4);
+  
+  // Get first part of name or email
+  const prefix = (name?.split(" ")[0]?.substring(0, 3) || email?.split("@")[0]?.substring(0, 3) || "usr").toLowerCase();
+  
+  return `${prefix}.${hashStr}`;
+}
+
 export default function Operadores() {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<Record<string, "admin" | "user">>({});
   const [loading, setLoading] = useState(true);
-  const [editProfile, setEditProfile] = useState<Profile | null>(null);
-  const [showEdit, setShowEdit] = useState(false);
+  
+  // View profile modal
+  const [viewProfile, setViewProfile] = useState<Profile | null>(null);
+  const [showView, setShowView] = useState(false);
+  
+  // Edit mode in view modal
+  const [editMode, setEditMode] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editTel1, setEditTel1] = useState("");
   const [editTel2, setEditTel2] = useState("");
   const [editTel3, setEditTel3] = useState("");
+  const [saving, setSaving] = useState(false);
+  
+  // Password change in view modal
+  const [showPasswordField, setShowPasswordField] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
 
   // Invite modal
   const [showInvite, setShowInvite] = useState(false);
@@ -52,12 +83,6 @@ export default function Operadores() {
   // Delete confirmation
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // Reset password
-  const [resetUserId, setResetUserId] = useState<string | null>(null);
-  const [resetUserName, setResetUserName] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [resettingPassword, setResettingPassword] = useState(false);
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -80,34 +105,79 @@ export default function Operadores() {
 
   useEffect(() => { fetchProfiles(); }, []);
 
-  const openEdit = (p: Profile) => {
-    setEditProfile(p);
+  const openView = (p: Profile) => {
+    setViewProfile(p);
     setEditName(p.full_name || "");
+    setEditEmail(p.email || "");
     setEditTel1(p.telefone1 || "");
     setEditTel2(p.telefone2 || "");
     setEditTel3(p.telefone3 || "");
-    setShowEdit(true);
+    setEditMode(false);
+    setShowPasswordField(false);
+    setNewPassword("");
+    setShowView(true);
   };
 
   const handleSave = async () => {
-    if (!editProfile) return;
-    const { error } = await supabase.from("profiles").update({
+    if (!viewProfile) return;
+    setSaving(true);
+    
+    // Update profile
+    const { error: profileError } = await supabase.from("profiles").update({
       full_name: editName || null,
       telefone1: editTel1 || null,
       telefone2: editTel2 || null,
       telefone3: editTel3 || null,
-    }).eq("id", editProfile.id);
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Operador atualizado!" });
-      setShowEdit(false);
-      fetchProfiles();
+    }).eq("id", viewProfile.id);
+    
+    if (profileError) {
+      toast({ title: "Erro ao salvar perfil", description: profileError.message, variant: "destructive" });
+      setSaving(false);
+      return;
     }
+    
+    // Update email if changed and is admin
+    if (isAdmin && editEmail !== viewProfile.email && editEmail) {
+      const { error: emailError } = await supabase.functions.invoke("update-user-email", {
+        body: { userId: viewProfile.id, newEmail: editEmail },
+      });
+      if (emailError) {
+        toast({ title: "Erro ao atualizar e-mail", description: emailError.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+    }
+    
+    toast({ title: "Perfil atualizado!" });
+    setEditMode(false);
+    setSaving(false);
+    fetchProfiles();
+    
+    // Update local state
+    setViewProfile(prev => prev ? { ...prev, full_name: editName, email: editEmail, telefone1: editTel1, telefone2: editTel2, telefone3: editTel3 } : null);
+  };
+
+  const handleSavePassword = async () => {
+    if (!viewProfile || !newPassword || newPassword.length < 6) {
+      toast({ title: "Senha deve ter pelo menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    setSavingPassword(true);
+    const { error } = await supabase.functions.invoke("reset-user-password", {
+      body: { userId: viewProfile.id, newPassword },
+    });
+    if (error) {
+      toast({ title: "Erro ao alterar senha", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Senha alterada com sucesso!" });
+      setShowPasswordField(false);
+      setNewPassword("");
+    }
+    setSavingPassword(false);
   };
 
   const handleToggleActive = async (userId: string, active: boolean) => {
-    const { data, error } = await supabase.functions.invoke("toggle-user-active", {
+    const { error } = await supabase.functions.invoke("toggle-user-active", {
       body: { userId, active },
     });
     if (error) {
@@ -115,6 +185,9 @@ export default function Operadores() {
     } else {
       toast({ title: active ? "Usuário ativado" : "Usuário desativado" });
       fetchProfiles();
+      if (viewProfile?.id === userId) {
+        setViewProfile(prev => prev ? { ...prev, active } : null);
+      }
     }
   };
 
@@ -163,29 +236,27 @@ export default function Operadores() {
       toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Usuário removido com sucesso!" });
+      if (viewProfile?.id === deleteUserId) {
+        setShowView(false);
+        setViewProfile(null);
+      }
       fetchProfiles();
     }
     setDeleteUserId(null);
     setDeleting(false);
   };
 
-  const handleResetPassword = async () => {
-    if (!resetUserId || !newPassword) {
-      toast({ title: "Preencha a nova senha", variant: "destructive" });
-      return;
-    }
-    setResettingPassword(true);
-    const { data, error } = await supabase.functions.invoke("reset-user-password", {
-      body: { userId: resetUserId, newPassword },
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copiado!" });
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
     });
-    if (error) {
-      toast({ title: "Erro ao resetar senha", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Senha alterada com sucesso!" });
-      setResetUserId(null);
-      setNewPassword("");
-    }
-    setResettingPassword(false);
   };
 
   return (
@@ -209,28 +280,28 @@ export default function Operadores() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>ID</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>Papel</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Linha 1</TableHead>
-              <TableHead>Linha 2</TableHead>
-              <TableHead>Linha 3</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
             ) : profiles.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum operador encontrado.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum operador encontrado.</TableCell></TableRow>
             ) : profiles.map(p => {
               const role = roles[p.id] || "user";
+              const shortId = generateShortId(p.full_name, p.email);
               return (
-                <TableRow key={p.id} className={!p.active ? "opacity-50" : ""}>
+                <TableRow key={p.id} className={`cursor-pointer hover:bg-muted/50 ${!p.active ? "opacity-50" : ""}`} onClick={() => openView(p)}>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{shortId}</TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      <UserAvatar userId={p.id} fullName={p.full_name} avatarUrl={(p as any).avatar_url} size="sm" />
+                      <UserAvatar userId={p.id} fullName={p.full_name} avatarUrl={p.avatar_url} size="sm" />
                       {p.full_name || "—"}
                     </div>
                   </TableCell>
@@ -245,47 +316,10 @@ export default function Operadores() {
                       {p.active ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{p.telefone1 || "—"}</TableCell>
-                  <TableCell className="text-sm">{p.telefone2 || "—"}</TableCell>
-                  <TableCell className="text-sm">{p.telefone3 || "—"}</TableCell>
-                  <TableCell className="text-right space-x-1">
-                    {isAdmin && (
-                      <>
-                        <button
-                          onClick={() => handleToggleRole(p.id, role)}
-                          className="p-2 text-muted-foreground hover:text-foreground"
-                          title={role === "admin" ? "Remover admin" : "Tornar admin"}
-                        >
-                          {role === "admin" ? <ShieldOff size={16} /> : <ShieldCheck size={16} />}
-                        </button>
-                        <button
-                          onClick={() => handleToggleActive(p.id, !p.active)}
-                          className={`p-2 ${p.active ? "text-muted-foreground hover:text-destructive" : "text-green-500 hover:text-green-400"}`}
-                          title={p.active ? "Desativar" : "Ativar"}
-                        >
-                          <Switch checked={p.active} className="pointer-events-none" />
-                        </button>
-                      </>
-                    )}
-                    <button onClick={() => openEdit(p)} className="p-2 text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={16} /></button>
-                    {isAdmin && (
-                      <>
-                        <button
-                          onClick={() => { setResetUserId(p.id); setResetUserName(p.full_name || p.email || ""); setNewPassword(""); }}
-                          className="p-2 text-muted-foreground hover:text-primary"
-                          title="Resetar senha"
-                        >
-                          <KeyRound size={16} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteUserId(p.id)}
-                          className="p-2 text-muted-foreground hover:text-destructive"
-                          title="Remover acesso"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </>
-                    )}
+                  <TableCell className="text-right">
+                    <button onClick={(e) => { e.stopPropagation(); openView(p); }} className="p-2 text-muted-foreground hover:text-foreground" title="Ver perfil">
+                      <Eye size={16} />
+                    </button>
                   </TableCell>
                 </TableRow>
               );
@@ -294,33 +328,180 @@ export default function Operadores() {
         </Table>
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={showEdit} onOpenChange={setShowEdit}>
-        <DialogContent className="bg-card border-border max-w-md">
+      {/* View/Edit Profile Dialog */}
+      <Dialog open={showView} onOpenChange={setShowView}>
+        <DialogContent className="bg-card border-border max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Editar Operador</DialogTitle>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Eye size={18} /> Perfil do Operador
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome</label>
-              <Input value={editName} onChange={e => setEditName(e.target.value)} className="bg-secondary border-border" />
+          {viewProfile && (
+            <div className="space-y-5">
+              {/* Header with avatar and short ID */}
+              <div className="flex items-center gap-4 pb-4 border-b border-border">
+                <UserAvatar userId={viewProfile.id} fullName={viewProfile.full_name} avatarUrl={viewProfile.avatar_url} size="xl" />
+                <div className="flex-1">
+                  <p className="text-lg font-semibold text-foreground">{viewProfile.full_name || "Sem nome"}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Hash size={12} className="text-muted-foreground" />
+                    <span className="font-mono text-sm text-primary">{generateShortId(viewProfile.full_name, viewProfile.email)}</span>
+                    <button onClick={() => copyToClipboard(generateShortId(viewProfile.full_name, viewProfile.email))} className="text-muted-foreground hover:text-foreground">
+                      <Copy size={12} />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-4 mt-2">
+                    <Badge variant={roles[viewProfile.id] === "admin" ? "default" : "secondary"} className="text-xs">
+                      {roles[viewProfile.id] === "admin" ? "Admin" : "Usuário"}
+                    </Badge>
+                    <Badge variant={viewProfile.active ? "default" : "destructive"} className="text-xs">
+                      {viewProfile.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info fields */}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome completo</label>
+                  {editMode ? (
+                    <Input value={editName} onChange={e => setEditName(e.target.value)} className="bg-secondary border-border" />
+                  ) : (
+                    <p className="text-sm text-foreground">{viewProfile.full_name || "—"}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                    <Mail size={12} /> E-mail
+                  </label>
+                  {editMode && isAdmin ? (
+                    <Input value={editEmail} onChange={e => setEditEmail(e.target.value)} type="email" className="bg-secondary border-border" />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-foreground">{viewProfile.email || "—"}</p>
+                      {viewProfile.email && (
+                        <button onClick={() => copyToClipboard(viewProfile.email!)} className="text-muted-foreground hover:text-foreground">
+                          <Copy size={12} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                      <Phone size={12} /> Linha 1
+                    </label>
+                    {editMode ? (
+                      <Input value={editTel1} onChange={e => setEditTel1(e.target.value)} placeholder="(34) 9..." className="bg-secondary border-border text-xs" />
+                    ) : (
+                      <p className="text-sm text-foreground">{viewProfile.telefone1 || "—"}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                      <Phone size={12} /> Linha 2
+                    </label>
+                    {editMode ? (
+                      <Input value={editTel2} onChange={e => setEditTel2(e.target.value)} placeholder="(34) 9..." className="bg-secondary border-border text-xs" />
+                    ) : (
+                      <p className="text-sm text-foreground">{viewProfile.telefone2 || "—"}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                      <Phone size={12} /> Linha 3
+                    </label>
+                    {editMode ? (
+                      <Input value={editTel3} onChange={e => setEditTel3(e.target.value)} placeholder="(34) 9..." className="bg-secondary border-border text-xs" />
+                    ) : (
+                      <p className="text-sm text-foreground">{viewProfile.telefone3 || "—"}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                    <Calendar size={12} /> Cadastrado em
+                  </label>
+                  <p className="text-sm text-foreground">{formatDate(viewProfile.created_at)}</p>
+                </div>
+              </div>
+
+              {/* Password section (admin only) */}
+              {isAdmin && showPasswordField && (
+                <div className="pt-3 border-t border-border space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                      <KeyRound size={12} /> Nova senha
+                    </label>
+                    <Input
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      className="bg-secondary border-border"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSavePassword} disabled={savingPassword || newPassword.length < 6} size="sm" className="bg-primary text-primary-foreground">
+                      <KeyRound size={14} className="mr-1" /> {savingPassword ? "Salvando..." : "Salvar Senha"}
+                    </Button>
+                    <Button onClick={() => { setShowPasswordField(false); setNewPassword(""); }} variant="outline" size="sm">
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-2 pt-3 border-t border-border">
+                {editMode ? (
+                  <>
+                    <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground">
+                      <Save size={14} className="mr-1" /> {saving ? "Salvando..." : "Salvar"}
+                    </Button>
+                    <Button onClick={() => setEditMode(false)} variant="outline">Cancelar</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button onClick={() => setEditMode(true)} variant="outline">
+                      <Pencil size={14} className="mr-1" /> Editar
+                    </Button>
+                    {isAdmin && (
+                      <>
+                        <Button onClick={() => setShowPasswordField(true)} variant="outline" disabled={showPasswordField}>
+                          <KeyRound size={14} className="mr-1" /> Alterar Senha
+                        </Button>
+                        <Button
+                          onClick={() => handleToggleRole(viewProfile.id, roles[viewProfile.id] || "user")}
+                          variant="outline"
+                        >
+                          {roles[viewProfile.id] === "admin" ? <ShieldOff size={14} className="mr-1" /> : <ShieldCheck size={14} className="mr-1" />}
+                          {roles[viewProfile.id] === "admin" ? "Remover Admin" : "Tornar Admin"}
+                        </Button>
+                        <Button
+                          onClick={() => handleToggleActive(viewProfile.id, !viewProfile.active)}
+                          variant={viewProfile.active ? "outline" : "default"}
+                        >
+                          {viewProfile.active ? "Desativar" : "Ativar"}
+                        </Button>
+                        <Button
+                          onClick={() => setDeleteUserId(viewProfile.id)}
+                          variant="destructive"
+                        >
+                          <Trash2 size={14} className="mr-1" /> Remover
+                        </Button>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1"><Phone size={12} /> Linha 1 (WhatsApp)</label>
-              <Input value={editTel1} onChange={e => setEditTel1(e.target.value)} placeholder="(34) 99999-0001" className="bg-secondary border-border" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1"><Phone size={12} /> Linha 2 (WhatsApp)</label>
-              <Input value={editTel2} onChange={e => setEditTel2(e.target.value)} placeholder="(34) 99999-0002" className="bg-secondary border-border" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1"><Phone size={12} /> Linha 3 (WhatsApp)</label>
-              <Input value={editTel3} onChange={e => setEditTel3(e.target.value)} placeholder="(34) 99999-0003" className="bg-secondary border-border" />
-            </div>
-            <Button onClick={handleSave} className="w-full bg-primary text-primary-foreground">
-              <Save size={16} className="mr-1" /> Salvar
-            </Button>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -368,35 +549,6 @@ export default function Operadores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Reset Password Dialog */}
-      <Dialog open={!!resetUserId} onOpenChange={(open) => { if (!open) { setResetUserId(null); setNewPassword(""); } }}>
-        <DialogContent className="bg-card border-border max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <KeyRound size={18} /> Resetar Senha
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Definir nova senha para <span className="font-medium text-foreground">{resetUserName}</span>
-            </p>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nova senha</label>
-              <Input
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                type="password"
-                className="bg-secondary border-border"
-              />
-            </div>
-            <Button onClick={handleResetPassword} disabled={resettingPassword || newPassword.length < 6} className="w-full bg-primary text-primary-foreground">
-              <KeyRound size={16} className="mr-1" /> {resettingPassword ? "Salvando..." : "Alterar Senha"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
