@@ -178,7 +178,10 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Usando Drive pessoal de ${userToken.googleEmail} para usuário ${userEmail} (${userId})`);
+    console.log(`Usando conta Google de ${userToken.googleEmail} para usuário ${userEmail} (${userId})`);
+
+    // Always upload to gabinete folder
+    const PASTA_GABINETE = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 
     // 3. Parse request body
     const contentType = req.headers.get("content-type") || "";
