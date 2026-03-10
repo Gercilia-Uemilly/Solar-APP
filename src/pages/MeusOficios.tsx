@@ -218,6 +218,9 @@ export default function MeusOficios() {
         numero: oficio.numero || "",
         assunto: oficio.assunto,
         destinatario: oficio.destinatario,
+        operadorNome: profileName || user?.email || "",
+        operadorEmail: user?.email || "",
+        description: `Criado por: ${profileName || user?.email || ""}${user?.email ? ` (${user.email})` : ""}`,
       }));
       const driveResp = await fetch(`${supabaseUrl}/functions/v1/upload-to-drive`, {
         method: "POST",
@@ -230,7 +233,13 @@ export default function MeusOficios() {
       }
       const driveResult = await driveResp.json();
       if (driveResult.driveLink) {
-        await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink, status: "Salvo no Drive" }).eq("id", oficio.id);
+        await supabase.from("oficios").update({
+          link_pdf_drive: driveResult.driveLink,
+          status: "Salvo no Drive",
+          uploaded_by_name: profileName || user?.email || null,
+          uploaded_by_email: user?.email || null,
+          uploaded_at: new Date().toISOString(),
+        } as any).eq("id", oficio.id);
         await fetchOficios();
       }
       toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado!" : "Enviado como Word." });

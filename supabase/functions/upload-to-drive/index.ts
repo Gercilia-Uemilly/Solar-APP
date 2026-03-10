@@ -64,13 +64,24 @@ async function uploadToDrive(
   accessToken: string,
   fileBytes: Uint8Array,
   fileName: string,
-  mimeType: string
+  mimeType: string,
+  description?: string,
+  operadorNome?: string,
+  operadorEmail?: string,
 ): Promise<{ id: string; webViewLink: string }> {
   const metadata: Record<string, unknown> = {
     name: fileName,
+    description: description || "",
   };
   if (DRIVE_FOLDER_ID) {
     metadata.parents = [DRIVE_FOLDER_ID];
+  }
+  // Add custom properties for operator tracking
+  if (operadorNome || operadorEmail) {
+    metadata.properties = {
+      ...(operadorNome ? { operador_nome: operadorNome } : {}),
+      ...(operadorEmail ? { operador_email: operadorEmail } : {}),
+    };
   }
 
   const boundary = "===BOUNDARY===";
@@ -167,9 +178,14 @@ serve(async (req) => {
       fileBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     }
 
+    // Extract operator info from metadata
+    const operadorNome = metadata.operadorNome || "";
+    const operadorEmail = metadata.operadorEmail || "";
+    const description = metadata.description || (operadorNome ? `Criado por: ${operadorNome}${operadorEmail ? ` (${operadorEmail})` : ""}` : "");
+
     // Upload to Google Drive
-    console.log(`Uploading ${fileName} to Drive...`);
-    const driveResult = await uploadToDrive(accessToken, fileBytes, fileName, mimeType);
+    console.log(`Uploading ${fileName} to Drive... (operator: ${operadorNome})`);
+    const driveResult = await uploadToDrive(accessToken, fileBytes, fileName, mimeType, description, operadorNome, operadorEmail);
     console.log(`Uploaded! File ID: ${driveResult.id}`);
 
     return new Response(
