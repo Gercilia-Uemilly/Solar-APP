@@ -124,7 +124,7 @@ export async function printOficio(data: PrintData) {
       margin-bottom: -8px;
       display: block;
     }
-    .assinatura .linha { width: 200px; border-bottom: 1px solid #000; margin-bottom: 4px; }
+    .assinatura .linha { width: 302px; border-bottom: 1px solid #000; margin-bottom: 4px; }
     .assinatura .nome { font-weight: bold; margin: 0; }
     .assinatura .cargo { margin: 0; }
     .footer {
