@@ -648,9 +648,14 @@ export default function MeusOficios() {
                 )}
                 <span>Visualizar Ofício</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {saveStatus === "saving" && "● Salvando..."}
+                  {saveStatus === "saved" && "✓ Salvo"}
+                  {saveStatus === "error" && "✗ Erro ao salvar"}
+                </span>
                 {editedContent !== originalContent && (
-                  <Button size="sm" variant="default" onClick={handleSaveContent}>
+                  <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
                     <Save size={14} className="mr-1" /> Salvar
                   </Button>
                 )}
