@@ -120,6 +120,25 @@ export default function MeusOficios() {
     setShowPreview(true);
   };
 
+  const saveFieldToDb = useCallback(async (fields: Record<string, any>) => {
+    if (!viewOficio) return;
+    setSaveStatus("saving");
+    const updatePayload: Record<string, any> = {
+      ...fields,
+      last_edited_by: user?.id || null,
+      last_edited_by_name: profileName || user?.email || null,
+      last_edited_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
+    if (error) {
+      setSaveStatus("error");
+    } else {
+      setSaveStatus("saved");
+      setViewOficio(prev => prev ? { ...prev, ...fields } : prev);
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...fields } : o));
+    }
+  }, [viewOficio, user, profileName]);
+
   const handleSaveContent = useCallback(async (content?: string) => {
     const contentToSave = content || editedContent;
     if (!viewOficio || contentToSave === originalContent) return;
@@ -150,6 +169,14 @@ export default function MeusOficios() {
       handleSaveContent(newContent);
     }, 2000);
   }, [handleSaveContent]);
+
+  const handleInlineFieldChange = useCallback((field: string, value: string) => {
+    setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveFieldToDb({ [field]: value });
+    }, 2000);
+  }, [saveFieldToDb]);
 
   const handleEditForm = (o: OficioRow) => {
     navigate("/oficios", { state: { editOficio: o } });
