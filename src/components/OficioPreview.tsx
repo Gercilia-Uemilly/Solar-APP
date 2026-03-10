@@ -160,9 +160,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* DESTINATÁRIO — after: 0, "DESTINATÁRIO:" em NEGRITO */}
-        <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5" }}>
-          <span style={{ fontWeight: "bold" }}>DESTINATÁRIO: </span>
+        {/* DESTINATÁRIO — after: 0, NEGRITO completo */}
+        <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
+          <span>DESTINATÁRIO: </span>
           {editable && onCargoDestinatarioChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{destinatarioCompleto}</span>
           ) : (
