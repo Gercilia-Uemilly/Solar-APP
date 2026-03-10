@@ -464,7 +464,7 @@ export default function Oficios() {
       tipo_demanda: aiResult?.tipo_demanda || tipoServico || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      ...(editingOficioId ? {} : { operador_nome: user.user_metadata?.full_name || user.email || null }),
+      ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: cargoDestinatario || null,
       local_demanda: localDemanda || null,
       bairro: bairro || null,
