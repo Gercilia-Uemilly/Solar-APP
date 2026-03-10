@@ -648,7 +648,7 @@ export default function Oficios() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
-      convertFormData.append("file", wordBlob, `${numLimpo}.docx`);
+      convertFormData.append("file", wordBlob, `${cleanedNum}.docx`);
       const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
         method: "POST",
         headers: { Authorization: `Bearer ${authToken}` },
