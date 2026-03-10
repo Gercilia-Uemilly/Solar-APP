@@ -709,7 +709,7 @@ export default function Oficios() {
     operadorNome: (o as any).operador_nome || profileName || user?.email || undefined,
     telefone: (o as any).linha_telefonica || undefined,
     solicitante: o.solicitante || undefined,
-    secretaria: o.secretaria_identificada || undefined,
+    secretaria: undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
