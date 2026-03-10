@@ -685,7 +685,7 @@ export default function Oficios() {
     bairro: o.bairro || "",
     cargoDestinatario: o.cargo_destinatario || "",
     dataGeracao: o.data_geracao || undefined,
-    operadorNome: (o as any).operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
+    operadorNome: (o as any).operador_nome || profileName || user?.email || undefined,
     telefone: (o as any).linha_telefonica || undefined,
     solicitante: o.solicitante || undefined,
     logoCamaraUrl: logoCamara,
