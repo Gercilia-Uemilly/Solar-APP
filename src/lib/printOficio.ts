@@ -106,8 +106,8 @@ export async function printOficio(data: PrintData) {
     .header img { height: 70px; width: auto; object-fit: contain; }
     .date { text-align: right; margin-bottom: 24px; margin-top: 10px; }
     .oficio-num { font-weight: bold; margin-bottom: 24px; }
-    .dest { font-weight: bold; margin-bottom: 8px; }
-    .assunto { font-weight: bold; margin-bottom: 30px; }
+    .dest { font-weight: bold; margin-bottom: 0; }
+    .assunto { font-weight: bold; margin-bottom: 24px; }
     .saudacao { margin-bottom: 30px; text-indent: 1.25cm; }
     .fechamento { text-indent: 1.25cm; margin-bottom: 30px; margin-top: 20px; }
     .assinatura {
@@ -154,8 +154,8 @@ export async function printOficio(data: PrintData) {
 
     <p class="date">${dataFormatada}</p>
     <p class="oficio-num">Ofício GVF n° ${numeroFormatado}</p>
-    <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}</p>
-    <p class="assunto">Assunto: ${assuntoFmt}</p>
+    <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${data.destinatario ? ` ${data.destinatario}` : ""}</p>
+    <p class="assunto">ASSUNTO: ${assuntoFmt}</p>
     <p class="saudacao">${data.cargoDestinatario
       ? `Excelentíssimo(a) Senhor(a) ${(data.cargoDestinatario || "").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "").trim()},`
       : "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,"}</p>

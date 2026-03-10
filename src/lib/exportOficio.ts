@@ -341,8 +341,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Destinatário
         new Paragraph({
           children: [
-            new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize }),
+            new TextRun({ text: `DESTINATÁRIO: ${destinatarioCompleto}`, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 160, after: 0, line: lineSpacing },
         }),
@@ -350,8 +349,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Assunto
         new Paragraph({
           children: [
-            new TextRun({ text: "Assunto: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize }),
+            new TextRun({ text: `ASSUNTO: ${assuntoFormatado}`, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),

@@ -118,12 +118,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           }}>1</span>
         </p>
 
-        <p style={{ fontSize: "11pt", marginBottom: "8px" }}>
-          <strong>DESTINATÁRIO:</strong> {cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"} {destinatario || "___"}
+        <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>
+          DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario ? ` ${destinatario}` : ""}
         </p>
 
-        <p style={{ fontSize: "11pt", marginBottom: "30px" }}>
-          <strong>Assunto:</strong> {assuntoFormatado}
+        <p style={{ fontSize: "11pt", marginBottom: "24px", fontWeight: "bold" }}>
+          ASSUNTO: {assuntoFormatado}
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "30px", textIndent: "1.25cm" }}>
