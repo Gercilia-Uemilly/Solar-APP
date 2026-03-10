@@ -72,9 +72,9 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
     },
   });
 
-  // Sync external content only when it truly differs
+  // Sync external content only when editor is NOT focused (avoids resetting user edits like alignment)
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (editor && !editor.isFocused && content !== editor.getHTML()) {
       isExternalUpdate.current = true;
       editor.commands.setContent(content);
       isExternalUpdate.current = false;
