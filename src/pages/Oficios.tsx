@@ -713,6 +713,8 @@ export default function Oficios() {
     telefone: (o as any).linha_telefonica || undefined,
     solicitante: o.solicitante || undefined,
     secretaria: (o as any).secretaria_identificada || undefined,
+    codigoZ: (o as any).codigo_z || undefined,
+    contatoSolicitante: o.contato_solicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
