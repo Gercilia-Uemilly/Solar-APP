@@ -205,6 +205,28 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           </div>
         )}
 
+        {/* PARÁGRAFOS FINAIS FIXOS */}
+        <p style={{
+          textIndent: "1.25cm",
+          marginBottom: "0",
+          marginTop: "0",
+          fontSize: "11pt",
+          lineHeight: "1.5",
+          textAlign: "justify",
+        }}>
+          {`Espero que a ${secretaria || "Secretaria"} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução.`}
+        </p>
+        <p style={{
+          textIndent: "1.25cm",
+          marginBottom: "0",
+          marginTop: "0",
+          fontSize: "11pt",
+          lineHeight: "1.5",
+          textAlign: "justify",
+        }}>
+          Na certeza de contar com o vosso pronto atendimento, desde já agradeço.
+        </p>
+
         {/* ATENCIOSAMENTE — before: 240, after: 480, recuo 1.25cm */}
         <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt" }}>
           Atenciosamente,
