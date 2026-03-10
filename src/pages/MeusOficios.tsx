@@ -677,20 +677,18 @@ export default function MeusOficios() {
                   {saveStatus === "saved" && "✓ Salvo"}
                   {saveStatus === "error" && "✗ Erro ao salvar"}
                 </span>
+                <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
+                  <Save size={14} className="mr-1" /> Salvar
+                </Button>
                 {editedContent !== originalContent && (
-                  <>
-                    <Button size="sm" variant="ghost" className="text-xs" onClick={() => {
-                      if (confirm("Deseja descartar todas as edições e voltar ao texto original?")) {
-                        setEditedContent(originalContent);
-                        setSaveStatus("idle");
-                      }
-                    }}>
-                      ↺ Restaurar original
-                    </Button>
-                    <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
-                      <Save size={14} className="mr-1" /> Salvar
-                    </Button>
-                  </>
+                  <Button size="sm" variant="ghost" className="text-xs" onClick={() => {
+                    if (confirm("Deseja descartar todas as edições e voltar ao texto original?")) {
+                      setEditedContent(originalContent);
+                      setSaveStatus("idle");
+                    }
+                  }}>
+                    ↺ Restaurar original
+                  </Button>
                 )}
                 <Button size="sm" variant="outline" onClick={() => { if (viewOficio) exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
                   <FileText size={14} className="mr-1" /> Word
