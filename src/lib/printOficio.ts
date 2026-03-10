@@ -13,6 +13,7 @@ interface PrintData {
   operadorNome?: string;
   operadorEmail?: string;
   telefone?: string;
+  secretaria?: string;
 }
 
 async function toDataUrl(src: string): Promise<string> {
