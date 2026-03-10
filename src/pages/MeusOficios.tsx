@@ -721,9 +721,14 @@ export default function MeusOficios() {
                 bairro={viewOficio.bairro || undefined}
                 cargoDestinatario={viewOficio.cargo_destinatario || undefined}
                 operadorNome={viewOficio.operador_nome || undefined}
+                dataGeracao={viewOficio.data_geracao || undefined}
                 formatOptions={formatOptions}
                 editable
                 onContentChange={handleContentChange}
+                onNumeroChange={(val) => handleInlineFieldChange("numero", val)}
+                onAssuntoChange={(val) => handleInlineFieldChange("assunto", val)}
+                onCargoDestinatarioChange={(val) => handleInlineFieldChange("cargo_destinatario", val)}
+                onDataChange={(val) => handleInlineFieldChange("data_geracao", val)}
                 initialConteudo={originalContent}
               />
             </div>
