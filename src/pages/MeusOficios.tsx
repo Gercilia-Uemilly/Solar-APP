@@ -218,6 +218,9 @@ export default function MeusOficios() {
         numero: oficio.numero || "",
         assunto: oficio.assunto,
         destinatario: oficio.destinatario,
+        operadorNome: profileName || user?.email || "",
+        operadorEmail: user?.email || "",
+        description: `Criado por: ${profileName || user?.email || ""}${user?.email ? ` (${user.email})` : ""}`,
       }));
       const driveResp = await fetch(`${supabaseUrl}/functions/v1/upload-to-drive`, {
         method: "POST",
@@ -230,7 +233,13 @@ export default function MeusOficios() {
       }
       const driveResult = await driveResp.json();
       if (driveResult.driveLink) {
-        await supabase.from("oficios").update({ link_pdf_drive: driveResult.driveLink, status: "Salvo no Drive" }).eq("id", oficio.id);
+        await supabase.from("oficios").update({
+          link_pdf_drive: driveResult.driveLink,
+          status: "Salvo no Drive",
+          uploaded_by_name: profileName || user?.email || null,
+          uploaded_by_email: user?.email || null,
+          uploaded_at: new Date().toISOString(),
+        } as any).eq("id", oficio.id);
         await fetchOficios();
       }
       toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado!" : "Enviado como Word." });
@@ -358,16 +367,21 @@ export default function MeusOficios() {
                 <TableCell>{o.assunto || "-"}</TableCell>
                 <TableCell>{o.destinatario}</TableCell>
                 <TableCell>
-                  <span className={cn(
-                    "text-xs px-2 py-0.5 rounded font-medium",
-                    o.status === "Rascunho" && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
-                    o.status === "Salvo" && "bg-green-500/20 text-green-700 dark:text-green-400",
-                    o.status === "Exportado" && "bg-blue-500/20 text-blue-700 dark:text-blue-400",
-                    o.status === "Salvo no Drive" && "bg-sky-500/20 text-sky-700 dark:text-sky-400",
-                    !["Rascunho","Salvo","Exportado","Salvo no Drive"].includes(o.status) && "bg-primary/20 text-primary",
-                  )}>
-                    {o.status === "Rascunho" && "🟡 "}{o.status === "Salvo" && "🟢 "}{o.status === "Exportado" && "🔵 "}{o.status === "Salvo no Drive" && "☁️ "}{o.status}
-                  </span>
+                  <div>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded font-medium",
+                      o.status === "Rascunho" && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
+                      o.status === "Salvo" && "bg-green-500/20 text-green-700 dark:text-green-400",
+                      o.status === "Exportado" && "bg-blue-500/20 text-blue-700 dark:text-blue-400",
+                      o.status === "Salvo no Drive" && "bg-sky-500/20 text-sky-700 dark:text-sky-400",
+                      !["Rascunho","Salvo","Exportado","Salvo no Drive"].includes(o.status) && "bg-primary/20 text-primary",
+                    )}>
+                      {o.status === "Rascunho" && "🟡 "}{o.status === "Salvo" && "🟢 "}{o.status === "Exportado" && "🔵 "}{o.status === "Salvo no Drive" && "☁️ "}{o.status}
+                    </span>
+                    {o.status === "Salvo no Drive" && (o as any).uploaded_by_name && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">por {(o as any).uploaded_by_name}</p>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{new Date(o.created_at).toLocaleDateString("pt-BR")}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{o.operador_nome || "-"}</TableCell>
