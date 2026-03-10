@@ -101,6 +101,7 @@ export default function Oficios() {
   const [contatoSolicitante, setContatoSolicitante] = useState("");
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState("Normal");
+  const [codigoZ, setCodigoZ] = useState("");
   const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
   const [userPhones, setUserPhones] = useState<string[]>([]);
