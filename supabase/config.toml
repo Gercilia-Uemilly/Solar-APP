@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.import-instagram-clippings]
 verify_jwt = false
+
+[functions.google-user-oauth]
+verify_jwt = false
+
+[functions.google-user-oauth-callback]
+verify_jwt = false

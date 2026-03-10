@@ -7,36 +7,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
+const DEFAULT_DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 
-
-// ── OAuth: get access token via refresh token ───────────────────────
-
-async function getAccessTokenViaRefreshToken(): Promise<string> {
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
-  const { data, error } = await supabaseAdmin
-    .from("app_settings")
-    .select("value")
-    .eq("key", "google_refresh_token")
-    .single();
-
-  if (error || !data?.value) {
-    throw new Error(
-      "Google Drive não autorizado. Vá em Configurações e clique em 'Autorizar Google Drive'."
-    );
-  }
-
-  const refreshToken = data.value;
+// ── Refresh a Google OAuth token ────────────────────────────────────
+async function refreshGoogleToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
   const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
   const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
-
-  if (!clientId || !clientSecret) {
-    throw new Error("GOOGLE_CLIENT_ID ou GOOGLE_CLIENT_SECRET não configurados.");
-  }
+  if (!clientId || !clientSecret) throw new Error("GOOGLE_CLIENT_ID ou GOOGLE_CLIENT_SECRET não configurados.");
 
   const resp = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -54,29 +31,80 @@ async function getAccessTokenViaRefreshToken(): Promise<string> {
     throw new Error(`Google OAuth refresh error: ${resp.status} ${errText}`);
   }
 
-  const tokens = await resp.json();
-  return tokens.access_token;
+  return resp.json();
+}
+
+// ── Get access token for a specific user ────────────────────────────
+async function getUserAccessToken(
+  supabaseAdmin: any,
+  userId: string
+): Promise<{ accessToken: string; folderId: string | null; googleEmail: string } | null> {
+  const { data: tokenData } = await supabaseAdmin
+    .from("user_drive_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  if (!tokenData) return null;
+
+  let accessToken = tokenData.access_token;
+  const tokenExpiry = new Date(tokenData.token_expiry);
+
+  // Refresh if expired (with 5 min buffer)
+  if (tokenExpiry.getTime() - Date.now() < 5 * 60 * 1000) {
+    console.log("Token expired, refreshing...");
+    const refreshed = await refreshGoogleToken(tokenData.refresh_token);
+    accessToken = refreshed.access_token;
+    const newExpiry = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+
+    await supabaseAdmin
+      .from("user_drive_tokens")
+      .update({ access_token: accessToken, token_expiry: newExpiry, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+  }
+
+  return {
+    accessToken,
+    folderId: tokenData.drive_folder_id,
+    googleEmail: tokenData.google_email,
+  };
+}
+
+// ── Fallback: service account token via app_settings ────────────────
+async function getServiceAccountToken(supabaseAdmin: any): Promise<string> {
+  const { data, error } = await supabaseAdmin
+    .from("app_settings")
+    .select("value")
+    .eq("key", "google_refresh_token")
+    .single();
+
+  if (error || !data?.value) {
+    throw new Error("Google Drive não autorizado. Conecte seu Google Drive em Configurações.");
+  }
+
+  const refreshed = await refreshGoogleToken(data.value);
+  return refreshed.access_token;
 }
 
 // ── Google Drive Upload ─────────────────────────────────────────────
-
 async function uploadToDrive(
   accessToken: string,
   fileBytes: Uint8Array,
   fileName: string,
   mimeType: string,
+  folderId: string | null,
   description?: string,
   operadorNome?: string,
   operadorEmail?: string,
 ): Promise<{ id: string; webViewLink: string }> {
+  const targetFolder = folderId || DEFAULT_DRIVE_FOLDER_ID;
+
   const metadata: Record<string, unknown> = {
     name: fileName,
     description: description || "",
+    parents: [targetFolder],
   };
-  if (DRIVE_FOLDER_ID) {
-    metadata.parents = [DRIVE_FOLDER_ID];
-  }
-  // Add custom properties for operator tracking
+
   if (operadorNome || operadorEmail) {
     metadata.properties = {
       ...(operadorNome ? { operador_nome: operadorNome } : {}),
@@ -124,7 +152,6 @@ async function uploadToDrive(
 }
 
 // ── Main Handler ────────────────────────────────────────────────────
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -133,20 +160,44 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+
+    const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const { data: claimsData, error: claimsErr } = await _sb.auth.getUser(authHeader.replace("Bearer ", ""));
     if (claimsErr || !claimsData?.user) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log("Getting access token via OAuth refresh token...");
-    const accessToken = await getAccessTokenViaRefreshToken();
-    console.log("Access token obtained successfully!");
+    const userId = claimsData.user.id;
+    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Try to get user's personal Drive token first, fallback to service account
+    let accessToken: string;
+    let userFolderId: string | null = null;
+    let uploadMode = "service_account";
+
+    const userToken = await getUserAccessToken(supabaseAdmin, userId);
+    if (userToken) {
+      accessToken = userToken.accessToken;
+      userFolderId = userToken.folderId;
+      uploadMode = "personal";
+      console.log(`Using personal Drive token for user ${userId} (${userToken.googleEmail})`);
+    } else {
+      console.log("No personal token, falling back to service account...");
+      accessToken = await getServiceAccountToken(supabaseAdmin);
+    }
+
+    // Parse request body
     const contentType = req.headers.get("content-type") || "";
-
     let fileBytes: Uint8Array;
     let fileName = "oficio.pdf";
     let mimeType = "application/pdf";
@@ -156,18 +207,17 @@ serve(async (req) => {
       const formData = await req.formData();
       const file = formData.get("file") as File | null;
       if (!file) {
-        return new Response(
-          JSON.stringify({ error: "Nenhum arquivo enviado" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Nenhum arquivo enviado" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       fileName = file.name || "oficio.pdf";
       mimeType = file.type || "application/pdf";
       fileBytes = new Uint8Array(await file.arrayBuffer());
-
       const metaStr = formData.get("metadata") as string | null;
       if (metaStr) {
-        try { metadata = JSON.parse(metaStr); } catch {}
+        try { metadata = JSON.parse(metaStr); } catch { /* ignore */ }
       }
     } else {
       const body = await req.json();
@@ -178,14 +228,12 @@ serve(async (req) => {
       fileBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     }
 
-    // Extract operator info from metadata
     const operadorNome = metadata.operadorNome || "";
     const operadorEmail = metadata.operadorEmail || "";
     const description = metadata.description || (operadorNome ? `Criado por: ${operadorNome}${operadorEmail ? ` (${operadorEmail})` : ""}` : "");
 
-    // Upload to Google Drive
-    console.log(`Uploading ${fileName} to Drive... (operator: ${operadorNome})`);
-    const driveResult = await uploadToDrive(accessToken, fileBytes, fileName, mimeType, description, operadorNome, operadorEmail);
+    console.log(`Uploading ${fileName} to Drive (mode: ${uploadMode}, operator: ${operadorNome})`);
+    const driveResult = await uploadToDrive(accessToken, fileBytes, fileName, mimeType, userFolderId, description, operadorNome, operadorEmail);
     console.log(`Uploaded! File ID: ${driveResult.id}`);
 
     return new Response(
@@ -193,7 +241,10 @@ serve(async (req) => {
         success: true,
         driveFileId: driveResult.id,
         driveLink: driveResult.webViewLink,
-        message: "Arquivo enviado ao Drive e registrado na planilha!",
+        uploadMode,
+        message: uploadMode === "personal"
+          ? "Arquivo salvo no seu Google Drive pessoal!"
+          : "Arquivo salvo no Drive do gabinete!",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
