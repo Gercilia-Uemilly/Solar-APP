@@ -258,7 +258,7 @@ export default function Oficios() {
 
   const generateSolicitanteCode = useCallback(() => {
     if (!user) return "USR";
-    const name = user.user_metadata?.full_name || "";
+    const name = profileName || user.user_metadata?.full_name || "";
     const email = user.email || "";
     const initials = name.split(/\s+/).map((w: string) => w[0]?.toUpperCase() || "").join("").slice(0, 3);
     const emailCode = email.replace(/@.*/, "").slice(0, 2).toUpperCase();
