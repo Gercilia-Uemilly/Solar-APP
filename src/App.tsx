@@ -24,6 +24,7 @@ const Sobre = lazy(() => import("./pages/Sobre"));
 const Clipping = lazy(() => import("./pages/Clipping"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
