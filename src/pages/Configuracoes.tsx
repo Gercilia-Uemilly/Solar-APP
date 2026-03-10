@@ -150,7 +150,7 @@ export default function Configuracoes() {
   };
 
   const handleDisconnectDrive = async () => {
-    if (!confirm("Deseja desconectar seu Google Drive? Os ofícios serão salvos via conta de serviço.")) return;
+    if (!confirm("Deseja desconectar sua conta Google? Sem conexão, não será possível salvar ofícios no Drive do gabinete com seu nome.")) return;
     setDisconnectingDrive(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
