@@ -715,6 +715,7 @@ export default function MeusOficios() {
           {viewOficio && (
             <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "65vh", overflowY: "auto" }}>
               <OficioPreview
+                key={editorKey}
                 ref={previewRef}
                 numero={viewOficio.numero || ""}
                 destinatario={viewOficio.destinatario}
