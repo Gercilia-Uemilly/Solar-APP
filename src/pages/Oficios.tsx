@@ -102,6 +102,7 @@ export default function Oficios() {
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState("Normal");
   const [codigoZ, setCodigoZ] = useState("");
+  const [origemOficio, setOrigemOficio] = useState("WhatsApp Gabinete");
   const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
   const [userPhones, setUserPhones] = useState<string[]>([]);
@@ -432,6 +433,7 @@ export default function Oficios() {
     setSolicitante(o.solicitante || "");
     setContatoSolicitante(o.contato_solicitante || "");
     setCodigoZ((o as any).codigo_z || "");
+    setOrigemOficio((o as any).origem || "WhatsApp Gabinete");
     const content = o.conteudo || "";
     setEditedOficio(content);
     setOriginalOficio(content);
@@ -477,7 +479,8 @@ export default function Oficios() {
       tipo_demanda: aiResult?.tipo_demanda || tipoServico || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      codigo_z: codigoZ || null,
+      codigo_z: origemOficio === "Zap Emprego" ? (codigoZ || null) : null,
+      origem: origemOficio || "WhatsApp Gabinete",
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: cargoDestinatario || null,
       local_demanda: localDemanda || null,
@@ -588,6 +591,7 @@ export default function Oficios() {
     setDescricao("");
     setPrioridade("Normal");
     setCodigoZ("");
+    setOrigemOficio("WhatsApp Gabinete");
     setLinhaTelefonica("");
     setFormTab("dados");
     setAiResult(null);
@@ -633,17 +637,17 @@ export default function Oficios() {
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
       });
-      // Build file name using the new convention
+      // Build file name — Zap Emprego uses Z code format, others just the number
       const oCodigoZ = (oficio as any).codigo_z || "";
+      const oOrigem = (oficio as any).origem || "";
       const oContato = oficio.contato_solicitante || "";
       const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
       let baseFileName: string;
-      const digits = oContato.replace(/\D/g, '').slice(-4);
-      if (oCodigoZ && digits.length >= 4) {
-        baseFileName = `${cleanedNum} ${digits} Z${oCodigoZ}`;
+      if (oOrigem === "Zap Emprego" && oCodigoZ) {
+        const digits = oContato.replace(/\D/g, '').slice(-4);
+        baseFileName = digits.length >= 4 ? `${cleanedNum} ${digits} Z${oCodigoZ}` : cleanedNum;
       } else {
-        const solCode = (oficio.solicitante || "").trim().split(/\s+/)[0]?.replace(/[<>:"/\\|?*]/g, '').substring(0, 30) || "";
-        baseFileName = solCode ? `${cleanedNum} ${solCode}` : cleanedNum;
+        baseFileName = cleanedNum;
       }
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
@@ -741,7 +745,7 @@ export default function Oficios() {
     telefone: linhaTelefonica || undefined,
     solicitante: solicitante || undefined,
     secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
-    codigoZ: codigoZ || undefined,
+    codigoZ: origemOficio === "Zap Emprego" ? (codigoZ || undefined) : undefined,
     contatoSolicitante: contatoSolicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
@@ -786,7 +790,7 @@ export default function Oficios() {
 
             {/* TAB: DADOS */}
             <TabsContent value="dados" className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
                   <div className="flex items-center gap-0">
@@ -807,21 +811,41 @@ export default function Oficios() {
                   {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Código Z</label>
-                  <div className="flex items-center gap-0">
-                    <span className="inline-flex items-center px-3 h-9 bg-muted border border-r-0 border-border rounded-l-md text-sm text-muted-foreground">Z</span>
-                    <Input
-                      placeholder="ex: 7"
-                      value={codigoZ}
-                      onChange={e => setCodigoZ(e.target.value.replace(/[^0-9]/g, ''))}
-                      className="bg-secondary rounded-l-none border-border"
-                    />
-                  </div>
-                </div>
-                <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
                   <Input type="date" value={dataGeracao} onChange={e => setDataGeracao(e.target.value)} className="bg-secondary border-border" />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Origem da Demanda</label>
+                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap Emprego") setCodigoZ(""); }}>
+                    <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WhatsApp Gabinete">WhatsApp Gabinete</SelectItem>
+                      <SelectItem value="WhatsApp Vereador">WhatsApp Vereador</SelectItem>
+                      <SelectItem value="Zap Emprego">Zap Emprego</SelectItem>
+                      <SelectItem value="Requerimento">Requerimento</SelectItem>
+                      <SelectItem value="E-mail">E-mail</SelectItem>
+                      <SelectItem value="Atendimento presencial">Atendimento presencial</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {origemOficio === "Zap Emprego" && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Código Z <span className="text-destructive">*</span></label>
+                    <div className="flex items-center gap-0">
+                      <span className="inline-flex items-center px-3 h-9 bg-muted border border-r-0 border-border rounded-l-md text-sm text-muted-foreground">Z</span>
+                      <Input
+                        placeholder="ex: 7"
+                        value={codigoZ}
+                        onChange={e => setCodigoZ(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="bg-secondary rounded-l-none border-border"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* File name preview */}
@@ -831,9 +855,11 @@ export default function Oficios() {
                   <span>Nome do arquivo: <strong className="text-foreground">
                     {(() => {
                       const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
-                      const digits = contatoSolicitante.replace(/\D/g, '').slice(-4);
-                      if (codigoZ && digits.length >= 4) {
-                        return `${cleanedNum} ${digits} Z${codigoZ}.pdf`;
+                      if (origemOficio === "Zap Emprego" && codigoZ) {
+                        const digits = contatoSolicitante.replace(/\D/g, '').slice(-4);
+                        if (digits.length >= 4) {
+                          return `${cleanedNum} ${digits} Z${codigoZ}.pdf`;
+                        }
                       }
                       return `${cleanedNum || 'rascunho'}.pdf`;
                     })()}
@@ -1237,12 +1263,12 @@ export default function Oficios() {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  if (!codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z antes de exportar.", variant: "destructive" });
+                  if (origemOficio === "Zap Emprego" && !codigoZ) {
+                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap Emprego.", variant: "destructive" });
                     setFormTab("dados");
                     return;
                   }
-                  if (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4) {
+                  if (origemOficio === "Zap Emprego" && (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4)) {
                     toast({ title: "Celular inválido", description: "Preencha o WhatsApp do solicitante com pelo menos 4 dígitos.", variant: "destructive" });
                     setFormTab("dados");
                     return;
@@ -1252,12 +1278,12 @@ export default function Oficios() {
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (!codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z antes de exportar.", variant: "destructive" });
+                  if (origemOficio === "Zap Emprego" && !codigoZ) {
+                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap Emprego.", variant: "destructive" });
                     setFormTab("dados");
                     return;
                   }
-                  if (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4) {
+                  if (origemOficio === "Zap Emprego" && (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4)) {
                     toast({ title: "Celular inválido", description: "Preencha o WhatsApp do solicitante com pelo menos 4 dígitos.", variant: "destructive" });
                     setFormTab("dados");
                     return;

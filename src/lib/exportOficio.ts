@@ -28,10 +28,10 @@ function formatDate(dateStr?: string): string {
 }
 
 function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
-  // New format: [numero]-[ano] [last4digits] [Zcode]
   const cleanedNumero = cleanNumero(numero || "");
   const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9-]/g, '').trim() || 'rascunho';
   
+  // Zap Emprego format: [numero]-[ano] [last4digits] [Zcode]
   if (codigoZ && contatoSolicitante) {
     const digits = contatoSolicitante.replace(/\D/g, '').slice(-4);
     if (digits.length >= 4) {
@@ -40,13 +40,8 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
     }
   }
   
-  // Fallback to old format
-  const base = numPart;
-  if (solicitante?.trim()) {
-    const code = solicitante.trim().split(/\s+/)[0].replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
-    if (code) return `${base} ${code}`;
-  }
-  return base;
+  // Other origins: just the number
+  return numPart;
 }
 
 /** Build vocativo — removes "Ilmo(a). Sr(a)." prefix and "Municipal" / "da Secretaria..." */
