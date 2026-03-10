@@ -142,11 +142,11 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* DATA — after: 240 (~16px) */}
         {editable && onDataChange ? (
-          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
+          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
           </p>
         ) : (
-          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
+          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
         )}
 
         {/* OFÍCIO GVF n° — NEGRITO, after: 240 */}
@@ -160,9 +160,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* DESTINATÁRIO — after: 0, "DESTINATÁRIO:" em NEGRITO */}
-        <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5" }}>
-          <span style={{ fontWeight: "bold" }}>DESTINATÁRIO: </span>
+        {/* DESTINATÁRIO — after: 0, NEGRITO completo */}
+        <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
+          <span>DESTINATÁRIO: </span>
           {editable && onCargoDestinatarioChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{destinatarioCompleto}</span>
           ) : (
@@ -171,7 +171,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* ASSUNTO — after: 240, NEGRITO completo */}
-        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
+        <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
           <span>Assunto: </span>
           {editable && onAssuntoChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onAssuntoChange(e.currentTarget.textContent || "")}>{assuntoFormatado}</span>
