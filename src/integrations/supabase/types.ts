@@ -159,6 +159,7 @@ export type Database = {
           local_demanda: string | null
           numero: string | null
           operador_nome: string | null
+          origem: string | null
           resposta_cidadao: string | null
           secretaria_identificada: string | null
           solicitante: string | null
@@ -191,6 +192,7 @@ export type Database = {
           local_demanda?: string | null
           numero?: string | null
           operador_nome?: string | null
+          origem?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
@@ -223,6 +225,7 @@ export type Database = {
           local_demanda?: string | null
           numero?: string | null
           operador_nome?: string | null
+          origem?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
