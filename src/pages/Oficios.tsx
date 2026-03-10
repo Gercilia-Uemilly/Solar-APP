@@ -307,14 +307,15 @@ export default function Oficios() {
 
   useEffect(() => {
     if (!user) return;
-    const fetchPhones = async () => {
-      const { data } = await supabase.from("profiles").select("telefone1, telefone2, telefone3").eq("id", user.id).single();
+    const fetchProfile = async () => {
+      const { data } = await supabase.from("profiles").select("telefone1, telefone2, telefone3, full_name").eq("id", user.id).single();
       if (data) {
         const phones = [data.telefone1, data.telefone2, data.telefone3].filter(Boolean) as string[];
         setUserPhones(phones);
+        if (data.full_name) setProfileName(data.full_name);
       }
     };
-    fetchPhones();
+    fetchProfile();
   }, [user]);
 
   useEffect(() => {
