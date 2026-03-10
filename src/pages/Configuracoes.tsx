@@ -82,19 +82,14 @@ export default function Configuracoes() {
     checkDriveStatus();
   }, [checkDriveStatus]);
 
-  // Listen for OAuth popup completion
+  // Handle return from OAuth callback
   useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === "google-drive-connected") {
-        setDriveConnected(true);
-        setDriveEmail(event.data.email || null);
-        toast({ title: "✅ Google Drive conectado!", description: `Conectado como ${event.data.email}` });
-        checkDriveStatus();
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [checkDriveStatus, toast]);
+    if (searchParams.get("drive") === "conectado") {
+      toast({ title: "✅ Google Drive conectado!" });
+      checkDriveStatus();
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, checkDriveStatus, toast, setSearchParams]);
 
   // Admin: check legacy service account
   useEffect(() => {
