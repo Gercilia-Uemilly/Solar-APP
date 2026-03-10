@@ -36,7 +36,7 @@ async function refreshGoogleToken(refreshToken: string): Promise<{ access_token:
 async function getUserAccessToken(
   supabaseAdmin: any,
   userId: string
-): Promise<{ accessToken: string; folderId: string | null; googleEmail: string } | null> {
+): Promise<{ accessToken: string; googleEmail: string } | null> {
   const { data: tokenData } = await supabaseAdmin
     .from("user_drive_tokens")
     .select("*")
@@ -63,7 +63,6 @@ async function getUserAccessToken(
 
   return {
     accessToken,
-    folderId: tokenData.drive_folder_id,
     googleEmail: tokenData.google_email,
   };
 }
@@ -179,7 +178,10 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Usando Drive pessoal de ${userToken.googleEmail} para usuário ${userEmail} (${userId})`);
+    console.log(`Usando conta Google de ${userToken.googleEmail} para usuário ${userEmail} (${userId})`);
+
+    // Always upload to gabinete folder
+    const PASTA_GABINETE = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 
     // 3. Parse request body
     const contentType = req.headers.get("content-type") || "";
@@ -218,13 +220,13 @@ serve(async (req) => {
     const description = `Criado por: ${operadorNome || userEmail}${operadorEmail ? ` (${operadorEmail})` : ""}`;
 
     // 4. Upload with the CORRECT user's token
-    console.log(`Uploading ${fileName} to Drive of ${userToken.googleEmail} (user: ${userEmail})`);
+    console.log(`Uploading ${fileName} to gabinete folder with Google account ${userToken.googleEmail}`);
     const driveResult = await uploadToDrive(
       userToken.accessToken,
       fileBytes,
       fileName,
       mimeType,
-      userToken.folderId,
+      PASTA_GABINETE,
       description,
       operadorNome,
       operadorEmail,
@@ -236,9 +238,9 @@ serve(async (req) => {
         success: true,
         driveFileId: driveResult.id,
         driveLink: driveResult.webViewLink,
-        uploadMode: "personal",
+        uploadMode: "gabinete",
         googleEmail: userToken.googleEmail,
-        message: `Arquivo salvo no Google Drive de ${userToken.googleEmail}!`,
+        message: `Arquivo salvo na pasta do gabinete com a conta de ${userToken.googleEmail}!`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

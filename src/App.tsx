@@ -22,6 +22,7 @@ const BancoInformacoes = lazy(() => import("./pages/BancoInformacoes"));
 const Respostas = lazy(() => import("./pages/Respostas"));
 const Sobre = lazy(() => import("./pages/Sobre"));
 const Clipping = lazy(() => import("./pages/Clipping"));
+const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
@@ -81,6 +82,7 @@ const AppRoutes = () => (
       <Route path="/banco-informacoes" element={<ProtectedRoute><AppLayout><BancoInformacoes /></AppLayout></ProtectedRoute>} />
       <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>} />
       <Route path="/clipping" element={<ProtectedRoute><AppLayout><Clipping /></AppLayout></ProtectedRoute>} />
+      <Route path="/numeracao" element={<ProtectedRoute><AppLayout><PainelNumeracao /></AppLayout></ProtectedRoute>} />
       <Route path="/sobre" element={<ProtectedRoute><AppLayout><Sobre /></AppLayout></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

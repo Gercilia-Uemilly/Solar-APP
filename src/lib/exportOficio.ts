@@ -348,11 +348,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
-        // DESTINATÁRIO — after: 0
+        // DESTINATÁRIO — label bold, value normal
         new Paragraph({
           children: [
             new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize, bold: true }),
+            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize }),
           ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
@@ -377,21 +377,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Body paragraphs
         ...bodyParagraphs,
 
-        // Closing paragraph 1 — secretaria
-        new Paragraph({
-          indent: { firstLine: 709 },
-          children: [new TextRun({ text: `Espero que a ${data.secretaria || "Secretaria"} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução.`, font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-          alignment: AlignmentType.JUSTIFIED,
-        }),
 
-        // Closing paragraph 2 — fixed
-        new Paragraph({
-          indent: { firstLine: 709 },
-          children: [new TextRun({ text: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço.", font: fontName, size: fontSize })],
-          spacing: { before: 0, after: 0, line: lineSpacing },
-          alignment: AlignmentType.JUSTIFIED,
-        }),
 
         // Atenciosamente — before: 240, after: 480, indent 1.25cm
         new Paragraph({
@@ -465,7 +451,19 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
   return resp.blob();
 }
 
-// ── Export Word ──────────────────────────────────────────────────────────────
+// ── Build Word blob without saving (for external use) ───────────────────────
+export async function buildWordBlobForExport(data: OficioData): Promise<Blob> {
+  let blob = await buildWordBlob(data);
+  if (data.imagens && data.imagens.length > 0) {
+    blob = await addAnexoImages(blob, data.imagens);
+  }
+  return blob;
+}
+
+// ── Build file name (exported for external use) ─────────────────────────────
+export { buildFileName };
+
+
 export async function exportToWord(data: OficioData): Promise<Blob> {
   let blob = await buildWordBlob(data);
 

@@ -5,11 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings, Save, Phone, HardDrive, CheckCircle2, ExternalLink, Info, FolderOpen, XCircle, Loader2, Link2 } from "lucide-react";
+import { Settings, Save, Phone, CheckCircle2, XCircle, Loader2, Link2 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserAvatar from "@/components/UserAvatar";
-
-const DEFAULT_DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 
 export default function Configuracoes() {
   const { user, isAdmin } = useAuth();
@@ -25,14 +23,9 @@ export default function Configuracoes() {
   // Per-user Drive state
   const [driveConnected, setDriveConnected] = useState(false);
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
-  const [driveFolderId, setDriveFolderId] = useState("");
   const [checkingDrive, setCheckingDrive] = useState(true);
   const [connectingDrive, setConnectingDrive] = useState(false);
   const [disconnectingDrive, setDisconnectingDrive] = useState(false);
-  const [savingFolder, setSavingFolder] = useState(false);
-
-  // Admin legacy state
-  const [legacyDriveAuthorized, setLegacyDriveAuthorized] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -70,7 +63,7 @@ export default function Configuracoes() {
       const result = await resp.json();
       setDriveConnected(result.connected || false);
       setDriveEmail(result.google_email || null);
-      setDriveFolderId(result.drive_folder_id || "");
+      // folder ID is now fixed (gabinete folder)
     } catch {
       // Ignore
     } finally {
@@ -91,13 +84,7 @@ export default function Configuracoes() {
     }
   }, [searchParams, checkDriveStatus, toast, setSearchParams]);
 
-  // Admin: check legacy service account
-  useEffect(() => {
-    if (!isAdmin) return;
-    supabase.from("app_settings" as any).select("value").eq("key", "google_refresh_token").single().then(({ data }) => {
-      setLegacyDriveAuthorized(!!(data as any)?.value);
-    });
-  }, [isAdmin]);
+
 
   const handleSave = async () => {
     if (!user) return;
@@ -150,7 +137,7 @@ export default function Configuracoes() {
   };
 
   const handleDisconnectDrive = async () => {
-    if (!confirm("Deseja desconectar seu Google Drive? Os ofícios serão salvos via conta de serviço.")) return;
+    if (!confirm("Deseja desconectar sua conta Google? Sem conexão, não será possível salvar ofícios no Drive do gabinete com seu nome.")) return;
     setDisconnectingDrive(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -168,8 +155,7 @@ export default function Configuracoes() {
       });
       setDriveConnected(false);
       setDriveEmail(null);
-      setDriveFolderId("");
-      toast({ title: "Google Drive desconectado" });
+      toast({ title: "Conta Google desconectada" });
     } catch {
       toast({ title: "Erro ao desconectar", variant: "destructive" });
     } finally {
@@ -177,52 +163,7 @@ export default function Configuracoes() {
     }
   };
 
-  const handleSaveFolder = async () => {
-    setSavingFolder(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) return;
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      await fetch(`https://${projectId}.supabase.co/functions/v1/google-user-oauth`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "update_folder", folder_id: driveFolderId.trim() || null }),
-      });
-      toast({ title: "Pasta de destino salva!" });
-    } catch {
-      toast({ title: "Erro ao salvar pasta", variant: "destructive" });
-    } finally {
-      setSavingFolder(false);
-    }
-  };
-
-  const handleLegacyAuthorizeDrive = async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) {
-        toast({ title: "Erro", description: "Você precisa estar logado.", variant: "destructive" });
-        return;
-      }
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const resp = await fetch(`https://${projectId}.supabase.co/functions/v1/google-oauth-callback`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await resp.json();
-      if (!resp.ok) {
-        toast({ title: "Erro", description: result.error || "Falha na autorização", variant: "destructive" });
-        return;
-      }
-      window.open(result.authUrl, "_blank", "width=600,height=700");
-    } catch {
-      toast({ title: "Erro", description: "Falha ao iniciar autorização.", variant: "destructive" });
-    }
-  };
 
   return (
     <div className="space-y-6 max-w-lg">
@@ -273,10 +214,10 @@ export default function Configuracoes() {
         </div>
       </div>
 
-      {/* Per-User Google Drive */}
+      {/* Minha Conta Google */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-          <HardDrive size={16} /> Minha Conta Google Drive
+          <Link2 size={16} /> Minha Conta Google
         </h3>
 
         {checkingDrive ? (
@@ -288,38 +229,20 @@ export default function Configuracoes() {
             <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
               <CheckCircle2 size={16} className="text-green-500 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-green-700 dark:text-green-400">Conectado</p>
-                <p className="text-xs text-muted-foreground">{driveEmail}</p>
+                <p className="text-sm font-medium text-green-700 dark:text-green-400">Conectado como: {driveEmail}</p>
               </div>
             </div>
 
-            {/* Folder config */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground block">
-                Pasta de destino (ID da pasta no Drive)
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  value={driveFolderId}
-                  onChange={e => setDriveFolderId(e.target.value)}
-                  placeholder="Deixe vazio para usar a raiz do Drive"
-                  className="bg-secondary border-border text-xs font-mono flex-1"
-                />
-                <Button size="sm" variant="outline" onClick={handleSaveFolder} disabled={savingFolder}>
-                  {savingFolder ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Cole o ID da pasta do Google Drive (parte final da URL). Se vazio, salva na raiz.
-              </p>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Seus ofícios serão salvos na pasta do gabinete com seu nome como autor.
+            </p>
 
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleConnectDrive} disabled={connectingDrive}>
-                <Link2 size={14} className="mr-1" /> Trocar conta
+                🔄 Trocar conta
               </Button>
               <Button variant="outline" size="sm" onClick={handleDisconnectDrive} disabled={disconnectingDrive} className="text-destructive hover:text-destructive">
-                <XCircle size={14} className="mr-1" /> Desconectar
+                ❌ Desconectar
               </Button>
             </div>
           </div>
@@ -328,63 +251,19 @@ export default function Configuracoes() {
             <div className="flex items-center gap-2 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
               <XCircle size={16} className="text-orange-500 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-orange-700 dark:text-orange-400">Não conectado</p>
-                <p className="text-xs text-muted-foreground">Conecte para salvar ofícios no seu Drive pessoal</p>
+                <p className="text-sm font-medium text-orange-700 dark:text-orange-400">⚠️ Não conectado</p>
+                <p className="text-xs text-muted-foreground">Conecte sua conta Google para que seus ofícios apareçam com seu nome no Drive do Gabinete.</p>
               </div>
             </div>
             <Button onClick={handleConnectDrive} disabled={connectingDrive} className="bg-primary text-primary-foreground">
-              {connectingDrive ? <Loader2 size={16} className="mr-1 animate-spin" /> : <HardDrive size={16} className="mr-1" />}
-              Conectar meu Google Drive
+              {connectingDrive ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Link2 size={16} className="mr-1" />}
+              Conectar minha conta Google
             </Button>
           </div>
         )}
-
-        <div className="flex items-start gap-2 p-3 bg-secondary/50 rounded-lg">
-          <Info size={14} className="text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-[10px] text-muted-foreground">
-            Cada operador deve conectar sua própria conta Google para que os arquivos sejam salvos no Drive correto.
-            Se não conectado, os ofícios serão salvos via conta de serviço do gabinete.
-          </p>
-        </div>
       </div>
 
-      {/* Admin legacy Drive section */}
-      {isAdmin && (
-        <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <FolderOpen size={16} /> Drive do Gabinete (Conta de Serviço)
-          </h3>
-          <div className="flex items-start gap-2 p-3 bg-secondary/50 rounded-lg">
-            <Info size={14} className="text-muted-foreground mt-0.5 shrink-0" />
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>Fallback para operadores que não conectaram seu Drive pessoal.</p>
-              <p className="font-medium text-foreground">Conta: app30-943@app-oficios-488713.iam.gserviceaccount.com</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg">
-            <FolderOpen size={14} className="text-muted-foreground shrink-0" />
-            <div className="text-xs">
-              <span className="text-muted-foreground">Pasta padrão: </span>
-              <a href={`https://drive.google.com/drive/folders/${DEFAULT_DRIVE_FOLDER_ID}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
-                2026 - Ofícios (novo formato) <ExternalLink size={10} className="inline ml-1" />
-              </a>
-            </div>
-          </div>
-          {legacyDriveAuthorized ? (
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-green-500" />
-              <span className="text-sm text-green-600 dark:text-green-400 font-medium">Autorizado</span>
-              <Button variant="outline" size="sm" onClick={handleLegacyAuthorizeDrive} className="ml-auto">
-                <ExternalLink size={14} className="mr-1" /> Reautorizar
-              </Button>
-            </div>
-          ) : (
-            <Button onClick={handleLegacyAuthorizeDrive} className="bg-primary text-primary-foreground">
-              <ExternalLink size={16} className="mr-1" /> Autorizar Conta de Serviço
-            </Button>
-          )}
-        </div>
-      )}
+
 
       {/* Theme */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">

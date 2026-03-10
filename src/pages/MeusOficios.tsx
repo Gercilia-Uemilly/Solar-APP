@@ -8,17 +8,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown } from "lucide-react";
+import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown, Package } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
 import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
-import { exportToWord, exportToPDF, exportToCSV } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName } from "@/lib/exportOficio";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
@@ -75,6 +75,10 @@ export default function MeusOficios() {
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [isUploading, setIsUploading] = useState(false);
   const [profileName, setProfileName] = useState<string>("");
+  const [exportConfirmOficio, setExportConfirmOficio] = useState<OficioRow | null>(null);
+  const [isExportingAll, setIsExportingAll] = useState(false);
+  const TIPOS_ESPECIAIS = ["Requerimento", "Outro", "Zap"];
+  const isEspecial = (o: OficioRow) => TIPOS_ESPECIAIS.some(t => (o.assunto || "").toLowerCase().includes(t.toLowerCase()) || ((o as any).tipo_demanda || "").toLowerCase().includes(t.toLowerCase()));
 
   useEffect(() => {
     if (!user) return;
@@ -192,6 +196,9 @@ export default function MeusOficios() {
     operadorNome: o.operador_nome || profileName || user?.email || undefined,
     telefone: o.linha_telefonica || undefined,
     solicitante: o.solicitante || undefined,
+    codigoZ: (o as any).codigo_z || undefined,
+    contatoSolicitante: o.contato_solicitante || undefined,
+    secretaria: (o as any).secretaria_identificada || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -256,7 +263,7 @@ export default function MeusOficios() {
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
         if (err.needsAuth) {
-          toast({ title: "📁 Conecte seu Google Drive", description: "Vá em Configurações para conectar seu Drive pessoal.", variant: "destructive" });
+          toast({ title: "⚠️ Conta Google não conectada", description: "Conecte sua conta Google em Configurações para salvar na pasta do gabinete com seu nome.", variant: "destructive" });
           return;
         }
         throw new Error(err.error || "Erro ao enviar para o Drive");
@@ -277,6 +284,100 @@ export default function MeusOficios() {
       toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleExportAll = async (oficio: OficioRow) => {
+    if (!oficio.conteudo) {
+      toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de exportar.", variant: "destructive" });
+      return;
+    }
+    setIsExportingAll(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive" });
+        return;
+      }
+      const authToken = session.access_token;
+      const data = buildExportData(oficio);
+      const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+      
+      toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
+
+      // 1. Build Word blob
+      const { saveAs } = await import("file-saver");
+      const wordBlob = await buildWordBlobForExport(data);
+      
+      // 2. Convert to PDF
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const convertFormData = new FormData();
+      convertFormData.append("file", wordBlob, `${fileName}.docx`);
+      const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: convertFormData,
+      });
+
+      let pdfBlob: Blob | null = null;
+      if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
+        pdfBlob = await convertResp.blob();
+      }
+
+      // 3. Download PDF
+      if (pdfBlob) {
+        saveAs(pdfBlob, `${fileName}.pdf`);
+      }
+
+      // 4. Download Word
+      saveAs(wordBlob, `${fileName}.docx`);
+
+      // 5. Upload to Drive (PDF or Word)
+      const driveFormData = new FormData();
+      const uploadBlob = pdfBlob || wordBlob;
+      const uploadName = pdfBlob ? `${fileName}.pdf` : `${fileName}.docx`;
+      driveFormData.append("file", uploadBlob, uploadName);
+      driveFormData.append("metadata", JSON.stringify({
+        numero: oficio.numero || "",
+        assunto: oficio.assunto,
+        destinatario: oficio.destinatario,
+        operadorNome: profileName || user?.email || "",
+        operadorEmail: user?.email || "",
+      }));
+      const driveResp = await fetch(`${supabaseUrl}/functions/v1/upload-to-drive`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: driveFormData,
+      });
+      
+      if (!driveResp.ok) {
+        const err = await driveResp.json().catch(() => ({}));
+        if (err.needsAuth) {
+          toast({ title: "⚠️ Conta Google não conectada", description: "Conecte em Configurações para salvar no Drive.", variant: "destructive" });
+        } else {
+          toast({ title: "PDF e Word baixados, mas erro no Drive", description: err.error || "Tente enviar ao Drive separadamente.", variant: "destructive" });
+        }
+        return;
+      }
+
+      const driveResult = await driveResp.json();
+      if (driveResult.driveLink) {
+        await supabase.from("oficios").update({
+          link_pdf_drive: driveResult.driveLink,
+          status: "Salvo no Drive",
+          uploaded_by_name: profileName || user?.email || null,
+          uploaded_by_email: user?.email || null,
+          uploaded_at: new Date().toISOString(),
+        } as any).eq("id", oficio.id);
+        await fetchOficios();
+      }
+
+      toast({ title: "✅ PDF, Word e Drive salvos com sucesso!", description: uploadName });
+      setExportConfirmOficio(null);
+    } catch (e: any) {
+      toast({ title: "Erro ao exportar", description: e.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsExportingAll(false);
     }
   };
 
@@ -449,14 +550,25 @@ export default function MeusOficios() {
                     {canEditOrDelete(o) && (
                       <>
                         <button onClick={() => handleEditForm(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={16} /></button>
-                        <button
-                          onClick={() => handleUploadToDrive(o)}
-                          disabled={isUploading}
-                          className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50"
-                          title="Enviar ao Drive"
-                        >
-                          {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
-                        </button>
+                        {isEspecial(o) ? (
+                          <button
+                            onClick={() => setExportConfirmOficio(o)}
+                            disabled={isExportingAll}
+                            className="p-2 text-primary hover:text-primary/80 disabled:opacity-50"
+                            title="Exportar Tudo (PDF + Word + Drive)"
+                          >
+                            {isExportingAll ? <Loader2 size={16} className="animate-spin" /> : <Package size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleUploadToDrive(o)}
+                            disabled={isUploading}
+                            className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50"
+                            title="Enviar ao Drive"
+                          >
+                            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
+                          </button>
+                        )}
                         <button onClick={() => handleDelete(o.id)} className="p-2 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
                       </>
                     )}
@@ -467,6 +579,39 @@ export default function MeusOficios() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Export Confirmation Dialog */}
+      <Dialog open={!!exportConfirmOficio} onOpenChange={(open) => !open && setExportConfirmOficio(null)}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">📄 Exportar Ofício</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Confirme a exportação completa (PDF + Word + Drive).
+            </DialogDescription>
+          </DialogHeader>
+          {exportConfirmOficio && (() => {
+            const data = buildExportData(exportConfirmOficio);
+            const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+            return (
+              <div className="space-y-3 text-sm">
+                <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
+                  <p className="font-medium text-foreground">Nome do arquivo: <span className="font-mono">{fileName}</span></p>
+                  <p className="text-muted-foreground">📄 {fileName}.pdf</p>
+                  <p className="text-muted-foreground">📝 {fileName}.docx</p>
+                  <p className="text-muted-foreground">☁️ Drive: {fileName}.pdf</p>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setExportConfirmOficio(null)}>Cancelar</Button>
+                  <Button size="sm" disabled={isExportingAll} onClick={() => handleExportAll(exportConfirmOficio)}>
+                    {isExportingAll ? <Loader2 size={14} className="animate-spin mr-1" /> : <Package size={14} className="mr-1" />}
+                    Confirmar e Exportar
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={(open) => {
