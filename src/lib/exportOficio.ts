@@ -360,7 +360,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [new TextRun({ text: cargoDestinatario
             ? `Excelentíssimo(a) Senhor(a) ${cargoDestinatario.replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "").trim()},`
             : "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: fontName, size: fontSize })],
-          spacing: { before: 200, after: 100, line: lineSpacing },
+          spacing: { before: 200, after: 240, line: lineSpacing },
         }),
 
         // Body paragraphs (NO keepNext on body — only signature block keeps together)
