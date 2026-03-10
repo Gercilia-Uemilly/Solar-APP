@@ -161,6 +161,16 @@ export default function MeusOficios() {
     return true;
   };
 
+  const handleStatusChange = async (oficioId: string, newStatus: string) => {
+    const { error } = await supabase.from("oficios").update({ status: newStatus }).eq("id", oficioId);
+    if (error) {
+      toast({ title: "Erro ao alterar status", description: error.message, variant: "destructive" });
+    } else {
+      setOficios(prev => prev.map(o => o.id === oficioId ? { ...o, status: newStatus } : o));
+      toast({ title: `Status alterado para "${newStatus}"` });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("oficios").delete().eq("id", id);
     if (error) {
