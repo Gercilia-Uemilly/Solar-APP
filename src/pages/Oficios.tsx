@@ -431,6 +431,7 @@ export default function Oficios() {
     setBairro(o.bairro || "");
     setSolicitante(o.solicitante || "");
     setContatoSolicitante(o.contato_solicitante || "");
+    setCodigoZ((o as any).codigo_z || "");
     const content = o.conteudo || "";
     setEditedOficio(content);
     setOriginalOficio(content);
