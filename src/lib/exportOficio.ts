@@ -359,7 +359,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Greeting
         new Paragraph({
           indent: { firstLine: 709 },
-          children: [new TextRun({ text: "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: fontName, size: fontSize })],
+          children: [new TextRun({ text: cargoDestinatario
+            ? `Excelentíssimo(a) Senhor(a) ${cargoDestinatario.replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "").trim()},`
+            : "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,", font: fontName, size: fontSize })],
           spacing: { before: 200, after: 100, line: lineSpacing },
         }),
 
