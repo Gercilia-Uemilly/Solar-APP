@@ -41,7 +41,7 @@ function buildVocativo(cargo?: string): string {
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
