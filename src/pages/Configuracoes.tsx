@@ -155,8 +155,7 @@ export default function Configuracoes() {
       });
       setDriveConnected(false);
       setDriveEmail(null);
-      setDriveFolderId("");
-      toast({ title: "Google Drive desconectado" });
+      toast({ title: "Conta Google desconectada" });
     } catch {
       toast({ title: "Erro ao desconectar", variant: "destructive" });
     } finally {
