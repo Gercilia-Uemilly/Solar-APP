@@ -36,7 +36,7 @@ async function refreshGoogleToken(refreshToken: string): Promise<{ access_token:
 async function getUserAccessToken(
   supabaseAdmin: any,
   userId: string
-): Promise<{ accessToken: string; folderId: string | null; googleEmail: string } | null> {
+): Promise<{ accessToken: string; googleEmail: string } | null> {
   const { data: tokenData } = await supabaseAdmin
     .from("user_drive_tokens")
     .select("*")
@@ -63,7 +63,6 @@ async function getUserAccessToken(
 
   return {
     accessToken,
-    folderId: tokenData.drive_folder_id,
     googleEmail: tokenData.google_email,
   };
 }
