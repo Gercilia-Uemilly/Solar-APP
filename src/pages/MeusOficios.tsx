@@ -92,6 +92,8 @@ export default function MeusOficios() {
   const [showPreview, setShowPreview] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
 
