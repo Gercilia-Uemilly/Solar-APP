@@ -360,7 +360,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         new Paragraph({
           children: [
             new TextRun({ text: "Assunto: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize }),
+            new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
@@ -414,24 +414,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           keepLines: true,
         }),
 
-        // Signature line — 8cm centered, border bottom
-        new Paragraph({
-          border: {
-            bottom: {
-              style: BorderStyle.SINGLE,
-              size: 6,
-              color: "000000",
-              space: 1,
-            },
-          },
-          indent: {
-            left: 1440,  // ~1 inch = centering for 8cm line
-            right: 1440,
-          },
-          spacing: { before: 0, after: 80, line: 240 },
-          alignment: AlignmentType.CENTER,
-          keepNext: true,
-        }),
 
         // FABÃO — bold, centered, simple line spacing (240)
         new Paragraph({

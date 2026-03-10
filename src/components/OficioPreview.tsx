@@ -170,9 +170,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* ASSUNTO — after: 240, "Assunto:" em NEGRITO */}
-        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
-          <span style={{ fontWeight: "bold" }}>Assunto: </span>
+        {/* ASSUNTO — after: 240, NEGRITO completo */}
+        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
+          <span>Assunto: </span>
           {editable && onAssuntoChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onAssuntoChange(e.currentTarget.textContent || "")}>{assuntoFormatado}</span>
           ) : (
@@ -261,13 +261,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               display: "block",
             }}
           />
-          {/* Linha da assinatura — 8cm, centralizada, 1px preto */}
-          <div style={{
-            width: "8cm",
-            borderTop: "1px solid #000000",
-            margin: "0 auto 4px auto",
-            display: "block",
-          }} />
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0" }}>FABÃO</p>
           <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0" }}>Vereador</p>
         </div>

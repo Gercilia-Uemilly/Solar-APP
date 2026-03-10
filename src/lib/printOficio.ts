@@ -127,8 +127,7 @@ export async function printOficio(data: PrintData) {
     .oficio-num { font-weight: bold; margin-bottom: 16px; font-size: 11pt; line-height: 1.5; }
     .dest { margin-bottom: 0; font-size: 11pt; line-height: 1.5; }
     .dest-label { font-weight: bold; }
-    .assunto { margin-bottom: 16px; font-size: 11pt; line-height: 1.5; }
-    .assunto-label { font-weight: bold; }
+    .assunto { margin-bottom: 16px; font-size: 11pt; line-height: 1.5; font-weight: bold; }
     .vocativo { margin-bottom: 16px; margin-top: 0; text-indent: 1.25cm; font-size: 11pt; text-align: left; line-height: 1.5; }
     .fechamento { text-indent: 1.25cm; margin-top: 16px; margin-bottom: 32px; font-size: 11pt; line-height: 1.5; }
     .assinatura {
@@ -184,7 +183,7 @@ export async function printOficio(data: PrintData) {
     <p class="date">${dataFormatada}</p>
     <p class="oficio-num">Ofício GVF n° ${numeroFormatado}</p>
     <p class="dest"><span class="dest-label">DESTINATÁRIO: </span>${destinatarioCompleto}</p>
-    <p class="assunto"><span class="assunto-label">Assunto: </span>${assuntoFmt}</p>
+    <p class="assunto">Assunto: ${assuntoFmt}</p>
     <p class="vocativo">${vocativo}</p>
 
     <div class="corpo">${bodyHtml}</div>
@@ -196,7 +195,7 @@ export async function printOficio(data: PrintData) {
 
     <div class="assinatura">
       <img src="${assinaturaB64}" alt="Assinatura" />
-      <div class="linha-assinatura"></div>
+      
       <p class="nome">FABÃO</p>
       <p class="cargo">Vereador</p>
     </div>
