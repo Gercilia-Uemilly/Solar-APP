@@ -83,6 +83,20 @@ export async function printOficio(data: PrintData) {
       position: relative;
       min-height: 100vh;
     }
+    .page-number {
+      position: fixed;
+      top: 30mm;
+      right: 20mm;
+      width: 22px;
+      height: 22px;
+      border: 1.5px solid #000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9pt;
+      font-weight: normal;
+    }
     .header {
       display: flex;
       justify-content: space-between;
@@ -139,7 +153,7 @@ export async function printOficio(data: PrintData) {
     </div>
 
     <p class="date">${dataFormatada}</p>
-    <p class="oficio-num">Ofício n° ${numeroFormatado}</p>
+    <p class="oficio-num">Ofício GVF n° ${numeroFormatado}</p>
     <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}</p>
     <p class="assunto">Assunto: ${assuntoFmt}</p>
     <p class="saudacao">${data.cargoDestinatario
