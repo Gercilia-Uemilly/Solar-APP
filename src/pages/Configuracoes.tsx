@@ -273,10 +273,10 @@ export default function Configuracoes() {
         </div>
       </div>
 
-      {/* Per-User Google Drive */}
+      {/* Minha Conta Google */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-          <HardDrive size={16} /> Minha Conta Google Drive
+          <Link2 size={16} /> Minha Conta Google
         </h3>
 
         {checkingDrive ? (
@@ -288,38 +288,20 @@ export default function Configuracoes() {
             <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
               <CheckCircle2 size={16} className="text-green-500 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-green-700 dark:text-green-400">Conectado</p>
-                <p className="text-xs text-muted-foreground">{driveEmail}</p>
+                <p className="text-sm font-medium text-green-700 dark:text-green-400">Conectado como: {driveEmail}</p>
               </div>
             </div>
 
-            {/* Folder config */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground block">
-                Pasta de destino (ID da pasta no Drive)
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  value={driveFolderId}
-                  onChange={e => setDriveFolderId(e.target.value)}
-                  placeholder="Deixe vazio para usar a raiz do Drive"
-                  className="bg-secondary border-border text-xs font-mono flex-1"
-                />
-                <Button size="sm" variant="outline" onClick={handleSaveFolder} disabled={savingFolder}>
-                  {savingFolder ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Cole o ID da pasta do Google Drive (parte final da URL). Se vazio, salva na raiz.
-              </p>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Seus ofícios serão salvos na pasta do gabinete com seu nome como autor.
+            </p>
 
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleConnectDrive} disabled={connectingDrive}>
-                <Link2 size={14} className="mr-1" /> Trocar conta
+                🔄 Trocar conta
               </Button>
               <Button variant="outline" size="sm" onClick={handleDisconnectDrive} disabled={disconnectingDrive} className="text-destructive hover:text-destructive">
-                <XCircle size={14} className="mr-1" /> Desconectar
+                ❌ Desconectar
               </Button>
             </div>
           </div>
@@ -328,24 +310,16 @@ export default function Configuracoes() {
             <div className="flex items-center gap-2 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
               <XCircle size={16} className="text-orange-500 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-orange-700 dark:text-orange-400">Não conectado</p>
-                <p className="text-xs text-muted-foreground">Conecte para salvar ofícios no seu Drive pessoal</p>
+                <p className="text-sm font-medium text-orange-700 dark:text-orange-400">⚠️ Não conectado</p>
+                <p className="text-xs text-muted-foreground">Conecte sua conta Google para que seus ofícios apareçam com seu nome no Drive do Gabinete.</p>
               </div>
             </div>
             <Button onClick={handleConnectDrive} disabled={connectingDrive} className="bg-primary text-primary-foreground">
-              {connectingDrive ? <Loader2 size={16} className="mr-1 animate-spin" /> : <HardDrive size={16} className="mr-1" />}
-              Conectar meu Google Drive
+              {connectingDrive ? <Loader2 size={16} className="mr-1 animate-spin" /> : <Link2 size={16} className="mr-1" />}
+              Conectar minha conta Google
             </Button>
           </div>
         )}
-
-        <div className="flex items-start gap-2 p-3 bg-secondary/50 rounded-lg">
-          <Info size={14} className="text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-[10px] text-muted-foreground">
-            Cada operador deve conectar sua própria conta Google para que os arquivos sejam salvos no Drive correto.
-            Se não conectado, os ofícios serão salvos via conta de serviço do gabinete.
-          </p>
-        </div>
       </div>
 
       {/* Admin legacy Drive section */}
