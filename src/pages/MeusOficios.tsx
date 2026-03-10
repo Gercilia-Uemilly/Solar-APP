@@ -62,6 +62,14 @@ export default function MeusOficios() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [isUploading, setIsUploading] = useState(false);
+  const [profileName, setProfileName] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("full_name").eq("id", user.id).single().then(({ data }) => {
+      if (data?.full_name) setProfileName(data.full_name);
+    });
+  }, [user]);
 
   // View
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
