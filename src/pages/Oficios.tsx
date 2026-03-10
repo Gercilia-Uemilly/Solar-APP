@@ -637,17 +637,17 @@ export default function Oficios() {
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
       });
-      // Build file name using the new convention
+      // Build file name — Zap Emprego uses Z code format, others just the number
       const oCodigoZ = (oficio as any).codigo_z || "";
+      const oOrigem = (oficio as any).origem || "";
       const oContato = oficio.contato_solicitante || "";
       const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
       let baseFileName: string;
-      const digits = oContato.replace(/\D/g, '').slice(-4);
-      if (oCodigoZ && digits.length >= 4) {
-        baseFileName = `${cleanedNum} ${digits} Z${oCodigoZ}`;
+      if (oOrigem === "Zap Emprego" && oCodigoZ) {
+        const digits = oContato.replace(/\D/g, '').slice(-4);
+        baseFileName = digits.length >= 4 ? `${cleanedNum} ${digits} Z${oCodigoZ}` : cleanedNum;
       } else {
-        const solCode = (oficio.solicitante || "").trim().split(/\s+/)[0]?.replace(/[<>:"/\\|?*]/g, '').substring(0, 30) || "";
-        baseFileName = solCode ? `${cleanedNum} ${solCode}` : cleanedNum;
+        baseFileName = cleanedNum;
       }
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
