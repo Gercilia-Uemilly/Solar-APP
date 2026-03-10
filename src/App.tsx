@@ -22,6 +22,7 @@ const BancoInformacoes = lazy(() => import("./pages/BancoInformacoes"));
 const Respostas = lazy(() => import("./pages/Respostas"));
 const Sobre = lazy(() => import("./pages/Sobre"));
 const Clipping = lazy(() => import("./pages/Clipping"));
+const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
