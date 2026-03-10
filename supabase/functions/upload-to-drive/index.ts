@@ -238,9 +238,9 @@ serve(async (req) => {
         success: true,
         driveFileId: driveResult.id,
         driveLink: driveResult.webViewLink,
-        uploadMode: "personal",
+        uploadMode: "gabinete",
         googleEmail: userToken.googleEmail,
-        message: `Arquivo salvo no Google Drive de ${userToken.googleEmail}!`,
+        message: `Arquivo salvo na pasta do gabinete com a conta de ${userToken.googleEmail}!`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

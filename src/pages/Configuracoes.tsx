@@ -322,43 +322,7 @@ export default function Configuracoes() {
         )}
       </div>
 
-      {/* Admin legacy Drive section */}
-      {isAdmin && (
-        <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <FolderOpen size={16} /> Drive do Gabinete (Conta de Serviço)
-          </h3>
-          <div className="flex items-start gap-2 p-3 bg-secondary/50 rounded-lg">
-            <Info size={14} className="text-muted-foreground mt-0.5 shrink-0" />
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>Fallback para operadores que não conectaram seu Drive pessoal.</p>
-              <p className="font-medium text-foreground">Conta: app30-943@app-oficios-488713.iam.gserviceaccount.com</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg">
-            <FolderOpen size={14} className="text-muted-foreground shrink-0" />
-            <div className="text-xs">
-              <span className="text-muted-foreground">Pasta padrão: </span>
-              <a href={`https://drive.google.com/drive/folders/${DEFAULT_DRIVE_FOLDER_ID}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
-                2026 - Ofícios (novo formato) <ExternalLink size={10} className="inline ml-1" />
-              </a>
-            </div>
-          </div>
-          {legacyDriveAuthorized ? (
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-green-500" />
-              <span className="text-sm text-green-600 dark:text-green-400 font-medium">Autorizado</span>
-              <Button variant="outline" size="sm" onClick={handleLegacyAuthorizeDrive} className="ml-auto">
-                <ExternalLink size={14} className="mr-1" /> Reautorizar
-              </Button>
-            </div>
-          ) : (
-            <Button onClick={handleLegacyAuthorizeDrive} className="bg-primary text-primary-foreground">
-              <ExternalLink size={16} className="mr-1" /> Autorizar Conta de Serviço
-            </Button>
-          )}
-        </div>
-      )}
+
 
       {/* Theme */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
