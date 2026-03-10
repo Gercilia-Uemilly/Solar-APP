@@ -26,6 +26,8 @@ export default function Configuracoes() {
   const [checkingDrive, setCheckingDrive] = useState(true);
   const [connectingDrive, setConnectingDrive] = useState(false);
   const [disconnectingDrive, setDisconnectingDrive] = useState(false);
+  const [testingDrive, setTestingDrive] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
