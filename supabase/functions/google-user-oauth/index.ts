@@ -61,6 +61,8 @@ serve(async (req) => {
       const redirectUri = "https://solar-ia.lovable.app/auth/google/callback";
       const state = `${userId}:${crypto.randomUUID()}`;
 
+      console.log("[OAuth] redirect_uri being used:", redirectUri);
+
       // Store state + redirect_uri for CSRF validation and callback
       await supabaseAdmin
         .from("app_settings")
@@ -77,6 +79,8 @@ serve(async (req) => {
       authUrl.searchParams.set("access_type", "offline");
       authUrl.searchParams.set("prompt", "consent");
       authUrl.searchParams.set("state", state);
+
+      console.log("[OAuth] Full auth URL redirect_uri param:", authUrl.searchParams.get("redirect_uri"));
 
       return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
