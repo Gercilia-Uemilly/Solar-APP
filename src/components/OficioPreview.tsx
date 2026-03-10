@@ -100,7 +100,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
 
-        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "24px", position: "relative" }}>
+        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", position: "relative" }}>
           Ofício GVF n° {numeroFormatado}
           <span style={{
             position: "absolute",
@@ -119,11 +119,11 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>
-          DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario ? ` ${destinatario}` : ""}
+          DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "24px", fontWeight: "bold" }}>
-          ASSUNTO: {assuntoFormatado}
+          Assunto: {assuntoFormatado}
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "30px", textIndent: "1.25cm" }}>
