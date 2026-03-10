@@ -45,7 +45,9 @@ const FontSize = TextStyle.extend({
 });
 
 export default function OficioPreviewEditor({ content, onChange }: OficioPreviewEditorProps) {
-  const isExternalUpdate = useRef(false);
+  const initialContent = useRef(content);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   const editor = useEditor({
     extensions: [
@@ -61,11 +63,9 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
       }),
       Highlight.configure({ multicolor: true }),
     ],
-    content,
+    content: initialContent.current,
     onUpdate: ({ editor }) => {
-      if (!isExternalUpdate.current) {
-        onChange(editor.getHTML());
-      }
+      onChangeRef.current(editor.getHTML());
     },
     editorProps: {
       attributes: {
@@ -82,15 +82,6 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
       },
     },
   });
-
-  // Sync external content only when editor is NOT focused
-  useEffect(() => {
-    if (editor && !editor.isFocused && content !== editor.getHTML()) {
-      isExternalUpdate.current = true;
-      editor.commands.setContent(content);
-      isExternalUpdate.current = false;
-    }
-  }, [content, editor]);
 
   const setFontSize = useCallback((size: string) => {
     if (!editor) return;
