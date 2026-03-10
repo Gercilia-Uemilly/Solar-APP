@@ -90,7 +90,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const operadorMarca = operadorNome ? operadorNome.split(' ')[0].toLowerCase() : '';
 
-    const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}`;
+    const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` de ${destinatario}` : ""}`;
 
     const vocativo = buildVocativo(cargoDestinatario);
 
@@ -160,9 +160,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* DESTINATÁRIO — after: 0, label bold, value normal */}
-        <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5" }}>
-          <span style={{ fontWeight: "bold" }}>DESTINATÁRIO: </span>
+        {/* DESTINATÁRIO — bold completo */}
+        <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
+          <span>DESTINATÁRIO: </span>
           {editable && onCargoDestinatarioChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{destinatarioCompleto}</span>
           ) : (

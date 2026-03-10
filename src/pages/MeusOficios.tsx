@@ -139,12 +139,16 @@ export default function MeusOficios() {
     }
   }, [viewOficio, user, profileName]);
 
-  const handleSaveContent = useCallback(async (content?: string) => {
-    const contentToSave = content || editedContent;
-    if (!viewOficio || contentToSave === originalContent) return;
+  const handleSaveContent = useCallback(async () => {
+    if (!viewOficio) return;
     setSaveStatus("saving");
     const updatePayload: Record<string, any> = { 
-      conteudo: contentToSave,
+      conteudo: editedContent,
+      destinatario: viewOficio.destinatario,
+      cargo_destinatario: viewOficio.cargo_destinatario,
+      assunto: viewOficio.assunto,
+      numero: viewOficio.numero,
+      data_geracao: viewOficio.data_geracao,
       status: "Salvo",
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
@@ -155,28 +159,20 @@ export default function MeusOficios() {
       setSaveStatus("error");
     } else {
       setSaveStatus("saved");
-      setOriginalContent(contentToSave);
-      setViewOficio(prev => prev ? { ...prev, conteudo: contentToSave, status: "Salvo" } : prev);
-      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: contentToSave, status: "Salvo" } : o));
+      setOriginalContent(editedContent);
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...updatePayload } : o));
     }
-  }, [viewOficio, originalContent, editedContent, user, profileName]);
+  }, [viewOficio, editedContent, user, profileName]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditedContent(newContent);
     setSaveStatus("idle");
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => {
-      handleSaveContent(newContent);
-    }, 2000);
-  }, [handleSaveContent]);
+  }, []);
 
   const handleInlineFieldChange = useCallback((field: string, value: string) => {
     setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => {
-      saveFieldToDb({ [field]: value });
-    }, 2000);
-  }, [saveFieldToDb]);
+    setSaveStatus("idle");
+  }, []);
 
   const handleEditForm = (o: OficioRow) => {
     navigate("/oficios", { state: { editOficio: o } });
@@ -681,20 +677,18 @@ export default function MeusOficios() {
                   {saveStatus === "saved" && "✓ Salvo"}
                   {saveStatus === "error" && "✗ Erro ao salvar"}
                 </span>
+                <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
+                  <Save size={14} className="mr-1" /> Salvar
+                </Button>
                 {editedContent !== originalContent && (
-                  <>
-                    <Button size="sm" variant="ghost" className="text-xs" onClick={() => {
-                      if (confirm("Deseja descartar todas as edições e voltar ao texto original?")) {
-                        setEditedContent(originalContent);
-                        setSaveStatus("idle");
-                      }
-                    }}>
-                      ↺ Restaurar original
-                    </Button>
-                    <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
-                      <Save size={14} className="mr-1" /> Salvar
-                    </Button>
-                  </>
+                  <Button size="sm" variant="ghost" className="text-xs" onClick={() => {
+                    if (confirm("Deseja descartar todas as edições e voltar ao texto original?")) {
+                      setEditedContent(originalContent);
+                      setSaveStatus("idle");
+                    }
+                  }}>
+                    ↺ Restaurar original
+                  </Button>
                 )}
                 <Button size="sm" variant="outline" onClick={() => { if (viewOficio) exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
                   <FileText size={14} className="mr-1" /> Word
