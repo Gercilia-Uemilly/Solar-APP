@@ -302,14 +302,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       footers: {
         default: new Footer({
           children: [
-            // Separator line
-            new Paragraph({
-              border: {
-                top: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "999999" },
-              },
-              children: [new TextRun({ text: " ", font: fontName, size: 2 })],
-              spacing: { before: 0, after: 40 },
-            }),
             new Paragraph({
               alignment: AlignmentType.CENTER,
               children: [new TextRun({
