@@ -98,7 +98,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         <div style={{ marginTop: "8px", marginBottom: "16px" }} />
 
-        <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
+        <p style={{ textAlign: "right", marginBottom: "1em", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
 
         <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", position: "relative" }}>
           Ofício GVF n° {numeroFormatado}
