@@ -294,7 +294,17 @@ export default function Configuracoes() {
               <Button variant="outline" size="sm" onClick={handleDisconnectDrive} disabled={disconnectingDrive} className="text-destructive hover:text-destructive">
                 ❌ Desconectar
               </Button>
+              <Button variant="outline" size="sm" onClick={handleTestDrive} disabled={testingDrive}>
+                {testingDrive ? <Loader2 size={14} className="mr-1 animate-spin" /> : null}
+                🧪 Testar conexão
+              </Button>
             </div>
+            {testResult && (
+              <div className={`flex items-center gap-2 p-3 rounded-lg border ${testResult.ok ? "bg-green-500/10 border-green-500/20" : "bg-destructive/10 border-destructive/20"}`}>
+                {testResult.ok ? <CheckCircle2 size={14} className="text-green-500" /> : <XCircle size={14} className="text-destructive" />}
+                <p className="text-xs">{testResult.msg}</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
