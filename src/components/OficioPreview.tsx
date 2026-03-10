@@ -90,7 +90,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const operadorMarca = operadorNome ? operadorNome.split(' ')[0].toLowerCase() : '';
 
-    const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}`;
+    const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` de ${destinatario}` : ""}`;
 
     const vocativo = buildVocativo(cargoDestinatario);
 
