@@ -106,8 +106,8 @@ export async function printOficio(data: PrintData) {
     .header img { height: 70px; width: auto; object-fit: contain; }
     .date { text-align: right; margin-bottom: 24px; margin-top: 10px; }
     .oficio-num { font-weight: bold; margin-bottom: 24px; }
-    .dest { font-weight: bold; margin-bottom: 8px; }
-    .assunto { font-weight: bold; margin-bottom: 30px; }
+    .dest { font-weight: bold; margin-bottom: 0; }
+    .assunto { font-weight: bold; margin-bottom: 24px; }
     .saudacao { margin-bottom: 30px; text-indent: 1.25cm; }
     .fechamento { text-indent: 1.25cm; margin-bottom: 30px; margin-top: 20px; }
     .assinatura {
