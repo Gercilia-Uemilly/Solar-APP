@@ -164,6 +164,54 @@ export default function Configuracoes() {
       setDisconnectingDrive(false);
     }
   };
+  const handleTestDrive = async () => {
+    setTestingDrive(true);
+    setTestResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        setTestResult({ ok: false, msg: "Sessão expirada. Faça login novamente." });
+        return;
+      }
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      // Upload a tiny test file
+      const testContent = btoa("Teste de conexão Solar - " + new Date().toISOString());
+      const resp = await fetch(`https://${projectId}.supabase.co/functions/v1/upload-to-drive`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          file: testContent,
+          fileName: "_teste_conexao_solar.txt",
+          mimeType: "text/plain",
+          metadata: { operadorNome: fullName, operadorEmail: user?.email || "" },
+        }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) {
+        setTestResult({ ok: false, msg: result.error || "Erro ao enviar arquivo teste." });
+        return;
+      }
+      // Delete test file from Drive
+      try {
+        const { data: tokenData } = await supabase.from("user_drive_tokens").select("access_token").eq("user_id", user!.id).single();
+        if (tokenData?.access_token) {
+          await fetch(`https://www.googleapis.com/drive/v3/files/${result.driveFileId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+        }
+      } catch { /* ignore cleanup errors */ }
+      setTestResult({ ok: true, msg: `Conexão OK — salvando como ${result.googleEmail}` });
+    } catch (e: any) {
+      setTestResult({ ok: false, msg: e.message || "Erro desconhecido" });
+    } finally {
+      setTestingDrive(false);
+    }
+  };
 
 
 
