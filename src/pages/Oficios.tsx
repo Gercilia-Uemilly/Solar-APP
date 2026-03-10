@@ -745,7 +745,7 @@ export default function Oficios() {
     telefone: linhaTelefonica || undefined,
     solicitante: solicitante || undefined,
     secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
-    codigoZ: codigoZ || undefined,
+    codigoZ: origemOficio === "Zap Emprego" ? (codigoZ || undefined) : undefined,
     contatoSolicitante: contatoSolicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
