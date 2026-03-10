@@ -71,7 +71,7 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/auth/google/callback" element={<ProtectedRoute><GoogleDriveCallback /></ProtectedRoute>} />
+      <Route path="/auth/google/callback" element={<GoogleDriveCallback />} />
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
       <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
