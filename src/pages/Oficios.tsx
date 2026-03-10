@@ -591,6 +591,7 @@ export default function Oficios() {
     setDescricao("");
     setPrioridade("Normal");
     setCodigoZ("");
+    setOrigemOficio("WhatsApp Gabinete");
     setLinhaTelefonica("");
     setFormTab("dados");
     setAiResult(null);
