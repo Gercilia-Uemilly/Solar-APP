@@ -360,7 +360,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         new Paragraph({
           children: [
             new TextRun({ text: "Assunto: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize }),
+            new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
