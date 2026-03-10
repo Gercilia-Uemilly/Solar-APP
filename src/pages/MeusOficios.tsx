@@ -119,10 +119,12 @@ export default function MeusOficios() {
     setShowPreview(true);
   };
 
-  const handleSaveContent = async () => {
-    if (!viewOficio || editedContent === originalContent) return;
+  const handleSaveContent = useCallback(async (content?: string) => {
+    const contentToSave = content || editedContent;
+    if (!viewOficio || contentToSave === originalContent) return;
+    setSaveStatus("saving");
     const updatePayload: Record<string, any> = { 
-      conteudo: editedContent,
+      conteudo: contentToSave,
       status: "Salvo",
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
@@ -130,14 +132,23 @@ export default function MeusOficios() {
     };
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
     if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      setSaveStatus("error");
     } else {
-      toast({ title: "Conteúdo salvo!" });
-      setOriginalContent(editedContent);
-      setViewOficio({ ...viewOficio, conteudo: editedContent, status: "Salvo" });
-      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: editedContent, status: "Salvo" } : o));
+      setSaveStatus("saved");
+      setOriginalContent(contentToSave);
+      setViewOficio(prev => prev ? { ...prev, conteudo: contentToSave, status: "Salvo" } : prev);
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: contentToSave, status: "Salvo" } : o));
     }
-  };
+  }, [viewOficio, originalContent, editedContent, user, profileName]);
+
+  const handleContentChange = useCallback((newContent: string) => {
+    setEditedContent(newContent);
+    setSaveStatus("idle");
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSaveContent(newContent);
+    }, 2000);
+  }, [handleSaveContent]);
 
   const handleEditForm = (o: OficioRow) => {
     navigate("/oficios", { state: { editOficio: o } });
