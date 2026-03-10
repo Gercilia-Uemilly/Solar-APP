@@ -104,7 +104,7 @@ export async function printOficio(data: PrintData) {
       margin-bottom: 8px;
     }
     .header img { height: 70px; width: auto; object-fit: contain; }
-    .date { text-align: right; margin-bottom: 24px; margin-top: 10px; }
+    .date { text-align: right; margin-bottom: 1em; margin-top: 10px; }
     .oficio-num { font-weight: bold; margin-bottom: 16px; }
     .dest { font-weight: bold; margin-bottom: 0; }
     .assunto { font-weight: bold; margin-bottom: 24px; }
