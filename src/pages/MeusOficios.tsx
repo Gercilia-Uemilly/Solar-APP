@@ -143,9 +143,10 @@ export default function MeusOficios() {
 
   const handleSaveContent = useCallback(async () => {
     if (!viewOficio) return;
+    const contentToSave = editedContentRef.current;
     setSaveStatus("saving");
     const updatePayload: Record<string, any> = { 
-      conteudo: editedContent,
+      conteudo: contentToSave,
       destinatario: viewOficio.destinatario,
       cargo_destinatario: viewOficio.cargo_destinatario,
       assunto: viewOficio.assunto,
@@ -161,13 +162,14 @@ export default function MeusOficios() {
       setSaveStatus("error");
     } else {
       setSaveStatus("saved");
-      setOriginalContent(editedContent);
+      setOriginalContent(contentToSave);
       setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...updatePayload } : o));
     }
-  }, [viewOficio, editedContent, user, profileName]);
+  }, [viewOficio, user, profileName]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditedContent(newContent);
+    editedContentRef.current = newContent;
     setSaveStatus("idle");
   }, []);
 
