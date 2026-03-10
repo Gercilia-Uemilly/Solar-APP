@@ -478,7 +478,7 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
     blob = await addAnexoImages(blob, data.imagens);
   }
 
-  const fileName = buildFileName(data.numero, data.solicitante);
+  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
