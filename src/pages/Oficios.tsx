@@ -104,6 +104,7 @@ export default function Oficios() {
   const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
   const [userPhones, setUserPhones] = useState<string[]>([]);
+  const [profileName, setProfileName] = useState<string>("");
 
   // AI state
   const [isGenerating, setIsGenerating] = useState(false);
