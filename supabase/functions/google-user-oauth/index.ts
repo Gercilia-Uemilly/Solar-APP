@@ -119,6 +119,8 @@ serve(async (req) => {
       // Clear used state
       await supabaseAdmin.from("app_settings").delete().eq("key", `google_oauth_state_${userId}`);
 
+      console.log("[OAuth exchange] Using redirect_uri:", storedRedirectUri);
+
       // Exchange code for tokens — use the SAME redirect_uri from the auth step
       const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
