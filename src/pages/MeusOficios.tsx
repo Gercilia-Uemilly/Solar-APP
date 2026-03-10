@@ -91,11 +91,13 @@ export default function MeusOficios() {
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
+  const editedContentRef = useRef<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
+  const [editorKey, setEditorKey] = useState(0);
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
@@ -116,7 +118,9 @@ export default function MeusOficios() {
     }
     setViewOficio(o);
     setEditedContent(o.conteudo || "");
+    editedContentRef.current = o.conteudo || "";
     setOriginalContent(o.conteudo || "");
+    setEditorKey(prev => prev + 1);
     setShowPreview(true);
   };
 
@@ -141,9 +145,10 @@ export default function MeusOficios() {
 
   const handleSaveContent = useCallback(async () => {
     if (!viewOficio) return;
+    const contentToSave = editedContentRef.current;
     setSaveStatus("saving");
     const updatePayload: Record<string, any> = { 
-      conteudo: editedContent,
+      conteudo: contentToSave,
       destinatario: viewOficio.destinatario,
       cargo_destinatario: viewOficio.cargo_destinatario,
       assunto: viewOficio.assunto,
@@ -159,13 +164,14 @@ export default function MeusOficios() {
       setSaveStatus("error");
     } else {
       setSaveStatus("saved");
-      setOriginalContent(editedContent);
+      setOriginalContent(contentToSave);
       setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...updatePayload } : o));
     }
-  }, [viewOficio, editedContent, user, profileName]);
+  }, [viewOficio, user, profileName]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditedContent(newContent);
+    editedContentRef.current = newContent;
     setSaveStatus("idle");
   }, []);
 
@@ -684,6 +690,8 @@ export default function MeusOficios() {
                   <Button size="sm" variant="ghost" className="text-xs" onClick={() => {
                     if (confirm("Deseja descartar todas as edições e voltar ao texto original?")) {
                       setEditedContent(originalContent);
+                      editedContentRef.current = originalContent;
+                      setEditorKey(prev => prev + 1);
                       setSaveStatus("idle");
                     }
                   }}>
@@ -707,6 +715,7 @@ export default function MeusOficios() {
           {viewOficio && (
             <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "65vh", overflowY: "auto" }}>
               <OficioPreview
+                key={editorKey}
                 ref={previewRef}
                 numero={viewOficio.numero || ""}
                 destinatario={viewOficio.destinatario}
