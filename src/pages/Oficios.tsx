@@ -323,7 +323,16 @@ export default function Oficios() {
 
   useEffect(() => {
     const found = tiposServico.find(t => t.label === tipoServico);
-    if (found && found.secretaria) setSecretaria(found.secretaria);
+    if (found) {
+      if (found.secretaria) setSecretaria(found.secretaria);
+      if (found.cargo) {
+        setCargoDestinatario(found.cargo);
+        setDestinatario("");
+      } else {
+        setCargoDestinatario("");
+        setDestinatario("");
+      }
+    }
   }, [tipoServico]);
 
   useEffect(() => {
