@@ -633,9 +633,18 @@ export default function Oficios() {
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
       });
-      const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '').trim();
-      const solCode = (oficio.solicitante || "").trim().split(/\s+/)[0]?.replace(/[<>:"/\\|?*]/g, '').substring(0, 30) || "";
-      const baseFileName = solCode ? `${numLimpo} ${solCode}` : numLimpo;
+      // Build file name using the new convention
+      const oCodigoZ = (oficio as any).codigo_z || "";
+      const oContato = oficio.contato_solicitante || "";
+      const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
+      let baseFileName: string;
+      const digits = oContato.replace(/\D/g, '').slice(-4);
+      if (oCodigoZ && digits.length >= 4) {
+        baseFileName = `${cleanedNum} ${digits} Z${oCodigoZ}`;
+      } else {
+        const solCode = (oficio.solicitante || "").trim().split(/\s+/)[0]?.replace(/[<>:"/\\|?*]/g, '').substring(0, 30) || "";
+        baseFileName = solCode ? `${cleanedNum} ${solCode}` : cleanedNum;
+      }
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
