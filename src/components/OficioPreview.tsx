@@ -42,7 +42,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       minWidth: "40px",
       display: "inline-block",
     } : {};
-    const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 
     const assinaturaImg = assinaturaFabao;
 
