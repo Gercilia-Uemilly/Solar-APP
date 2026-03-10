@@ -31,8 +31,17 @@ interface Props {
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
-    const hoje = new Date();
+    const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+    const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
+
+    const editableStyle = editable ? {
+      cursor: "text" as const,
+      borderBottom: "1px dashed rgba(0,0,0,0.2)",
+      outline: "none",
+      minWidth: "40px",
+      display: "inline-block",
+    } : {};
     const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 
     const assinaturaImg = assinaturaFabao;
