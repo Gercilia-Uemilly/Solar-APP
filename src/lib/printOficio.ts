@@ -16,6 +16,11 @@ interface PrintData {
   secretaria?: string;
 }
 
+/** Strip any "Ofício GVF n° " prefix already in the numero string */
+function cleanNumero(raw: string): string {
+  return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
+}
+
 async function toDataUrl(src: string): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -48,8 +53,9 @@ export async function printOficio(data: PrintData) {
   const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 
-  const numeroFormatado = data.numero
-    ? (data.numero.includes("/") ? data.numero : `${data.numero}/${hoje.getFullYear()}`)
+  const numeroCleaned = cleanNumero(data.numero || "");
+  const numeroFormatado = numeroCleaned
+    ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
     : "___";
 
   let assuntoFmt = data.assunto || "___";
@@ -117,14 +123,14 @@ export async function printOficio(data: PrintData) {
       margin-bottom: 0;
     }
     .header img { height: 70px; width: auto; object-fit: contain; }
-    .date { text-align: right; margin-bottom: 16px; margin-top: 10px; font-size: 11pt; }
-    .oficio-num { font-weight: bold; margin-bottom: 16px; font-size: 11pt; }
+    .date { text-align: right; margin-bottom: 16px; margin-top: 10px; font-size: 11pt; line-height: 1.5; }
+    .oficio-num { font-weight: bold; margin-bottom: 16px; font-size: 11pt; line-height: 1.5; }
     .dest { margin-bottom: 0; font-size: 11pt; line-height: 1.5; }
     .dest-label { font-weight: bold; }
     .assunto { margin-bottom: 16px; font-size: 11pt; line-height: 1.5; }
     .assunto-label { font-weight: bold; }
-    .vocativo { margin-bottom: 16px; margin-top: 0; text-indent: 1.25cm; font-size: 11pt; }
-    .fechamento { text-indent: 1.25cm; margin-top: 16px; margin-bottom: 32px; font-size: 11pt; }
+    .vocativo { margin-bottom: 16px; margin-top: 0; text-indent: 1.25cm; font-size: 11pt; text-align: left; line-height: 1.5; }
+    .fechamento { text-indent: 1.25cm; margin-top: 16px; margin-bottom: 32px; font-size: 11pt; line-height: 1.5; }
     .assinatura {
       text-align: center;
       display: flex;
@@ -132,17 +138,23 @@ export async function printOficio(data: PrintData) {
       align-items: center;
       page-break-inside: avoid;
       break-inside: avoid;
+      line-height: 1.0;
     }
     .assinatura img {
       width: 227px;
       height: auto;
       object-fit: contain;
-      margin-bottom: -8px;
+      margin-bottom: 0;
       display: block;
     }
-    .assinatura .linha { display: none; }
-    .assinatura .nome { font-weight: bold; margin: 0; line-height: 1.2; font-size: 11pt; }
-    .assinatura .cargo { margin: 0; line-height: 1.2; font-size: 11pt; }
+    .linha-assinatura {
+      width: 8cm;
+      border-top: 1px solid #000000;
+      margin: 0 auto 4px auto;
+      display: block;
+    }
+    .assinatura .nome { font-weight: bold; margin: 0; line-height: 1.0; font-size: 11pt; }
+    .assinatura .cargo { margin: 0; line-height: 1.0; font-size: 11pt; }
     .footer {
       margin-top: 80px;
       font-size: 9pt;
@@ -184,7 +196,7 @@ export async function printOficio(data: PrintData) {
 
     <div class="assinatura">
       <img src="${assinaturaB64}" alt="Assinatura" />
-      <div class="linha"></div>
+      <div class="linha-assinatura"></div>
       <p class="nome">FABÃO</p>
       <p class="cargo">Vereador</p>
     </div>

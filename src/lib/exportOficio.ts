@@ -178,6 +178,11 @@ async function getAuthToken(): Promise<string> {
 }
 
 // ── Build Word blob programmatically ────────────────────────────────────────
+/** Strip any "Ofício GVF n° " prefix already in the numero string */
+function cleanNumero(raw: string): string {
+  return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
+}
+
 async function buildWordBlob(data: OficioData): Promise<Blob> {
   const {
     numero, destinatario, assunto, conteudo,
@@ -192,8 +197,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   ]);
 
   const hoje = new Date();
-  const numeroFormatado = numero
-    ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
+  const numeroCleaned = cleanNumero(numero || "");
+  const numeroFormatado = numeroCleaned
+    ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
     : "___";
 
   const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"} ${destinatario || ""}`.trim();

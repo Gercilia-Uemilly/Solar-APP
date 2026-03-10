@@ -29,7 +29,12 @@ interface Props {
   initialConteudo?: string;
 }
 
-/** Extract vocativo from cargo string — removes "Ilmo(a). Sr(a)." prefix and "Municipal" suffix */
+/** Strip any "Ofício GVF n° " prefix that may already be in the numero string */
+function cleanNumero(raw: string): string {
+  return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
+}
+
+/** Extract vocativo from cargo string */
 function buildVocativo(cargo?: string): string {
   if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
   const cleaned = cargo
@@ -63,8 +68,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       .filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
-    const numeroFormatado = numero
-      ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
+    // Clean numero — remove any "Ofício GVF n°" prefix already in the string
+    const numeroCleaned = cleanNumero(numero);
+    const numeroFormatado = numeroCleaned
+      ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
       : "___";
 
     let assuntoFormatado = assunto || "___";
@@ -133,17 +140,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           fontFamily: "Arial, Helvetica, sans-serif",
         }}>1</div>
 
-        {/* DATA — after: 240 (≈1 linha) */}
+        {/* DATA — after: 240 (~16px) */}
         {editable && onDataChange ? (
-          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt" }}>
+          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
           </p>
         ) : (
-          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
+          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
         )}
 
-        {/* OFÍCIO GVF n° — after: 240 */}
-        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0" }}>
+        {/* OFÍCIO GVF n° — NEGRITO, after: 240 */}
+        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
           {editable && onNumeroChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onNumeroChange(e.currentTarget.textContent || "")}>
               Ofício GVF n° {numeroFormatado}
@@ -153,7 +160,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* DESTINATÁRIO — after: 0 */}
+        {/* DESTINATÁRIO — after: 0, "DESTINATÁRIO:" em NEGRITO */}
         <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5" }}>
           <span style={{ fontWeight: "bold" }}>DESTINATÁRIO: </span>
           {editable && onCargoDestinatarioChange ? (
@@ -163,7 +170,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* ASSUNTO — after: 240 */}
+        {/* ASSUNTO — after: 240, "Assunto:" em NEGRITO */}
         <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
           <span style={{ fontWeight: "bold" }}>Assunto: </span>
           {editable && onAssuntoChange ? (
@@ -173,12 +180,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* VOCATIVO — after: 240, recuo 1.25cm */}
-        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", textIndent: "1.25cm" }}>
+        {/* VOCATIVO — ESQUERDA com recuo 1.25cm, after: 240 */}
+        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5" }}>
           {vocativo}
         </p>
 
-        {/* CORPO — after:0, before:0, line:1.5, recuo 1.25cm */}
+        {/* CORPO — after:0, before:0, line:1.5, justificado, recuo 1.25cm */}
         {editable && onContentChange ? (
           <OficioPreviewEditor
             content={buildEditorContent(conteudo)}
@@ -227,12 +234,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           Na certeza de contar com o vosso pronto atendimento, desde já agradeço.
         </p>
 
-        {/* ATENCIOSAMENTE — before: 240, after: 480, recuo 1.25cm */}
-        <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt" }}>
+        {/* ATENCIOSAMENTE — before: 240 (16px), after: 480 (32px), recuo 1.25cm */}
+        <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt", lineHeight: "1.5" }}>
           Atenciosamente,
         </p>
 
-        {/* BLOCO ASSINATURA — centralizado, pageBreakInside avoid */}
+        {/* BLOCO ASSINATURA — centralizado, line-height SIMPLES, pageBreakInside avoid */}
         <div style={{
           textAlign: "center",
           display: "flex",
@@ -240,7 +247,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           alignItems: "center",
           pageBreakInside: "avoid",
           breakInside: "avoid",
+          lineHeight: "1.0",
         }}>
+          {/* Imagem assinatura */}
           <img
             src={assinaturaFabao}
             alt="Assinatura Fabão"
@@ -248,16 +257,22 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               width: "227px",
               height: "auto",
               objectFit: "contain",
-              marginBottom: "-8px",
+              marginBottom: "0",
               display: "block",
             }}
           />
-          
-          <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.2" }}>FABÃO</p>
-          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.2" }}>Vereador</p>
+          {/* Linha da assinatura — 8cm, centralizada, 1px preto */}
+          <div style={{
+            width: "8cm",
+            borderTop: "1px solid #000000",
+            margin: "0 auto 4px auto",
+            display: "block",
+          }} />
+          <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0" }}>FABÃO</p>
+          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0" }}>Vereador</p>
         </div>
 
-        {/* RODAPÉ — ~3cm espaço acima, Arial 9pt, linha acima, centralizado */}
+        {/* RODAPÉ */}
         <div style={{
           marginTop: "80px",
           fontSize: "9pt",
