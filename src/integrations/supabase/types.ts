@@ -164,6 +164,9 @@ export type Database = {
           status: string
           tipo_demanda: string | null
           updated_at: string
+          uploaded_at: string | null
+          uploaded_by_email: string | null
+          uploaded_by_name: string | null
           urgencia: string | null
         }
         Insert: {
@@ -192,6 +195,9 @@ export type Database = {
           status?: string
           tipo_demanda?: string | null
           updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by_email?: string | null
+          uploaded_by_name?: string | null
           urgencia?: string | null
         }
         Update: {
@@ -220,6 +226,9 @@ export type Database = {
           status?: string
           tipo_demanda?: string | null
           updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by_email?: string | null
+          uploaded_by_name?: string | null
           urgencia?: string | null
         }
         Relationships: []
