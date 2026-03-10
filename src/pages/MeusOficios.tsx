@@ -86,7 +86,7 @@ export default function MeusOficios() {
       const editDate = new Date(latest.last_edited_at);
       const timeDiff = Date.now() - editDate.getTime();
       // Show warning if edited by someone else in last 30 minutes
-      if (timeDiff < 30 * 60 * 1000 && latest.last_edited_by_name !== (user?.user_metadata?.full_name || user?.email)) {
+      if (timeDiff < 30 * 60 * 1000 && latest.last_edited_by_name !== (profileName || user?.email)) {
         const formattedDate = editDate.toLocaleString("pt-BR");
         if (!confirm(`Este ofício foi editado por ${latest.last_edited_by_name} em ${formattedDate}. Deseja carregar a versão mais recente?`)) {
           return;
