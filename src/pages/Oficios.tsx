@@ -732,6 +732,8 @@ export default function Oficios() {
     telefone: linhaTelefonica || undefined,
     solicitante: solicitante || undefined,
     secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
+    codigoZ: codigoZ || undefined,
+    contatoSolicitante: contatoSolicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
