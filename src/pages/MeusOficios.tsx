@@ -62,6 +62,14 @@ export default function MeusOficios() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [isUploading, setIsUploading] = useState(false);
+  const [profileName, setProfileName] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("full_name").eq("id", user.id).single().then(({ data }) => {
+      if (data?.full_name) setProfileName(data.full_name);
+    });
+  }, [user]);
 
   // View
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
@@ -78,7 +86,7 @@ export default function MeusOficios() {
       const editDate = new Date(latest.last_edited_at);
       const timeDiff = Date.now() - editDate.getTime();
       // Show warning if edited by someone else in last 30 minutes
-      if (timeDiff < 30 * 60 * 1000 && latest.last_edited_by_name !== (user?.user_metadata?.full_name || user?.email)) {
+      if (timeDiff < 30 * 60 * 1000 && latest.last_edited_by_name !== (profileName || user?.email)) {
         const formattedDate = editDate.toLocaleString("pt-BR");
         if (!confirm(`Este ofício foi editado por ${latest.last_edited_by_name} em ${formattedDate}. Deseja carregar a versão mais recente?`)) {
           return;
@@ -99,7 +107,7 @@ export default function MeusOficios() {
       conteudo: editedContent,
       status: "Salvo",
       last_edited_by: user?.id || null,
-      last_edited_by_name: user?.user_metadata?.full_name || user?.email || null,
+      last_edited_by_name: profileName || user?.email || null,
       last_edited_at: new Date().toISOString(),
     };
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
@@ -159,7 +167,7 @@ export default function MeusOficios() {
     bairro: o.bairro || "",
     cargoDestinatario: o.cargo_destinatario || "",
     dataGeracao: o.data_geracao || undefined,
-    operadorNome: o.operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
+    operadorNome: o.operador_nome || profileName || user?.email || undefined,
     telefone: o.linha_telefonica || undefined,
     solicitante: o.solicitante || undefined,
     logoCamaraUrl: logoCamara,

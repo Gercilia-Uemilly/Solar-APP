@@ -104,6 +104,7 @@ export default function Oficios() {
   const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
   const [userPhones, setUserPhones] = useState<string[]>([]);
+  const [profileName, setProfileName] = useState<string>("");
 
   // AI state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -257,7 +258,7 @@ export default function Oficios() {
 
   const generateSolicitanteCode = useCallback(() => {
     if (!user) return "USR";
-    const name = user.user_metadata?.full_name || "";
+    const name = profileName || user.user_metadata?.full_name || "";
     const email = user.email || "";
     const initials = name.split(/\s+/).map((w: string) => w[0]?.toUpperCase() || "").join("").slice(0, 3);
     const emailCode = email.replace(/@.*/, "").slice(0, 2).toUpperCase();
@@ -306,14 +307,15 @@ export default function Oficios() {
 
   useEffect(() => {
     if (!user) return;
-    const fetchPhones = async () => {
-      const { data } = await supabase.from("profiles").select("telefone1, telefone2, telefone3").eq("id", user.id).single();
+    const fetchProfile = async () => {
+      const { data } = await supabase.from("profiles").select("telefone1, telefone2, telefone3, full_name").eq("id", user.id).single();
       if (data) {
         const phones = [data.telefone1, data.telefone2, data.telefone3].filter(Boolean) as string[];
         setUserPhones(phones);
+        if (data.full_name) setProfileName(data.full_name);
       }
     };
-    fetchPhones();
+    fetchProfile();
   }, [user]);
 
   useEffect(() => {
@@ -462,7 +464,7 @@ export default function Oficios() {
       tipo_demanda: aiResult?.tipo_demanda || tipoServico || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      ...(editingOficioId ? {} : { operador_nome: user.user_metadata?.full_name || user.email || null }),
+      ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: cargoDestinatario || null,
       local_demanda: localDemanda || null,
       bairro: bairro || null,
@@ -470,7 +472,7 @@ export default function Oficios() {
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
       last_edited_by: user.id,
-      last_edited_by_name: user.user_metadata?.full_name || user.email || null,
+      last_edited_by_name: profileName || user.user_metadata?.full_name || user.email || null,
       last_edited_at: new Date().toISOString(),
     };
 
@@ -683,7 +685,7 @@ export default function Oficios() {
     bairro: o.bairro || "",
     cargoDestinatario: o.cargo_destinatario || "",
     dataGeracao: o.data_geracao || undefined,
-    operadorNome: (o as any).operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
+    operadorNome: (o as any).operador_nome || profileName || user?.email || undefined,
     telefone: (o as any).linha_telefonica || undefined,
     solicitante: o.solicitante || undefined,
     logoCamaraUrl: logoCamara,
@@ -699,7 +701,7 @@ export default function Oficios() {
     bairro,
     cargoDestinatario,
     dataGeracao: dataGeracao || undefined,
-    operadorNome: user?.user_metadata?.full_name || user?.email || undefined,
+    operadorNome: profileName || user?.email || undefined,
     telefone: linhaTelefonica || undefined,
     solicitante: solicitante || undefined,
     logoCamaraUrl: logoCamara,
@@ -1176,7 +1178,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={user?.user_metadata?.full_name || user?.email || undefined} formatOptions={formatOptions} editable onContentChange={setEditedOficio} initialConteudo={originalOficio} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} formatOptions={formatOptions} editable onContentChange={setEditedOficio} initialConteudo={originalOficio} />
               </div>
             </TabsContent>
 
