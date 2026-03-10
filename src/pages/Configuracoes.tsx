@@ -4,9 +4,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings, Save, Phone, HardDrive, CheckCircle2, ExternalLink } from "lucide-react";
+import { Settings, Save, Phone, HardDrive, CheckCircle2, ExternalLink, Info, FolderOpen } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserAvatar from "@/components/UserAvatar";
+
+const DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 
 export default function Configuracoes() {
   const { user, isAdmin } = useAuth();
@@ -145,31 +147,61 @@ export default function Configuracoes() {
         </div>
       </div>
 
-      {isAdmin && (
-        <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <HardDrive size={16} /> Google Drive
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Autorize sua conta Google para que os ofícios sejam salvos no seu Google Drive pessoal.
-          </p>
-          {checkingDrive ? (
-            <p className="text-xs text-muted-foreground">Verificando...</p>
-          ) : driveAuthorized ? (
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-green-500" />
-              <span className="text-sm text-green-600 dark:text-green-400 font-medium">Google Drive autorizado</span>
-              <Button variant="outline" size="sm" onClick={handleAuthorizeDrive} className="ml-auto">
-                <ExternalLink size={14} className="mr-1" /> Reautorizar
-              </Button>
+      {/* Google Drive Section - visible to all users */}
+      <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+        <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+          <HardDrive size={16} /> Integração Google Drive
+        </h3>
+
+        {/* Connection info */}
+        <div className="space-y-3">
+          <div className="flex items-start gap-2 p-3 bg-secondary/50 rounded-lg">
+            <Info size={14} className="text-muted-foreground mt-0.5 shrink-0" />
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Os arquivos são salvos via conta de serviço centralizada. O proprietário real é identificado pelo nome do operador registrado em cada arquivo.</p>
+              <p className="font-medium text-foreground">Conta conectada: app30-943@app-oficios-488713.iam.gserviceaccount.com</p>
             </div>
-          ) : (
-            <Button onClick={handleAuthorizeDrive} className="bg-primary text-primary-foreground">
-              <ExternalLink size={16} className="mr-1" /> Autorizar Google Drive
-            </Button>
-          )}
+          </div>
+
+          <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg">
+            <FolderOpen size={14} className="text-muted-foreground shrink-0" />
+            <div className="text-xs">
+              <span className="text-muted-foreground">Pasta de destino: </span>
+              <a
+                href={`https://drive.google.com/drive/folders/${DRIVE_FOLDER_ID}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                2026 - Ofícios (novo formato)
+                <ExternalLink size={10} className="inline ml-1" />
+              </a>
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Admin-only auth controls */}
+        {isAdmin && (
+          <div className="pt-2 border-t border-border space-y-2">
+            <p className="text-xs text-muted-foreground font-medium">Administração do Drive</p>
+            {checkingDrive ? (
+              <p className="text-xs text-muted-foreground">Verificando...</p>
+            ) : driveAuthorized ? (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-green-500" />
+                <span className="text-sm text-green-600 dark:text-green-400 font-medium">Google Drive autorizado</span>
+                <Button variant="outline" size="sm" onClick={handleAuthorizeDrive} className="ml-auto">
+                  <ExternalLink size={14} className="mr-1" /> Reautorizar
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={handleAuthorizeDrive} className="bg-primary text-primary-foreground">
+                <ExternalLink size={16} className="mr-1" /> Autorizar Google Drive
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground">Aparência</h3>

@@ -10,8 +10,6 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Undo, Redo, Eraser, Type,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface OficioPreviewEditorProps {
   content: string;
@@ -95,7 +93,13 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
   }) => (
     <button
       type="button"
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Ensure editor keeps focus
+        editor.chain().focus().run();
+        onClick();
+      }}
       title={title}
       className={`p-1.5 rounded transition-colors ${active ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-200"}`}
     >
@@ -106,7 +110,10 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-2 bg-gray-100 border border-gray-300 rounded-t-lg sticky top-0 z-10">
+      <div
+        className="flex flex-wrap items-center gap-1 p-2 bg-gray-100 border border-gray-300 rounded-t-lg sticky top-0 z-10"
+        onMouseDown={(e) => e.preventDefault()}
+      >
         <ToolBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Negrito (Ctrl+B)">
           <Bold size={15} />
         </ToolBtn>
@@ -124,7 +131,12 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           <Type size={13} className="text-gray-500" />
           <select
             className="text-xs bg-white border border-gray-300 rounded px-1 py-1 h-7"
-            onChange={(e) => setFontSize(e.target.value)}
+            onChange={(e) => {
+              setFontSize(e.target.value);
+              // Refocus editor after select change
+              setTimeout(() => editor.chain().focus().run(), 0);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
             defaultValue="11"
           >
             {FONT_SIZES.map(s => (
@@ -139,7 +151,10 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           className="w-7 h-7 rounded border border-gray-300 cursor-pointer p-0"
           defaultValue="#000000"
           title="Cor do texto"
-          onInput={(e) => editor.chain().focus().setColor((e.target as HTMLInputElement).value).run()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onInput={(e) => {
+            editor.chain().focus().setColor((e.target as HTMLInputElement).value).run();
+          }}
         />
 
         <div className="w-px h-5 bg-gray-300 mx-1" />
@@ -200,6 +215,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         .oficio-editor-body .ProseMirror {
           outline: none;
           min-height: 100px;
+          padding: 8px;
         }
         .oficio-editor-body .ProseMirror:focus {
           outline: none;
