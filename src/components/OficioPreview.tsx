@@ -113,7 +113,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "30px", textIndent: "1.25cm" }}>
-          Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,
+          {cargoDestinatario
+            ? `Excelentíssimo(a) Senhor(a) ${cargoDestinatario.replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "").trim()},`
+            : "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,"}
         </p>
 
         {/* CORPO */}

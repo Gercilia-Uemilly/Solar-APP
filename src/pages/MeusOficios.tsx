@@ -177,15 +177,8 @@ export default function MeusOficios() {
       const { data: { session } } = await supabase.auth.getSession();
       const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const wordBlob = await exportToWord({
-        numero: oficio.numero || "",
-        destinatario: oficio.destinatario,
-        assunto: oficio.assunto,
+        ...buildExportData(oficio),
         conteudo: oficio.conteudo,
-        bairro: oficio.bairro || "",
-        cargoDestinatario: oficio.cargo_destinatario || "",
-        logoCamaraUrl: logoCamara,
-        logoFabaoUrl: logoFabao,
-        assinaturaUrl: assinaturaFabao,
       });
       const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '').trim();
       const solCode = (oficio.solicitante || "").trim().split(/\s+/)[0]?.replace(/[<>:"/\\|?*]/g, '').substring(0, 30) || "";
