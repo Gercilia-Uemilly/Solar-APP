@@ -99,19 +99,20 @@ export default function MeusOficios() {
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
-    const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at").eq("id", o.id).single();
-    if (latest && latest.last_edited_by_name && latest.last_edited_at) {
-      const editDate = new Date(latest.last_edited_at);
-      const timeDiff = Date.now() - editDate.getTime();
-      // Show warning if edited by someone else in last 30 minutes
-      if (timeDiff < 30 * 60 * 1000 && latest.last_edited_by_name !== (profileName || user?.email)) {
-        const formattedDate = editDate.toLocaleString("pt-BR");
-        if (!confirm(`Este ofício foi editado por ${latest.last_edited_by_name} em ${formattedDate}. Deseja carregar a versão mais recente?`)) {
-          return;
+    const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at, cargo_destinatario, destinatario, assunto, numero, bairro, data_geracao").eq("id", o.id).single();
+    if (latest) {
+      if (latest.last_edited_by_name && latest.last_edited_at) {
+        const editDate = new Date(latest.last_edited_at);
+        const timeDiff = Date.now() - editDate.getTime();
+        if (timeDiff < 30 * 60 * 1000 && latest.last_edited_by_name !== (profileName || user?.email)) {
+          const formattedDate = editDate.toLocaleString("pt-BR");
+          if (!confirm(`Este ofício foi editado por ${latest.last_edited_by_name} em ${formattedDate}. Deseja carregar a versão mais recente?`)) {
+            return;
+          }
         }
-        // Use latest version from DB
-        o = { ...o, conteudo: latest.conteudo };
       }
+      // Always use latest data from DB
+      o = { ...o, conteudo: latest.conteudo, cargo_destinatario: latest.cargo_destinatario, destinatario: latest.destinatario, assunto: latest.assunto, numero: latest.numero, bairro: latest.bairro, data_geracao: latest.data_geracao };
     }
     setViewOficio(o);
     setEditedContent(o.conteudo || "");

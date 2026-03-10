@@ -57,8 +57,8 @@ serve(async (req) => {
 
     // ── GET AUTH URL ────────────────────────────────────────────
     if (action === "get_auth_url") {
-      const redirectOrigin = body.redirect_origin || "https://solar-ia.lovable.app";
-      const redirectUri = `${redirectOrigin}/auth/google/callback`;
+      // ALWAYS use production domain — Google Console only has this URI registered
+      const redirectUri = "https://solar-ia.lovable.app/auth/google/callback";
       const state = `${userId}:${crypto.randomUUID()}`;
 
       // Store state + redirect_uri for CSRF validation and callback
