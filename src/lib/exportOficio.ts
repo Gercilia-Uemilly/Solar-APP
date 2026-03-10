@@ -329,7 +329,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
-          spacing: { before: 120, after: 0, line: lineSpacing },
+          spacing: { before: 120, after: 240, line: lineSpacing },
         }),
 
         // Ofício number
@@ -391,7 +391,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Signature line
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          indent: { left: 4540, right: 4540 },
+          indent: { left: 3400, right: 3400 },
           border: {
             bottom: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "000000" },
           },
