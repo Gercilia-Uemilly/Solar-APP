@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const FRONTEND_REDIRECT_URI = "https://solar-ia.lovable.app/auth/google/callback";
+const DEFAULT_REDIRECT_URI = "https://solar-ia.lovable.app/auth/google/callback";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -57,19 +57,21 @@ serve(async (req) => {
 
     // ── GET AUTH URL ────────────────────────────────────────────
     if (action === "get_auth_url") {
+      const redirectOrigin = body.redirect_origin || "https://solar-ia.lovable.app";
+      const redirectUri = `${redirectOrigin}/auth/google/callback`;
       const state = `${userId}:${crypto.randomUUID()}`;
 
-      // Store state for CSRF validation
+      // Store state + redirect_uri for CSRF validation and callback
       await supabaseAdmin
         .from("app_settings")
         .upsert(
-          { key: `google_oauth_state_${userId}`, value: state, updated_at: new Date().toISOString() },
+          { key: `google_oauth_state_${userId}`, value: JSON.stringify({ state, redirect_uri: redirectUri }), updated_at: new Date().toISOString() },
           { onConflict: "key" }
         );
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", clientId);
-      authUrl.searchParams.set("redirect_uri", FRONTEND_REDIRECT_URI);
+      authUrl.searchParams.set("redirect_uri", redirectUri);
       authUrl.searchParams.set("response_type", "code");
       authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email");
       authUrl.searchParams.set("access_type", "offline");
@@ -89,21 +91,31 @@ serve(async (req) => {
         throw new Error("Parâmetros code/state ausentes.");
       }
 
-      // Verify CSRF state matches the user
+      // Verify CSRF state matches the user and recover redirect_uri
       const { data: storedStateRow } = await supabaseAdmin
         .from("app_settings")
         .select("value")
         .eq("key", `google_oauth_state_${userId}`)
         .single();
 
-      if (!storedStateRow?.value || storedStateRow.value !== state) {
+      let storedState: string;
+      let storedRedirectUri: string = DEFAULT_REDIRECT_URI;
+      try {
+        const parsed = JSON.parse(storedStateRow?.value || "");
+        storedState = parsed.state;
+        storedRedirectUri = parsed.redirect_uri || DEFAULT_REDIRECT_URI;
+      } catch {
+        storedState = storedStateRow?.value || "";
+      }
+
+      if (!storedState || storedState !== state) {
         throw new Error("Estado OAuth inválido. Possível ataque CSRF.");
       }
 
       // Clear used state
       await supabaseAdmin.from("app_settings").delete().eq("key", `google_oauth_state_${userId}`);
 
-      // Exchange code for tokens
+      // Exchange code for tokens — use the SAME redirect_uri from the auth step
       const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -111,7 +123,7 @@ serve(async (req) => {
           code,
           client_id: clientId,
           client_secret: clientSecret,
-          redirect_uri: FRONTEND_REDIRECT_URI,
+          redirect_uri: storedRedirectUri,
           grant_type: "authorization_code",
         }),
       });
