@@ -112,10 +112,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         <div style={{ marginTop: "8px", marginBottom: "16px" }} />
 
-        <p style={{ textAlign: "right", marginBottom: "1em", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
+        {editable && onDataChange ? (
+          <p style={{ textAlign: "right", marginBottom: "1.5em", marginTop: "10px", fontSize: "11pt" }}>
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
+          </p>
+        ) : (
+          <p style={{ textAlign: "right", marginBottom: "1.5em", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
+        )}
 
         <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", position: "relative" }}>
-          Ofício GVF n° {numeroFormatado}
+          Ofício GVF n°{" "}
+          {editable && onNumeroChange ? (
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onNumeroChange(e.currentTarget.textContent || "")}>{numeroFormatado}</span>
+          ) : numeroFormatado}
           <span style={{
             position: "absolute",
             right: 0,
@@ -133,11 +142,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>
-          DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}
+          DESTINATÁRIO:{" "}
+          {editable && onCargoDestinatarioChange ? (
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}</span>
+          ) : (
+            <>{cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}</>
+          )}
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "24px", fontWeight: "bold" }}>
-          Assunto: {assuntoFormatado}
+          Assunto:{" "}
+          {editable && onAssuntoChange ? (
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onAssuntoChange(e.currentTarget.textContent || "")}>{assuntoFormatado}</span>
+          ) : assuntoFormatado}
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "1.5em", marginTop: "0.5em", textIndent: "1.25cm" }}>
