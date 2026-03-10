@@ -57,19 +57,21 @@ serve(async (req) => {
 
     // ── GET AUTH URL ────────────────────────────────────────────
     if (action === "get_auth_url") {
+      const redirectOrigin = body.redirect_origin || "https://solar-ia.lovable.app";
+      const redirectUri = `${redirectOrigin}/auth/google/callback`;
       const state = `${userId}:${crypto.randomUUID()}`;
 
-      // Store state for CSRF validation
+      // Store state + redirect_uri for CSRF validation and callback
       await supabaseAdmin
         .from("app_settings")
         .upsert(
-          { key: `google_oauth_state_${userId}`, value: state, updated_at: new Date().toISOString() },
+          { key: `google_oauth_state_${userId}`, value: JSON.stringify({ state, redirect_uri: redirectUri }), updated_at: new Date().toISOString() },
           { onConflict: "key" }
         );
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", clientId);
-      authUrl.searchParams.set("redirect_uri", FRONTEND_REDIRECT_URI);
+      authUrl.searchParams.set("redirect_uri", redirectUri);
       authUrl.searchParams.set("response_type", "code");
       authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email");
       authUrl.searchParams.set("access_type", "offline");
