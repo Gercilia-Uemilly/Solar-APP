@@ -9,6 +9,8 @@ import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
 import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
 
 // ── FIXED signature dimensions — NEVER change these ─────────────────────────
+// 6cm = 2160000 EMU, 3cm = 1080000 EMU  (1cm = 360000 EMU)
+// In pixels at 96dpi: 6cm ≈ 227px, 3cm ≈ 113px
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi — IMMUTABLE
 const ASSINATURA_ALTURA = 113;  // ~3cm proportional — IMMUTABLE
 
