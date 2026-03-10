@@ -61,7 +61,7 @@ Explique os impactos negativos de forma objetiva: riscos à segurança, prejuíz
 3º parágrafo - PROVIDÊNCIAS SOLICITADAS:
 "Diante do exposto, solicita-se [ação específica], com avaliação técnica e adoção das medidas necessárias para [objetivo]."
 
-O ÚLTIMO PARÁGRAFO DEVE SEMPRE terminar com: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço."
+NÃO adicione parágrafos de fechamento como "Espero que a Secretaria considere favoravelmente..." ou "Na certeza de contar com o vosso pronto atendimento...". Esses textos são adicionados manualmente pelo operador quando necessário. O corpo gerado deve terminar no 3º parágrafo com a solicitação objetiva.
 
 NÃO INCLUIR NO CORPO:
 • cabeçalho, numeração do ofício, destinatário, saudação inicial, assinatura, data
