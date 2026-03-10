@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
         ],
-        navigateFallbackDenylist: [/^\/~oauth/],
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/auth\/google\/callback/],
       },
       manifest: {
         name: "Solar IA - Gabinete Digital",
