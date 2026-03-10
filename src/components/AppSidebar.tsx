@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info, Newspaper } from "lucide-react";
+import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info, Newspaper, Hash } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoSolar from "@/assets/logo-solar.png";
@@ -8,6 +8,7 @@ const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
   { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
   { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
+  { label: "Numeração", icon: Hash, path: "/numeracao", adminOnly: false },
   { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
   { label: "Scripts", icon: MessageSquare, path: "/scripts", adminOnly: false },
   { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
