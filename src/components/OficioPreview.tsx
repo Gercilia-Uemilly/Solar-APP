@@ -19,15 +19,29 @@ interface Props {
   formatOptions?: FormatOptions;
   editable?: boolean;
   onContentChange?: (newContent: string) => void;
+  onAssuntoChange?: (val: string) => void;
+  onDestinatarioChange?: (val: string) => void;
+  onCargoDestinatarioChange?: (val: string) => void;
+  onNumeroChange?: (val: string) => void;
+  onDataChange?: (val: string) => void;
+  dataGeracao?: string;
   initialConteudo?: string;
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, initialConteudo }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
-    const hoje = new Date();
+    const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
     const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
+
+    const editableStyle = editable ? {
+      cursor: "text" as const,
+      borderBottom: "1px dashed rgba(0,0,0,0.2)",
+      outline: "none",
+      minWidth: "40px",
+      display: "inline-block",
+    } : {};
 
     const assinaturaImg = assinaturaFabao;
 
@@ -98,10 +112,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         <div style={{ marginTop: "8px", marginBottom: "16px" }} />
 
-        <p style={{ textAlign: "right", marginBottom: "1em", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
+        {editable && onDataChange ? (
+          <p style={{ textAlign: "right", marginBottom: "1.5em", marginTop: "10px", fontSize: "11pt" }}>
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
+          </p>
+        ) : (
+          <p style={{ textAlign: "right", marginBottom: "1.5em", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
+        )}
 
         <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", position: "relative" }}>
-          Ofício GVF n° {numeroFormatado}
+          Ofício GVF n°{" "}
+          {editable && onNumeroChange ? (
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onNumeroChange(e.currentTarget.textContent || "")}>{numeroFormatado}</span>
+          ) : numeroFormatado}
           <span style={{
             position: "absolute",
             right: 0,
@@ -119,11 +142,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>
-          DESTINATÁRIO: {cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}
+          DESTINATÁRIO:{" "}
+          {editable && onCargoDestinatarioChange ? (
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}</span>
+          ) : (
+            <>{cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}</>
+          )}
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "24px", fontWeight: "bold" }}>
-          Assunto: {assuntoFormatado}
+          Assunto:{" "}
+          {editable && onAssuntoChange ? (
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onAssuntoChange(e.currentTarget.textContent || "")}>{assuntoFormatado}</span>
+          ) : assuntoFormatado}
         </p>
 
         <p style={{ fontSize: "11pt", marginBottom: "1.5em", marginTop: "0.5em", textIndent: "1.25cm" }}>
