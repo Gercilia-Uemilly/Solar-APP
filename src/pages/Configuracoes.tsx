@@ -140,7 +140,8 @@ export default function Configuracoes() {
         toast({ title: "Erro", description: result.error || "Falha na autorização", variant: "destructive" });
         return;
       }
-      window.open(result.authUrl, "_blank", "width=600,height=700");
+      // Redirect to Google OAuth (not popup)
+      window.location.href = result.authUrl;
     } catch {
       toast({ title: "Erro", description: "Falha ao iniciar conexão.", variant: "destructive" });
     } finally {
