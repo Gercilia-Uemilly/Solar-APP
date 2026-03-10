@@ -15,7 +15,6 @@ interface PrintData {
   telefone?: string;
 }
 
-// Convert an image URL (possibly Vite-hashed) to a base64 data URL
 async function toDataUrl(src: string): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -33,8 +32,18 @@ async function toDataUrl(src: string): Promise<string> {
   });
 }
 
+function buildVocativo(cargo?: string): string {
+  if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
+  const cleaned = cargo
+    .replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")
+    .replace(/\s*Municipal\b/i, "")
+    .replace(/\s*da Secretaria.*$/i, "")
+    .trim();
+  return `Excelentíssimo(a) Senhor(a) ${cleaned},`;
+}
+
 export async function printOficio(data: PrintData) {
-  const hoje = new Date();
+  const hoje = data.dataGeracao ? new Date(data.dataGeracao + "T12:00:00") : new Date();
   const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
 
@@ -45,15 +54,24 @@ export async function printOficio(data: PrintData) {
   let assuntoFmt = data.assunto || "___";
   if (data.bairro) assuntoFmt += ` – Bairro ${data.bairro}`;
 
-  const paragraphs = data.conteudo
-    .split("\n")
-    .map(p => p.trim())
-    .filter(Boolean)
-    .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
-    .map(p => `<p style="text-indent:1.25cm;margin:0 0 10px 0;font-size:12pt;line-height:1.5;text-align:justify;">${p}</p>`)
-    .join("");
+  const destinatarioCompleto = `${data.cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${data.destinatario && !(data.cargoDestinatario || "").toLowerCase().includes(data.destinatario.toLowerCase().substring(0, 8)) ? ` ${data.destinatario}` : !data.cargoDestinatario && data.destinatario ? ` ${data.destinatario}` : ""}`;
 
-  // Convert images to base64 so they work in the print window
+  const vocativo = buildVocativo(data.cargoDestinatario);
+
+  const isHtml = data.conteudo.startsWith("<");
+  let bodyHtml: string;
+  if (isHtml) {
+    bodyHtml = `<div style="text-align:justify;font-size:11pt;line-height:1.5;">${data.conteudo}</div>`;
+  } else {
+    bodyHtml = data.conteudo
+      .split("\n")
+      .map(p => p.trim())
+      .filter(Boolean)
+      .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
+      .map(p => `<p style="text-indent:1.25cm;margin:0;font-size:11pt;line-height:1.5;text-align:justify;">${p}</p>`)
+      .join("");
+  }
+
   const [logoCamaraB64, logoFabaoB64, assinaturaB64] = await Promise.all([
     toDataUrl(logoCamara),
     toDataUrl(logoFabao),
@@ -68,12 +86,12 @@ export async function printOficio(data: PrintData) {
   <style>
     @page {
       size: A4;
-      margin: 30mm 20mm 25mm 30mm;
+      margin: 30mm 20mm 20mm 30mm;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 12pt;
+      font-size: 11pt;
       color: #000;
       line-height: 1.5;
       -webkit-print-color-adjust: exact;
@@ -85,37 +103,34 @@ export async function printOficio(data: PrintData) {
     }
     .page-number {
       position: fixed;
-      top: 30mm;
-      right: 20mm;
-      width: 22px;
-      height: 22px;
-      border: 1.5px solid #000;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      top: 10mm;
+      right: 10mm;
       font-size: 9pt;
-      font-weight: normal;
+      font-family: Arial, Helvetica, sans-serif;
     }
     .header {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
-      margin-bottom: 8px;
+      gap: 24px;
+      margin-bottom: 0;
     }
     .header img { height: 70px; width: auto; object-fit: contain; }
-    .date { text-align: right; margin-bottom: 1.5em; margin-top: 10px; }
-    .oficio-num { font-weight: bold; margin-bottom: 16px; }
-    .dest { font-weight: bold; margin-bottom: 0; }
-    .assunto { font-weight: bold; margin-bottom: 24px; }
-    .saudacao { margin-bottom: 1.5em; margin-top: 0.5em; text-indent: 1.25cm; }
-    .fechamento { text-indent: 1.25cm; margin-bottom: 30px; margin-top: 20px; }
+    .date { text-align: right; margin-bottom: 16px; margin-top: 10px; font-size: 11pt; }
+    .oficio-num { font-weight: bold; margin-bottom: 16px; font-size: 11pt; }
+    .dest { margin-bottom: 0; font-size: 11pt; line-height: 1.5; }
+    .dest-label { font-weight: bold; }
+    .assunto { margin-bottom: 16px; font-size: 11pt; line-height: 1.5; }
+    .assunto-label { font-weight: bold; }
+    .vocativo { margin-bottom: 16px; margin-top: 0; text-indent: 1.25cm; font-size: 11pt; }
+    .fechamento { text-indent: 1.25cm; margin-top: 16px; margin-bottom: 32px; font-size: 11pt; }
     .assinatura {
-      margin-top: 40px;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
     .assinatura img {
       width: 227px;
@@ -125,14 +140,14 @@ export async function printOficio(data: PrintData) {
       display: block;
     }
     .assinatura .linha { width: 302px; border-bottom: 1px solid #000; margin-bottom: 4px; }
-    .assinatura .nome { font-weight: bold; margin: 0; }
-    .assinatura .cargo { margin: 0; }
+    .assinatura .nome { font-weight: bold; margin: 0; line-height: 1.2; font-size: 11pt; }
+    .assinatura .cargo { margin: 0; line-height: 1.2; font-size: 11pt; }
     .footer {
-      margin-top: 30px;
-      font-size: 8pt;
+      margin-top: 80px;
+      font-size: 9pt;
       color: #444;
       text-align: center;
-      border-top: 1px solid #ccc;
+      border-top: 1px solid #999;
       padding-top: 6px;
     }
     @media screen {
@@ -147,6 +162,7 @@ export async function printOficio(data: PrintData) {
 </head>
 <body>
   <div class="page">
+    <div class="page-number">1</div>
     <div class="header">
       <img src="${logoCamaraB64}" alt="Câmara Municipal" />
       <img src="${logoFabaoB64}" alt="Vereador Fabão" />
@@ -154,13 +170,11 @@ export async function printOficio(data: PrintData) {
 
     <p class="date">${dataFormatada}</p>
     <p class="oficio-num">Ofício GVF n° ${numeroFormatado}</p>
-    <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${data.destinatario && !(data.cargoDestinatario || "").toLowerCase().includes(data.destinatario.toLowerCase().substring(0, 8)) ? ` ${data.destinatario}` : !data.cargoDestinatario && data.destinatario ? ` ${data.destinatario}` : ""}</p>
-    <p class="assunto">Assunto: ${assuntoFmt}</p>
-    <p class="saudacao">${data.cargoDestinatario
-      ? `Excelentíssimo(a) Senhor(a) ${(data.cargoDestinatario || "").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "").trim()},`
-      : "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,"}</p>
+    <p class="dest"><span class="dest-label">DESTINATÁRIO: </span>${destinatarioCompleto}</p>
+    <p class="assunto"><span class="assunto-label">Assunto: </span>${assuntoFmt}</p>
+    <p class="vocativo">${vocativo}</p>
 
-    <div class="corpo">${paragraphs}</div>
+    <div class="corpo">${bodyHtml}</div>
 
     <p class="fechamento">Atenciosamente,</p>
 

@@ -1,4 +1,4 @@
-import { forwardRef, useState } from "react";
+import { forwardRef } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -28,6 +28,17 @@ interface Props {
   initialConteudo?: string;
 }
 
+/** Extract vocativo from cargo string — removes "Ilmo(a). Sr(a)." prefix and "Municipal" suffix */
+function buildVocativo(cargo?: string): string {
+  if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
+  const cleaned = cargo
+    .replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")
+    .replace(/\s*Municipal\b/i, "")
+    .replace(/\s*da Secretaria.*$/i, "")
+    .trim();
+  return `Excelentíssimo(a) Senhor(a) ${cleaned},`;
+}
+
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
@@ -42,8 +53,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       minWidth: "40px",
       display: "inline-block",
     } : {};
-
-    const assinaturaImg = assinaturaFabao;
 
     const isHtml = conteudo.startsWith("<");
 
@@ -72,6 +81,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     }
 
     const operadorMarca = operadorNome ? operadorNome.split(' ')[0].toLowerCase() : '';
+
+    const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}`;
+
+    const vocativo = buildVocativo(cargoDestinatario);
 
     const buildEditorContent = (text: string) => {
       if (text.startsWith("<")) return text;
@@ -110,60 +123,61 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
         </div>
 
-        <div style={{ marginTop: "8px", marginBottom: "16px" }} />
+        {/* Nº de página — canto superior direito */}
+        <div style={{
+          position: "absolute",
+          top: "30mm",
+          right: "20mm",
+          fontSize: "9pt",
+          fontFamily: "Arial, Helvetica, sans-serif",
+        }}>1</div>
 
+        {/* DATA — after: 240 (≈1 linha) */}
         {editable && onDataChange ? (
-          <p style={{ textAlign: "right", marginBottom: "1.5em", marginTop: "10px", fontSize: "11pt" }}>
+          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt" }}>
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
           </p>
         ) : (
-          <p style={{ textAlign: "right", marginBottom: "1.5em", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
+          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt" }}>{dataFormatada}</p>
         )}
 
-        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", position: "relative" }}>
-          Ofício GVF n°{" "}
+        {/* OFÍCIO GVF n° — after: 240 */}
+        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0" }}>
           {editable && onNumeroChange ? (
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onNumeroChange(e.currentTarget.textContent || "")}>{numeroFormatado}</span>
-          ) : numeroFormatado}
-          <span style={{
-            position: "absolute",
-            right: 0,
-            top: 0,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "22px",
-            height: "22px",
-            borderRadius: "50%",
-            border: "1.5px solid #000",
-            fontSize: "9pt",
-            fontWeight: "normal",
-          }}>1</span>
-        </p>
-
-        <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>
-          DESTINATÁRIO:{" "}
-          {editable && onCargoDestinatarioChange ? (
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}</span>
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onNumeroChange(e.currentTarget.textContent || "")}>
+              Ofício GVF n° {numeroFormatado}
+            </span>
           ) : (
-            <>{cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}{destinatario && !(cargoDestinatario || "").toLowerCase().includes(destinatario.toLowerCase().substring(0, 8)) ? ` ${destinatario}` : !cargoDestinatario && destinatario ? ` ${destinatario}` : ""}</>
+            <>Ofício GVF n° {numeroFormatado}</>
           )}
         </p>
 
-        <p style={{ fontSize: "11pt", marginBottom: "24px", fontWeight: "bold" }}>
-          Assunto:{" "}
+        {/* DESTINATÁRIO — after: 0 */}
+        <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5" }}>
+          <span style={{ fontWeight: "bold" }}>DESTINATÁRIO: </span>
+          {editable && onCargoDestinatarioChange ? (
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{destinatarioCompleto}</span>
+          ) : (
+            <span>{destinatarioCompleto}</span>
+          )}
+        </p>
+
+        {/* ASSUNTO — after: 240 */}
+        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
+          <span style={{ fontWeight: "bold" }}>Assunto: </span>
           {editable && onAssuntoChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onAssuntoChange(e.currentTarget.textContent || "")}>{assuntoFormatado}</span>
-          ) : assuntoFormatado}
+          ) : (
+            <span>{assuntoFormatado}</span>
+          )}
         </p>
 
-        <p style={{ fontSize: "11pt", marginBottom: "1.5em", marginTop: "0.5em", textIndent: "1.25cm" }}>
-          {cargoDestinatario
-            ? `Excelentíssimo(a) Senhor(a) ${cargoDestinatario.replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "").trim()},`
-            : "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,"}
+        {/* VOCATIVO — after: 240, recuo 1.25cm */}
+        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", textIndent: "1.25cm" }}>
+          {vocativo}
         </p>
 
-        {/* CORPO */}
+        {/* CORPO — after:0, before:0, line:1.5, recuo 1.25cm */}
         {editable && onContentChange ? (
           <OficioPreviewEditor
             content={buildEditorContent(conteudo)}
@@ -179,7 +193,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             {paragraphs.map((p, i) => (
               <p key={i} style={{
                 textIndent: "1.25cm",
-                marginBottom: "10px",
+                marginBottom: "0",
+                marginTop: "0",
                 fontSize: "11pt",
                 lineHeight: "1.5",
               }}
@@ -189,14 +204,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           </div>
         )}
 
-        {/* Fecho */}
-        <p style={{ textIndent: "1.25cm", marginBottom: "30px", fontSize: "11pt" }}>
+        {/* ATENCIOSAMENTE — before: 240, after: 480, recuo 1.25cm */}
+        <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt" }}>
           Atenciosamente,
         </p>
 
-        {/* ASSINATURA - block that should never break across pages */}
+        {/* BLOCO ASSINATURA — centralizado, pageBreakInside avoid */}
         <div style={{
-          marginTop: "40px",
           textAlign: "center",
           display: "flex",
           flexDirection: "column",
@@ -205,7 +219,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           breakInside: "avoid",
         }}>
           <img
-            src={assinaturaImg}
+            src={assinaturaFabao}
             alt="Assinatura Fabão"
             style={{
               width: "227px",
@@ -216,20 +230,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             }}
           />
           <div style={{ width: "302px", borderBottom: "1px solid #000", marginBottom: "4px" }} />
-          <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
-          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0" }}>Vereador</p>
+          <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.2" }}>FABÃO</p>
+          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.2" }}>Vereador</p>
         </div>
 
-        {/* RODAPÉ */}
+        {/* RODAPÉ — ~3cm espaço acima, Arial 9pt, linha acima, centralizado */}
         <div style={{
-          marginTop: "30px",
-          fontSize: "8pt",
+          marginTop: "80px",
+          fontSize: "9pt",
           color: "#444",
           textAlign: "center",
-          borderTop: "none",
+          borderTop: "1px solid #999",
           paddingTop: "6px",
           paddingBottom: "6px",
           position: "relative",
+          fontFamily: "Arial, Helvetica, sans-serif",
         }}>
           Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
           {operadorMarca && (
