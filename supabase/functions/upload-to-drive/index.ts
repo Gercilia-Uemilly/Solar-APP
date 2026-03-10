@@ -220,13 +220,13 @@ serve(async (req) => {
     const description = `Criado por: ${operadorNome || userEmail}${operadorEmail ? ` (${operadorEmail})` : ""}`;
 
     // 4. Upload with the CORRECT user's token
-    console.log(`Uploading ${fileName} to Drive of ${userToken.googleEmail} (user: ${userEmail})`);
+    console.log(`Uploading ${fileName} to gabinete folder with Google account ${userToken.googleEmail}`);
     const driveResult = await uploadToDrive(
       userToken.accessToken,
       fileBytes,
       fileName,
       mimeType,
-      userToken.folderId,
+      PASTA_GABINETE,
       description,
       operadorNome,
       operadorEmail,
