@@ -329,7 +329,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
-          spacing: { before: 120, after: 0, line: lineSpacing },
+          spacing: { before: 120, after: 240, line: lineSpacing },
         }),
 
         // Ofício number
