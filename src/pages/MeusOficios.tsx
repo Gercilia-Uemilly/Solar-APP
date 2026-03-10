@@ -91,11 +91,13 @@ export default function MeusOficios() {
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
+  const editedContentRef = useRef<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
+  const [editorKey, setEditorKey] = useState(0);
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
