@@ -472,7 +472,7 @@ export default function Oficios() {
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
       last_edited_by: user.id,
-      last_edited_by_name: user.user_metadata?.full_name || user.email || null,
+      last_edited_by_name: profileName || user.user_metadata?.full_name || user.email || null,
       last_edited_at: new Date().toISOString(),
     };
 
