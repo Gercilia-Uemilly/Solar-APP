@@ -171,7 +171,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* ASSUNTO — after: 240, NEGRITO completo */}
-        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
+        <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
           <span>Assunto: </span>
           {editable && onAssuntoChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onAssuntoChange(e.currentTarget.textContent || "")}>{assuntoFormatado}</span>

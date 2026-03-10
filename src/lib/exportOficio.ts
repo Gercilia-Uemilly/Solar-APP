@@ -351,7 +351,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         new Paragraph({
           children: [
             new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize }),
+            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),

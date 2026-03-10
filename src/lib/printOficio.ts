@@ -123,11 +123,10 @@ export async function printOficio(data: PrintData) {
       margin-bottom: 0;
     }
     .header img { height: 70px; width: auto; object-fit: contain; }
-    .date { text-align: right; margin-bottom: 16px; margin-top: 10px; font-size: 11pt; line-height: 1.5; }
+    .date { text-align: right; margin-bottom: 24px; margin-top: 10px; font-size: 11pt; line-height: 1.5; }
     .oficio-num { font-weight: bold; margin-bottom: 16px; font-size: 11pt; line-height: 1.5; }
-    .dest { margin-bottom: 0; font-size: 11pt; line-height: 1.5; }
-    .dest-label { font-weight: bold; }
-    .assunto { margin-bottom: 16px; font-size: 11pt; line-height: 1.5; font-weight: bold; }
+    .dest { margin-bottom: 0; font-size: 11pt; line-height: 1.5; font-weight: bold; }
+    .assunto { margin-bottom: 24px; font-size: 11pt; line-height: 1.5; font-weight: bold; }
     .vocativo { margin-bottom: 16px; margin-top: 0; text-indent: 1.25cm; font-size: 11pt; text-align: left; line-height: 1.5; }
     .fechamento { text-indent: 1.25cm; margin-top: 16px; margin-bottom: 32px; font-size: 11pt; line-height: 1.5; }
     .assinatura {
