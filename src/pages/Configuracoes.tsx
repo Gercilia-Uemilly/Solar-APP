@@ -120,7 +120,7 @@ export default function Configuracoes() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ action: "get_auth_url" }),
+        body: JSON.stringify({ action: "get_auth_url", redirect_origin: window.location.origin }),
       });
       const result = await resp.json();
       if (!resp.ok) {

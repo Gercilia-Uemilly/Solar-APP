@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const FRONTEND_REDIRECT_URI = "https://solar-ia.lovable.app/auth/google/callback";
+const DEFAULT_REDIRECT_URI = "https://solar-ia.lovable.app/auth/google/callback";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
