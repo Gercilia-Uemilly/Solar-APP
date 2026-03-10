@@ -183,7 +183,7 @@ export async function printOficio(data: PrintData) {
     <p class="date">${dataFormatada}</p>
     <p class="oficio-num">Ofício GVF n° ${numeroFormatado}</p>
     <p class="dest"><span class="dest-label">DESTINATÁRIO: </span>${destinatarioCompleto}</p>
-    <p class="assunto"><span class="assunto-label">Assunto: </span>${assuntoFmt}</p>
+    <p class="assunto">Assunto: ${assuntoFmt}</p>
     <p class="vocativo">${vocativo}</p>
 
     <div class="corpo">${bodyHtml}</div>
