@@ -1263,12 +1263,12 @@ export default function Oficios() {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  if (!codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z antes de exportar.", variant: "destructive" });
+                  if (origemOficio === "Zap Emprego" && !codigoZ) {
+                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap Emprego.", variant: "destructive" });
                     setFormTab("dados");
                     return;
                   }
-                  if (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4) {
+                  if (origemOficio === "Zap Emprego" && (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4)) {
                     toast({ title: "Celular inválido", description: "Preencha o WhatsApp do solicitante com pelo menos 4 dígitos.", variant: "destructive" });
                     setFormTab("dados");
                     return;
@@ -1278,12 +1278,12 @@ export default function Oficios() {
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (!codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z antes de exportar.", variant: "destructive" });
+                  if (origemOficio === "Zap Emprego" && !codigoZ) {
+                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap Emprego.", variant: "destructive" });
                     setFormTab("dados");
                     return;
                   }
-                  if (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4) {
+                  if (origemOficio === "Zap Emprego" && (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4)) {
                     toast({ title: "Celular inválido", description: "Preencha o WhatsApp do solicitante com pelo menos 4 dígitos.", variant: "destructive" });
                     setFormTab("dados");
                     return;
