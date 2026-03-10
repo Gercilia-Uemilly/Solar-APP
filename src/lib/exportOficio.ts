@@ -65,6 +65,7 @@ export interface OficioData {
   telefone?: string;
   imagens?: File[];
   solicitante?: string;
+  secretaria?: string;
 }
 
 // ── Parse HTML content into styled text runs ────────────────────────────────
