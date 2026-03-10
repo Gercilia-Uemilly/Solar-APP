@@ -23,14 +23,9 @@ export default function Configuracoes() {
   // Per-user Drive state
   const [driveConnected, setDriveConnected] = useState(false);
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
-  const [driveFolderId, setDriveFolderId] = useState("");
   const [checkingDrive, setCheckingDrive] = useState(true);
   const [connectingDrive, setConnectingDrive] = useState(false);
   const [disconnectingDrive, setDisconnectingDrive] = useState(false);
-  const [savingFolder, setSavingFolder] = useState(false);
-
-  // Admin legacy state
-  const [legacyDriveAuthorized, setLegacyDriveAuthorized] = useState(false);
 
   useEffect(() => {
     if (!user) return;
