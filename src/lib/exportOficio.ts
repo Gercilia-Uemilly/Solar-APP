@@ -348,11 +348,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
-        // DESTINATÁRIO — after: 0
+        // DESTINATÁRIO — label bold, value normal
         new Paragraph({
           children: [
             new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize, bold: true }),
+            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize }),
           ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
