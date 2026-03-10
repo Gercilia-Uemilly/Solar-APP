@@ -92,6 +92,8 @@ export default function MeusOficios() {
   const [showPreview, setShowPreview] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
 
@@ -117,10 +119,12 @@ export default function MeusOficios() {
     setShowPreview(true);
   };
 
-  const handleSaveContent = async () => {
-    if (!viewOficio || editedContent === originalContent) return;
+  const handleSaveContent = useCallback(async (content?: string) => {
+    const contentToSave = content || editedContent;
+    if (!viewOficio || contentToSave === originalContent) return;
+    setSaveStatus("saving");
     const updatePayload: Record<string, any> = { 
-      conteudo: editedContent,
+      conteudo: contentToSave,
       status: "Salvo",
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
@@ -128,14 +132,23 @@ export default function MeusOficios() {
     };
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
     if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      setSaveStatus("error");
     } else {
-      toast({ title: "Conteúdo salvo!" });
-      setOriginalContent(editedContent);
-      setViewOficio({ ...viewOficio, conteudo: editedContent, status: "Salvo" });
-      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: editedContent, status: "Salvo" } : o));
+      setSaveStatus("saved");
+      setOriginalContent(contentToSave);
+      setViewOficio(prev => prev ? { ...prev, conteudo: contentToSave, status: "Salvo" } : prev);
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: contentToSave, status: "Salvo" } : o));
     }
-  };
+  }, [viewOficio, originalContent, editedContent, user, profileName]);
+
+  const handleContentChange = useCallback((newContent: string) => {
+    setEditedContent(newContent);
+    setSaveStatus("idle");
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSaveContent(newContent);
+    }, 2000);
+  }, [handleSaveContent]);
 
   const handleEditForm = (o: OficioRow) => {
     navigate("/oficios", { state: { editOficio: o } });
@@ -217,17 +230,16 @@ export default function MeusOficios() {
         return;
       }
       const authToken = session.access_token;
+      const data = buildExportData(oficio);
+      const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
       const wordBlob = await exportToWord({
-        ...buildExportData(oficio),
-        conteudo: oficio.conteudo,
+        ...data,
+        conteudo: editedContent || oficio.conteudo,
       });
-      const numLimpo = (oficio.numero || "rascunho").replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '').trim();
-      const solCode = (oficio.solicitante || "").trim().split(/\s+/)[0]?.replace(/[<>:"/\\|?*]/g, '').substring(0, 30) || "";
-      const baseFileName = solCode ? `${numLimpo} ${solCode}` : numLimpo;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
-      convertFormData.append("file", wordBlob, `${numLimpo}.docx`);
+      convertFormData.append("file", wordBlob, `${baseFileName}.docx`);
       const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
         method: "POST",
         headers: { Authorization: `Bearer ${authToken}` },
@@ -635,9 +647,14 @@ export default function MeusOficios() {
                 )}
                 <span>Visualizar Ofício</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {saveStatus === "saving" && "● Salvando..."}
+                  {saveStatus === "saved" && "✓ Salvo"}
+                  {saveStatus === "error" && "✗ Erro ao salvar"}
+                </span>
                 {editedContent !== originalContent && (
-                  <Button size="sm" variant="default" onClick={handleSaveContent}>
+                  <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
                     <Save size={14} className="mr-1" /> Salvar
                   </Button>
                 )}
@@ -668,7 +685,7 @@ export default function MeusOficios() {
                 operadorNome={viewOficio.operador_nome || undefined}
                 formatOptions={formatOptions}
                 editable
-                onContentChange={setEditedContent}
+                onContentChange={handleContentChange}
                 initialConteudo={originalContent}
               />
             </div>
