@@ -690,6 +690,8 @@ export default function MeusOficios() {
                   <Button size="sm" variant="ghost" className="text-xs" onClick={() => {
                     if (confirm("Deseja descartar todas as edições e voltar ao texto original?")) {
                       setEditedContent(originalContent);
+                      editedContentRef.current = originalContent;
+                      setEditorKey(prev => prev + 1);
                       setSaveStatus("idle");
                     }
                   }}>
