@@ -7,13 +7,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const FRONTEND_REDIRECT_URI = "https://solar-ia.lovable.app/auth/google/callback";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
@@ -56,7 +57,6 @@ serve(async (req) => {
 
     // ── GET AUTH URL ────────────────────────────────────────────
     if (action === "get_auth_url") {
-      const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/google-user-oauth-callback`;
       const state = `${userId}:${crypto.randomUUID()}`;
 
       // Store state for CSRF validation
@@ -69,7 +69,7 @@ serve(async (req) => {
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", clientId);
-      authUrl.searchParams.set("redirect_uri", redirectUri);
+      authUrl.searchParams.set("redirect_uri", FRONTEND_REDIRECT_URI);
       authUrl.searchParams.set("response_type", "code");
       authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email");
       authUrl.searchParams.set("access_type", "offline");
@@ -77,6 +77,86 @@ serve(async (req) => {
       authUrl.searchParams.set("state", state);
 
       return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── EXCHANGE CODE ───────────────────────────────────────────
+    if (action === "exchange_code") {
+      const { code, state } = body;
+
+      if (!code || !state) {
+        throw new Error("Parâmetros code/state ausentes.");
+      }
+
+      // Verify CSRF state matches the user
+      const { data: storedStateRow } = await supabaseAdmin
+        .from("app_settings")
+        .select("value")
+        .eq("key", `google_oauth_state_${userId}`)
+        .single();
+
+      if (!storedStateRow?.value || storedStateRow.value !== state) {
+        throw new Error("Estado OAuth inválido. Possível ataque CSRF.");
+      }
+
+      // Clear used state
+      await supabaseAdmin.from("app_settings").delete().eq("key", `google_oauth_state_${userId}`);
+
+      // Exchange code for tokens
+      const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: FRONTEND_REDIRECT_URI,
+          grant_type: "authorization_code",
+        }),
+      });
+
+      if (!tokenResp.ok) {
+        const errText = await tokenResp.text();
+        throw new Error(`Token exchange failed: ${tokenResp.status} ${errText}`);
+      }
+
+      const tokens = await tokenResp.json();
+
+      if (!tokens.refresh_token) {
+        throw new Error("Nenhum refresh_token retornado. Tente novamente.");
+      }
+
+      // Get Google user email
+      const userInfoResp = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      });
+      const userInfo = await userInfoResp.json();
+      const googleEmail = userInfo.email || "desconhecido";
+
+      const tokenExpiry = new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString();
+
+      const { error: upsertError } = await supabaseAdmin
+        .from("user_drive_tokens")
+        .upsert(
+          {
+            user_id: userId,
+            google_email: googleEmail,
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            token_expiry: tokenExpiry,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+
+      if (upsertError) {
+        throw new Error(`Erro ao salvar tokens: ${upsertError.message}`);
+      }
+
+      console.log(`Google Drive connected for user ${userId} as ${googleEmail}`);
+
+      return new Response(JSON.stringify({ success: true, email: googleEmail }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

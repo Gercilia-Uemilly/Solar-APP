@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ const DEFAULT_DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 export default function Configuracoes() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [tel1, setTel1] = useState("");
@@ -80,19 +82,14 @@ export default function Configuracoes() {
     checkDriveStatus();
   }, [checkDriveStatus]);
 
-  // Listen for OAuth popup completion
+  // Handle return from OAuth callback
   useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === "google-drive-connected") {
-        setDriveConnected(true);
-        setDriveEmail(event.data.email || null);
-        toast({ title: "✅ Google Drive conectado!", description: `Conectado como ${event.data.email}` });
-        checkDriveStatus();
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [checkDriveStatus, toast]);
+    if (searchParams.get("drive") === "conectado") {
+      toast({ title: "✅ Google Drive conectado!" });
+      checkDriveStatus();
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, checkDriveStatus, toast, setSearchParams]);
 
   // Admin: check legacy service account
   useEffect(() => {
@@ -143,7 +140,8 @@ export default function Configuracoes() {
         toast({ title: "Erro", description: result.error || "Falha na autorização", variant: "destructive" });
         return;
       }
-      window.open(result.authUrl, "_blank", "width=600,height=700");
+      // Redirect to Google OAuth (not popup)
+      window.location.href = result.authUrl;
     } catch {
       toast({ title: "Erro", description: "Falha ao iniciar conexão.", variant: "destructive" });
     } finally {
