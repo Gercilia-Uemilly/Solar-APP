@@ -57,7 +57,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       borderBottom: "1px dashed rgba(0,0,0,0.2)",
       outline: "none",
       minWidth: "40px",
-      display: "inline-block",
     } : {};
 
     const isHtml = conteudo.startsWith("<");
