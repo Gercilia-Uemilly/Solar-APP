@@ -139,7 +139,7 @@ export async function printOficio(data: PrintData) {
     </div>
 
     <p class="date">${dataFormatada}</p>
-    <p class="oficio-num">Ofício n° ${numeroFormatado}</p>
+    <p class="oficio-num">Ofício GVF n° ${numeroFormatado}</p>
     <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}</p>
     <p class="assunto">Assunto: ${assuntoFmt}</p>
     <p class="saudacao">${data.cargoDestinatario
