@@ -164,19 +164,12 @@ export default function MeusOficios() {
   const handleContentChange = useCallback((newContent: string) => {
     setEditedContent(newContent);
     setSaveStatus("idle");
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => {
-      handleSaveContent(newContent);
-    }, 2000);
-  }, [handleSaveContent]);
+  }, []);
 
   const handleInlineFieldChange = useCallback((field: string, value: string) => {
     setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => {
-      saveFieldToDb({ [field]: value });
-    }, 2000);
-  }, [saveFieldToDb]);
+    setSaveStatus("idle");
+  }, []);
 
   const handleEditForm = (o: OficioRow) => {
     navigate("/oficios", { state: { editOficio: o } });
