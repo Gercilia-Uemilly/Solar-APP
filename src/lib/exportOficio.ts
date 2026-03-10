@@ -407,18 +407,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           keepLines: true,
         }),
 
-        // Signature line (8cm = ~302px)
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          indent: { left: 3400, right: 3400 },
-          border: {
-            bottom: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "000000" },
-          },
-          children: [new TextRun({ text: " ", font: fontName, size: 2 })],
-          spacing: { before: 0, after: 80 },
-          keepNext: true,
-          keepLines: true,
-        }),
 
         // FABÃO — bold, centered, simple line spacing (240)
         new Paragraph({
