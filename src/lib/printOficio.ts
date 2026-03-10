@@ -158,7 +158,6 @@ export async function printOficio(data: PrintData) {
       font-size: 9pt;
       color: #444;
       text-align: center;
-      border-top: 1px solid #999;
       padding-top: 6px;
     }
     @media screen {
