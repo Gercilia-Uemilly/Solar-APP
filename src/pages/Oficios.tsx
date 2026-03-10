@@ -468,7 +468,7 @@ export default function Oficios() {
     const payload: Record<string, any> = {
       numero: fullNumero,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
-      destinatario: tipoServico === "Outro" ? (destinatario || "A definir") : (aiResult?.secretaria_identificada || secretaria || "A definir"),
+      destinatario: destinatario || (tipoServico === "Outro" ? "A definir" : ""),
       status: "Salvo",
       conteudo: editedOficio || null,
       resposta_cidadao: editedResposta || null,
