@@ -51,7 +51,6 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
     extensions: [
       StarterKit.configure({
         heading: false,
-        history: { depth: 100 },
       }),
       Underline,
       FontSize,
