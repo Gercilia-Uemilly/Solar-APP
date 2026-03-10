@@ -685,7 +685,7 @@ export default function MeusOficios() {
                 operadorNome={viewOficio.operador_nome || undefined}
                 formatOptions={formatOptions}
                 editable
-                onContentChange={setEditedContent}
+                onContentChange={handleContentChange}
                 initialConteudo={originalContent}
               />
             </div>
