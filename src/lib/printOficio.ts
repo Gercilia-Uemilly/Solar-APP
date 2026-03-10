@@ -195,7 +195,7 @@ export async function printOficio(data: PrintData) {
 
     <div class="assinatura">
       <img src="${assinaturaB64}" alt="Assinatura" />
-      <div class="linha-assinatura"></div>
+      
       <p class="nome">FABÃO</p>
       <p class="cargo">Vereador</p>
     </div>
