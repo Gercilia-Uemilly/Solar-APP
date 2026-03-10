@@ -39,8 +39,9 @@ function buildVocativo(cargo?: string): string {
   if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
   const cleaned = cargo
     .replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")
-    .replace(/\s*Municipal\b/i, "")
-    .replace(/\s*da Secretaria.*$/i, "")
+    .replace(/\bMunicipal\b/gi, "")
+    .replace(/\s*da\s+Secretaria.*$/i, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
   return `Excelentíssimo(a) Senhor(a) ${cleaned},`;
 }
