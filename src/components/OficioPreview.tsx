@@ -16,6 +16,7 @@ interface Props {
   numeroEnd?: string;
   cargoDestinatario?: string;
   operadorNome?: string;
+  secretaria?: string;
   formatOptions?: FormatOptions;
   editable?: boolean;
   onContentChange?: (newContent: string) => void;
