@@ -167,7 +167,7 @@ export default function MeusOficios() {
     bairro: o.bairro || "",
     cargoDestinatario: o.cargo_destinatario || "",
     dataGeracao: o.data_geracao || undefined,
-    operadorNome: o.operador_nome || user?.user_metadata?.full_name || user?.email || undefined,
+    operadorNome: o.operador_nome || profileName || user?.email || undefined,
     telefone: o.linha_telefonica || undefined,
     solicitante: o.solicitante || undefined,
     logoCamaraUrl: logoCamara,
