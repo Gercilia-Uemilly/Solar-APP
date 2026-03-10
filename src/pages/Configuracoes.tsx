@@ -84,13 +84,7 @@ export default function Configuracoes() {
     }
   }, [searchParams, checkDriveStatus, toast, setSearchParams]);
 
-  // Admin: check legacy service account
-  useEffect(() => {
-    if (!isAdmin) return;
-    supabase.from("app_settings" as any).select("value").eq("key", "google_refresh_token").single().then(({ data }) => {
-      setLegacyDriveAuthorized(!!(data as any)?.value);
-    });
-  }, [isAdmin]);
+
 
   const handleSave = async () => {
     if (!user) return;
