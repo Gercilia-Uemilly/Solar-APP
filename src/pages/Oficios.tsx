@@ -701,7 +701,7 @@ export default function Oficios() {
     bairro,
     cargoDestinatario,
     dataGeracao: dataGeracao || undefined,
-    operadorNome: user?.user_metadata?.full_name || user?.email || undefined,
+    operadorNome: profileName || user?.email || undefined,
     telefone: linhaTelefonica || undefined,
     solicitante: solicitante || undefined,
     logoCamaraUrl: logoCamara,
