@@ -284,7 +284,101 @@ export default function MeusOficios() {
     }
   };
 
-  const filtered = oficios.filter(o => {
+  const handleExportAll = async (oficio: OficioRow) => {
+    if (!oficio.conteudo) {
+      toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de exportar.", variant: "destructive" });
+      return;
+    }
+    setIsExportingAll(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive" });
+        return;
+      }
+      const authToken = session.access_token;
+      const data = buildExportData(oficio);
+      const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+      
+      toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
+
+      // 1. Build Word blob
+      const { saveAs } = await import("file-saver");
+      const wordBlob = await buildWordBlobForExport(data);
+      
+      // 2. Convert to PDF
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const convertFormData = new FormData();
+      convertFormData.append("file", wordBlob, `${fileName}.docx`);
+      const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: convertFormData,
+      });
+
+      let pdfBlob: Blob | null = null;
+      if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
+        pdfBlob = await convertResp.blob();
+      }
+
+      // 3. Download PDF
+      if (pdfBlob) {
+        saveAs(pdfBlob, `${fileName}.pdf`);
+      }
+
+      // 4. Download Word
+      saveAs(wordBlob, `${fileName}.docx`);
+
+      // 5. Upload to Drive (PDF or Word)
+      const driveFormData = new FormData();
+      const uploadBlob = pdfBlob || wordBlob;
+      const uploadName = pdfBlob ? `${fileName}.pdf` : `${fileName}.docx`;
+      driveFormData.append("file", uploadBlob, uploadName);
+      driveFormData.append("metadata", JSON.stringify({
+        numero: oficio.numero || "",
+        assunto: oficio.assunto,
+        destinatario: oficio.destinatario,
+        operadorNome: profileName || user?.email || "",
+        operadorEmail: user?.email || "",
+      }));
+      const driveResp = await fetch(`${supabaseUrl}/functions/v1/upload-to-drive`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: driveFormData,
+      });
+      
+      if (!driveResp.ok) {
+        const err = await driveResp.json().catch(() => ({}));
+        if (err.needsAuth) {
+          toast({ title: "⚠️ Conta Google não conectada", description: "Conecte em Configurações para salvar no Drive.", variant: "destructive" });
+        } else {
+          toast({ title: "PDF e Word baixados, mas erro no Drive", description: err.error || "Tente enviar ao Drive separadamente.", variant: "destructive" });
+        }
+        return;
+      }
+
+      const driveResult = await driveResp.json();
+      if (driveResult.driveLink) {
+        await supabase.from("oficios").update({
+          link_pdf_drive: driveResult.driveLink,
+          status: "Salvo no Drive",
+          uploaded_by_name: profileName || user?.email || null,
+          uploaded_by_email: user?.email || null,
+          uploaded_at: new Date().toISOString(),
+        } as any).eq("id", oficio.id);
+        await fetchOficios();
+      }
+
+      toast({ title: "✅ PDF, Word e Drive salvos com sucesso!", description: uploadName });
+      setExportConfirmOficio(null);
+    } catch (e: any) {
+      toast({ title: "Erro ao exportar", description: e.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsExportingAll(false);
+    }
+  };
+
+
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
     if (filtroOperador !== "Todos" && o.operador_nome !== filtroOperador) return false;
     if (dateFrom && new Date(o.created_at) < dateFrom) return false;
