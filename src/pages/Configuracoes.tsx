@@ -63,7 +63,7 @@ export default function Configuracoes() {
       const result = await resp.json();
       setDriveConnected(result.connected || false);
       setDriveEmail(result.google_email || null);
-      setDriveFolderId(result.drive_folder_id || "");
+      // folder ID is now fixed (gabinete folder)
     } catch {
       // Ignore
     } finally {
