@@ -451,7 +451,19 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
   return resp.blob();
 }
 
-// ── Export Word ──────────────────────────────────────────────────────────────
+// ── Build Word blob without saving (for external use) ───────────────────────
+export async function buildWordBlobForExport(data: OficioData): Promise<Blob> {
+  let blob = await buildWordBlob(data);
+  if (data.imagens && data.imagens.length > 0) {
+    blob = await addAnexoImages(blob, data.imagens);
+  }
+  return blob;
+}
+
+// ── Build file name (exported for external use) ─────────────────────────────
+export { buildFileName };
+
+
 export async function exportToWord(data: OficioData): Promise<Blob> {
   let blob = await buildWordBlob(data);
 
