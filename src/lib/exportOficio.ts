@@ -27,9 +27,21 @@ function formatDate(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-function buildFileName(numero: string, solicitante?: string): string {
-  const numLimpo = numero.replace(/\//g, '-').replace(/[^a-zA-Z0-9-]/g, '').trim();
-  const base = numLimpo || 'rascunho';
+function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
+  // New format: [numero]-[ano] [last4digits] [Zcode]
+  const cleanedNumero = cleanNumero(numero || "");
+  const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9-]/g, '').trim() || 'rascunho';
+  
+  if (codigoZ && contatoSolicitante) {
+    const digits = contatoSolicitante.replace(/\D/g, '').slice(-4);
+    if (digits.length >= 4) {
+      const zCode = `Z${codigoZ.replace(/\D/g, '')}`;
+      return `${numPart} ${digits} ${zCode}`;
+    }
+  }
+  
+  // Fallback to old format
+  const base = numPart;
   if (solicitante?.trim()) {
     const code = solicitante.trim().split(/\s+/)[0].replace(/[<>:"/\\|?*]/g, '').substring(0, 30);
     if (code) return `${base} ${code}`;
@@ -66,6 +78,8 @@ export interface OficioData {
   imagens?: File[];
   solicitante?: string;
   secretaria?: string;
+  codigoZ?: string;
+  contatoSolicitante?: string;
 }
 
 // ── Parse HTML content into styled text runs ────────────────────────────────
@@ -302,14 +316,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       footers: {
         default: new Footer({
           children: [
-            // Separator line
-            new Paragraph({
-              border: {
-                top: { style: BorderStyle.SINGLE, size: 1, space: 1, color: "999999" },
-              },
-              children: [new TextRun({ text: " ", font: fontName, size: 2 })],
-              spacing: { before: 0, after: 40 },
-            }),
             new Paragraph({
               alignment: AlignmentType.CENTER,
               children: [new TextRun({
@@ -472,14 +478,14 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
     blob = await addAnexoImages(blob, data.imagens);
   }
 
-  const fileName = buildFileName(data.numero, data.solicitante);
+  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
 
 // ── Export PDF ───────────────────────────────────────────────────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
-  const fileName = buildFileName(data.numero, data.solicitante);
+  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
 
   try {
     let wordBlob = await buildWordBlob(data);

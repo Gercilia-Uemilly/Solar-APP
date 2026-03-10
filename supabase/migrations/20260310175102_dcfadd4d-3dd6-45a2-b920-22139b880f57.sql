@@ -1,0 +1,1 @@
+ALTER TABLE public.oficios ADD COLUMN IF NOT EXISTS codigo_z TEXT;

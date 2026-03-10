@@ -144,6 +144,7 @@ export type Database = {
           author_id: string
           bairro: string | null
           cargo_destinatario: string | null
+          codigo_z: string | null
           contato_solicitante: string | null
           conteudo: string | null
           created_at: string
@@ -175,6 +176,7 @@ export type Database = {
           author_id: string
           bairro?: string | null
           cargo_destinatario?: string | null
+          codigo_z?: string | null
           contato_solicitante?: string | null
           conteudo?: string | null
           created_at?: string
@@ -206,6 +208,7 @@ export type Database = {
           author_id?: string
           bairro?: string | null
           cargo_destinatario?: string | null
+          codigo_z?: string | null
           contato_solicitante?: string | null
           conteudo?: string | null
           created_at?: string

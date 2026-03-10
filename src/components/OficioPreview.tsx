@@ -271,7 +271,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           fontSize: "9pt",
           color: "#444",
           textAlign: "center",
-          borderTop: "1px solid #999",
           paddingTop: "6px",
           paddingBottom: "6px",
           position: "relative",
