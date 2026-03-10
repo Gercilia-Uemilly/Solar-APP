@@ -154,8 +154,8 @@ export async function printOficio(data: PrintData) {
 
     <p class="date">${dataFormatada}</p>
     <p class="oficio-num">Ofício GVF n° ${numeroFormatado}</p>
-    <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${data.destinatario ? ` ${data.destinatario}` : ""}</p>
-    <p class="assunto">ASSUNTO: ${assuntoFmt}</p>
+    <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${data.destinatario && !(data.cargoDestinatario || "").toLowerCase().includes(data.destinatario.toLowerCase().substring(0, 8)) ? ` ${data.destinatario}` : !data.cargoDestinatario && data.destinatario ? ` ${data.destinatario}` : ""}</p>
+    <p class="assunto">Assunto: ${assuntoFmt}</p>
     <p class="saudacao">${data.cargoDestinatario
       ? `Excelentíssimo(a) Senhor(a) ${(data.cargoDestinatario || "").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "").trim()},`
       : "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,"}</p>
