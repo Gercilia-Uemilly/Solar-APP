@@ -19,11 +19,17 @@ interface Props {
   formatOptions?: FormatOptions;
   editable?: boolean;
   onContentChange?: (newContent: string) => void;
+  onAssuntoChange?: (val: string) => void;
+  onDestinatarioChange?: (val: string) => void;
+  onCargoDestinatarioChange?: (val: string) => void;
+  onNumeroChange?: (val: string) => void;
+  onDataChange?: (val: string) => void;
+  dataGeracao?: string;
   initialConteudo?: string;
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, initialConteudo }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
