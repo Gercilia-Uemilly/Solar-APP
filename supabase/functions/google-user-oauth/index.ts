@@ -91,21 +91,31 @@ serve(async (req) => {
         throw new Error("Parâmetros code/state ausentes.");
       }
 
-      // Verify CSRF state matches the user
+      // Verify CSRF state matches the user and recover redirect_uri
       const { data: storedStateRow } = await supabaseAdmin
         .from("app_settings")
         .select("value")
         .eq("key", `google_oauth_state_${userId}`)
         .single();
 
-      if (!storedStateRow?.value || storedStateRow.value !== state) {
+      let storedState: string;
+      let storedRedirectUri: string = DEFAULT_REDIRECT_URI;
+      try {
+        const parsed = JSON.parse(storedStateRow?.value || "");
+        storedState = parsed.state;
+        storedRedirectUri = parsed.redirect_uri || DEFAULT_REDIRECT_URI;
+      } catch {
+        storedState = storedStateRow?.value || "";
+      }
+
+      if (!storedState || storedState !== state) {
         throw new Error("Estado OAuth inválido. Possível ataque CSRF.");
       }
 
       // Clear used state
       await supabaseAdmin.from("app_settings").delete().eq("key", `google_oauth_state_${userId}`);
 
-      // Exchange code for tokens
+      // Exchange code for tokens — use the SAME redirect_uri from the auth step
       const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -113,7 +123,7 @@ serve(async (req) => {
           code,
           client_id: clientId,
           client_secret: clientSecret,
-          redirect_uri: FRONTEND_REDIRECT_URI,
+          redirect_uri: storedRedirectUri,
           grant_type: "authorization_code",
         }),
       });
