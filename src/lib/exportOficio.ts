@@ -365,8 +365,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
-        // Vocativo — after: 240, indent 1.25cm
+        // Vocativo — LEFT aligned, after: 240, indent 1.25cm
         new Paragraph({
+          alignment: AlignmentType.LEFT,
           indent: { firstLine: 709 },
           children: [new TextRun({ text: vocativo, font: fontName, size: fontSize })],
           spacing: { before: 0, after: 240, line: lineSpacing },
