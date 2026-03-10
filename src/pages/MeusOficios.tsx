@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save } from "lucide-react";
+import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
 import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
@@ -48,7 +49,18 @@ interface OficioRow {
   ano: number | null;
 }
 
-const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
+const statusOptions = ["Rascunho", "Salvo", "Exportado", "Impresso", "Protocolado", "Feito", "Salvo no Drive", "Cancelado"];
+
+const statusConfig: Record<string, { emoji: string; className: string }> = {
+  "Rascunho": { emoji: "🟡", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" },
+  "Salvo": { emoji: "🟢", className: "bg-green-500/20 text-green-700 dark:text-green-400" },
+  "Exportado": { emoji: "🔵", className: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
+  "Impresso": { emoji: "🔵", className: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
+  "Protocolado": { emoji: "🟣", className: "bg-purple-500/20 text-purple-700 dark:text-purple-400" },
+  "Feito": { emoji: "✅", className: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" },
+  "Salvo no Drive": { emoji: "☁️", className: "bg-sky-500/20 text-sky-700 dark:text-sky-400" },
+  "Cancelado": { emoji: "🔴", className: "bg-red-500/20 text-red-700 dark:text-red-400" },
+};
 
 export default function MeusOficios() {
   const { user, isAdmin } = useAuth();
@@ -149,6 +161,16 @@ export default function MeusOficios() {
     return true;
   };
 
+  const handleStatusChange = async (oficioId: string, newStatus: string) => {
+    const { error } = await supabase.from("oficios").update({ status: newStatus }).eq("id", oficioId);
+    if (error) {
+      toast({ title: "Erro ao alterar status", description: error.message, variant: "destructive" });
+    } else {
+      setOficios(prev => prev.map(o => o.id === oficioId ? { ...o, status: newStatus } : o));
+      toast({ title: `Status alterado para "${newStatus}"` });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("oficios").delete().eq("id", id);
     if (error) {
@@ -183,7 +205,11 @@ export default function MeusOficios() {
     setIsUploading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      if (!session) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive" });
+        return;
+      }
+      const authToken = session.access_token;
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
         conteudo: oficio.conteudo,
@@ -229,6 +255,10 @@ export default function MeusOficios() {
       });
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
+        if (err.needsAuth) {
+          toast({ title: "📁 Conecte seu Google Drive", description: "Vá em Configurações para conectar seu Drive pessoal.", variant: "destructive" });
+          return;
+        }
         throw new Error(err.error || "Erro ao enviar para o Drive");
       }
       const driveResult = await driveResp.json();
@@ -368,16 +398,30 @@ export default function MeusOficios() {
                 <TableCell>{o.destinatario}</TableCell>
                 <TableCell>
                   <div>
-                    <span className={cn(
-                      "text-xs px-2 py-0.5 rounded font-medium",
-                      o.status === "Rascunho" && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
-                      o.status === "Salvo" && "bg-green-500/20 text-green-700 dark:text-green-400",
-                      o.status === "Exportado" && "bg-blue-500/20 text-blue-700 dark:text-blue-400",
-                      o.status === "Salvo no Drive" && "bg-sky-500/20 text-sky-700 dark:text-sky-400",
-                      !["Rascunho","Salvo","Exportado","Salvo no Drive"].includes(o.status) && "bg-primary/20 text-primary",
-                    )}>
-                      {o.status === "Rascunho" && "🟡 "}{o.status === "Salvo" && "🟢 "}{o.status === "Exportado" && "🔵 "}{o.status === "Salvo no Drive" && "☁️ "}{o.status}
-                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className={cn(
+                          "text-xs px-2 py-0.5 rounded font-medium inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity",
+                          statusConfig[o.status]?.className || "bg-primary/20 text-primary",
+                        )}>
+                          {statusConfig[o.status]?.emoji || "⚪"} {o.status}
+                          <ChevronDown size={12} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuLabel>Alterar status</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {statusOptions.map(s => (
+                          <DropdownMenuItem
+                            key={s}
+                            onClick={() => handleStatusChange(o.id, s)}
+                            className={cn(o.status === s && "font-bold")}
+                          >
+                            {statusConfig[s]?.emoji || "⚪"} {s}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     {o.status === "Salvo no Drive" && (o as any).uploaded_by_name && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">por {(o as any).uploaded_by_name}</p>
                     )}
