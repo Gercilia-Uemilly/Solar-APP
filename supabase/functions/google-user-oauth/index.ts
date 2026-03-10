@@ -57,9 +57,11 @@ serve(async (req) => {
 
     // ── GET AUTH URL ────────────────────────────────────────────
     if (action === "get_auth_url") {
-      const redirectOrigin = body.redirect_origin || "https://solar-ia.lovable.app";
-      const redirectUri = `${redirectOrigin}/auth/google/callback`;
+      // ALWAYS use production domain — Google Console only has this URI registered
+      const redirectUri = "https://solar-ia.lovable.app/auth/google/callback";
       const state = `${userId}:${crypto.randomUUID()}`;
+
+      console.log("[OAuth] redirect_uri being used:", redirectUri);
 
       // Store state + redirect_uri for CSRF validation and callback
       await supabaseAdmin
@@ -77,6 +79,8 @@ serve(async (req) => {
       authUrl.searchParams.set("access_type", "offline");
       authUrl.searchParams.set("prompt", "consent");
       authUrl.searchParams.set("state", state);
+
+      console.log("[OAuth] Full auth URL redirect_uri param:", authUrl.searchParams.get("redirect_uri"));
 
       return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -114,6 +118,8 @@ serve(async (req) => {
 
       // Clear used state
       await supabaseAdmin.from("app_settings").delete().eq("key", `google_oauth_state_${userId}`);
+
+      console.log("[OAuth exchange] Using redirect_uri:", storedRedirectUri);
 
       // Exchange code for tokens — use the SAME redirect_uri from the auth step
       const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
