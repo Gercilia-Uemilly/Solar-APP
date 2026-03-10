@@ -580,6 +580,39 @@ export default function MeusOficios() {
         </Table>
       </div>
 
+      {/* Export Confirmation Dialog */}
+      <Dialog open={!!exportConfirmOficio} onOpenChange={(open) => !open && setExportConfirmOficio(null)}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">📄 Exportar Ofício</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Confirme a exportação completa (PDF + Word + Drive).
+            </DialogDescription>
+          </DialogHeader>
+          {exportConfirmOficio && (() => {
+            const data = buildExportData(exportConfirmOficio);
+            const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+            return (
+              <div className="space-y-3 text-sm">
+                <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
+                  <p className="font-medium text-foreground">Nome do arquivo: <span className="font-mono">{fileName}</span></p>
+                  <p className="text-muted-foreground">📄 {fileName}.pdf</p>
+                  <p className="text-muted-foreground">📝 {fileName}.docx</p>
+                  <p className="text-muted-foreground">☁️ Drive: {fileName}.pdf</p>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setExportConfirmOficio(null)}>Cancelar</Button>
+                  <Button size="sm" disabled={isExportingAll} onClick={() => handleExportAll(exportConfirmOficio)}>
+                    {isExportingAll ? <Loader2 size={14} className="animate-spin mr-1" /> : <Package size={14} className="mr-1" />}
+                    Confirmar e Exportar
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={(open) => {
         if (!open && editedContent !== originalContent) {
