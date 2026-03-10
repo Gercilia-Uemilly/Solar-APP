@@ -137,6 +137,48 @@ export type Database = {
         }
         Relationships: []
       }
+      oficio_numeracao: {
+        Row: {
+          ano: number
+          id: string
+          numero: number
+          oficio_id: string | null
+          reservado_em: string | null
+          reservado_por: string | null
+          reservado_por_nome: string | null
+          status: string
+          usado_em: string | null
+          usado_por: string | null
+          usado_por_nome: string | null
+        }
+        Insert: {
+          ano?: number
+          id?: string
+          numero: number
+          oficio_id?: string | null
+          reservado_em?: string | null
+          reservado_por?: string | null
+          reservado_por_nome?: string | null
+          status?: string
+          usado_em?: string | null
+          usado_por?: string | null
+          usado_por_nome?: string | null
+        }
+        Update: {
+          ano?: number
+          id?: string
+          numero?: number
+          oficio_id?: string | null
+          reservado_em?: string | null
+          reservado_por?: string | null
+          reservado_por_nome?: string | null
+          status?: string
+          usado_em?: string | null
+          usado_por?: string | null
+          usado_por_nome?: string | null
+        }
+        Relationships: []
+      }
       oficios: {
         Row: {
           ano: number | null
@@ -469,6 +511,26 @@ export type Database = {
       get_email_by_username: { Args: { _username: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_active: { Args: { _user_id: string }; Returns: boolean }
+      liberar_numero: {
+        Args: { p_ano: number; p_numero: number; p_user_id: string }
+        Returns: boolean
+      }
+      liberar_reservas_expiradas: { Args: never; Returns: undefined }
+      reservar_proximo_numero: {
+        Args: { p_ano: number; p_user_id: string; p_user_nome: string }
+        Returns: number
+      }
+      resetar_numeracao_anual: { Args: never; Returns: undefined }
+      usar_numero: {
+        Args: {
+          p_ano: number
+          p_numero: number
+          p_oficio_id: string
+          p_user_id: string
+          p_user_nome: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
