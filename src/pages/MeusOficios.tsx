@@ -118,7 +118,9 @@ export default function MeusOficios() {
     }
     setViewOficio(o);
     setEditedContent(o.conteudo || "");
+    editedContentRef.current = o.conteudo || "";
     setOriginalContent(o.conteudo || "");
+    setEditorKey(prev => prev + 1);
     setShowPreview(true);
   };
 
