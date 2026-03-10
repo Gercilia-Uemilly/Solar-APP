@@ -550,14 +550,25 @@ export default function MeusOficios() {
                     {canEditOrDelete(o) && (
                       <>
                         <button onClick={() => handleEditForm(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={16} /></button>
-                        <button
-                          onClick={() => handleUploadToDrive(o)}
-                          disabled={isUploading}
-                          className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50"
-                          title="Enviar ao Drive"
-                        >
-                          {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
-                        </button>
+                        {isEspecial(o) ? (
+                          <button
+                            onClick={() => setExportConfirmOficio(o)}
+                            disabled={isExportingAll}
+                            className="p-2 text-primary hover:text-primary/80 disabled:opacity-50"
+                            title="Exportar Tudo (PDF + Word + Drive)"
+                          >
+                            {isExportingAll ? <Loader2 size={16} className="animate-spin" /> : <Package size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleUploadToDrive(o)}
+                            disabled={isUploading}
+                            className="p-2 text-muted-foreground hover:text-primary disabled:opacity-50"
+                            title="Enviar ao Drive"
+                          >
+                            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
+                          </button>
+                        )}
                         <button onClick={() => handleDelete(o.id)} className="p-2 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
                       </>
                     )}
