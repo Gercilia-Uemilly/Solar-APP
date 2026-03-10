@@ -126,12 +126,20 @@ export default function Configuracoes() {
       });
       const result = await resp.json();
       if (!resp.ok) {
+        console.error("[OAuth] Error:", result);
         toast({ title: "Erro", description: result.error || "Falha na autorização", variant: "destructive" });
         return;
       }
-      // Redirect to Google OAuth (not popup)
+      // Log for debugging
+      const authUrlObj = new URL(result.authUrl);
+      console.log("=== DEBUG OAuth ===");
+      console.log("client_id:", authUrlObj.searchParams.get("client_id"));
+      console.log("redirect_uri:", authUrlObj.searchParams.get("redirect_uri"));
+      console.log("URL completa:", result.authUrl);
+      // Redirect to Google OAuth
       window.location.href = result.authUrl;
-    } catch {
+    } catch (e: any) {
+      console.error("[OAuth] Connect error:", e);
       toast({ title: "Erro", description: "Falha ao iniciar conexão.", variant: "destructive" });
     } finally {
       setConnectingDrive(false);
