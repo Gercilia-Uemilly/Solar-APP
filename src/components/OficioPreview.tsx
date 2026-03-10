@@ -142,11 +142,11 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* DATA — after: 240 (~16px) */}
         {editable && onDataChange ? (
-          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
+          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
           </p>
         ) : (
-          <p style={{ textAlign: "right", marginBottom: "16px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
+          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
         )}
 
         {/* OFÍCIO GVF n° — NEGRITO, after: 240 */}
