@@ -65,6 +65,7 @@ export interface OficioData {
   telefone?: string;
   imagens?: File[];
   solicitante?: string;
+  secretaria?: string;
 }
 
 // ── Parse HTML content into styled text runs ────────────────────────────────
@@ -367,6 +368,22 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
         // Body paragraphs
         ...bodyParagraphs,
+
+        // Closing paragraph 1 — secretaria
+        new Paragraph({
+          indent: { firstLine: 709 },
+          children: [new TextRun({ text: `Espero que a ${data.secretaria || "Secretaria"} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução.`, font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
+          alignment: AlignmentType.JUSTIFIED,
+        }),
+
+        // Closing paragraph 2 — fixed
+        new Paragraph({
+          indent: { firstLine: 709 },
+          children: [new TextRun({ text: "Na certeza de contar com o vosso pronto atendimento, desde já agradeço.", font: fontName, size: fontSize })],
+          spacing: { before: 0, after: 0, line: lineSpacing },
+          alignment: AlignmentType.JUSTIFIED,
+        }),
 
         // Atenciosamente — before: 240, after: 480, indent 1.25cm
         new Paragraph({

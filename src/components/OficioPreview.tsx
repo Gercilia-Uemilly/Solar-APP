@@ -16,6 +16,7 @@ interface Props {
   numeroEnd?: string;
   cargoDestinatario?: string;
   operadorNome?: string;
+  secretaria?: string;
   formatOptions?: FormatOptions;
   editable?: boolean;
   onContentChange?: (newContent: string) => void;
@@ -40,7 +41,7 @@ function buildVocativo(cargo?: string): string {
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -203,6 +204,28 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             ))}
           </div>
         )}
+
+        {/* PARÁGRAFOS FINAIS FIXOS */}
+        <p style={{
+          textIndent: "1.25cm",
+          marginBottom: "0",
+          marginTop: "0",
+          fontSize: "11pt",
+          lineHeight: "1.5",
+          textAlign: "justify",
+        }}>
+          {`Espero que a ${secretaria || "Secretaria"} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução.`}
+        </p>
+        <p style={{
+          textIndent: "1.25cm",
+          marginBottom: "0",
+          marginTop: "0",
+          fontSize: "11pt",
+          lineHeight: "1.5",
+          textAlign: "justify",
+        }}>
+          Na certeza de contar com o vosso pronto atendimento, desde já agradeço.
+        </p>
 
         {/* ATENCIOSAMENTE — before: 240, after: 480, recuo 1.25cm */}
         <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt" }}>

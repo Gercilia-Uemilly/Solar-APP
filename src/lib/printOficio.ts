@@ -13,6 +13,7 @@ interface PrintData {
   operadorNome?: string;
   operadorEmail?: string;
   telefone?: string;
+  secretaria?: string;
 }
 
 async function toDataUrl(src: string): Promise<string> {
@@ -175,6 +176,9 @@ export async function printOficio(data: PrintData) {
     <p class="vocativo">${vocativo}</p>
 
     <div class="corpo">${bodyHtml}</div>
+
+    <p style="text-indent:1.25cm;margin:0;font-size:11pt;line-height:1.5;text-align:justify;">Espero que a ${data.secretaria || "Secretaria"} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução.</p>
+    <p style="text-indent:1.25cm;margin:0;font-size:11pt;line-height:1.5;text-align:justify;">Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>
 
     <p class="fechamento">Atenciosamente,</p>
 

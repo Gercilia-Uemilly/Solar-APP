@@ -709,6 +709,7 @@ export default function Oficios() {
     operadorNome: (o as any).operador_nome || profileName || user?.email || undefined,
     telefone: (o as any).linha_telefonica || undefined,
     solicitante: o.solicitante || undefined,
+    secretaria: undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -725,6 +726,7 @@ export default function Oficios() {
     operadorNome: profileName || user?.email || undefined,
     telefone: linhaTelefonica || undefined,
     solicitante: solicitante || undefined,
+    secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -1199,7 +1201,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} formatOptions={formatOptions} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} formatOptions={formatOptions} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} />
               </div>
             </TabsContent>
 
