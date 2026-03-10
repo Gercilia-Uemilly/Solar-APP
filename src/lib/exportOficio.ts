@@ -178,6 +178,11 @@ async function getAuthToken(): Promise<string> {
 }
 
 // ── Build Word blob programmatically ────────────────────────────────────────
+/** Strip any "Ofício GVF n° " prefix already in the numero string */
+function cleanNumero(raw: string): string {
+  return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
+}
+
 async function buildWordBlob(data: OficioData): Promise<Blob> {
   const {
     numero, destinatario, assunto, conteudo,
@@ -192,8 +197,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   ]);
 
   const hoje = new Date();
-  const numeroFormatado = numero
-    ? (numero.includes("/") ? numero : `${numero}/${hoje.getFullYear()}`)
+  const numeroCleaned = cleanNumero(numero || "");
+  const numeroFormatado = numeroCleaned
+    ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
     : "___";
 
   const destinatarioCompleto = `${cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"} ${destinatario || ""}`.trim();
@@ -359,8 +365,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
-        // Vocativo — after: 240, indent 1.25cm
+        // Vocativo — LEFT aligned, after: 240, indent 1.25cm
         new Paragraph({
+          alignment: AlignmentType.LEFT,
           indent: { firstLine: 709 },
           children: [new TextRun({ text: vocativo, font: fontName, size: fontSize })],
           spacing: { before: 0, after: 240, line: lineSpacing },
@@ -407,6 +414,24 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           keepLines: true,
         }),
 
+        // Signature line — 8cm centered, border bottom
+        new Paragraph({
+          border: {
+            bottom: {
+              style: BorderStyle.SINGLE,
+              size: 6,
+              color: "000000",
+              space: 1,
+            },
+          },
+          indent: {
+            left: 1440,  // ~1 inch = centering for 8cm line
+            right: 1440,
+          },
+          spacing: { before: 0, after: 80, line: 240 },
+          alignment: AlignmentType.CENTER,
+          keepNext: true,
+        }),
 
         // FABÃO — bold, centered, simple line spacing (240)
         new Paragraph({
