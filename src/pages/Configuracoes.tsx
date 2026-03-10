@@ -5,11 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings, Save, Phone, HardDrive, CheckCircle2, ExternalLink, Info, FolderOpen, XCircle, Loader2, Link2 } from "lucide-react";
+import { Settings, Save, Phone, CheckCircle2, XCircle, Loader2, Link2 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserAvatar from "@/components/UserAvatar";
-
-const DEFAULT_DRIVE_FOLDER_ID = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
 
 export default function Configuracoes() {
   const { user, isAdmin } = useAuth();
