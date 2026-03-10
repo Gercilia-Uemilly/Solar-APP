@@ -587,6 +587,7 @@ export default function Oficios() {
     setContatoSolicitante("");
     setDescricao("");
     setPrioridade("Normal");
+    setCodigoZ("");
     setLinhaTelefonica("");
     setFormTab("dados");
     setAiResult(null);
