@@ -777,7 +777,7 @@ export default function Oficios() {
 
             {/* TAB: DADOS */}
             <TabsContent value="dados" className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
                   <div className="flex items-center gap-0">
@@ -798,10 +798,39 @@ export default function Oficios() {
                   {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
                 </div>
                 <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Código Z</label>
+                  <div className="flex items-center gap-0">
+                    <span className="inline-flex items-center px-3 h-9 bg-muted border border-r-0 border-border rounded-l-md text-sm text-muted-foreground">Z</span>
+                    <Input
+                      placeholder="ex: 7"
+                      value={codigoZ}
+                      onChange={e => setCodigoZ(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="bg-secondary rounded-l-none border-border"
+                    />
+                  </div>
+                </div>
+                <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
                   <Input type="date" value={dataGeracao} onChange={e => setDataGeracao(e.target.value)} className="bg-secondary border-border" />
                 </div>
               </div>
+
+              {/* File name preview */}
+              {numero && (
+                <div className="text-xs text-muted-foreground bg-secondary/50 rounded px-3 py-1.5 flex items-center gap-1">
+                  <FileText size={12} />
+                  <span>Nome do arquivo: <strong className="text-foreground">
+                    {(() => {
+                      const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
+                      const digits = contatoSolicitante.replace(/\D/g, '').slice(-4);
+                      if (codigoZ && digits.length >= 4) {
+                        return `${cleanedNum} ${digits} Z${codigoZ}.pdf`;
+                      }
+                      return `${cleanedNum || 'rascunho'}.pdf`;
+                    })()}
+                  </strong></span>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-medium text-primary mb-1 block">Tipo de Serviço <span className="text-primary/70">(preenche secretaria automaticamente)</span></label>
