@@ -292,9 +292,12 @@ export default function Oficios() {
   useEffect(() => {
     const state = location.state as { editOficio?: any } | null;
     if (state?.editOficio) {
-      handleEdit(state.editOficio);
-      // Clear the state so it doesn't re-trigger
-      window.history.replaceState({}, document.title);
+      // Small delay to ensure component is fully mounted after lazy load
+      const timer = setTimeout(() => {
+        handleEdit(state.editOficio);
+        window.history.replaceState({}, document.title);
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [location.state]);
 
