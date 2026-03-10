@@ -172,18 +172,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
           <div style={{ width: "200px", borderBottom: "1px solid #000", marginBottom: "4px" }} />
           <p style={{ fontSize: "11pt", marginBottom: "0", fontWeight: "bold" }}>FABÃO</p>
-          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "8px" }}>Vereador</p>
-          <img
-            src={logoCamara}
-            alt="Câmara Municipal"
-            style={{
-              width: "50px",
-              height: "auto",
-              objectFit: "contain",
-              opacity: 0.85,
-            }}
-            crossOrigin="anonymous"
-          />
+          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0" }}>Vereador</p>
         </div>
 
         {/* RODAPÉ */}
