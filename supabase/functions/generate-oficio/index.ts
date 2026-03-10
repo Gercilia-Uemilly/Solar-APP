@@ -213,7 +213,7 @@ Quando OFÍCIOS ANTERIORES são fornecidos como contexto:
 
 Você DEVE retornar um JSON válido com a seguinte estrutura:
 {
-  "oficio": "Texto completo do ofício (SÓ O CORPO - sem cabeçalho, sem destinatário, sem assunto, sem data, sem assinatura, sem 'Atenciosamente'). Inclua apenas os 3 parágrafos do corpo do ofício, terminando com 'Na certeza de contar com o vosso pronto atendimento, desde já agradeço.'",
+  "oficio": "Texto completo do ofício (SÓ O CORPO - sem cabeçalho, sem destinatário, sem assunto, sem data, sem assinatura, sem 'Atenciosamente'). Inclua apenas os 3 parágrafos do corpo do ofício. NÃO inclua frases de fechamento como 'Espero que a Secretaria...' ou 'Na certeza de contar...' — essas são adicionadas pelo operador quando necessário.",
   "resposta_cidadao": "Sugestão de resposta ao cidadão com linguagem simples, acolhedora e respeitosa",
   "secretaria_identificada": "Nome da secretaria/órgão responsável",
   "tipo_demanda": "Tipo da demanda (Solicitação, Reclamação, Denúncia)",
