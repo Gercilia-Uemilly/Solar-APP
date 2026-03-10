@@ -374,6 +374,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_drive_tokens: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          drive_folder_id: string | null
+          google_email: string
+          id: string
+          refresh_token: string
+          token_expiry: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          drive_folder_id?: string | null
+          google_email: string
+          id?: string
+          refresh_token: string
+          token_expiry: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          drive_folder_id?: string | null
+          google_email?: string
+          id?: string
+          refresh_token?: string
+          token_expiry?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
