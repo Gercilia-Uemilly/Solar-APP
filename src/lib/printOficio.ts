@@ -142,7 +142,9 @@ export async function printOficio(data: PrintData) {
     <p class="oficio-num">Ofício n° ${numeroFormatado}</p>
     <p class="dest">DESTINATÁRIO: ${data.cargoDestinatario || "Ilmo(a). Sr(a)."} ${data.destinatario || "___"}</p>
     <p class="assunto">Assunto: ${assuntoFmt}</p>
-    <p class="saudacao">Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,</p>
+    <p class="saudacao">${data.cargoDestinatario
+      ? `Excelentíssimo(a) Senhor(a) ${(data.cargoDestinatario || "").replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "").trim()},`
+      : "Excelentíssimo(a) Senhor(a) Secretário(a) Municipal,"}</p>
 
     <div class="corpo">${paragraphs}</div>
 
