@@ -107,7 +107,7 @@ export default function MeusOficios() {
       conteudo: editedContent,
       status: "Salvo",
       last_edited_by: user?.id || null,
-      last_edited_by_name: user?.user_metadata?.full_name || user?.email || null,
+      last_edited_by_name: profileName || user?.email || null,
       last_edited_at: new Date().toISOString(),
     };
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
