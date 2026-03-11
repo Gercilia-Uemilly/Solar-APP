@@ -88,77 +88,114 @@ interface StyledRun {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
+  break?: number;
 }
 
-function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[][] {
-  if (!html || !html.includes("<")) {
-    return html.split("\n").map(p => p.trim()).filter(Boolean)
-      .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
-      .map(p => [{ text: p }]);
+interface ParsedImageRun {
+  image: Uint8Array;
+  width: number;
+  height: number;
+  imageType: string;
+}
+
+type ParsedRun = StyledRun | ParsedImageRun;
+
+function parseHtmlToParagraphs(html: string): ParsedRun[][] {
+  if (!html) return [];
+
+  if (!html.includes("<")) {
+    return html
+      .split("\n")
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .filter((p) => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
+      .map((p) => [{ text: p }]);
   }
 
-  // Pre-process: merge <p> fragments that are part of the same sentence.
-  // TipTap sometimes wraps inline <strong> in separate <p> tags.
-  // Strategy: only merge SHORT blocks that clearly look like inline fragments.
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = html;
-  
-  // Collect all top-level block elements
-  const blocks: HTMLElement[] = [];
-  for (const node of Array.from(tempDiv.childNodes)) {
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      blocks.push(node as HTMLElement);
-    } else if (node.nodeType === Node.TEXT_NODE && (node.textContent || "").trim()) {
-      const wrapper = document.createElement("p");
-      wrapper.textContent = node.textContent;
-      blocks.push(wrapper);
+  const root = document.createElement("div");
+  root.innerHTML = html;
+
+  const blockTags = new Set(["p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote"]);
+  const containerTags = new Set(["div", "section", "article", "main"]);
+
+  const paragraphNodes: HTMLElement[] = [];
+  let inlineBuffer: Node[] = [];
+
+  const flushInlineBuffer = () => {
+    const hasContent = inlineBuffer.some((n) => {
+      if (n.nodeType === Node.TEXT_NODE) return !!(n.textContent || "").trim();
+      if (n.nodeType !== Node.ELEMENT_NODE) return false;
+      const tag = (n as HTMLElement).tagName.toLowerCase();
+      if (tag === "img") return true;
+      return !!(n.textContent || "").trim();
+    });
+
+    if (!hasContent) {
+      inlineBuffer = [];
+      return;
     }
-  }
-  
-  // Merge only SHORT fragments (< 80 chars) that are clearly mid-sentence continuations.
-  // Real paragraphs (long text blocks) are NEVER merged.
-  const mergedBlocks: HTMLElement[] = [];
-  for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-    const blockText = block.textContent || "";
-    const trimmedText = blockText.trim();
-    
-    if (!trimmedText) continue;
-    
-    // A block is a fragment ONLY if it's short AND starts with lowercase/punctuation
-    const isShortFragment = trimmedText.length < 80 && mergedBlocks.length > 0 && (
-      // Starts with lowercase letter or punctuation continuation
-      /^[a-záàâãéèêíìîóòôõúùûç,;.)\-–]/.test(trimmedText)
-    );
-    
-    // Also merge if previous block ends mid-sentence AND current block is short
-    const prevEndsOpen = mergedBlocks.length > 0 && (() => {
-      const prevText = (mergedBlocks[mergedBlocks.length - 1].textContent || "").trim();
-      return prevText.length > 0 && !/[.!?:"]$/.test(prevText) && trimmedText.length < 80;
-    })();
-    
-    // Don't merge if this looks like a list item
-    const isListItem = /^\d+[\.\)]\s/.test(trimmedText);
-    
-    if ((isShortFragment || prevEndsOpen) && !isListItem) {
-      const prev = mergedBlocks[mergedBlocks.length - 1];
-      const prevHtml = prev.innerHTML.trimEnd();
-      // Add space only if needed
-      if (!prevHtml.endsWith(" ") && !trimmedText.startsWith(",") && !trimmedText.startsWith(".") && !trimmedText.startsWith(";")) {
-        prev.innerHTML += " ";
+
+    const p = document.createElement("p");
+    inlineBuffer.forEach((n) => p.appendChild(n.cloneNode(true)));
+    paragraphNodes.push(p);
+    inlineBuffer = [];
+  };
+
+  const processNode = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if ((node.textContent || "").trim()) {
+        inlineBuffer.push(node.cloneNode(true));
       }
-      prev.innerHTML += block.innerHTML;
-    } else {
-      mergedBlocks.push(block.cloneNode(true) as HTMLElement);
+      return;
     }
-  }
 
-  const div = document.createElement("div");
-  mergedBlocks.forEach(b => div.appendChild(b));
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
 
-  const paragraphs: (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[][] = [];
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
 
-  const decodeBase64Image = (src: string): { image: Uint8Array; width: number; height: number; imageType: string } | null => {
+    if (tag === "br") {
+      inlineBuffer.push(el.cloneNode(true));
+      return;
+    }
+
+    if (tag === "ul" || tag === "ol") {
+      flushInlineBuffer();
+      Array.from(el.children).forEach((child) => processNode(child));
+      return;
+    }
+
+    if (blockTags.has(tag)) {
+      flushInlineBuffer();
+      paragraphNodes.push(el.cloneNode(true) as HTMLElement);
+      return;
+    }
+
+    if (containerTags.has(tag)) {
+      const hasNestedBlocks = Array.from(el.childNodes).some((child) => {
+        if (child.nodeType !== Node.ELEMENT_NODE) return false;
+        const childTag = (child as HTMLElement).tagName.toLowerCase();
+        return blockTags.has(childTag) || containerTags.has(childTag) || childTag === "ul" || childTag === "ol";
+      });
+
+      if (hasNestedBlocks) {
+        flushInlineBuffer();
+        Array.from(el.childNodes).forEach((child) => processNode(child));
+      } else {
+        inlineBuffer.push(el.cloneNode(true));
+      }
+      return;
+    }
+
+    inlineBuffer.push(el.cloneNode(true));
+  };
+
+  Array.from(root.childNodes).forEach((node) => processNode(node));
+  flushInlineBuffer();
+
+  const paragraphs: ParsedRun[][] = [];
+
+  const decodeBase64Image = (src: string): ParsedImageRun | null => {
     try {
       const base64 = src.split(",")[1];
       const mimeMatch = src.match(/^data:image\/([\w+]+);/);
@@ -167,66 +204,81 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       return { image: bytes, width: 400, height: 300, imageType };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   };
 
-  const extractRuns = (node: Node, inherited: { bold?: boolean; italic?: boolean; underline?: boolean }): (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[] => {
-    const runs: (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[] = [];
-    node.childNodes.forEach(child => {
+  const extractRuns = (
+    node: Node,
+    inherited: { bold?: boolean; italic?: boolean; underline?: boolean },
+  ): ParsedRun[] => {
+    const runs: ParsedRun[] = [];
+
+    node.childNodes.forEach((child) => {
       if (child.nodeType === Node.TEXT_NODE) {
         const text = child.textContent || "";
         if (text) runs.push({ text, ...inherited });
-      } else if (child.nodeType === Node.ELEMENT_NODE) {
-        const el = child as HTMLElement;
-        const tag = el.tagName.toLowerCase();
-        if (tag === "img") {
-          const src = el.getAttribute("src") || "";
-          if (src.startsWith("data:")) {
-            const decoded = decodeBase64Image(src);
-            if (decoded) runs.push(decoded);
-          }
-          return;
-        }
-        const style = { ...inherited };
-        if (tag === "strong" || tag === "b") style.bold = true;
-        if (tag === "em" || tag === "i") style.italic = true;
-        if (tag === "u") style.underline = true;
-        runs.push(...extractRuns(el, style));
+        return;
       }
-    });
-    return runs;
-  };
 
-  // Process all direct children of the wrapper div in order
-  for (const node of Array.from(div.childNodes)) {
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as HTMLElement;
+      if (child.nodeType !== Node.ELEMENT_NODE) return;
+
+      const el = child as HTMLElement;
       const tag = el.tagName.toLowerCase();
 
-      // Standalone image at top level
+      if (tag === "br") {
+        runs.push({ text: "", break: 1, ...inherited });
+        return;
+      }
+
       if (tag === "img") {
         const src = el.getAttribute("src") || "";
         if (src.startsWith("data:")) {
           const decoded = decodeBase64Image(src);
-          if (decoded) paragraphs.push([decoded]);
+          if (decoded) runs.push(decoded);
         }
-        continue;
+        return;
       }
 
-      // Block elements (p, div, li, h1-h3, etc.)
-      const runs = extractRuns(el, {});
-      const hasContent = runs.some(r => ('text' in r && r.text.trim()) || 'image' in r);
-      const textOnly = runs.filter(r => 'text' in r).map(r => (r as StyledRun).text).join("").trim();
-      if (hasContent && !textOnly.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
-        paragraphs.push(runs);
-      }
-    } else if (node.nodeType === Node.TEXT_NODE) {
-      const text = (node.textContent || "").trim();
-      if (text && !text.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
-        paragraphs.push([{ text }]);
-      }
+      const style = { ...inherited };
+      const styleAttr = (el.getAttribute("style") || "").toLowerCase();
+      const fontWeight = (el.style.fontWeight || "").toLowerCase();
+
+      const isBoldByStyle = /font-weight\s*:\s*(bold|[6-9]00)/.test(styleAttr)
+        || ["bold", "600", "700", "800", "900"].includes(fontWeight);
+      const isItalicByStyle = /font-style\s*:\s*italic/.test(styleAttr) || el.style.fontStyle.toLowerCase() === "italic";
+      const isUnderlineByStyle = /text-decoration[^;]*underline/.test(styleAttr)
+        || /text-decoration-line\s*:\s*underline/.test(styleAttr)
+        || el.style.textDecoration.toLowerCase().includes("underline");
+
+      if (tag === "strong" || tag === "b" || isBoldByStyle) style.bold = true;
+      if (tag === "em" || tag === "i" || isItalicByStyle) style.italic = true;
+      if (tag === "u" || isUnderlineByStyle) style.underline = true;
+
+      runs.push(...extractRuns(el, style));
+    });
+
+    return runs;
+  };
+
+  paragraphNodes.forEach((node) => {
+    const runs = extractRuns(node, {});
+    const textOnly = runs
+      .filter((r) => "text" in r && !(r as StyledRun).break)
+      .map((r) => (r as StyledRun).text)
+      .join("")
+      .trim();
+
+    const hasRenderableContent = runs.some((r) => {
+      if ("image" in r) return true;
+      return !!(r.text || "").trim();
+    });
+
+    if (hasRenderableContent && !textOnly.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
+      paragraphs.push(runs);
     }
-  }
+  });
 
   return paragraphs;
 }
@@ -324,19 +376,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   const fontSize = 22; // 11pt in half-points
   const fontName = "Arial";
 
-  // Adaptive line spacing
-  const contentParagraphCount = styledParagraphs.length + 6;
-  const estimatedHeight1_5 = contentParagraphCount * 18 * 1.5;
-  const estimatedHeight1_15 = contentParagraphCount * 18 * 1.15;
-
-  let lineSpacing: number;
-  if (estimatedHeight1_5 <= 620) {
-    lineSpacing = 360; // 1.5 lines
-  } else if (estimatedHeight1_15 <= 620) {
-    lineSpacing = 276; // 1.15 lines
-  } else {
-    lineSpacing = 240; // 1.0 lines
-  }
+  const lineSpacing = 360; // 1.5 lines (padrão fixo do modelo institucional)
 
   const operadorMarca = operadorNome
     ? operadorNome.split(' ')[0].toLowerCase()
@@ -358,6 +398,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       } else {
         children.push(new TextRun({
           text: r.text,
+          break: r.break,
           font: fontName,
           size: fontSize,
           bold: r.bold,
@@ -461,19 +502,19 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
-        // DESTINATÁRIO — label bold, value normal
+        // DESTINATÁRIO — completo em negrito
         new Paragraph({
           children: [
             new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize }),
+            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // Assunto — after: 240, "Assunto:" com A maiúscula, NEGRITO completo
+        // ASSUNTO — completo em negrito (como modelo)
         new Paragraph({
           children: [
-            new TextRun({ text: "Assunto: ", font: fontName, size: fontSize, bold: true }),
+            new TextRun({ text: "ASSUNTO: ", font: fontName, size: fontSize, bold: true }),
             new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 0, after: 240, line: lineSpacing },
