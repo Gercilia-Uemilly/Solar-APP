@@ -27,6 +27,7 @@ interface Props {
   onDataChange?: (val: string) => void;
   dataGeracao?: string;
   initialConteudo?: string;
+  anexoImageUrls?: string[];
 }
 
 /** Strip any "Ofício GVF n° " prefix that may already be in the numero string */
