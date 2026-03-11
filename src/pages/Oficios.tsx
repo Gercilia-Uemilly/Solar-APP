@@ -356,7 +356,7 @@ export default function Oficios() {
     setAiResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("generate-oficio", {
-        body: { assunto, destinatario, descricao, tipo: tipoServico || "Solicitação", solicitante, bairro, prioridade, local: localDemanda },
+        body: { assunto, destinatario, descricao, tipo: secretaria || "Solicitação", solicitante, bairro: enderecoCompleto || bairro, prioridade, local: localDemanda },
       });
       if (error) throw error;
       setAiResult(data);
