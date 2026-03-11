@@ -501,19 +501,19 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
-        // DESTINATÁRIO — label bold, value normal
+        // DESTINATÁRIO — completo em negrito
         new Paragraph({
           children: [
             new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize }),
+            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // Assunto — after: 240, "Assunto:" com A maiúscula, NEGRITO completo
+        // ASSUNTO — completo em negrito (como modelo)
         new Paragraph({
           children: [
-            new TextRun({ text: "Assunto: ", font: fontName, size: fontSize, bold: true }),
+            new TextRun({ text: "ASSUNTO: ", font: fontName, size: fontSize, bold: true }),
             new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize, bold: true }),
           ],
           spacing: { before: 0, after: 240, line: lineSpacing },
