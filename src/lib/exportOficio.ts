@@ -89,8 +89,70 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
       .map(p => [{ text: p }]);
   }
 
+  // Pre-process: merge <p> fragments that are part of the same sentence.
+  // TipTap sometimes wraps inline <strong> in separate <p> tags.
+  let processedHtml = html;
+  
+  // Strategy: Replace </p><p> boundaries that are mid-sentence with a space.
+  // A mid-sentence boundary is when the text before </p> does NOT end with a sentence-ending pattern
+  // and the text after <p> does NOT start with a capital letter beginning a new sentence.
+  // We do this by collapsing the HTML into proper paragraphs first.
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = processedHtml;
+  
+  // Collect all top-level block elements
+  const blocks: HTMLElement[] = [];
+  for (const node of Array.from(tempDiv.childNodes)) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      blocks.push(node as HTMLElement);
+    } else if (node.nodeType === Node.TEXT_NODE && (node.textContent || "").trim()) {
+      const wrapper = document.createElement("p");
+      wrapper.textContent = node.textContent;
+      blocks.push(wrapper);
+    }
+  }
+  
+  // Merge fragments: if a block's text starts with lowercase, comma, period, or semicolon,
+  // it's likely a continuation of the previous paragraph
+  const mergedBlocks: HTMLElement[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const blockText = block.textContent || "";
+    const trimmedText = blockText.trim();
+    
+    if (!trimmedText) continue;
+    
+    // Check if this block is a fragment that should be merged with the previous one
+    const isFragment = mergedBlocks.length > 0 && (
+      // Starts with lowercase letter
+      /^[a-záàâãéèêíìîóòôõúùûç,;.]/.test(trimmedText) ||
+      // Previous block ends without sentence-ending punctuation
+      (() => {
+        const prevText = (mergedBlocks[mergedBlocks.length - 1].textContent || "").trim();
+        return prevText.length > 0 && !/[.!?:"]$/.test(prevText) && trimmedText.length < 200;
+      })()
+    );
+    
+    // Don't merge if this looks like a list item (starts with number + period)
+    const isListItem = /^\d+[\.\)]/.test(trimmedText);
+    
+    if (isFragment && !isListItem) {
+      // Merge into the previous block
+      const prev = mergedBlocks[mergedBlocks.length - 1];
+      // Add a space before appending if needed
+      const prevEndsWithSpace = (prev.innerHTML || "").trimEnd().endsWith(" ");
+      if (!prevEndsWithSpace) {
+        prev.innerHTML += " ";
+      }
+      prev.innerHTML += block.innerHTML;
+    } else {
+      mergedBlocks.push(block.cloneNode(true) as HTMLElement);
+    }
+  }
+
   const div = document.createElement("div");
-  div.innerHTML = html;
+  mergedBlocks.forEach(b => div.appendChild(b));
+
   const paragraphs: (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[][] = [];
 
   const decodeBase64Image = (src: string): { image: Uint8Array; width: number; height: number; imageType: string } | null => {
