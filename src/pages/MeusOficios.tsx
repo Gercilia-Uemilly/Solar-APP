@@ -484,6 +484,12 @@ export default function MeusOficios() {
     setDateTo(undefined);
   };
 
+  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "protocolados" | "todos">("todos");
+
+  const rascunhos = filtered.filter(o => ["Rascunho", "Salvo"].includes(o.status));
+  const protocolados = filtered.filter(o => ["Protocolado", "Feito"].includes(o.status));
+  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : abaAtiva === "protocolados" ? protocolados : filtered;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -494,6 +500,28 @@ export default function MeusOficios() {
         <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
           <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
         </Button>
+      </div>
+
+      {/* Tabs: Rascunhos / Protocolados / Todos */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setAbaAtiva("todos")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "todos" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+        >
+          📋 Todos ({filtered.length})
+        </button>
+        <button
+          onClick={() => setAbaAtiva("rascunhos")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-yellow-500 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+        >
+          📝 Rascunhos ({rascunhos.length})
+        </button>
+        <button
+          onClick={() => setAbaAtiva("protocolados")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "protocolados" ? "bg-purple-600 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+        >
+          📬 Protocolados ({protocolados.length})
+        </button>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
@@ -560,9 +588,9 @@ export default function MeusOficios() {
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : listaExibida.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
-            ) : filtered.map(o => (
+            ) : listaExibida.map(o => (
               <TableRow key={o.id}>
                 <TableCell className="font-medium">{o.numero || "-"}</TableCell>
                 <TableCell>{o.assunto || "-"}</TableCell>
