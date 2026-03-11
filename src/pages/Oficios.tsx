@@ -1419,8 +1419,16 @@ export default function Oficios() {
             <DialogTitle className="text-foreground flex items-center justify-between">
               <span>{viewingOficio?.assunto || "Ofício"}</span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { if (viewingOficio?.conteudo) exportToWord(buildExportData(viewingOficio)); }}><FileText size={14} className="mr-1" /> Word</Button>
-                <Button size="sm" variant="outline" onClick={async () => { if (viewingOficio?.conteudo) await exportToPDF(buildExportData(viewingOficio)); }}><Download size={14} className="mr-1" /> PDF</Button>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  if (!viewingOficio?.conteudo) return;
+                  const imgs = await fetchSavedImages(viewingOficio.id);
+                  exportToWord({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                }}><FileText size={14} className="mr-1" /> Word</Button>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  if (!viewingOficio?.conteudo) return;
+                  const imgs = await fetchSavedImages(viewingOficio.id);
+                  await exportToPDF({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                }}><Download size={14} className="mr-1" /> PDF</Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
