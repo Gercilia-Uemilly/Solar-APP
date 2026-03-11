@@ -5,11 +5,14 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
-import { useEffect, useCallback, useRef } from "react";
+import TiptapImage from "@tiptap/extension-image";
+import { useCallback, useRef } from "react";
+import { toast } from "sonner";
 import {
   Bold, Italic, Underline as UnderlineIcon,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  List, ListOrdered, Undo, Redo, Eraser, Type, Highlighter, Link as LinkIcon,
+  List, ListOrdered, Undo, Redo, Eraser, Highlighter,
+  ImagePlus,
 } from "lucide-react";
 
 interface OficioPreviewEditorProps {
@@ -48,6 +51,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
   const initialContent = useRef(content);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -62,6 +66,13 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         defaultAlignment: "justify",
       }),
       Highlight.configure({ multicolor: true }),
+      TiptapImage.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          style: 'max-width: 100%; height: auto; display: block; margin: 8px auto;',
+        },
+      }),
     ],
     content: initialContent.current,
     onUpdate: ({ editor }) => {
@@ -82,6 +93,22 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
       },
     },
   });
+
+  const handleImageInsert = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande. Máximo 5MB.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      editor.chain().focus().setImage({ src: reader.result as string, alt: file.name }).run();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }, [editor]);
 
   const setFontSize = useCallback((size: string) => {
     if (!editor) return;
@@ -226,7 +253,23 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         <ToolBtn onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="Limpar formatação">
           <Eraser size={15} />
         </ToolBtn>
+
+        <div className="w-px h-5 bg-gray-300 mx-1" />
+
+        {/* Insert Image */}
+        <ToolBtn onClick={() => imageInputRef.current?.click()} title="Inserir imagem">
+          <ImagePlus size={15} />
+        </ToolBtn>
       </div>
+
+      {/* Hidden image input */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageInsert}
+      />
 
       {/* Editor */}
       <EditorContent editor={editor} />
@@ -255,6 +298,13 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           background-color: #fef08a;
           padding: 0 2px;
           border-radius: 2px;
+        }
+        .oficio-editor-body img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 8px auto;
+          border-radius: 4px;
         }
       `}</style>
     </div>
