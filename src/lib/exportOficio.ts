@@ -376,19 +376,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   const fontSize = 22; // 11pt in half-points
   const fontName = "Arial";
 
-  // Adaptive line spacing
-  const contentParagraphCount = styledParagraphs.length + 6;
-  const estimatedHeight1_5 = contentParagraphCount * 18 * 1.5;
-  const estimatedHeight1_15 = contentParagraphCount * 18 * 1.15;
-
-  let lineSpacing: number;
-  if (estimatedHeight1_5 <= 620) {
-    lineSpacing = 360; // 1.5 lines
-  } else if (estimatedHeight1_15 <= 620) {
-    lineSpacing = 276; // 1.15 lines
-  } else {
-    lineSpacing = 240; // 1.0 lines
-  }
+  const lineSpacing = 360; // 1.5 lines (padrão fixo do modelo institucional)
 
   const operadorMarca = operadorNome
     ? operadorNome.split(' ')[0].toLowerCase()
