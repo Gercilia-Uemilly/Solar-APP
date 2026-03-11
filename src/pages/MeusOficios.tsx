@@ -186,7 +186,7 @@ export default function MeusOficios() {
 
   const fetchOficios = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("oficios").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("oficios").select("*").is("deleted_at" as any, null).order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Erro ao buscar ofícios", description: error.message, variant: "destructive" });
     } else {
