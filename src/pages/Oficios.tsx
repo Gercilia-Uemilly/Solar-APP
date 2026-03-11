@@ -322,19 +322,14 @@ export default function Oficios() {
     fetchProfile();
   }, [user]);
 
+  // When secretaria changes, auto-fill destinatario and cargo
   useEffect(() => {
-    const found = tiposServico.find(t => t.label === tipoServico);
-    if (found) {
-      if (found.secretaria) setSecretaria(found.secretaria);
-      if (found.cargo) {
-        setCargoDestinatario(found.cargo);
-        setDestinatario("");
-      } else {
-        setCargoDestinatario("");
-        setDestinatario("");
-      }
+    const found = secretariaOptions.find(s => s.label === secretaria);
+    if (found && found.destinatario) {
+      setCargoDestinatario(found.destinatario);
+      setDestinatario("");
     }
-  }, [tipoServico]);
+  }, [secretaria]);
 
   useEffect(() => {
     const query = `${assunto} ${descricao}`.trim();
