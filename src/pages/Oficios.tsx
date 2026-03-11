@@ -421,7 +421,7 @@ export default function Oficios() {
     }
   };
 
-  const handleEdit = (o: OficioRow) => {
+  const handleEdit = async (o: OficioRow) => {
     setEditingOficioId(o.id);
     const rawNum = o.numero || "";
     setNumero(rawNum);
@@ -446,6 +446,18 @@ export default function Oficios() {
     setLinhaTelefonica("");
     setFormTab("dados");
     setShowDialog(true);
+
+    // Load saved images from storage
+    const { data: savedAnexos } = await supabase.from("oficio_anexos" as any).select("*").eq("oficio_id", o.id);
+    if (savedAnexos && savedAnexos.length > 0) {
+      const urls = (savedAnexos as any[]).map((a: any) => {
+        const { data } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
+        return data.publicUrl;
+      });
+      setAnexoImageUrls(urls);
+    } else {
+      setAnexoImageUrls([]);
+    }
   };
 
   // Validation state
