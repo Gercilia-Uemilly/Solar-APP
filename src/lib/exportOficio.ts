@@ -405,7 +405,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
 
-        // Assunto — after: 240
+        // Assunto — after: 240, "Assunto:" com A maiúscula, NEGRITO completo
         new Paragraph({
           children: [
             new TextRun({ text: "Assunto: ", font: fontName, size: fontSize, bold: true }),
