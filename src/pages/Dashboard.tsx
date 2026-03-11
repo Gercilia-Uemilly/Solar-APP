@@ -43,7 +43,8 @@ export default function Dashboard() {
     const fetch = async () => {
       const { data } = await supabase
         .from("oficios")
-        .select("status, created_at, operador_nome, bairro");
+        .select("status, created_at, operador_nome, bairro")
+        .is("deleted_at" as any, null);
       if (data) setOficios(data as OficioRow[]);
     };
     fetch();

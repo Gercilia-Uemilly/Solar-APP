@@ -173,7 +173,27 @@ export default function MeusOficios() {
     setEditedContent(newContent);
     editedContentRef.current = newContent;
     setSaveStatus("idle");
-  }, []);
+    
+    // Auto-save after 2 seconds
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      if (viewOficio) {
+        setSaveStatus("saving");
+        supabase.from("oficios").update({
+          conteudo: newContent,
+          last_edited_by: user?.id || null,
+          last_edited_by_name: profileName || user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        } as any).eq("id", viewOficio.id).then(({ error }) => {
+          setSaveStatus(error ? "error" : "saved");
+          if (!error) {
+            setOriginalContent(newContent);
+            setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: newContent } : o));
+          }
+        });
+      }
+    }, 2000);
+  }, [viewOficio, user, profileName]);
 
   const handleInlineFieldChange = useCallback((field: string, value: string) => {
     setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
@@ -186,7 +206,7 @@ export default function MeusOficios() {
 
   const fetchOficios = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("oficios").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("oficios").select("*").is("deleted_at" as any, null).order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Erro ao buscar ofícios", description: error.message, variant: "destructive" });
     } else {
@@ -219,12 +239,20 @@ export default function MeusOficios() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("oficios").delete().eq("id", id);
+    const oficio = oficios.find(o => o.id === id);
+    const numLabel = oficio?.numero || "rascunho";
+    if (!confirm(`Tem certeza que deseja excluir o Ofício nº ${numLabel}?\nEle ficará na Lixeira por 30 dias e pode ser recuperado.`)) return;
+    
+    const { error } = await supabase.from("oficios").update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: user?.id,
+      deleted_by_name: profileName || user?.email || null,
+    } as any).eq("id", id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       setOficios(prev => prev.filter(o => o.id !== id));
-      toast({ title: "Ofício excluído" });
+      toast({ title: "Ofício movido para a lixeira" });
     }
   };
 

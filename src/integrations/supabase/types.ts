@@ -218,6 +218,9 @@ export type Database = {
           conteudo: string | null
           created_at: string
           data_geracao: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_name: string | null
           destinatario: string
           id: string
           last_edited_at: string | null
@@ -251,6 +254,9 @@ export type Database = {
           conteudo?: string | null
           created_at?: string
           data_geracao?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_name?: string | null
           destinatario?: string
           id?: string
           last_edited_at?: string | null
@@ -284,6 +290,9 @@ export type Database = {
           conteudo?: string | null
           created_at?: string
           data_geracao?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_name?: string | null
           destinatario?: string
           id?: string
           last_edited_at?: string | null

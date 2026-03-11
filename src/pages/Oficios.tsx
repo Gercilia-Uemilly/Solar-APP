@@ -284,7 +284,7 @@ export default function Oficios() {
 
   const fetchOficios = async () => {
     setLoading(true);
-    const { data } = await supabase.from("oficios").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("oficios").select("*").is("deleted_at" as any, null).order("created_at", { ascending: false });
     setOficios((data as unknown as OficioRow[]) || []);
     setLoading(false);
   };
@@ -658,9 +658,17 @@ export default function Oficios() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("oficios").delete().eq("id", id);
+    const oficio = oficios.find(o => o.id === id);
+    const numLabel = oficio?.numero || "rascunho";
+    if (!confirm(`Tem certeza que deseja excluir o Ofício nº ${numLabel}?\nEle ficará na Lixeira por 30 dias e pode ser recuperado.`)) return;
+    
+    await supabase.from("oficios").update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: user?.id,
+      deleted_by_name: profileName || user?.user_metadata?.full_name || user?.email || null,
+    } as any).eq("id", id);
     setOficios(prev => prev.filter(o => o.id !== id));
-    toast({ title: "Ofício excluído" });
+    toast({ title: "Ofício movido para a lixeira" });
   };
 
   const copyToClipboard = (text: string, label: string) => {
