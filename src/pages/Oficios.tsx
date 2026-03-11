@@ -1311,16 +1311,18 @@ export default function Oficios() {
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} hasChanges={editedOficio !== originalOficio} onUndo={() => setEditedOficio(originalOficio)} />
-              <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="default" onClick={handleCreate}>
-                  <Save size={14} className="mr-1" /> {editingOficioId ? "Atualizar Ofício" : "Salvar Ofício"}
+              <div className="flex gap-2 justify-end flex-wrap">
+                <Button size="sm" variant="default" onClick={() => handleCreate(false)}>
+                  <Save size={14} className="mr-1" /> Salvar
+                </Button>
+                <Button size="sm" variant="default" onClick={() => handleCreate(true)}>
+                  <Save size={14} className="mr-1" /> Salvar e Fechar
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => {
                   if (!destinatario || !assunto || !editedOficio) {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  // Código Z validation removed
                   exportToWord(buildFormExportData());
                 }}>
                   <FileText size={14} className="mr-1" /> Word
@@ -1339,6 +1341,33 @@ export default function Oficios() {
                   await exportToPDF(buildFormExportData());
                 }}>
                   <Download size={14} className="mr-1" /> PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  try {
+                    const data = buildFormExportData();
+                    const { buildWordBlobForExport } = await import("@/lib/exportOficio");
+                    const wordBlob = await buildWordBlobForExport(data);
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) { toast({ title: "Sessão expirada", variant: "destructive" }); return; }
+                    const convertFormData = new FormData();
+                    convertFormData.append("file", wordBlob, "preview.docx");
+                    const convertResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/convert-to-pdf`, {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${session.access_token}` },
+                      body: convertFormData,
+                    });
+                    if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
+                      const pdfBlob = await convertResp.blob();
+                      const url = URL.createObjectURL(pdfBlob);
+                      window.open(url, "_blank");
+                    } else {
+                      toast({ title: "Não foi possível gerar preview do PDF", variant: "destructive" });
+                    }
+                  } catch (e: any) {
+                    toast({ title: "Erro ao gerar preview", description: e.message, variant: "destructive" });
+                  }
+                }}>
+                  <Eye size={14} className="mr-1" /> Visualizar PDF
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
