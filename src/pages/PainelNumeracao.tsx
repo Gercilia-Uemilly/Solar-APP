@@ -243,14 +243,27 @@ export default function PainelNumeracao() {
                   )}
                 </div>
               )}
-              {isAdmin && (selected.status === "reservado" || selected.status === "usado") && (
+              {/* Any user can mark available numbers as used */}
+              {selected.status === "disponivel" && (
+                <div className="flex gap-2 pt-2 border-t border-border">
+                  <Button variant="default" size="sm" onClick={() => handleMarkUsed(selected)}>
+                    ✅ Marcar como usado
+                  </Button>
+                </div>
+              )}
+              {/* User can release own numbers, admin can release any */}
+              {(selected.status === "reservado" || selected.status === "usado") && (
+                isAdmin || selected.reservado_por === user?.id || selected.usado_por === user?.id
+              ) && (
                 <div className="flex gap-2 pt-2 border-t border-border">
                   <Button variant="outline" size="sm" onClick={() => handleReleaseNumber(selected)}>
-                    Liberar número
+                    🔓 Liberar número
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleCancelNumber(selected)}>
-                    Cancelar
-                  </Button>
+                  {isAdmin && (
+                    <Button variant="destructive" size="sm" onClick={() => handleCancelNumber(selected)}>
+                      Cancelar
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
