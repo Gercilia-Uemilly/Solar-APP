@@ -229,6 +229,7 @@ export type Database = {
           linha_telefonica: string | null
           link_pdf_drive: string | null
           local_demanda: string | null
+          marcador: string | null
           numero: string | null
           operador_nome: string | null
           origem: string | null
@@ -265,6 +266,7 @@ export type Database = {
           linha_telefonica?: string | null
           link_pdf_drive?: string | null
           local_demanda?: string | null
+          marcador?: string | null
           numero?: string | null
           operador_nome?: string | null
           origem?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           linha_telefonica?: string | null
           link_pdf_drive?: string | null
           local_demanda?: string | null
+          marcador?: string | null
           numero?: string | null
           operador_nome?: string | null
           origem?: string | null
