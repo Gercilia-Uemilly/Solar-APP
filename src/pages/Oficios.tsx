@@ -824,20 +824,7 @@ export default function Oficios() {
                     </SelectContent>
                   </Select>
                 </div>
-                {origemOficio === "Zap Emprego" && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Código Z <span className="text-destructive">*</span></label>
-                    <div className="flex items-center gap-0">
-                      <span className="inline-flex items-center px-3 h-9 bg-muted border border-r-0 border-border rounded-l-md text-sm text-muted-foreground">Z</span>
-                      <Input
-                        placeholder="ex: 7"
-                        value={codigoZ}
-                        onChange={e => setCodigoZ(e.target.value.replace(/[^0-9]/g, ''))}
-                        className="bg-secondary rounded-l-none border-border"
-                      />
-                    </div>
-                  </div>
-                )}
+                {/* Código Z field removed — solicitante code is used instead */}
               </div>
 
               {/* File name preview */}
