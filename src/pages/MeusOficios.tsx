@@ -246,6 +246,13 @@ export default function MeusOficios() {
     }
   };
 
+  const handleMarcadorChange = async (oficioId: string, marcador: string | null) => {
+    const { error } = await supabase.from("oficios").update({ marcador } as any).eq("id", oficioId);
+    if (!error) {
+      setOficios(prev => prev.map(o => o.id === oficioId ? { ...o, marcador } : o));
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const oficio = oficios.find(o => o.id === id);
     const numLabel = oficio?.numero || "rascunho";
