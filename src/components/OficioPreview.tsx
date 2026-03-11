@@ -267,19 +267,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           fontFamily: "Arial, Helvetica, sans-serif",
         }}>
           Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
-          {operadorMarca && (
-            <span style={{
-              position: "absolute",
-              right: 0,
-              bottom: "2px",
-              fontSize: "6pt",
-              color: "rgba(200, 200, 200, 0.3)",
-              userSelect: "none",
-              pointerEvents: "none",
-            }}>
-              {operadorMarca}
-            </span>
-          )}
         </div>
       </div>
     );

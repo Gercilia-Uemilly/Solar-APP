@@ -54,12 +54,9 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
 function buildVocativo(cargo?: string): string {
   if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
   const lower = cargo.toLowerCase();
-  if (lower.includes("prefeito") || lower.includes("prefeita")) return "Excelentíssimo(a) Senhor(a) Prefeito(a),";
-  if (lower.includes("presidente")) return "Excelentíssimo(a) Senhor(a) Presidente,";
   if (lower.includes("diretor") || lower.includes("diretora")) return "Excelentíssimo(a) Senhor(a) Diretor(a),";
   if (lower.includes("reitor") || lower.includes("reitora")) return "Magnífico(a) Reitor(a),";
-  if (lower.includes("secretári") || lower.includes("secretario") || lower.includes("secretaria")) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  return "Ilustríssimo(a) Senhor(a),";
+  return "Excelentíssimo(a) Senhor(a) Secretário(a),";
 }
 
 // ── Dados comuns ─────────────────────────────────────────────────────────────
