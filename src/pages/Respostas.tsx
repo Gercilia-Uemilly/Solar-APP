@@ -161,67 +161,10 @@ export default function Respostas() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles size={16} className="text-primary" />
-                Dados da Demanda
+                Demanda do Cidadão
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome do Solicitante</label>
-                  <Input placeholder="Ex: Maria Silva" value={solicitante} onChange={e => setSolicitante(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Nº Protocolo / Ofício</label>
-                  <Input placeholder="Ex: 45-2026-MARIA123" value={numero} onChange={e => setNumero(e.target.value)} />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Assunto</label>
-                <Input placeholder="Ex: Buracos na Rua Oscar Alvim" value={assunto} onChange={e => setAssunto(e.target.value)} />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Bairro</label>
-                  <Input placeholder="Ex: Fundinho" value={bairro} onChange={e => setBairro(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Local</label>
-                  <Input placeholder="Ex: Rua Oscar Alvim, 200" value={local} onChange={e => setLocal(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo</label>
-                  <Select value={tipoDemanda} onValueChange={setTipoDemanda}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {tiposDemanda.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Urgência</label>
-                  <Select value={urgencia} onValueChange={setUrgencia}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {urgencias.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Secretaria</label>
-                  <Select value={secretaria} onValueChange={setSecretaria}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-                    <SelectContent>
-                      {secretarias.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Demanda do Cidadão</label>
                 <Textarea
