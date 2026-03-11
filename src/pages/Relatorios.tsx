@@ -54,7 +54,7 @@ export default function Relatorios() {
   useEffect(() => {
     const fetchData = async () => {
       const [oficiosRes, sessionsRes, profilesRes] = await Promise.all([
-        supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, created_at"),
+        supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, created_at").is("deleted_at" as any, null),
         supabase.from("user_sessions").select("id, user_id, logged_in_at").order("logged_in_at", { ascending: false }),
         supabase.from("profiles").select("id, full_name, email")
       ]);
