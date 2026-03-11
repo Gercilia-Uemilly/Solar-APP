@@ -183,7 +183,7 @@ export default function Oficios() {
     if (!destinatario && o.destinatario) setDestinatario(o.destinatario);
     if (!cargoDestinatario && o.cargo_destinatario) setCargoDestinatario(o.cargo_destinatario);
     if (!secretaria && (o as any).secretaria_identificada) setSecretaria((o as any).secretaria_identificada);
-    if (!bairro && o.bairro) setBairro(o.bairro);
+    if (!enderecoCompleto && o.bairro) setEnderecoCompleto(o.bairro);
     if (!assunto && o.assunto) setAssunto(o.assunto);
     if (!secretaria && (o as any).tipo_demanda) setSecretaria((o as any).tipo_demanda);
     setAppliedSuggestionId(o.id);
