@@ -436,6 +436,14 @@ export default function Oficios() {
     setContatoSolicitante(o.contato_solicitante || "");
     setCodigoZ((o as any).codigo_z || "");
     setOrigemOficio((o as any).origem || "WhatsApp Gabinete");
+    // Restore secretaria and tipo_demanda from saved data
+    const savedSecretaria = (o as any).secretaria_identificada || "";
+    setSecretaria(savedSecretaria);
+    const savedTipo = (o as any).tipo_demanda || "";
+    if (savedTipo) {
+      const matchedTipo = tiposServico.find(t => t.label === savedTipo);
+      setTipoServico(matchedTipo ? matchedTipo.label : savedTipo);
+    }
     const content = o.conteudo || "";
     setEditedOficio(content);
     setOriginalOficio(content);
@@ -445,7 +453,8 @@ export default function Oficios() {
     setDescricao("");
     setPrioridade("Normal");
     setLinhaTelefonica("");
-    setFormTab("dados");
+    // If we have content, go straight to preview; otherwise datos
+    setFormTab(content ? "preview" : "dados");
     setShowDialog(true);
 
     // Load saved images from storage
