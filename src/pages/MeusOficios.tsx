@@ -305,7 +305,7 @@ export default function MeusOficios() {
       const authToken = session.access_token;
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
-      const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
+      const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
       const wordBlob = await exportToWord({
         ...data,
         conteudo: editedContent || oficio.conteudo,
