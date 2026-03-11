@@ -27,6 +27,7 @@ interface Props {
   onDataChange?: (val: string) => void;
   dataGeracao?: string;
   initialConteudo?: string;
+  anexoImageUrls?: string[];
 }
 
 /** Strip any "Ofício GVF n° " prefix that may already be in the numero string */
@@ -47,7 +48,7 @@ function buildVocativo(cargo?: string): string {
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo, anexoImageUrls }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -244,6 +245,18 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0" }}>FABÃO</p>
           <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0" }}>Vereador</p>
         </div>
+
+        {/* ANEXO DE IMAGENS */}
+        {anexoImageUrls && anexoImageUrls.length > 0 && (
+          <div style={{ marginTop: "40px", pageBreakBefore: "always" }}>
+            <p style={{ fontSize: "12pt", fontWeight: "bold", textAlign: "center", marginBottom: "16px" }}>Anexo I – Imagens</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              {anexoImageUrls.map((url, i) => (
+                <img key={i} src={url} alt={`Anexo ${i + 1}`} style={{ width: "100%", height: "auto", objectFit: "contain", border: "1px solid #ccc", borderRadius: "4px" }} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* RODAPÉ */}
         <div style={{

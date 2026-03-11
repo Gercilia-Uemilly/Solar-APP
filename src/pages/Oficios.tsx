@@ -126,6 +126,7 @@ export default function Oficios() {
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const [anexoImages, setAnexoImages] = useState<File[]>([]);
+  const [anexoImageUrls, setAnexoImageUrls] = useState<string[]>([]);
   const [anexos, setAnexos] = useState<DemandaAnexo[]>([]);
 
   // Version history for undo/redo
@@ -420,7 +421,7 @@ export default function Oficios() {
     }
   };
 
-  const handleEdit = (o: OficioRow) => {
+  const handleEdit = async (o: OficioRow) => {
     setEditingOficioId(o.id);
     const rawNum = o.numero || "";
     setNumero(rawNum);
@@ -445,6 +446,18 @@ export default function Oficios() {
     setLinhaTelefonica("");
     setFormTab("dados");
     setShowDialog(true);
+
+    // Load saved images from storage
+    const { data: savedAnexos } = await supabase.from("oficio_anexos" as any).select("*").eq("oficio_id", o.id);
+    if (savedAnexos && savedAnexos.length > 0) {
+      const urls = (savedAnexos as any[]).map((a: any) => {
+        const { data } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
+        return data.publicUrl;
+      });
+      setAnexoImageUrls(urls);
+    } else {
+      setAnexoImageUrls([]);
+    }
   };
 
   // Validation state
@@ -521,6 +534,18 @@ export default function Oficios() {
           p_user_nome: profileName || user.user_metadata?.full_name || user.email || "",
           p_oficio_id: oficioId,
         });
+      }
+    }
+
+    // Upload anexo images to storage and persist references
+    if (oficioId && anexoImages.length > 0) {
+      for (const img of anexoImages) {
+        const ext = img.name.split('.').pop() || 'jpg';
+        const storagePath = `oficios/${oficioId}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, img, { contentType: img.type });
+        if (!upErr) {
+          await supabase.from("oficio_anexos" as any).insert({ oficio_id: oficioId, storage_path: storagePath, file_name: img.name, mime_type: img.type });
+        }
       }
     }
 
@@ -624,6 +649,7 @@ export default function Oficios() {
     setProcessingQueue([]);
     setValidationErrors({});
     setAnexoImages([]);
+    setAnexoImageUrls([]);
     setAnexos([]);
     setSuggestions([]);
     setKbSuggestions([]);
@@ -1112,6 +1138,25 @@ export default function Oficios() {
 
               <ImageUploader images={anexoImages} onChange={setAnexoImages} />
 
+              {/* Show previously saved images */}
+              {anexoImageUrls.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">📷 Imagens salvas ({anexoImageUrls.length})</label>
+                  <div className="flex flex-wrap gap-2">
+                    {anexoImageUrls.map((url, i) => (
+                      <div key={i} className="relative group">
+                        <img src={url} alt={`Anexo ${i + 1}`} className="w-16 h-16 object-cover rounded border border-border" />
+                        <button
+                          type="button"
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setAnexoImageUrls(prev => prev.filter((_, idx) => idx !== i))}
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
@@ -1279,7 +1324,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} formatOptions={formatOptions} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} formatOptions={formatOptions} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} anexoImageUrls={[...anexoImageUrls, ...anexoImages.map(f => URL.createObjectURL(f))]} />
               </div>
             </TabsContent>
 
