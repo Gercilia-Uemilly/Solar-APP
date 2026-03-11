@@ -418,7 +418,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         new Paragraph({
           alignment: AlignmentType.LEFT,
           indent: { firstLine: 709 },
-          children: [new TextRun({ text: vocativo, font: fontName, size: fontSize, bold: true })],
+          children: [new TextRun({ text: vocativo, font: fontName, size: fontSize, bold: false })],
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
