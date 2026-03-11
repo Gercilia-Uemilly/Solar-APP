@@ -592,6 +592,7 @@ export default function MeusOficios() {
           <TableHeader>
             <TableRow>
               <TableHead>Nº</TableHead>
+              <TableHead>🔖</TableHead>
               <TableHead>Assunto</TableHead>
               <TableHead>Destinatário</TableHead>
               <TableHead>Status</TableHead>
