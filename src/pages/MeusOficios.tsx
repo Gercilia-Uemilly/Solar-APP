@@ -343,7 +343,7 @@ export default function MeusOficios() {
       }
       const authToken = session.access_token;
       const data = buildExportData(oficio);
-      const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+      const fileName = buildFileName(data.numero, data.solicitante);
       
       toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
 
