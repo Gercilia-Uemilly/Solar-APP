@@ -88,7 +88,7 @@ export default function Oficios() {
   // Form state
   const [numero, setNumero] = useState("");
   const [dataGeracao, setDataGeracao] = useState(new Date().toISOString().split("T")[0]);
-  const [tipoServico, setTipoServico] = useState("");
+  const [enderecoCompleto, setEnderecoCompleto] = useState("");
   const [assunto, setAssunto] = useState("");
   const [secretaria, setSecretaria] = useState("");
   const [destinatario, setDestinatario] = useState("");
