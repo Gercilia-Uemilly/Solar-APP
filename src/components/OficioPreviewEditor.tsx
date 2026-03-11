@@ -66,7 +66,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         defaultAlignment: "justify",
       }),
       Highlight.configure({ multicolor: true }),
-      Image.configure({
+      TiptapImage.configure({
         inline: false,
         allowBase64: true,
         HTMLAttributes: {
