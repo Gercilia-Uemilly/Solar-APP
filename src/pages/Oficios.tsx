@@ -429,14 +429,8 @@ export default function Oficios() {
     setContatoSolicitante(o.contato_solicitante || "");
     setCodigoZ((o as any).codigo_z || "");
     setOrigemOficio((o as any).origem || "WhatsApp Gabinete");
-    // Restore secretaria and tipo_demanda from saved data
     const savedSecretaria = (o as any).secretaria_identificada || "";
     setSecretaria(savedSecretaria);
-    const savedTipo = (o as any).tipo_demanda || "";
-    if (savedTipo) {
-      const matchedTipo = tiposServico.find(t => t.label === savedTipo);
-      setTipoServico(matchedTipo ? matchedTipo.label : savedTipo);
-    }
     const content = o.conteudo || "";
     setEditedOficio(content);
     setOriginalOficio(content);
