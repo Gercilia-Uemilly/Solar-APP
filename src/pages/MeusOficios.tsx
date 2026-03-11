@@ -390,7 +390,7 @@ export default function MeusOficios() {
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       if (imgs.length > 0) (data as any).imagens = imgs;
-      const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
+      const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
       
       toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
 
