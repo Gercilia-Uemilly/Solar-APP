@@ -471,7 +471,7 @@ export default function Oficios() {
     return errors;
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (closeAfterSave = true) => {
     if (!user) return;
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
@@ -551,8 +551,17 @@ export default function Oficios() {
     }
 
     await fetchOficios();
-    resetForm();
-    toast({ title: editingOficioId ? "Ofício atualizado!" : "Ofício salvo!" });
+    
+    // If new oficio, set the editing ID so we stay in edit mode
+    if (!editingOficioId && oficioId) {
+      setEditingOficioId(oficioId);
+    }
+
+    toast({ title: editingOficioId ? "✓ Ofício atualizado!" : "✓ Ofício salvo!" });
+
+    if (closeAfterSave) {
+      resetForm();
+    }
   };
 
   const getFileMediaType = (file: File): "image" | "audio" | "video" => {
