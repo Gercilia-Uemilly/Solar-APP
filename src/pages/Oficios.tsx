@@ -494,16 +494,36 @@ export default function Oficios() {
     };
 
     let error;
+    let oficioId = editingOficioId;
     if (editingOficioId) {
       ({ error } = await supabase.from("oficios").update(payload).eq("id", editingOficioId));
     } else {
-      ({ error } = await supabase.from("oficios").insert({ ...payload, author_id: user.id }));
+      const { data: insertData, error: insertError } = await supabase.from("oficios").insert({ ...payload, author_id: user.id }).select("id").single();
+      error = insertError;
+      if (insertData) oficioId = insertData.id;
     }
 
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
     }
+
+    // Auto-mark number as "usado" in numeração table
+    if (fullNumero && oficioId) {
+      const numMatch = fullNumero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().match(/^(\d+)/);
+      if (numMatch) {
+        const numInt = parseInt(numMatch[1], 10);
+        const ano = new Date().getFullYear();
+        await supabase.rpc("usar_numero", {
+          p_numero: numInt,
+          p_ano: ano,
+          p_user_id: user.id,
+          p_user_nome: profileName || user.user_metadata?.full_name || user.email || "",
+          p_oficio_id: oficioId,
+        });
+      }
+    }
+
     await fetchOficios();
     resetForm();
     toast({ title: editingOficioId ? "Ofício atualizado!" : "Ofício salvo!" });
