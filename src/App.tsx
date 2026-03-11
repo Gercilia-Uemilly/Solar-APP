@@ -26,6 +26,7 @@ const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
