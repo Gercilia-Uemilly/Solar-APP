@@ -137,6 +137,33 @@ export type Database = {
         }
         Relationships: []
       }
+      oficio_anexos: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string
+          oficio_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type?: string
+          oficio_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          oficio_id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       oficio_numeracao: {
         Row: {
           ano: number
