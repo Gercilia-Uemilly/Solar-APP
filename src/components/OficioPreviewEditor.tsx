@@ -299,6 +299,13 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           padding: 0 2px;
           border-radius: 2px;
         }
+        .oficio-editor-body img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 8px auto;
+          border-radius: 4px;
+        }
       `}</style>
     </div>
   );
