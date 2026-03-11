@@ -305,7 +305,7 @@ export default function MeusOficios() {
       const authToken = session.access_token;
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
-      const baseFileName = buildFileName(data.numero, data.solicitante);
+      const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
       const wordBlob = await exportToWord({
         ...data,
         conteudo: editedContent || oficio.conteudo,
@@ -390,7 +390,7 @@ export default function MeusOficios() {
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       if (imgs.length > 0) (data as any).imagens = imgs;
-      const fileName = buildFileName(data.numero, data.solicitante);
+      const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
       
       toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
 
@@ -737,7 +737,7 @@ export default function MeusOficios() {
           </DialogHeader>
           {exportConfirmOficio && (() => {
             const data = buildExportData(exportConfirmOficio);
-            const fileName = buildFileName(data.numero, data.solicitante);
+            const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
             return (
               <div className="space-y-3 text-sm">
                 <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
