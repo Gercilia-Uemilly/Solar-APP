@@ -525,6 +525,18 @@ export default function Oficios() {
       }
     }
 
+    // Upload anexo images to storage and persist references
+    if (oficioId && anexoImages.length > 0) {
+      for (const img of anexoImages) {
+        const ext = img.name.split('.').pop() || 'jpg';
+        const storagePath = `oficios/${oficioId}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, img, { contentType: img.type });
+        if (!upErr) {
+          await supabase.from("oficio_anexos" as any).insert({ oficio_id: oficioId, storage_path: storagePath, file_name: img.name, mime_type: img.type });
+        }
+      }
+    }
+
     await fetchOficios();
     resetForm();
     toast({ title: editingOficioId ? "Ofício atualizado!" : "Ofício salvo!" });
