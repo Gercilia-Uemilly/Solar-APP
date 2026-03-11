@@ -261,7 +261,7 @@ export default function MeusOficios() {
       }
       const authToken = session.access_token;
       const data = buildExportData(oficio);
-      const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+      const baseFileName = buildFileName(data.numero, data.solicitante);
       const wordBlob = await exportToWord({
         ...data,
         conteudo: editedContent || oficio.conteudo,
