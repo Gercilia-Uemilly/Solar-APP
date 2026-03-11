@@ -26,6 +26,7 @@ const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +73,7 @@ const AppRoutes = () => (
       <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/google/callback" element={<GoogleDriveCallback />} />
+      <Route path="/privacidade" element={<PoliticaPrivacidade />} />
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
       <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
