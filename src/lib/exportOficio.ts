@@ -82,7 +82,7 @@ interface StyledRun {
   underline?: boolean;
 }
 
-function parseHtmlToParagraphs(html: string): StyledRun[][] {
+function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; width: number; height: number })[][] {
   if (!html || !html.includes("<")) {
     return html.split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
@@ -91,10 +91,10 @@ function parseHtmlToParagraphs(html: string): StyledRun[][] {
 
   const div = document.createElement("div");
   div.innerHTML = html;
-  const paragraphs: StyledRun[][] = [];
+  const paragraphs: (StyledRun | { image: Uint8Array; width: number; height: number })[][] = [];
 
-  const extractRuns = (node: Node, inherited: { bold?: boolean; italic?: boolean; underline?: boolean }): StyledRun[] => {
-    const runs: StyledRun[] = [];
+  const extractRuns = (node: Node, inherited: { bold?: boolean; italic?: boolean; underline?: boolean }): (StyledRun | { image: Uint8Array; width: number; height: number })[] => {
+    const runs: (StyledRun | { image: Uint8Array; width: number; height: number })[] = [];
     node.childNodes.forEach(child => {
       if (child.nodeType === Node.TEXT_NODE) {
         const text = child.textContent || "";
@@ -102,6 +102,21 @@ function parseHtmlToParagraphs(html: string): StyledRun[][] {
       } else if (child.nodeType === Node.ELEMENT_NODE) {
         const el = child as HTMLElement;
         const tag = el.tagName.toLowerCase();
+        if (tag === "img") {
+          const src = el.getAttribute("src") || "";
+          if (src.startsWith("data:")) {
+            try {
+              const base64 = src.split(",")[1];
+              const binaryStr = atob(base64);
+              const bytes = new Uint8Array(binaryStr.length);
+              for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+              const w = parseInt(el.getAttribute("width") || "400", 10);
+              const h = parseInt(el.getAttribute("height") || "300", 10);
+              runs.push({ image: bytes, width: Math.min(w, 500), height: Math.min(h, 400) });
+            } catch { /* skip invalid */ }
+          }
+          return;
+        }
         const style = { ...inherited };
         if (tag === "strong" || tag === "b") style.bold = true;
         if (tag === "em" || tag === "i") style.italic = true;
@@ -116,16 +131,33 @@ function parseHtmlToParagraphs(html: string): StyledRun[][] {
   if (blockEls.length > 0) {
     blockEls.forEach(el => {
       const runs = extractRuns(el, {});
-      const text = runs.map(r => r.text).join("").trim();
-      if (text && !text.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
+      // Check if this block has any content (text or images)
+      const hasContent = runs.some(r => ('text' in r && r.text.trim()) || 'image' in r);
+      const textOnly = runs.filter(r => 'text' in r).map(r => (r as StyledRun).text).join("").trim();
+      if (hasContent && !textOnly.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
         paragraphs.push(runs);
       }
     });
   } else {
     const runs = extractRuns(div, {});
-    const text = runs.map(r => r.text).join("").trim();
-    if (text) paragraphs.push(runs);
+    const text = runs.filter(r => 'text' in r).map(r => (r as StyledRun).text).join("").trim();
+    if (text || runs.some(r => 'image' in r)) paragraphs.push(runs);
   }
+
+  // Also extract standalone img elements not inside block elements
+  const standaloneImgs = div.querySelectorAll("img");
+  standaloneImgs.forEach(img => {
+    const src = img.getAttribute("src") || "";
+    if (src.startsWith("data:") && !img.closest("p, div, li, h1, h2, h3")) {
+      try {
+        const base64 = src.split(",")[1];
+        const binaryStr = atob(base64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        paragraphs.push([{ image: bytes, width: 400, height: 300 }]);
+      } catch { /* skip */ }
+    }
+  });
 
   return paragraphs;
 }
