@@ -304,10 +304,12 @@ export default function MeusOficios() {
       }
       const authToken = session.access_token;
       const data = buildExportData(oficio);
+      const imgs = await fetchSavedImages(oficio.id);
       const baseFileName = buildFileName(data.numero, data.solicitante);
       const wordBlob = await exportToWord({
         ...data,
         conteudo: editedContent || oficio.conteudo,
+        imagens: imgs.length > 0 ? imgs : undefined,
       });
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
