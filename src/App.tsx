@@ -86,6 +86,7 @@ const AppRoutes = () => (
       <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>} />
       <Route path="/clipping" element={<ProtectedRoute><AppLayout><Clipping /></AppLayout></ProtectedRoute>} />
       <Route path="/numeracao" element={<ProtectedRoute><AppLayout><PainelNumeracao /></AppLayout></ProtectedRoute>} />
+      <Route path="/lixeira" element={<ProtectedRoute><AppLayout><Lixeira /></AppLayout></ProtectedRoute>} />
       <Route path="/sobre" element={<ProtectedRoute><AppLayout><Sobre /></AppLayout></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -14,6 +14,7 @@ const menuItems = [
   { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
   { label: "Clipping", icon: Newspaper, path: "/clipping", adminOnly: false },
   { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
+  { label: "Lixeira", icon: Trash2, path: "/lixeira", adminOnly: false },
   { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
   { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
   { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },
