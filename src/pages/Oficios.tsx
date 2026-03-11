@@ -185,7 +185,7 @@ export default function Oficios() {
     if (!secretaria && (o as any).secretaria_identificada) setSecretaria((o as any).secretaria_identificada);
     if (!bairro && o.bairro) setBairro(o.bairro);
     if (!assunto && o.assunto) setAssunto(o.assunto);
-    if (!tipoServico && (o as any).tipo_demanda) setTipoServico((o as any).tipo_demanda);
+    if (!secretaria && (o as any).tipo_demanda) setSecretaria((o as any).tipo_demanda);
     setAppliedSuggestionId(o.id);
     setShowSuggestions(false);
     if (user) {
