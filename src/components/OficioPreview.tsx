@@ -73,17 +73,29 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       : "___";
 
     let assuntoFormatado = assunto || "___";
-    const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
-    if (logradouro && numeroEnd && bairroFormatado) {
-      assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} – ${bairroFormatado}`;
-    } else if (logradouro && bairroFormatado) {
-      assuntoFormatado = `${assunto} – ${logradouro} – ${bairroFormatado}`;
-    } else if (logradouro && numeroEnd) {
-      assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd}`;
+    const bairroFormatado = bairro
+      ? (bairro.toLowerCase().startsWith("bairro") ? bairro : `Bairro ${bairro}`)
+      : "";
+    const bairroClean = bairro?.replace(/^bairro\s*/i, "") || "";
+    const assuntoJaTemBairro = bairroClean && assunto?.toLowerCase().includes(bairroClean.toLowerCase());
+    if (!assuntoJaTemBairro) {
+      if (logradouro && numeroEnd && bairroFormatado) {
+        assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} – ${bairroFormatado}`;
+      } else if (logradouro && bairroFormatado) {
+        assuntoFormatado = `${assunto} – ${logradouro} – ${bairroFormatado}`;
+      } else if (logradouro && numeroEnd) {
+        assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd}`;
+      } else if (logradouro) {
+        assuntoFormatado = `${assunto} – ${logradouro}`;
+      } else if (bairroFormatado) {
+        assuntoFormatado = `${assunto} – ${bairroFormatado}`;
+      }
     } else if (logradouro) {
-      assuntoFormatado = `${assunto} – ${logradouro}`;
-    } else if (bairroFormatado) {
-      assuntoFormatado = `${assunto} – ${bairroFormatado}`;
+      if (numeroEnd) {
+        assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd}`;
+      } else {
+        assuntoFormatado = `${assunto} – ${logradouro}`;
+      }
     }
 
     

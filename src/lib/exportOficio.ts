@@ -375,10 +375,13 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     : "___";
 
   const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` ${destinatario}` : ""}`;
-  const bairroFormatado = bairro ? `Bairro ${bairro}` : "";
+  const bairroFormatado = bairro
+    ? (bairro.toLowerCase().startsWith("bairro") ? bairro : `Bairro ${bairro}`)
+    : "";
 
   let assuntoFormatado = assunto || "___";
-  if (bairroFormatado) {
+  // Only append bairro if the assunto doesn't already contain the bairro info
+  if (bairroFormatado && !assunto?.toLowerCase().includes(bairro?.toLowerCase().replace(/^bairro\s*/i, "") || "___")) {
     assuntoFormatado = `${assunto} – ${bairroFormatado}`;
   }
 

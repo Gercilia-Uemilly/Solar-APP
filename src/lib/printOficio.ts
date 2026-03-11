@@ -59,7 +59,13 @@ export async function printOficio(data: PrintData) {
     : "___";
 
   let assuntoFmt = data.assunto || "___";
-  if (data.bairro) assuntoFmt += ` – Bairro ${data.bairro}`;
+  if (data.bairro) {
+    const bairroClean = data.bairro.replace(/^bairro\s*/i, "");
+    if (!assuntoFmt.toLowerCase().includes(bairroClean.toLowerCase())) {
+      const bairroLabel = data.bairro.toLowerCase().startsWith("bairro") ? data.bairro : `Bairro ${data.bairro}`;
+      assuntoFmt += ` – ${bairroLabel}`;
+    }
+  }
 
   const destinatarioCompleto = data.cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${data.destinatario ? ` ${data.destinatario}` : ""}`;
 
