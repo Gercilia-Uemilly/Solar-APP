@@ -793,7 +793,7 @@ export default function Oficios() {
     destinatario,
     assunto,
     conteudo: editedOficio,
-    bairro,
+    bairro: enderecoCompleto || bairro,
     cargoDestinatario,
     dataGeracao: dataGeracao || undefined,
     operadorNome: profileName || user?.email || undefined,
