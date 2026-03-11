@@ -637,18 +637,10 @@ export default function Oficios() {
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
       });
-      // Build file name — Zap Emprego uses Z code format, others just the number
-      const oCodigoZ = (oficio as any).codigo_z || "";
-      const oOrigem = (oficio as any).origem || "";
-      const oContato = oficio.contato_solicitante || "";
+      // Build file name: [numero]-[ano] [solicitante_code]
       const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
-      let baseFileName: string;
-      if (oOrigem === "Zap Emprego" && oCodigoZ) {
-        const digits = oContato.replace(/\D/g, '').slice(-4);
-        baseFileName = digits.length >= 4 ? `${cleanedNum} ${digits} Z${oCodigoZ}` : cleanedNum;
-      } else {
-        baseFileName = cleanedNum;
-      }
+      const solicitanteCode = (oficio.solicitante || "").trim().split(/\s+/)[0] || "";
+      const baseFileName = solicitanteCode ? `${cleanedNum} ${solicitanteCode}` : cleanedNum;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const convertFormData = new FormData();
@@ -832,20 +824,7 @@ export default function Oficios() {
                     </SelectContent>
                   </Select>
                 </div>
-                {origemOficio === "Zap Emprego" && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Código Z <span className="text-destructive">*</span></label>
-                    <div className="flex items-center gap-0">
-                      <span className="inline-flex items-center px-3 h-9 bg-muted border border-r-0 border-border rounded-l-md text-sm text-muted-foreground">Z</span>
-                      <Input
-                        placeholder="ex: 7"
-                        value={codigoZ}
-                        onChange={e => setCodigoZ(e.target.value.replace(/[^0-9]/g, ''))}
-                        className="bg-secondary rounded-l-none border-border"
-                      />
-                    </div>
-                  </div>
-                )}
+                {/* Código Z field removed — solicitante code is used instead */}
               </div>
 
               {/* File name preview */}
@@ -855,13 +834,8 @@ export default function Oficios() {
                   <span>Nome do arquivo: <strong className="text-foreground">
                     {(() => {
                       const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
-                      if (origemOficio === "Zap Emprego" && codigoZ) {
-                        const digits = contatoSolicitante.replace(/\D/g, '').slice(-4);
-                        if (digits.length >= 4) {
-                          return `${cleanedNum} ${digits} Z${codigoZ}.pdf`;
-                        }
-                      }
-                      return `${cleanedNum || 'rascunho'}.pdf`;
+                      const solCode = solicitante.trim().split(/\s+/)[0] || "";
+                      return `${cleanedNum || 'rascunho'}${solCode ? ` ${solCode}` : ''}.pdf`;
                     })()}
                   </strong></span>
                 </div>
@@ -1263,16 +1237,7 @@ export default function Oficios() {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  if (origemOficio === "Zap Emprego" && !codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap Emprego.", variant: "destructive" });
-                    setFormTab("dados");
-                    return;
-                  }
-                  if (origemOficio === "Zap Emprego" && (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4)) {
-                    toast({ title: "Celular inválido", description: "Preencha o WhatsApp do solicitante com pelo menos 4 dígitos.", variant: "destructive" });
-                    setFormTab("dados");
-                    return;
-                  }
+                  // Código Z validation removed
                   exportToWord(buildFormExportData());
                 }}>
                   <FileText size={14} className="mr-1" /> Word
