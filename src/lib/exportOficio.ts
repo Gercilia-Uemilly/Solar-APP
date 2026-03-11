@@ -391,9 +391,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const lineSpacing = 360; // 1.5 lines (padrão fixo do modelo institucional)
 
-  const operadorMarca = operadorNome
-    ? operadorNome.split(' ')[0].toLowerCase()
-    : operadorEmail?.split('@')[0].toLowerCase() || 'sistema';
+  // operadorMarca removed — operator name no longer appears in document
 
   // Body paragraphs — handle both text runs and inline images
   const bodyParagraphs: Paragraph[] = [];
