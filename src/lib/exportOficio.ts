@@ -29,14 +29,15 @@ function formatDate(dateStr?: string): string {
 
 function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
   const cleanedNumero = cleanNumero(numero || "");
-  const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9-]/g, '').trim() || 'rascunho';
+  const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9a-zA-Z\-\s]/g, '').trim() || 'rascunho';
   
-  // If codigoZ is provided (Zap Emprego), use last 4 digits of phone + codigoZ
+  // If codigoZ is provided (Zap Emprego), format as "2026 - Z 4567"
   if (codigoZ) {
     const digits = (contatoSolicitante || "").replace(/\D/g, '');
     const last4 = digits.length >= 4 ? digits.slice(-4) : digits;
-    const suffix = last4 ? `${codigoZ} ${last4}` : codigoZ;
-    return `${numPart} ${suffix}`;
+    // numPart already has the year part, append Z + last4
+    const zPart = last4 ? `${codigoZ} ${last4}` : codigoZ;
+    return `${numPart} ${zPart}`;
   }
   
   // Extract the solicitante code (first word, e.g. "R12649" from "R12649 Maria")
