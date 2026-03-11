@@ -1303,7 +1303,7 @@ export default function Oficios() {
                 </div>
               )}
 
-              <Button onClick={handleCreate} className="w-full bg-primary text-primary-foreground">
+              <Button onClick={() => handleCreate(true)} className="w-full bg-primary text-primary-foreground">
                 <CheckCircle2 size={16} className="mr-1" /> Salvar Ofício
               </Button>
             </TabsContent>
