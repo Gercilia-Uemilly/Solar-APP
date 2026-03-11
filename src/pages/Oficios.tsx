@@ -904,11 +904,11 @@ export default function Oficios() {
               )}
 
               <div>
-                <label className="text-xs font-medium text-primary mb-1 block">Tipo de Serviço <span className="text-primary/70">(preenche secretaria automaticamente)</span></label>
-                <Select value={tipoServico} onValueChange={setTipoServico}>
-                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <label className="text-xs font-medium text-primary mb-1 block">Secretaria <span className="text-primary/70">(preenche destinatário automaticamente)</span></label>
+                <Select value={secretaria} onValueChange={setSecretaria}>
+                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione a secretaria..." /></SelectTrigger>
                   <SelectContent>
-                    {tiposServico.map(t => <SelectItem key={t.label} value={t.label}>{t.label}</SelectItem>)}
+                    {secretariaOptions.map(s => <SelectItem key={s.label} value={s.label}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -918,12 +918,7 @@ export default function Oficios() {
                 <Input placeholder="Assunto do ofício" value={assunto} onChange={e => setAssunto(e.target.value)} className="bg-secondary border-border" />
               </div>
 
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Secretaria</label>
-                <Input placeholder="Preenchido automaticamente" value={secretaria} onChange={e => setSecretaria(e.target.value)} className="bg-secondary border-border" />
-              </div>
-
-              {tipoServico === "Outro" && (
+              {secretaria === "Outro (campo livre)" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Destinatário <span className="text-destructive">*</span></label>
@@ -936,15 +931,9 @@ export default function Oficios() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Local</label>
-                  <Input placeholder="Ex: Av. K, Terminal..." value={localDemanda} onChange={e => setLocalDemanda(e.target.value)} className="bg-secondary border-border" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Bairro</label>
-                  <Input placeholder="Bairro" value={bairro} onChange={e => setBairro(e.target.value)} className="bg-secondary border-border" />
-                </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Endereço Completo</label>
+                <Input placeholder="Ex: Rua das Flores, 123 – Bairro Luizote IV" value={enderecoCompleto} onChange={e => setEnderecoCompleto(e.target.value)} className="bg-secondary border-border" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
