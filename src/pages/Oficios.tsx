@@ -1138,6 +1138,25 @@ export default function Oficios() {
 
               <ImageUploader images={anexoImages} onChange={setAnexoImages} />
 
+              {/* Show previously saved images */}
+              {anexoImageUrls.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">📷 Imagens salvas ({anexoImageUrls.length})</label>
+                  <div className="flex flex-wrap gap-2">
+                    {anexoImageUrls.map((url, i) => (
+                      <div key={i} className="relative group">
+                        <img src={url} alt={`Anexo ${i + 1}`} className="w-16 h-16 object-cover rounded border border-border" />
+                        <button
+                          type="button"
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setAnexoImageUrls(prev => prev.filter((_, idx) => idx !== i))}
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
