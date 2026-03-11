@@ -631,7 +631,7 @@ export default function Oficios() {
     setEditingOficioId(null);
     setNumero("");
     setDataGeracao(new Date().toISOString().split("T")[0]);
-    setTipoServico("");
+    setEnderecoCompleto("");
     setAssunto("");
     setSecretaria("");
     setDestinatario("");
