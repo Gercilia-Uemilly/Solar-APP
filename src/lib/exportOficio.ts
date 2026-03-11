@@ -82,7 +82,7 @@ interface StyledRun {
   underline?: boolean;
 }
 
-function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; width: number; height: number })[][] {
+function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[][] {
   if (!html || !html.includes("<")) {
     return html.split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
@@ -91,7 +91,7 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
 
   const div = document.createElement("div");
   div.innerHTML = html;
-  const paragraphs: (StyledRun | { image: Uint8Array; width: number; height: number })[][] = [];
+  const paragraphs: (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[][] = [];
 
   const decodeBase64Image = (src: string): { image: Uint8Array; width: number; height: number } | null => {
     try {
