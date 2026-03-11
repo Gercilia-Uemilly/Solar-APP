@@ -398,6 +398,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       } else {
         children.push(new TextRun({
           text: r.text,
+          break: r.break,
           font: fontName,
           size: fontSize,
           bold: r.bold,
