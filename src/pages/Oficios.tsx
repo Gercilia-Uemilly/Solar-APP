@@ -284,7 +284,7 @@ export default function Oficios() {
 
   const fetchOficios = async () => {
     setLoading(true);
-    const { data } = await supabase.from("oficios").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("oficios").select("*").is("deleted_at" as any, null).order("created_at", { ascending: false });
     setOficios((data as unknown as OficioRow[]) || []);
     setLoading(false);
   };
