@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
 import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
-import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
@@ -304,10 +304,12 @@ export default function MeusOficios() {
       }
       const authToken = session.access_token;
       const data = buildExportData(oficio);
+      const imgs = await fetchSavedImages(oficio.id);
       const baseFileName = buildFileName(data.numero, data.solicitante);
       const wordBlob = await exportToWord({
         ...data,
         conteudo: editedContent || oficio.conteudo,
+        imagens: imgs.length > 0 ? imgs : undefined,
       });
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
@@ -386,6 +388,8 @@ export default function MeusOficios() {
       }
       const authToken = session.access_token;
       const data = buildExportData(oficio);
+      const imgs = await fetchSavedImages(oficio.id);
+      if (imgs.length > 0) (data as any).imagens = imgs;
       const fileName = buildFileName(data.numero, data.solicitante);
       
       toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
@@ -668,14 +672,22 @@ export default function MeusOficios() {
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => handleOpenPreview(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
                     <button
-                      onClick={() => { if (o.conteudo) exportToWord(buildExportData(o)); }}
+                      onClick={async () => {
+                        if (!o.conteudo) return;
+                        const imgs = await fetchSavedImages(o.id);
+                        exportToWord({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                      }}
                       className="p-2 text-muted-foreground hover:text-foreground"
                       title="Exportar Word"
                     >
                       <FileText size={16} />
                     </button>
                     <button
-                      onClick={async () => { if (o.conteudo) await exportToPDF(buildExportData(o)); }}
+                      onClick={async () => {
+                        if (!o.conteudo) return;
+                        const imgs = await fetchSavedImages(o.id);
+                        await exportToPDF({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                      }}
                       className="p-2 text-muted-foreground hover:text-foreground"
                       title="Exportar PDF"
                     >

@@ -499,6 +499,26 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
   return resp.blob();
 }
 
+// ── Fetch saved images from storage as File[] ──────────────────────────────
+export async function fetchSavedImages(oficioId: string): Promise<File[]> {
+  try {
+    const { data: anexos } = await supabase.from("oficio_anexos" as any).select("*").eq("oficio_id", oficioId);
+    if (!anexos || anexos.length === 0) return [];
+
+    const files: File[] = [];
+    for (const a of anexos as any[]) {
+      try {
+        const { data: urlData } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
+        const resp = await fetch(urlData.publicUrl);
+        if (!resp.ok) continue;
+        const blob = await resp.blob();
+        files.push(new File([blob], a.file_name, { type: a.mime_type || blob.type }));
+      } catch { /* skip failed downloads */ }
+    }
+    return files;
+  } catch { return []; }
+}
+
 // ── Build Word blob without saving (for external use) ───────────────────────
 export async function buildWordBlobForExport(data: OficioData): Promise<Blob> {
   let blob = await buildWordBlob(data);

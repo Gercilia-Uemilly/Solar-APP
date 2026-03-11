@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
-import { exportToWord, exportToPDF } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, fetchSavedImages } from "@/lib/exportOficio";
 import ImageUploader from "@/components/ImageUploader";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone from "@/components/FileDropzone";
@@ -706,9 +706,11 @@ export default function Oficios() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const imgs = await fetchSavedImages(oficio.id);
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
+        imagens: imgs.length > 0 ? imgs : (anexoImages.length > 0 ? anexoImages : undefined),
       });
       // Build file name: [numero]-[ano] [solicitante_code]
       const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
@@ -1419,8 +1421,16 @@ export default function Oficios() {
             <DialogTitle className="text-foreground flex items-center justify-between">
               <span>{viewingOficio?.assunto || "Ofício"}</span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { if (viewingOficio?.conteudo) exportToWord(buildExportData(viewingOficio)); }}><FileText size={14} className="mr-1" /> Word</Button>
-                <Button size="sm" variant="outline" onClick={async () => { if (viewingOficio?.conteudo) await exportToPDF(buildExportData(viewingOficio)); }}><Download size={14} className="mr-1" /> PDF</Button>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  if (!viewingOficio?.conteudo) return;
+                  const imgs = await fetchSavedImages(viewingOficio.id);
+                  exportToWord({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                }}><FileText size={14} className="mr-1" /> Word</Button>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  if (!viewingOficio?.conteudo) return;
+                  const imgs = await fetchSavedImages(viewingOficio.id);
+                  await exportToPDF({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                }}><Download size={14} className="mr-1" /> PDF</Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
