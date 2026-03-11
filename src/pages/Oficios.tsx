@@ -24,25 +24,23 @@ import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
 
-const tiposServico = [
-  { label: "Operação Tapa-Buracos / Pavimentação", secretaria: "Secretaria Municipal de Infraestrutura Urbana", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Obras e Infraestrutura" },
-  { label: "Iluminação Pública", secretaria: "Secretaria Municipal de Serviços Urbanos", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Serviços Urbanos" },
-  { label: "Sinalização / Semáforos / Trânsito", secretaria: "Secretaria Municipal de Trânsito e Transportes", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Trânsito e Transportes (SETTRAN)" },
-  { label: "Transporte Público / Ônibus", secretaria: "Secretaria Municipal de Trânsito e Transportes", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Trânsito e Transportes (SETTRAN)" },
-  { label: "Limpeza Urbana / Capina / Roçada", secretaria: "Secretaria Municipal de Serviços Urbanos", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Serviços Urbanos" },
-  { label: "Saúde / UBS / UAI", secretaria: "Secretaria Municipal de Saúde", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Saúde" },
-  { label: "Educação / Escolas", secretaria: "Secretaria Municipal de Educação", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Educação" },
-  { label: "Água / Esgoto / DMAE", secretaria: "DMAE", cargo: "Ilmo(a). Sr(a). Diretor(a) Geral do DMAE" },
-  { label: "Assistência Social / CRAS", secretaria: "Secretaria Municipal de Desenvolvimento Social", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Assistência Social" },
-  { label: "Meio Ambiente / Poda / Praças", secretaria: "Secretaria Municipal de Gestão Ambiental e Sustentabilidade", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Meio Ambiente e Sustentabilidade" },
-  { label: "Habitação / Casas Populares", secretaria: "Secretaria Municipal de Habitação", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Habitação" },
-  { label: "Segurança / Videomonitoramento", secretaria: "Secretaria Municipal de Segurança Integrada", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Segurança Integrada" },
-  { label: "Esporte / Poliesportivos / FUTEL", secretaria: "FUTEL", cargo: "Ilmo(a). Sr(a). Presidente da FUTEL" },
-  { label: "Cultura / Turismo / Eventos", secretaria: "Secretaria Municipal de Cultura e Turismo", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Cultura e Turismo" },
-  { label: "Fiscalização de Obras", secretaria: "Secretaria Municipal de Planejamento Urbano", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Planejamento Urbano" },
-  { label: "Agronegócio / Estradas Rurais", secretaria: "Secretaria Municipal de Agronegócio", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Agronegócio" },
-  { label: "PROCON / Defesa do Consumidor", secretaria: "PROCON", cargo: "Ilmo(a). Sr(a). Superintendente do PROCON" },
-  { label: "Outro", secretaria: "", cargo: "" },
+const secretariaOptions = [
+  { label: "Secretaria Municipal de Serviços Urbanos", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Serviços Urbanos", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Obras e Infraestrutura", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Obras e Infraestrutura", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Saúde", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Saúde", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Trânsito e Transportes (SETTRAN)", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Trânsito e Transportes (SETTRAN)", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Meio Ambiente e Sustentabilidade", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Meio Ambiente e Sustentabilidade", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Educação", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Educação", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Assistência Social", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Assistência Social", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Agronegócio", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Agronegócio", vocativo: "secretario" },
+  { label: "DMAE — Departamento Municipal de Água e Esgoto", destinatario: "Ilmo(a). Sr(a). Diretor(a) Geral do DMAE", vocativo: "diretor" },
+  { label: "UFU — Universidade Federal de Uberlândia", destinatario: "Magnífico(a) Reitor(a) da Universidade Federal de Uberlândia", vocativo: "reitor" },
+  { label: "Secretaria Municipal de Habitação", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Habitação", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Cultura e Turismo", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Cultura e Turismo", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Esportes e Lazer", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Esportes e Lazer", vocativo: "secretario" },
+  { label: "Prefeitura Municipal de Uberlândia (Gabinete do Prefeito)", destinatario: "Excelentíssimo(a) Senhor(a) Prefeito(a) Municipal", vocativo: "prefeito" },
+  { label: "Câmara Municipal de Uberlândia", destinatario: "Excelentíssimo(a) Senhor(a) Presidente da Câmara Municipal", vocativo: "presidente" },
+  { label: "Outro (campo livre)", destinatario: "", vocativo: "outro" },
 ];
 
 interface AIResult {
