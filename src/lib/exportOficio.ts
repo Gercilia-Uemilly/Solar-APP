@@ -27,15 +27,15 @@ function formatDate(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-function buildFileName(numero: string, solicitante?: string, codigoZ?: string): string {
+function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
   const cleanedNumero = cleanNumero(numero || "");
   const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9-]/g, '').trim() || 'rascunho';
   
-  // If codigoZ is provided (Zap Emprego), use it as the identifier
+  // If codigoZ is provided (Zap Emprego), use last 4 digits of phone + codigoZ
   if (codigoZ) {
-    // Extract last digits from solicitante if available (e.g. "R12649" -> "12649")
-    const solicitanteDigits = (solicitante || "").trim().split(/\s+/)[0]?.replace(/\D/g, '') || "";
-    const suffix = solicitanteDigits ? `${codigoZ}${solicitanteDigits}` : codigoZ;
+    const digits = (contatoSolicitante || "").replace(/\D/g, '');
+    const last4 = digits.length >= 4 ? digits.slice(-4) : digits;
+    const suffix = last4 ? `${codigoZ} ${last4}` : codigoZ;
     return `${numPart} ${suffix}`;
   }
   
@@ -659,14 +659,14 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
     blob = await addAnexoImages(blob, data.imagens);
   }
 
-  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
+  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
   saveAs(blob, `${fileName}.docx`);
   return blob;
 }
 
 // ── Export PDF ───────────────────────────────────────────────────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
-  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
+  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
 
   try {
     let wordBlob = await buildWordBlob(data);
