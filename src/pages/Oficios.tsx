@@ -436,6 +436,14 @@ export default function Oficios() {
     setContatoSolicitante(o.contato_solicitante || "");
     setCodigoZ((o as any).codigo_z || "");
     setOrigemOficio((o as any).origem || "WhatsApp Gabinete");
+    // Restore secretaria and tipo_demanda from saved data
+    const savedSecretaria = (o as any).secretaria_identificada || "";
+    setSecretaria(savedSecretaria);
+    const savedTipo = (o as any).tipo_demanda || "";
+    if (savedTipo) {
+      const matchedTipo = tiposServico.find(t => t.label === savedTipo);
+      setTipoServico(matchedTipo ? matchedTipo.label : savedTipo);
+    }
     const content = o.conteudo || "";
     setEditedOficio(content);
     setOriginalOficio(content);
@@ -445,7 +453,8 @@ export default function Oficios() {
     setDescricao("");
     setPrioridade("Normal");
     setLinhaTelefonica("");
-    setFormTab("dados");
+    // If we have content, go straight to preview; otherwise datos
+    setFormTab(content ? "preview" : "dados");
     setShowDialog(true);
 
     // Load saved images from storage
@@ -471,7 +480,7 @@ export default function Oficios() {
     return errors;
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (closeAfterSave = true) => {
     if (!user) return;
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
@@ -551,8 +560,17 @@ export default function Oficios() {
     }
 
     await fetchOficios();
-    resetForm();
-    toast({ title: editingOficioId ? "Ofício atualizado!" : "Ofício salvo!" });
+    
+    // If new oficio, set the editing ID so we stay in edit mode
+    if (!editingOficioId && oficioId) {
+      setEditingOficioId(oficioId);
+    }
+
+    toast({ title: editingOficioId ? "✓ Ofício atualizado!" : "✓ Ofício salvo!" });
+
+    if (closeAfterSave) {
+      resetForm();
+    }
   };
 
   const getFileMediaType = (file: File): "image" | "audio" | "video" => {
@@ -1170,7 +1188,7 @@ export default function Oficios() {
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
                 </Button>
-                <Button variant="outline" onClick={handleCreate} className="border-border">
+                <Button variant="outline" onClick={() => handleCreate(false)} className="border-border">
                   Salvar Rascunho
                 </Button>
               </div>
@@ -1294,7 +1312,7 @@ export default function Oficios() {
                 </div>
               )}
 
-              <Button onClick={handleCreate} className="w-full bg-primary text-primary-foreground">
+              <Button onClick={() => handleCreate(true)} className="w-full bg-primary text-primary-foreground">
                 <CheckCircle2 size={16} className="mr-1" /> Salvar Ofício
               </Button>
             </TabsContent>
@@ -1302,16 +1320,18 @@ export default function Oficios() {
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} hasChanges={editedOficio !== originalOficio} onUndo={() => setEditedOficio(originalOficio)} />
-              <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="default" onClick={handleCreate}>
-                  <Save size={14} className="mr-1" /> {editingOficioId ? "Atualizar Ofício" : "Salvar Ofício"}
+              <div className="flex gap-2 justify-end flex-wrap">
+                <Button size="sm" variant="default" onClick={() => handleCreate(false)}>
+                  <Save size={14} className="mr-1" /> Salvar
+                </Button>
+                <Button size="sm" variant="default" onClick={() => handleCreate(true)}>
+                  <Save size={14} className="mr-1" /> Salvar e Fechar
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => {
                   if (!destinatario || !assunto || !editedOficio) {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  // Código Z validation removed
                   exportToWord(buildFormExportData());
                 }}>
                   <FileText size={14} className="mr-1" /> Word
@@ -1330,6 +1350,33 @@ export default function Oficios() {
                   await exportToPDF(buildFormExportData());
                 }}>
                   <Download size={14} className="mr-1" /> PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  try {
+                    const data = buildFormExportData();
+                    const { buildWordBlobForExport } = await import("@/lib/exportOficio");
+                    const wordBlob = await buildWordBlobForExport(data);
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) { toast({ title: "Sessão expirada", variant: "destructive" }); return; }
+                    const convertFormData = new FormData();
+                    convertFormData.append("file", wordBlob, "preview.docx");
+                    const convertResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/convert-to-pdf`, {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${session.access_token}` },
+                      body: convertFormData,
+                    });
+                    if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
+                      const pdfBlob = await convertResp.blob();
+                      const url = URL.createObjectURL(pdfBlob);
+                      window.open(url, "_blank");
+                    } else {
+                      toast({ title: "Não foi possível gerar preview do PDF", variant: "destructive" });
+                    }
+                  } catch (e: any) {
+                    toast({ title: "Erro ao gerar preview", description: e.message, variant: "destructive" });
+                  }
+                }}>
+                  <Eye size={14} className="mr-1" /> Visualizar PDF
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
@@ -1357,7 +1404,7 @@ export default function Oficios() {
                   </div>
                 )}
               </div>
-              <Button onClick={handleCreate} className="w-full bg-primary text-primary-foreground">
+              <Button onClick={() => handleCreate(true)} className="w-full bg-primary text-primary-foreground">
                 <CheckCircle2 size={16} className="mr-1" /> {editingOficioId ? "Atualizar Ofício" : "Salvar Ofício"}
               </Button>
             </TabsContent>

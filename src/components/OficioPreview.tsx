@@ -171,7 +171,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* ASSUNTO — after: 240, NEGRITO completo */}
+        {/* ASSUNTO — after: 240, NEGRITO completo, "Assunto:" com A maiúscula */}
         <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
           <span>Assunto: </span>
           {editable && onAssuntoChange ? (
@@ -181,8 +181,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* VOCATIVO — ESQUERDA com recuo 1.25cm, after: 240, NÃO negrito (conforme PDFs reais) */}
-        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5" }}>
+        {/* VOCATIVO — ESQUERDA com recuo 1.25cm, after: 240, NEGRITO */}
+        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5", fontWeight: "bold" }}>
           {vocativo}
         </p>
 

@@ -1,0 +1,1 @@
+ALTER TABLE public.oficios ADD COLUMN IF NOT EXISTS marcador text DEFAULT NULL;
