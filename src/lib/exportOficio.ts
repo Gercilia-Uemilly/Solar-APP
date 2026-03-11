@@ -99,14 +99,9 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
 
   // Pre-process: merge <p> fragments that are part of the same sentence.
   // TipTap sometimes wraps inline <strong> in separate <p> tags.
-  let processedHtml = html;
-  
-  // Strategy: Replace </p><p> boundaries that are mid-sentence with a space.
-  // A mid-sentence boundary is when the text before </p> does NOT end with a sentence-ending pattern
-  // and the text after <p> does NOT start with a capital letter beginning a new sentence.
-  // We do this by collapsing the HTML into proper paragraphs first.
+  // Strategy: only merge SHORT blocks that clearly look like inline fragments.
   const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = processedHtml;
+  tempDiv.innerHTML = html;
   
   // Collect all top-level block elements
   const blocks: HTMLElement[] = [];
@@ -120,8 +115,8 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
     }
   }
   
-  // Merge fragments: if a block's text starts with lowercase, comma, period, or semicolon,
-  // it's likely a continuation of the previous paragraph
+  // Merge only SHORT fragments (< 80 chars) that are clearly mid-sentence continuations.
+  // Real paragraphs (long text blocks) are NEVER merged.
   const mergedBlocks: HTMLElement[] = [];
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -130,26 +125,26 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
     
     if (!trimmedText) continue;
     
-    // Check if this block is a fragment that should be merged with the previous one
-    const isFragment = mergedBlocks.length > 0 && (
-      // Starts with lowercase letter
-      /^[a-záàâãéèêíìîóòôõúùûç,;.]/.test(trimmedText) ||
-      // Previous block ends without sentence-ending punctuation
-      (() => {
-        const prevText = (mergedBlocks[mergedBlocks.length - 1].textContent || "").trim();
-        return prevText.length > 0 && !/[.!?:"]$/.test(prevText) && trimmedText.length < 200;
-      })()
+    // A block is a fragment ONLY if it's short AND starts with lowercase/punctuation
+    const isShortFragment = trimmedText.length < 80 && mergedBlocks.length > 0 && (
+      // Starts with lowercase letter or punctuation continuation
+      /^[a-záàâãéèêíìîóòôõúùûç,;.)\-–]/.test(trimmedText)
     );
     
-    // Don't merge if this looks like a list item (starts with number + period)
-    const isListItem = /^\d+[\.\)]/.test(trimmedText);
+    // Also merge if previous block ends mid-sentence AND current block is short
+    const prevEndsOpen = mergedBlocks.length > 0 && (() => {
+      const prevText = (mergedBlocks[mergedBlocks.length - 1].textContent || "").trim();
+      return prevText.length > 0 && !/[.!?:"]$/.test(prevText) && trimmedText.length < 80;
+    })();
     
-    if (isFragment && !isListItem) {
-      // Merge into the previous block
+    // Don't merge if this looks like a list item
+    const isListItem = /^\d+[\.\)]\s/.test(trimmedText);
+    
+    if ((isShortFragment || prevEndsOpen) && !isListItem) {
       const prev = mergedBlocks[mergedBlocks.length - 1];
-      // Add a space before appending if needed
-      const prevEndsWithSpace = (prev.innerHTML || "").trimEnd().endsWith(" ");
-      if (!prevEndsWithSpace) {
+      const prevHtml = prev.innerHTML.trimEnd();
+      // Add space only if needed
+      if (!prevHtml.endsWith(" ") && !trimmedText.startsWith(",") && !trimmedText.startsWith(".") && !trimmedText.startsWith(";")) {
         prev.innerHTML += " ";
       }
       prev.innerHTML += block.innerHTML;
