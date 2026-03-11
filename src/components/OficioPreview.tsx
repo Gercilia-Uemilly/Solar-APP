@@ -86,7 +86,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       assuntoFormatado = `${assunto} – ${bairroFormatado}`;
     }
 
-    const operadorMarca = operadorNome ? operadorNome.split(' ')[0].toLowerCase() : '';
+    
 
     const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` de ${destinatario}` : ""}`;
 
