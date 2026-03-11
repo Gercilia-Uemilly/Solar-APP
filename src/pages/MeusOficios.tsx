@@ -173,7 +173,27 @@ export default function MeusOficios() {
     setEditedContent(newContent);
     editedContentRef.current = newContent;
     setSaveStatus("idle");
-  }, []);
+    
+    // Auto-save after 2 seconds
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      if (viewOficio) {
+        setSaveStatus("saving");
+        supabase.from("oficios").update({
+          conteudo: newContent,
+          last_edited_by: user?.id || null,
+          last_edited_by_name: profileName || user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        } as any).eq("id", viewOficio.id).then(({ error }) => {
+          setSaveStatus(error ? "error" : "saved");
+          if (!error) {
+            setOriginalContent(newContent);
+            setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, conteudo: newContent } : o));
+          }
+        });
+      }
+    }, 2000);
+  }, [viewOficio, user, profileName]);
 
   const handleInlineFieldChange = useCallback((field: string, value: string) => {
     setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
