@@ -636,7 +636,7 @@ export default function Oficios() {
     setSecretaria("");
     setDestinatario("");
     setCargoDestinatario("");
-    setLocalDemanda("");
+    setBairro("");
     setBairro("");
     setSolicitante("");
     setContatoSolicitante("");
