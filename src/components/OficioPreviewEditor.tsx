@@ -5,11 +5,14 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
-import { useEffect, useCallback, useRef } from "react";
+import TiptapImage from "@tiptap/extension-image";
+import { useCallback, useRef } from "react";
+import { toast } from "sonner";
 import {
   Bold, Italic, Underline as UnderlineIcon,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  List, ListOrdered, Undo, Redo, Eraser, Type, Highlighter, Link as LinkIcon,
+  List, ListOrdered, Undo, Redo, Eraser, Highlighter,
+  ImagePlus,
 } from "lucide-react";
 
 interface OficioPreviewEditorProps {
