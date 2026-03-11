@@ -706,9 +706,11 @@ export default function Oficios() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const imgs = await fetchSavedImages(oficio.id);
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
+        imagens: imgs.length > 0 ? imgs : (anexoImages.length > 0 ? anexoImages : undefined),
       });
       // Build file name: [numero]-[ano] [solicitante_code]
       const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');

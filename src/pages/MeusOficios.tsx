@@ -388,6 +388,8 @@ export default function MeusOficios() {
       }
       const authToken = session.access_token;
       const data = buildExportData(oficio);
+      const imgs = await fetchSavedImages(oficio.id);
+      if (imgs.length > 0) data.imagens = imgs;
       const fileName = buildFileName(data.numero, data.solicitante);
       
       toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
