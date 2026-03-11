@@ -1237,16 +1237,7 @@ export default function Oficios() {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  if (origemOficio === "Zap Emprego" && !codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap Emprego.", variant: "destructive" });
-                    setFormTab("dados");
-                    return;
-                  }
-                  if (origemOficio === "Zap Emprego" && (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4)) {
-                    toast({ title: "Celular inválido", description: "Preencha o WhatsApp do solicitante com pelo menos 4 dígitos.", variant: "destructive" });
-                    setFormTab("dados");
-                    return;
-                  }
+                  // Código Z validation removed
                   exportToWord(buildFormExportData());
                 }}>
                   <FileText size={14} className="mr-1" /> Word
