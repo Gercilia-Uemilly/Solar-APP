@@ -48,6 +48,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
   const initialContent = useRef(content);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -62,6 +63,13 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         defaultAlignment: "justify",
       }),
       Highlight.configure({ multicolor: true }),
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          style: 'max-width: 100%; height: auto; display: block; margin: 8px auto;',
+        },
+      }),
     ],
     content: initialContent.current,
     onUpdate: ({ editor }) => {
@@ -82,6 +90,22 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
       },
     },
   });
+
+  const handleImageInsert = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande. Máximo 5MB.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      editor.chain().focus().setImage({ src: reader.result as string, alt: file.name }).run();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }, [editor]);
 
   const setFontSize = useCallback((size: string) => {
     if (!editor) return;
