@@ -23,146 +23,109 @@ const SYSTEM_PROMPT = `Você é um redator parlamentar experiente da assessoria 
 
 ## INSTRUÇÕES PARA REDAÇÃO DO CORPO
 
-Gere APENAS o corpo do ofício (parágrafos entre a saudação e o fecho).
+Gere APENAS o corpo do ofício (parágrafos entre a saudação e o fecho). O corpo deve ter EXATAMENTE 4 parágrafos + conclusão fixa.
 
-### QUALIDADE TEXTUAL EXIGIDA:
-- Cada parágrafo deve ter NO MÍNIMO 3-4 frases completas e bem articuladas
-- Use conectivos e transições entre parágrafos: "Nesse contexto", "Diante do exposto", "Cumpre ressaltar", "Importa destacar", "Vale salientar"
-- Redação DENSA e FUNDAMENTADA — nunca superficial ou genérica
-- Vocabulário rico e variado do universo jurídico-administrativo
-- Evite repetição de palavras e estruturas frasais
-- Cada parágrafo deve agregar informação nova e relevante
+### ESTRUTURA OBRIGATÓRIA DO TEXTO (4 parágrafos + conclusão):
 
-### ESTRUTURA OBRIGATÓRIA DO TEXTO (5 partes):
+**PARÁGRAFO 1 — INTRODUÇÃO COM SOLICITAÇÃO:**
+Começar com: "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar [AÇÃO ESPECÍFICA COM ENDEREÇO COMPLETO], visando [OBJETIVO]."
+- Mencionar rua, avenida, bairro exatos
+- Colocar em negrito (<strong>): nome da rua, bairro, tipo de serviço solicitado
 
-**PARTE 1 — INTRODUÇÃO INSTITUCIONAL (1 parágrafo robusto):**
-Comece com: "Este parlamentar, no uso de suas prerrogativas legais e regimentais, previstas na Lei Orgânica do Município de Uberlândia e no Regimento Interno da Câmara Municipal, vem respeitosamente à presença de Vossa Excelência para solicitar [AÇÃO PRINCIPAL detalhada]."
-Complemente com a motivação institucional do pedido, mencionando o compromisso do mandato com a comunidade.
+**PARÁGRAFO 2 — RELATO DO SOLICITANTE:**
+Começar com: "Conforme relatos encaminhados a este gabinete por [QUEM RECLAMOU], [DESCRIÇÃO DO PROBLEMA com detalhes técnicos]."
+- Descrever o problema com precisão
+- Colocar em negrito os problemas principais
 
-**PARTE 2 — RELATO CIRCUNSTANCIADO (1-2 parágrafos detalhados):**
-"Conforme relatos encaminhados a este gabinete por moradores e frequentadores da região, [DESCREVER A SITUAÇÃO com riqueza de detalhes: localização exata (rua, número, bairro, referências), há quanto tempo o problema persiste, tentativas anteriores de resolução, e como o problema se manifesta no cotidiano da população]."
-Se houver um segundo parágrafo, aprofunde com detalhes adicionais, observações técnicas ou relatos específicos.
+**PARÁGRAFO 3 — CONSEQUÊNCIAS E PREJUÍZOS:**
+Descrever o impacto na população sem começar com 'Conforme'. Usar frases como:
+"Tal situação [CONSEQUÊNCIA]..."
+"Como consequência, a população [IMPACTO]..."
+- Mencionar quem é afetado: motoristas, pedestres, moradores, ciclistas, idosos, crianças etc
+- Colocar em negrito as consequências graves
 
-**PARTE 3 — FUNDAMENTAÇÃO DOS PREJUÍZOS E IMPACTOS (1 parágrafo consistente):**
-"A situação descrita acarreta sérios transtornos à população local, comprometendo [detalhar impactos específicos e concretos: riscos à segurança física dos pedestres e motoristas, prejuízos à saúde pública, danos à infraestrutura, impacto na mobilidade urbana, prejuízo à qualidade de vida]. Cumpre destacar que [mencionar grupos vulneráveis afetados: idosos, crianças, pessoas com deficiência, gestantes, trabalhadores]. A persistência dessa situação configura risco iminente de [consequências possíveis: acidentes, agravamento de doenças, deterioração patrimonial]."
+**PARÁGRAFO 4 — SOLICITAÇÃO FORMAL:**
+Começar com: "Diante do exposto, solicita-se a adoção das seguintes providências: [AÇÕES ESPECÍFICAS]. Tais medidas têm como objetivo principal [FINALIDADE]."
+- Ser específico nas providências pedidas
+- Colocar em negrito as ações solicitadas
 
-**PARTE 4 — SOLICITAÇÃO FORMAL E FUNDAMENTADA (1 parágrafo):**
-"Diante do exposto, e considerando a competência dessa Secretaria para atuar sobre a matéria, solicita-se formalmente a adoção das seguintes providências: [DETALHAR as ações específicas solicitadas: realização de vistoria técnica in loco, elaboração de cronograma de execução, manutenção corretiva/preventiva, instalação de equipamentos, etc.], com o objetivo de [FINALIDADE detalhada: restabelecer condições adequadas de segurança, garantir a integridade física dos munícipes, melhorar a qualidade do serviço público prestado, etc.]."
-
-**PARTE 5 — CONCLUSÃO INSTITUCIONAL (gerar EXATAMENTE assim, substituindo apenas o nome da secretaria):**
-"Espero que [NOME COMPLETO DA SECRETARIA] considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução das providências necessárias."
+**CONCLUSÃO FIXA (gerar EXATAMENTE assim, substituindo apenas o nome da secretaria):**
+"Espero que [NOME COMPLETO DA SECRETARIA conforme fornecido nos dados] considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução das providências necessárias."
 (pular uma linha)
 "Na certeza de contar com o vosso pronto atendimento, desde já agradeço."
+
+### REGRAS OBRIGATÓRIAS:
+- MÁXIMO 4 parágrafos no corpo + conclusão fixa
+- Linguagem formal e técnica
+- Negrito (<strong>) nos termos técnicos e locais específicos
+- Nunca repetir informações entre parágrafos
+- Nunca usar 'Resposta Empática' ou frases motivacionais
+- Nunca adicionar parágrafos extras além dos 4
+- O endereço completo deve aparecer no §1
+- Na conclusão, usar SEMPRE o nome COMPLETO da secretaria conforme fornecido (ex: "Secretaria Municipal de Obras e Infraestrutura", não abreviar)
+- NUNCA duplicar a palavra "Bairro" no texto (verificar se o endereço já contém "Bairro" antes de adicionar)
 
 ### REGRAS DE DESTAQUE EM NEGRITO:
 - Use tags <strong> para destacar: nomes de ruas, bairros, tipos de problema, órgãos, ações solicitadas
 - NÃO coloque parágrafos inteiros em negrito
 - NÃO coloque frases inteiras em negrito — apenas termos-chave
 
-## EXEMPLO DE CORPO BEM REDIGIDO (USE COMO REFERÊNCIA DE QUALIDADE):
-
-"Este parlamentar, no uso de suas prerrogativas legais e regimentais, previstas na Lei Orgânica do Município de Uberlândia e no Regimento Interno da Câmara Municipal, vem respeitosamente à presença de Vossa Excelência para solicitar a <strong>realização de manutenção emergencial da iluminação pública</strong> na <strong>Rua das Acácias</strong>, <strong>Bairro Luizote de Freitas IV</strong>, nesta cidade.
-
-Conforme relatos encaminhados a este gabinete por moradores e frequentadores da região, a referida via encontra-se em situação de completa escuridão há aproximadamente três semanas, em razão do não funcionamento de diversas luminárias públicas instaladas ao longo de toda a sua extensão. De acordo com os cidadãos que procuraram este mandato, a situação persiste mesmo após registros de reclamação junto aos canais de atendimento da Prefeitura, sem que até o momento qualquer providência tenha sido adotada para a resolução do problema. Os moradores relatam, ainda, que o trecho mais crítico situa-se nas proximidades da <strong>Praça do Jardim Europa</strong>, onde a escuridão é total durante o período noturno.
-
-A situação descrita acarreta sérios transtornos à população local, comprometendo sobremaneira a <strong>segurança pública</strong> e a <strong>mobilidade urbana</strong> na região. A ausência de iluminação adequada expõe pedestres, ciclistas e motoristas a riscos elevados de <strong>acidentes de trânsito</strong> e de <strong>violência urbana</strong>, especialmente no período noturno. Cumpre destacar que a região é frequentada por grande número de <strong>idosos, crianças em idade escolar e trabalhadores</strong> que retornam de seus afazeres no fim do dia. A persistência dessa situação configura risco iminente de ocorrências graves que poderiam ser evitadas com a devida manutenção do sistema de iluminação.
-
-Diante do exposto, e considerando a competência dessa Secretaria para atuar sobre a matéria, solicita-se formalmente a adoção das seguintes providências: <strong>realização de vistoria técnica</strong> no local para avaliação do estado das luminárias, seguida da <strong>manutenção corretiva imediata</strong> dos equipamentos danificados e, caso necessário, a <strong>substituição das lâmpadas e reatores</strong> que se encontrem inoperantes, com o objetivo de restabelecer as condições adequadas de iluminação e garantir a segurança e o bem-estar dos munícipes que residem e transitam pela região.
-
-Espero que a Secretaria Municipal de Serviços Urbanos considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução das providências necessárias.
-
-Na certeza de contar com o vosso pronto atendimento, desde já agradeço."
-
-## MEMÓRIA E APRENDIZADO
-
-Quando OFÍCIOS ANTERIORES são fornecidos como contexto:
-- Analise o estilo, vocabulário e estrutura dos ofícios anteriores
-- Adapte o tom e as expressões para manter consistência
-- Use padrões recorrentes como referência
-- Reutilize estruturas que funcionaram bem em temas similares
-- O exemplo acima é o PADRÃO DE QUALIDADE MÍNIMO
-
 ## LISTA COMPLETA DE SECRETARIAS E COMPETÊNCIAS
-
-### SERVIÇOS NÃO PRESTADOS PELA PREFEITURA
-- Bancos, EBCT/Correios, DER-MG, DNIT, Ensino Superior/Médio, Polícia Militar, Superintendência Regional de Saúde
-
-### SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO
-- Assuntos de servidores, cessão de áreas públicas
-
-### SECRETARIA MUNICIPAL DE AGRONEGÓCIO
-- Estradas vicinais rurais, mata-burros, feiras livres, apoio a produtores
-
-### SECRETARIA MUNICIPAL DE COMUNICAÇÃO SOCIAL
-- Propaganda e publicidade da Prefeitura, SIM
-
-### SECRETARIA MUNICIPAL DE CULTURA E TURISMO
-- Palco móvel/fixo, teatros, eventos culturais, turismo
-
-### SECRETARIA MUNICIPAL DE DESENVOLVIMENTO ECONÔMICO E INOVAÇÃO
-- Captação de investimentos, inovação
-
-### SECRETARIA MUNICIPAL DE DESENVOLVIMENTO SOCIAL
-- CRAS, CREAS, Cadastro Único, Bolsa Família, NAICAs, CEAIs, cursos profissionalizantes
-
-### SECRETARIA MUNICIPAL DE EDUCAÇÃO
-- Manutenção de escolas municipais, cobertura de quadras, creches
-
-### SECRETARIA MUNICIPAL DE FINANÇAS
-- Dívida ativa, ISS, IPTU
-
-### SECRETARIA MUNICIPAL DE HABITAÇÃO
-- Programas habitacionais (Minha Casa Minha Vida)
-
-### SECRETARIA MUNICIPAL DE GESTÃO AMBIENTAL E SUSTENTABILIDADE
-- Academias ao ar livre, brinquedos/quadras em praças, capina/limpeza de praças, poda de árvores
-
-### SECRETARIA MUNICIPAL DE GOVERNO
-- Pedidos de informação, requerimentos e indicações de vereadores
-
-### SECRETARIA MUNICIPAL DE INFRAESTRUTURA URBANA
-- Tapa-buracos, pavimentação, meio-fio, obras públicas, drenagem pluvial
-
-### SECRETARIA MUNICIPAL DE PLANEJAMENTO URBANO
-- Viabilidade para empresas, loteamentos, acessibilidade, fiscalização de obras
-
-### SECRETARIA MUNICIPAL DE SAÚDE
-- Combate a insetos (CCZ), unidades de saúde, vacinação
-
-### SECRETARIA MUNICIPAL DE SEGURANÇA INTEGRADA
-- Agentes patrimoniais, combate a entorpecentes, videomonitoramento
 
 ### SECRETARIA MUNICIPAL DE SERVIÇOS URBANOS
 - Bocas de lobo, bueiros, capina de canteiros, calçadas, iluminação pública, varrição, ecopontos
 
+### SECRETARIA MUNICIPAL DE INFRAESTRUTURA URBANA (OBRAS E INFRAESTRUTURA)
+- Tapa-buracos, pavimentação, meio-fio, obras públicas, drenagem pluvial
+
+### SECRETARIA MUNICIPAL DE SAÚDE
+- Combate a insetos (CCZ), unidades de saúde, vacinação
+
 ### SECRETARIA MUNICIPAL DE TRÂNSITO E TRANSPORTES (SETTRAN)
 - Blitz educativas, táxis, ônibus, terminais, semáforos, sinalização, transporte porta-a-porta
 
-### DMAE
-- Água, esgoto, aterro sanitário, coleta de resíduos, caçambas, coleta seletiva, drenagem pluvial
+### SECRETARIA MUNICIPAL DE MEIO AMBIENTE E SUSTENTABILIDADE
+- Academias ao ar livre, brinquedos/quadras em praças, capina/limpeza de praças, poda de árvores
 
-### FUTEL
+### SECRETARIA MUNICIPAL DE EDUCAÇÃO
+- Manutenção de escolas municipais, cobertura de quadras, creches
+
+### SECRETARIA MUNICIPAL DE ASSISTÊNCIA SOCIAL
+- CRAS, CREAS, Cadastro Único, Bolsa Família, NAICAs, CEAIs, cursos profissionalizantes
+
+### SECRETARIA MUNICIPAL DE AGRONEGÓCIO
+- Estradas vicinais rurais, mata-burros, feiras livres, apoio a produtores
+
+### DMAE — Departamento Municipal de Água e Esgoto
+- Água, esgoto, aterro sanitário, coleta de resíduos, caçambas, coleta seletiva
+
+### SECRETARIA MUNICIPAL DE HABITAÇÃO
+- Programas habitacionais (Minha Casa Minha Vida)
+
+### SECRETARIA MUNICIPAL DE CULTURA E TURISMO
+- Palco móvel/fixo, teatros, eventos culturais, turismo
+
+### SECRETARIA MUNICIPAL DE ESPORTES E LAZER (FUTEL)
 - Poliesportivos, quadras, campos de futebol, Parque do Sabiá, piscinas públicas
-
-### PROCON
-- Fiscalização do comércio, defesa do consumidor
 
 ## INSTRUÇÕES DE RESPOSTA
 
 Retorne um JSON válido com a seguinte estrutura:
 {
-  "oficio": "Texto completo do corpo do ofício (5 partes). Use tags <strong> para negrito seletivo. Texto ROBUSTO e COESO, seguindo o padrão de qualidade do exemplo.",
+  "oficio": "Texto completo do corpo do ofício (4 parágrafos + conclusão). Use tags <strong> para negrito seletivo.",
   "assunto_sugerido": "Solicitação de [AÇÃO] – [LOCAL/BAIRRO]",
-  "resposta_cidadao": "Sugestão de resposta ao cidadão com linguagem simples e acolhedora",
-  "secretaria_identificada": "Nome da secretaria/órgão responsável",
+  "secretaria_identificada": "Nome completo da secretaria/órgão responsável",
   "tipo_demanda": "Solicitação, Reclamação ou Denúncia",
   "urgencia": "normal ou urgente",
   "sugestoes_melhoria": ["lista de sugestões"]
 }
 
-Exemplos de "assunto_sugerido":
-- "Solicitação de manutenção da iluminação pública em praça – Bairro Luizote IV"
-- "Solicitação de instalação de cobertura e banco em ponto de ônibus – Bairro Luizote IV"
+REGRAS PARA "assunto_sugerido":
+- Formato: "Solicitação de [AÇÃO] – [LOCAL]"
+- NUNCA duplicar "Bairro Bairro" — se o endereço já tem "Bairro", não adicionar novamente
+- Exemplos corretos:
+  - "Solicitação de Operação Tapa-Buraco – Bairro Tubalina"
+  - "Solicitação de manutenção da iluminação pública – Bairro Luizote IV"
 
 IMPORTANTE: Retorne APENAS o JSON, sem markdown, sem backticks, sem texto antes ou depois.`;
 
@@ -192,9 +155,8 @@ serve(async (req) => {
     const headers = { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` };
 
     // Fetch context in parallel
-    const [kbResp, scriptsResp, oficiosResp] = await Promise.all([
+    const [kbResp, oficiosResp] = await Promise.all([
       fetch(`${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao,orgao,bairro,palavras_chave&order=data_publicacao.desc&limit=5`, { headers }).catch(() => null),
-      fetch(`${supabaseUrl}/rest/v1/scripts?select=titulo,conteudo,categoria&limit=5&order=created_at.desc`, { headers }).catch(() => null),
       fetch(`${supabaseUrl}/rest/v1/oficios?select=numero,assunto,destinatario,conteudo,secretaria_identificada,tipo_demanda,bairro&order=created_at.desc&limit=10&conteudo=not.is.null`, { headers }).catch(() => null),
     ]);
 
@@ -208,17 +170,6 @@ serve(async (req) => {
         }
       }
     } catch (e) { console.error("KB error:", e); }
-
-    let scriptsContext = "";
-    try {
-      if (scriptsResp?.ok) {
-        const scriptsData = await scriptsResp.json();
-        if (scriptsData.length > 0) {
-          scriptsContext = "\n\nSCRIPTS DE REFERÊNCIA:\n" +
-            scriptsData.map((s: any) => `- ${s.titulo} (${s.categoria}): ${s.conteudo?.substring(0, 200) || ""}`).join("\n");
-        }
-      }
-    } catch (e) { console.error("Scripts error:", e); }
 
     let previousOficiosContext = "";
     try {
@@ -235,26 +186,23 @@ serve(async (req) => {
 
     const userPrompt = `Gere o ofício com base nas seguintes informações:
 
-ASSUNTO: ${assunto || "Não informado"}
+SECRETARIA: ${tipo || "Não informada"}
 DESTINATÁRIO: ${destinatario || "A identificar"}
 DESCRIÇÃO/CONTEXTO: ${descricao || "Não informado"}
-TIPO DE DEMANDA: ${tipo || "Solicitação"}
 SOLICITANTE: ${solicitante || "Cidadão"}
-LOCAL: ${local || "Não informado"}
-BAIRRO: ${bairro || "Não informado"}
+ENDEREÇO COMPLETO: ${bairro || local || "Não informado"}
 PRIORIDADE: ${prioridade || "Normal"}
-DATA: ${new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}
-${knowledgeContext}${scriptsContext}${previousOficiosContext}
+ASSUNTO (se já informado): ${assunto || "Não informado — gerar automaticamente"}
+${knowledgeContext}${previousOficiosContext}
 
 INSTRUÇÕES:
 1. Identifique a secretaria responsável usando a lista de competências
-2. Determine o nível de urgência
-3. Redija o corpo seguindo a ESTRUTURA OBRIGATÓRIA de 5 partes
-4. Gere o campo "assunto_sugerido" no formato "Solicitação de [AÇÃO] – [LOCAL/BAIRRO]"
-5. Use tags <strong> para destacar em negrito termos relevantes (nomes de ruas, bairros, problemas, ações)
-6. O texto deve caber em UMA página A4 (Arial 11pt, margens 3cm/2cm, espaçamento 1,5)
-7. Gere uma sugestão de resposta ao cidadão
-8. Se houver ofícios anteriores similares, APRENDA com o estilo`;
+2. Redija o corpo seguindo a ESTRUTURA OBRIGATÓRIA de 4 parágrafos + conclusão fixa
+3. Gere o campo "assunto_sugerido" no formato "Solicitação de [AÇÃO] – [LOCAL/BAIRRO]"
+4. Use tags <strong> para destacar em negrito termos relevantes
+5. O texto deve caber em UMA página A4
+6. Na conclusão, use o nome COMPLETO da secretaria conforme indicado em SECRETARIA
+7. NUNCA duplique "Bairro Bairro" — verifique o endereço antes`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -306,7 +254,6 @@ INSTRUÇÕES:
       parsed = {
         oficio: content,
         assunto_sugerido: "",
-        resposta_cidadao: "",
         secretaria_identificada: destinatario || "",
         tipo_demanda: tipo || "Solicitação",
         urgencia: prioridade === "Urgente" ? "urgente" : "normal",
@@ -319,9 +266,8 @@ INSTRUÇÕES:
     });
   } catch (e) {
     console.error("generate-oficio error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

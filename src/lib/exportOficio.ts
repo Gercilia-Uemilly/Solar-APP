@@ -488,16 +488,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               })],
               spacing: { before: 0, after: 0 },
             }),
-            new Paragraph({
-              alignment: AlignmentType.RIGHT,
-              children: [new TextRun({
-                text: operadorMarca,
-                font: fontName,
-                size: 12,
-                color: "E8E8E8",
-              })],
-              spacing: { before: 0, after: 0 },
-            }),
           ],
         }),
       },
