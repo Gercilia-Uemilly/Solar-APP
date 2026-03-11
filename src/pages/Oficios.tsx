@@ -1369,8 +1369,9 @@ export default function Oficios() {
                     });
                     if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
                       const pdfBlob = await convertResp.blob();
-                      const url = URL.createObjectURL(pdfBlob);
-                      window.open(url, "_blank");
+                      const fileName = `${(numero || "preview").replace(/\//g, "-")}_preview.pdf`;
+                      const { saveAs } = await import("file-saver");
+                      saveAs(pdfBlob, fileName);
                     } else {
                       toast({ title: "Não foi possível gerar preview do PDF", variant: "destructive" });
                     }
