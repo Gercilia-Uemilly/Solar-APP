@@ -87,6 +87,26 @@ export default function PainelNumeracao() {
     supabase.rpc("liberar_reservas_expiradas" as any).then(() => {});
   }, []);
 
+  const handleMarkUsed = async (num: NumRow) => {
+    if (!user) return;
+    const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+    const userName = (profile as any)?.full_name || user.user_metadata?.full_name || user.email || "";
+    const { data: result } = await supabase.rpc("usar_numero", {
+      p_numero: num.numero,
+      p_ano: ano,
+      p_user_id: user.id,
+      p_user_nome: userName,
+      p_oficio_id: null as any,
+    });
+    if (result) {
+      toast({ title: `Número ${num.numero} marcado como usado` });
+      setNumeros(prev => prev.map(n => n.id === num.id ? { ...n, status: "usado", usado_por: user.id, usado_por_nome: userName, usado_em: new Date().toISOString() } : n));
+    } else {
+      toast({ title: "Erro", description: "Não foi possível marcar o número.", variant: "destructive" });
+    }
+    setSelected(null);
+  };
+
   const handleCancelNumber = async (num: NumRow) => {
     if (!isAdmin) return;
     if (!confirm(`Deseja cancelar o número ${num.numero}?`)) return;
@@ -104,15 +124,16 @@ export default function PainelNumeracao() {
   };
 
   const handleReleaseNumber = async (num: NumRow) => {
-    if (!isAdmin) return;
+    const canRelease = isAdmin || num.reservado_por === user?.id || num.usado_por === user?.id;
+    if (!canRelease) return;
     const { error } = await supabase
       .from("oficio_numeracao" as any)
-      .update({ status: "disponivel", reservado_por: null, reservado_por_nome: null, reservado_em: null } as any)
+      .update({ status: "disponivel", reservado_por: null, reservado_por_nome: null, reservado_em: null, usado_por: null, usado_por_nome: null, usado_em: null, oficio_id: null } as any)
       .eq("id", num.id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      setNumeros(prev => prev.map(n => n.id === num.id ? { ...n, status: "disponivel", reservado_por: null, reservado_por_nome: null, reservado_em: null } : n));
+      setNumeros(prev => prev.map(n => n.id === num.id ? { ...n, status: "disponivel", reservado_por: null, reservado_por_nome: null, reservado_em: null, usado_por: null, usado_por_nome: null, usado_em: null } : n));
       toast({ title: `Número ${num.numero} liberado` });
       setSelected(null);
     }
