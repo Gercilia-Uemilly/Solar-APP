@@ -588,9 +588,9 @@ export default function MeusOficios() {
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : listaExibida.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
-            ) : filtered.map(o => (
+            ) : listaExibida.map(o => (
               <TableRow key={o.id}>
                 <TableCell className="font-medium">{o.numero || "-"}</TableCell>
                 <TableCell>{o.assunto || "-"}</TableCell>

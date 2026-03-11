@@ -414,11 +414,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
-        // Vocativo — LEFT aligned, after: 240, indent 1.25cm, BOLD
+        // Vocativo — LEFT aligned, after: 240, indent 1.25cm, NOT bold per real PDFs
         new Paragraph({
           alignment: AlignmentType.LEFT,
           indent: { firstLine: 709 },
-          children: [new TextRun({ text: vocativo, font: fontName, size: fontSize, bold: true })],
+          children: [new TextRun({ text: vocativo, font: fontName, size: fontSize })],
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
