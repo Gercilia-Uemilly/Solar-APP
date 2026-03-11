@@ -246,6 +246,18 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0" }}>Vereador</p>
         </div>
 
+        {/* ANEXO DE IMAGENS */}
+        {anexoImageUrls && anexoImageUrls.length > 0 && (
+          <div style={{ marginTop: "40px", pageBreakBefore: "always" }}>
+            <p style={{ fontSize: "12pt", fontWeight: "bold", textAlign: "center", marginBottom: "16px" }}>Anexo I – Imagens</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              {anexoImageUrls.map((url, i) => (
+                <img key={i} src={url} alt={`Anexo ${i + 1}`} style={{ width: "100%", height: "auto", objectFit: "contain", border: "1px solid #ccc", borderRadius: "4px" }} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* RODAPÉ */}
         <div style={{
           marginTop: "80px",
