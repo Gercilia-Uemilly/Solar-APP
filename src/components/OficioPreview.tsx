@@ -38,13 +38,11 @@ function cleanNumero(raw: string): string {
 /** Extract vocativo from cargo string */
 function buildVocativo(cargo?: string): string {
   if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  const cleaned = cargo
-    .replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")
-    .replace(/\bMunicipal\b/gi, "")
-    .replace(/\s*da\s+Secretaria.*$/i, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-  return `Excelentíssimo(a) Senhor(a) ${cleaned},`;
+  const lower = cargo.toLowerCase();
+  if (lower.includes("prefeito") || lower.includes("prefeita")) return "Excelentíssimo(a) Senhor(a) Prefeito(a),";
+  if (lower.includes("presidente")) return "Excelentíssimo(a) Senhor(a) Presidente,";
+  if (lower.includes("secretári") || lower.includes("secretario") || lower.includes("secretaria")) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
+  return "Ilustríssimo(a) Senhor(a),";
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
