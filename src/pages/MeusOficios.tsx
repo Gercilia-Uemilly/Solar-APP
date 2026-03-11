@@ -603,12 +603,32 @@ export default function MeusOficios() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
             ) : listaExibida.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
             ) : listaExibida.map(o => (
               <TableRow key={o.id}>
                 <TableCell className="font-medium">{o.numero || "-"}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="text-lg cursor-pointer hover:opacity-80" title="Marcador">
+                        {marcadorOptions.find(m => m.value === o.marcador)?.emoji || "⚪"}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel>Marcador</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {marcadorOptions.map(m => (
+                        <DropdownMenuItem key={m.value} onClick={() => handleMarcadorChange(o.id, m.value)} className={cn(o.marcador === m.value && "font-bold")}>
+                          {m.emoji} {m.label}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleMarcadorChange(o.id, null)}>⚪ Remover</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
                 <TableCell>{o.assunto || "-"}</TableCell>
                 <TableCell>{o.destinatario}</TableCell>
                 <TableCell>
