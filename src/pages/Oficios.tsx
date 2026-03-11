@@ -1240,19 +1240,19 @@ export default function Oficios() {
               </div>
             </TabsContent>
 
-            {/* TAB: STATUS */}
-            <TabsContent value="status" className="space-y-4 mt-4">
+            {/* TAB: HISTÓRICO */}
+            <TabsContent value="historico" className="space-y-4 mt-4">
               <div className="bg-secondary rounded-lg p-4 space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Informações do Ofício</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><span className="text-muted-foreground">Número:</span> <span className="text-foreground">{numero || "—"}</span></div>
                   <div><span className="text-muted-foreground">Data:</span> <span className="text-foreground">{dataGeracao}</span></div>
                   <div><span className="text-muted-foreground">Assunto:</span> <span className="text-foreground">{assunto || "—"}</span></div>
-                  <div><span className="text-muted-foreground">Destinatário:</span> <span className="text-foreground">{destinatario || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Destinatário:</span> <span className="text-foreground">{cargoDestinatario || destinatario || "—"}</span></div>
                   <div><span className="text-muted-foreground">Secretaria:</span> <span className="text-foreground">{secretaria || "—"}</span></div>
                   <div><span className="text-muted-foreground">Prioridade:</span> <span className="text-foreground">{prioridade}</span></div>
                   <div><span className="text-muted-foreground">Solicitante:</span> <span className="text-foreground">{solicitante || "—"}</span></div>
-                  <div><span className="text-muted-foreground">Bairro:</span> <span className="text-foreground">{bairro || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Endereço:</span> <span className="text-foreground">{enderecoCompleto || "—"}</span></div>
                 </div>
                 {aiResult && (
                   <div className="pt-2 border-t border-border">
@@ -1260,9 +1260,16 @@ export default function Oficios() {
                   </div>
                 )}
               </div>
-              <Button onClick={() => handleCreate(true)} className="w-full bg-primary text-primary-foreground">
-                <CheckCircle2 size={16} className="mr-1" /> {editingOficioId ? "Atualizar Ofício" : "Salvar Ofício"}
-              </Button>
+              {oficioHistory.length > 1 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Versões do texto ({oficioHistory.length})</h4>
+                  {oficioHistory.map((_, i) => (
+                    <button key={i} onClick={() => { setHistoryIndex(i); setEditedOficio(oficioHistory[i]); }} className={`w-full text-left p-2 rounded text-xs ${i === historyIndex ? "bg-primary/10 border border-primary/30" : "bg-secondary"}`}>
+                      Versão {i + 1} {i === historyIndex && "(atual)"}
+                    </button>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </DialogContent>
