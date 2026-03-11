@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
 import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
-import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
