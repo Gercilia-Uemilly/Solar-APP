@@ -834,13 +834,8 @@ export default function Oficios() {
                   <span>Nome do arquivo: <strong className="text-foreground">
                     {(() => {
                       const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
-                      if (origemOficio === "Zap Emprego" && codigoZ) {
-                        const digits = contatoSolicitante.replace(/\D/g, '').slice(-4);
-                        if (digits.length >= 4) {
-                          return `${cleanedNum} ${digits} Z${codigoZ}.pdf`;
-                        }
-                      }
-                      return `${cleanedNum || 'rascunho'}.pdf`;
+                      const solCode = solicitante.trim().split(/\s+/)[0] || "";
+                      return `${cleanedNum || 'rascunho'}${solCode ? ` ${solCode}` : ''}.pdf`;
                     })()}
                   </strong></span>
                 </div>
