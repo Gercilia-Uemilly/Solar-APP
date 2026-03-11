@@ -219,12 +219,20 @@ export default function MeusOficios() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("oficios").delete().eq("id", id);
+    const oficio = oficios.find(o => o.id === id);
+    const numLabel = oficio?.numero || "rascunho";
+    if (!confirm(`Tem certeza que deseja excluir o Ofício nº ${numLabel}?\nEle ficará na Lixeira por 30 dias e pode ser recuperado.`)) return;
+    
+    const { error } = await supabase.from("oficios").update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: user?.id,
+      deleted_by_name: profileName || user?.email || null,
+    } as any).eq("id", id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       setOficios(prev => prev.filter(o => o.id !== id));
-      toast({ title: "Ofício excluído" });
+      toast({ title: "Ofício movido para a lixeira" });
     }
   };
 
