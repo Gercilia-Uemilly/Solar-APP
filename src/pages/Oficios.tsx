@@ -369,8 +369,8 @@ export default function Oficios() {
       if (data.assunto_sugerido && !assunto) setAssunto(data.assunto_sugerido);
       if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
       if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
-      setFormTab("texto");
-      toast({ title: "Ofício gerado!", description: "Revise e edite o texto antes de salvar." });
+      setFormTab("preview");
+      toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
     } catch (e: any) {
       toast({ title: "Erro ao gerar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
