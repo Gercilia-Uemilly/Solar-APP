@@ -1166,7 +1166,7 @@ export default function Oficios() {
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
                 </Button>
-                <Button variant="outline" onClick={() => handleCreate(false)} className="border-border">
+                <Button variant="outline" onClick={async () => { await handleCreate(false); setFormTab("preview"); }} className="border-border">
                   Salvar Rascunho
                 </Button>
               </div>
