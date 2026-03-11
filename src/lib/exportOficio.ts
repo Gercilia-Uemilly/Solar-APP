@@ -50,15 +50,14 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
   return numPart;
 }
 
-/** Build vocativo — removes "Ilmo(a). Sr(a)." prefix and "Municipal" / "da Secretaria..." */
+/** Build vocativo — simplified: only role title, no department name */
 function buildVocativo(cargo?: string): string {
   if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  const cleaned = cargo
-    .replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")
-    .replace(/\s*Municipal\b/i, "")
-    .replace(/\s*da Secretaria.*$/i, "")
-    .trim();
-  return `Excelentíssimo(a) Senhor(a) ${cleaned},`;
+  const lower = cargo.toLowerCase();
+  if (lower.includes("prefeito") || lower.includes("prefeita")) return "Excelentíssimo(a) Senhor(a) Prefeito(a),";
+  if (lower.includes("presidente")) return "Excelentíssimo(a) Senhor(a) Presidente,";
+  if (lower.includes("secretári") || lower.includes("secretario") || lower.includes("secretaria")) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
+  return "Ilustríssimo(a) Senhor(a),";
 }
 
 // ── Dados comuns ─────────────────────────────────────────────────────────────
