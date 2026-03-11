@@ -253,7 +253,23 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         <ToolBtn onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="Limpar formatação">
           <Eraser size={15} />
         </ToolBtn>
+
+        <div className="w-px h-5 bg-gray-300 mx-1" />
+
+        {/* Insert Image */}
+        <ToolBtn onClick={() => imageInputRef.current?.click()} title="Inserir imagem">
+          <ImagePlus size={15} />
+        </ToolBtn>
       </div>
+
+      {/* Hidden image input */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageInsert}
+      />
 
       {/* Editor */}
       <EditorContent editor={editor} />
