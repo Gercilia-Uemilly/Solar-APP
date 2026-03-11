@@ -836,11 +836,10 @@ export default function Oficios() {
           </DialogHeader>
 
           <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
-            <TabsList className="w-full bg-secondary grid grid-cols-4">
+            <TabsList className="w-full bg-secondary grid grid-cols-3">
               <TabsTrigger value="dados" className="text-xs">📋 Dados</TabsTrigger>
-              <TabsTrigger value="texto" className="text-xs">🔥 Texto</TabsTrigger>
               <TabsTrigger value="preview" className="text-xs">👁️ Visualizar</TabsTrigger>
-              <TabsTrigger value="status" className="text-xs">📊 Status</TabsTrigger>
+              <TabsTrigger value="historico" className="text-xs">📜 Histórico</TabsTrigger>
             </TabsList>
 
             {/* TAB: DADOS */}
