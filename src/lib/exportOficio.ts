@@ -93,13 +93,15 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
   div.innerHTML = html;
   const paragraphs: (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[][] = [];
 
-  const decodeBase64Image = (src: string): { image: Uint8Array; width: number; height: number } | null => {
+  const decodeBase64Image = (src: string): { image: Uint8Array; width: number; height: number; imageType: string } | null => {
     try {
       const base64 = src.split(",")[1];
+      const mimeMatch = src.match(/^data:image\/([\w+]+);/);
+      const imageType = mimeMatch ? (mimeMatch[1] === "jpeg" || mimeMatch[1] === "jpg" ? "jpg" : "png") : "png";
       const binaryStr = atob(base64);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-      return { image: bytes, width: 400, height: 300 };
+      return { image: bytes, width: 400, height: 300, imageType };
     } catch { return null; }
   };
 
