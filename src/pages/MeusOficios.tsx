@@ -668,14 +668,22 @@ export default function MeusOficios() {
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => handleOpenPreview(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
                     <button
-                      onClick={() => { if (o.conteudo) exportToWord(buildExportData(o)); }}
+                      onClick={async () => {
+                        if (!o.conteudo) return;
+                        const imgs = await fetchSavedImages(o.id);
+                        exportToWord({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                      }}
                       className="p-2 text-muted-foreground hover:text-foreground"
                       title="Exportar Word"
                     >
                       <FileText size={16} />
                     </button>
                     <button
-                      onClick={async () => { if (o.conteudo) await exportToPDF(buildExportData(o)); }}
+                      onClick={async () => {
+                        if (!o.conteudo) return;
+                        const imgs = await fetchSavedImages(o.id);
+                        await exportToPDF({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                      }}
                       className="p-2 text-muted-foreground hover:text-foreground"
                       title="Exportar PDF"
                     >
