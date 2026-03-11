@@ -737,7 +737,7 @@ export default function MeusOficios() {
           </DialogHeader>
           {exportConfirmOficio && (() => {
             const data = buildExportData(exportConfirmOficio);
-            const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
+            const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
             return (
               <div className="space-y-3 text-sm">
                 <div className="bg-secondary/50 rounded-lg p-3 space-y-1">

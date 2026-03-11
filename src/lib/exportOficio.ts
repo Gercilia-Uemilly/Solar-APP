@@ -666,7 +666,7 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 
 // ── Export PDF ───────────────────────────────────────────────────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
-  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ);
+  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
 
   try {
     let wordBlob = await buildWordBlob(data);
