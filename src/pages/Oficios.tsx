@@ -399,7 +399,7 @@ export default function Oficios() {
           bairro,
           local: localDemanda,
           secretaria: secretaria || aiResult?.secretaria_identificada || "",
-          tipo_demanda: tipoServico || aiResult?.tipo_demanda || "",
+          tipo_demanda: secretaria || aiResult?.tipo_demanda || "",
           urgencia: prioridade === "Urgente" ? "urgente" : "normal",
           tem_midias: temMidias,
           tipos_midias: tiposMidias || null,
