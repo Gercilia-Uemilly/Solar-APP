@@ -105,15 +105,29 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
 
   if (!html.includes("<")) {
     return html
-      .split("\n")
-      .map((p) => p.trim())
+      .split(/\n\s*\n+/)
+      .map((p) => p.replace(/\n+/g, " ").trim())
       .filter(Boolean)
       .filter((p) => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
       .map((p) => [{ text: p }]);
   }
 
   const root = document.createElement("div");
-  root.innerHTML = html;
+  const hasExplicitBlocks = /<(p|div|li|h[1-6]|blockquote|ul|ol)\b/i.test(html);
+  if (hasExplicitBlocks) {
+    root.innerHTML = html;
+  } else {
+    const chunks = html
+      .split(/\n\s*\n+/)
+      .map((chunk) => chunk.trim())
+      .filter(Boolean);
+
+    if (chunks.length > 1) {
+      root.innerHTML = chunks.map((chunk) => `<p>${chunk.replace(/\n/g, "<br/>")}</p>`).join("");
+    } else {
+      root.innerHTML = html.replace(/\n/g, "<br/>");
+    }
+  }
 
   const blockTags = new Set(["p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote"]);
   const containerTags = new Set(["div", "section", "article", "main"]);
