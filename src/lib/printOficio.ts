@@ -61,7 +61,7 @@ export async function printOficio(data: PrintData) {
   let assuntoFmt = data.assunto || "___";
   if (data.bairro) assuntoFmt += ` – Bairro ${data.bairro}`;
 
-  const destinatarioCompleto = `${data.cargoDestinatario || "Ilmo(a). Sr(a). Secretário(a) Municipal"}${data.destinatario && !(data.cargoDestinatario || "").toLowerCase().includes(data.destinatario.toLowerCase().substring(0, 8)) ? ` ${data.destinatario}` : !data.cargoDestinatario && data.destinatario ? ` ${data.destinatario}` : ""}`;
+  const destinatarioCompleto = data.cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${data.destinatario ? ` ${data.destinatario}` : ""}`;
 
   const vocativo = buildVocativo(data.cargoDestinatario);
 
