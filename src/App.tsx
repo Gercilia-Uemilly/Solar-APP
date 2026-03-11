@@ -27,6 +27,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
+const Lixeira = lazy(() => import("./pages/Lixeira"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
