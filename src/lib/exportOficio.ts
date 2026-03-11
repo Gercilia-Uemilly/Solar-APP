@@ -288,7 +288,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         children.push(new ImageRun({
           data: r.image,
           transformation: { width: r.width, height: r.height },
-          type: "png",
+          type: ('imageType' in r ? r.imageType : "png") as "png" | "jpg" | "gif" | "bmp",
         }));
       } else {
         children.push(new TextRun({
