@@ -27,20 +27,17 @@ function formatDate(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
+function buildFileName(numero: string, solicitante?: string): string {
   const cleanedNumero = cleanNumero(numero || "");
   const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9-]/g, '').trim() || 'rascunho';
   
-  // Zap Emprego format: [numero]-[ano] [last4digits] [Zcode]
-  if (codigoZ && contatoSolicitante) {
-    const digits = contatoSolicitante.replace(/\D/g, '').slice(-4);
-    if (digits.length >= 4) {
-      const zCode = `Z${codigoZ.replace(/\D/g, '')}`;
-      return `${numPart} ${digits} ${zCode}`;
-    }
+  // Extract the solicitante code (first word, e.g. "R12649" from "R12649 Maria")
+  const solicitanteCode = (solicitante || "").trim().split(/\s+/)[0] || "";
+  
+  if (solicitanteCode) {
+    return `${numPart} ${solicitanteCode}`;
   }
   
-  // Other origins: just the number
   return numPart;
 }
 
