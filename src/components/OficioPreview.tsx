@@ -39,12 +39,9 @@ function cleanNumero(raw: string): string {
 function buildVocativo(cargo?: string): string {
   if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
   const lower = cargo.toLowerCase();
-  if (lower.includes("prefeito") || lower.includes("prefeita")) return "Excelentíssimo(a) Senhor(a) Prefeito(a),";
-  if (lower.includes("presidente")) return "Excelentíssimo(a) Senhor(a) Presidente,";
   if (lower.includes("diretor") || lower.includes("diretora")) return "Excelentíssimo(a) Senhor(a) Diretor(a),";
   if (lower.includes("reitor") || lower.includes("reitora")) return "Magnífico(a) Reitor(a),";
-  if (lower.includes("secretári") || lower.includes("secretario") || lower.includes("secretaria")) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  return "Ilustríssimo(a) Senhor(a),";
+  return "Excelentíssimo(a) Senhor(a) Secretário(a),";
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
@@ -89,7 +86,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       assuntoFormatado = `${assunto} – ${bairroFormatado}`;
     }
 
-    const operadorMarca = operadorNome ? operadorNome.split(' ')[0].toLowerCase() : '';
+    
 
     const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` de ${destinatario}` : ""}`;
 
@@ -270,19 +267,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           fontFamily: "Arial, Helvetica, sans-serif",
         }}>
           Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
-          {operadorMarca && (
-            <span style={{
-              position: "absolute",
-              right: 0,
-              bottom: "2px",
-              fontSize: "6pt",
-              color: "rgba(200, 200, 200, 0.3)",
-              userSelect: "none",
-              pointerEvents: "none",
-            }}>
-              {operadorMarca}
-            </span>
-          )}
         </div>
       </div>
     );

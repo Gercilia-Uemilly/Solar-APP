@@ -54,12 +54,9 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
 function buildVocativo(cargo?: string): string {
   if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
   const lower = cargo.toLowerCase();
-  if (lower.includes("prefeito") || lower.includes("prefeita")) return "Excelentíssimo(a) Senhor(a) Prefeito(a),";
-  if (lower.includes("presidente")) return "Excelentíssimo(a) Senhor(a) Presidente,";
   if (lower.includes("diretor") || lower.includes("diretora")) return "Excelentíssimo(a) Senhor(a) Diretor(a),";
   if (lower.includes("reitor") || lower.includes("reitora")) return "Magnífico(a) Reitor(a),";
-  if (lower.includes("secretári") || lower.includes("secretario") || lower.includes("secretaria")) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  return "Ilustríssimo(a) Senhor(a),";
+  return "Excelentíssimo(a) Senhor(a) Secretário(a),";
 }
 
 // ── Dados comuns ─────────────────────────────────────────────────────────────
@@ -394,9 +391,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const lineSpacing = 360; // 1.5 lines (padrão fixo do modelo institucional)
 
-  const operadorMarca = operadorNome
-    ? operadorNome.split(' ')[0].toLowerCase()
-    : operadorEmail?.split('@')[0].toLowerCase() || 'sistema';
+  // operadorMarca removed — operator name no longer appears in document
 
   // Body paragraphs — handle both text runs and inline images
   const bodyParagraphs: Paragraph[] = [];
@@ -488,16 +483,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
                 font: fontName,
                 size: 18, // 9pt
                 color: "444444",
-              })],
-              spacing: { before: 0, after: 0 },
-            }),
-            new Paragraph({
-              alignment: AlignmentType.RIGHT,
-              children: [new TextRun({
-                text: operadorMarca,
-                font: fontName,
-                size: 12,
-                color: "E8E8E8",
               })],
               spacing: { before: 0, after: 0 },
             }),

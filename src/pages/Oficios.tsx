@@ -1183,8 +1183,8 @@ export default function Oficios() {
                   <Save size={14} className="mr-1" /> Salvar e Fechar
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => {
-                  if (!destinatario || !assunto || !editedOficio) {
-                    toast({ title: "Campos obrigatórios", description: "Preencha o destinatário, assunto e gere o texto do ofício antes de exportar.", variant: "destructive" });
+                  if (!destinatario && !cargoDestinatario || !editedOficio) {
+                    toast({ title: "Campos obrigatórios", description: "Preencha o destinatário e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
                   exportToWord(buildFormExportData());
@@ -1197,42 +1197,41 @@ export default function Oficios() {
                     setFormTab("dados");
                     return;
                   }
-                  if (origemOficio === "Zap Emprego" && (!contatoSolicitante || contatoSolicitante.replace(/\D/g, '').length < 4)) {
-                    toast({ title: "Celular inválido", description: "Preencha o WhatsApp do solicitante com pelo menos 4 dígitos.", variant: "destructive" });
-                    setFormTab("dados");
-                    return;
-                  }
                   await exportToPDF(buildFormExportData());
                 }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => {
-                  try {
-                    const data = buildFormExportData();
-                    const { buildWordBlobForExport } = await import("@/lib/exportOficio");
-                    const wordBlob = await buildWordBlobForExport(data);
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (!session) { toast({ title: "Sessão expirada", variant: "destructive" }); return; }
-                    const convertFormData = new FormData();
-                    convertFormData.append("file", wordBlob, "preview.docx");
-                    const convertResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/convert-to-pdf`, {
-                      method: "POST",
-                      headers: { Authorization: `Bearer ${session.access_token}` },
-                      body: convertFormData,
-                    });
-                    if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
-                      const pdfBlob = await convertResp.blob();
-                      const fileName = `${(numero || "preview").replace(/\//g, "-")}_preview.pdf`;
-                      const { saveAs } = await import("file-saver");
-                      saveAs(pdfBlob, fileName);
-                    } else {
-                      toast({ title: "Não foi possível gerar preview do PDF", variant: "destructive" });
-                    }
-                  } catch (e: any) {
-                    toast({ title: "Erro ao gerar preview", description: e.message, variant: "destructive" });
+                <Button size="sm" variant="outline" disabled={isUploading} onClick={async () => {
+                  if (!editedOficio) {
+                    toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de enviar ao Drive.", variant: "destructive" });
+                    return;
                   }
+                  // Build a temporary OficioRow-like object for handleUploadToDrive
+                  const tempOficio: OficioRow = {
+                    id: editingOficioId || "",
+                    numero: numero || null,
+                    assunto: assunto || "",
+                    destinatario: destinatario || "",
+                    status: "Rascunho",
+                    conteudo: editedOficio,
+                    resposta_cidadao: null,
+                    author_id: user?.id || "",
+                    created_at: new Date().toISOString(),
+                    cargo_destinatario: cargoDestinatario || null,
+                    local_demanda: localDemanda || null,
+                    bairro: enderecoCompleto || bairro || null,
+                    solicitante: solicitante || null,
+                    contato_solicitante: contatoSolicitante || null,
+                    data_geracao: dataGeracao || null,
+                    ano: new Date().getFullYear(),
+                  };
+                  if (!editingOficioId) {
+                    // Save first
+                    await handleCreate(false);
+                  }
+                  await handleUploadToDrive(tempOficio);
                 }}>
-                  <Eye size={14} className="mr-1" /> Visualizar PDF
+                  {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
