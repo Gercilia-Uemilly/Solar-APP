@@ -273,23 +273,38 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     ? operadorNome.split(' ')[0].toLowerCase()
     : operadorEmail?.split('@')[0].toLowerCase() || 'sistema';
 
-  // Body paragraphs — after:0, before:0, line:lineSpacing, indent 1.25cm (709 twips)
-  const bodyParagraphs = styledParagraphs.map((runs, idx) => {
+  // Body paragraphs — handle both text runs and inline images
+  const bodyParagraphs: Paragraph[] = [];
+  styledParagraphs.forEach((runs, idx) => {
     const isLastTwo = idx >= styledParagraphs.length - 2;
-    return new Paragraph({
+    const children: (TextRun | ImageRun)[] = [];
+    
+    for (const r of runs) {
+      if ('image' in r) {
+        children.push(new ImageRun({
+          data: r.image,
+          transformation: { width: r.width, height: r.height },
+          type: "png",
+        }));
+      } else {
+        children.push(new TextRun({
+          text: r.text,
+          font: fontName,
+          size: fontSize,
+          bold: r.bold,
+          italics: r.italic,
+          underline: r.underline ? {} : undefined,
+        }));
+      }
+    }
+    
+    bodyParagraphs.push(new Paragraph({
       indent: { firstLine: 709 },
       alignment: AlignmentType.JUSTIFIED,
-      children: runs.map(r => new TextRun({
-        text: r.text,
-        font: fontName,
-        size: fontSize,
-        bold: r.bold,
-        italics: r.italic,
-        underline: r.underline ? {} : undefined,
-      })),
+      children,
       spacing: { before: 0, after: 0, line: lineSpacing },
       keepNext: isLastTwo,
-    });
+    }));
   });
 
   const doc = new Document({
