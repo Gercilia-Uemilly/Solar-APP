@@ -93,6 +93,16 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
   div.innerHTML = html;
   const paragraphs: (StyledRun | { image: Uint8Array; width: number; height: number })[][] = [];
 
+  const decodeBase64Image = (src: string): { image: Uint8Array; width: number; height: number } | null => {
+    try {
+      const base64 = src.split(",")[1];
+      const binaryStr = atob(base64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+      return { image: bytes, width: 400, height: 300 };
+    } catch { return null; }
+  };
+
   const extractRuns = (node: Node, inherited: { bold?: boolean; italic?: boolean; underline?: boolean }): (StyledRun | { image: Uint8Array; width: number; height: number })[] => {
     const runs: (StyledRun | { image: Uint8Array; width: number; height: number })[] = [];
     node.childNodes.forEach(child => {
@@ -105,15 +115,8 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
         if (tag === "img") {
           const src = el.getAttribute("src") || "";
           if (src.startsWith("data:")) {
-            try {
-              const base64 = src.split(",")[1];
-              const binaryStr = atob(base64);
-              const bytes = new Uint8Array(binaryStr.length);
-              for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-              const w = parseInt(el.getAttribute("width") || "400", 10);
-              const h = parseInt(el.getAttribute("height") || "300", 10);
-              runs.push({ image: bytes, width: Math.min(w, 500), height: Math.min(h, 400) });
-            } catch { /* skip invalid */ }
+            const decoded = decodeBase64Image(src);
+            if (decoded) runs.push(decoded);
           }
           return;
         }
@@ -127,37 +130,36 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
     return runs;
   };
 
-  const blockEls = div.querySelectorAll("p, div, li, h1, h2, h3");
-  if (blockEls.length > 0) {
-    blockEls.forEach(el => {
+  // Process all direct children of the wrapper div in order
+  for (const node of Array.from(div.childNodes)) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const tag = el.tagName.toLowerCase();
+
+      // Standalone image at top level
+      if (tag === "img") {
+        const src = el.getAttribute("src") || "";
+        if (src.startsWith("data:")) {
+          const decoded = decodeBase64Image(src);
+          if (decoded) paragraphs.push([decoded]);
+        }
+        continue;
+      }
+
+      // Block elements (p, div, li, h1-h3, etc.)
       const runs = extractRuns(el, {});
-      // Check if this block has any content (text or images)
       const hasContent = runs.some(r => ('text' in r && r.text.trim()) || 'image' in r);
       const textOnly = runs.filter(r => 'text' in r).map(r => (r as StyledRun).text).join("").trim();
       if (hasContent && !textOnly.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
         paragraphs.push(runs);
       }
-    });
-  } else {
-    const runs = extractRuns(div, {});
-    const text = runs.filter(r => 'text' in r).map(r => (r as StyledRun).text).join("").trim();
-    if (text || runs.some(r => 'image' in r)) paragraphs.push(runs);
-  }
-
-  // Also extract standalone img elements not inside block elements
-  const standaloneImgs = div.querySelectorAll("img");
-  standaloneImgs.forEach(img => {
-    const src = img.getAttribute("src") || "";
-    if (src.startsWith("data:") && !img.closest("p, div, li, h1, h2, h3")) {
-      try {
-        const base64 = src.split(",")[1];
-        const binaryStr = atob(base64);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-        paragraphs.push([{ image: bytes, width: 400, height: 300 }]);
-      } catch { /* skip */ }
+    } else if (node.nodeType === Node.TEXT_NODE) {
+      const text = (node.textContent || "").trim();
+      if (text && !text.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
+        paragraphs.push([{ text }]);
+      }
     }
-  });
+  }
 
   return paragraphs;
 }
