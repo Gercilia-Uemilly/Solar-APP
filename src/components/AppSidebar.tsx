@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info, Newspaper, Hash, Trash2 } from "lucide-react";
+import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoSolar from "@/assets/logo-solar.png";
@@ -8,13 +8,10 @@ const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
   { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
   { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
-  { label: "Numeração", icon: Hash, path: "/numeracao", adminOnly: false },
   { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
   { label: "Scripts", icon: MessageSquare, path: "/scripts", adminOnly: false },
   { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
-  { label: "Clipping", icon: Newspaper, path: "/clipping", adminOnly: false },
   { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
-  { label: "Lixeira", icon: Trash2, path: "/lixeira", adminOnly: false },
   { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
   { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
   { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },

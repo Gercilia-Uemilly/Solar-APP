@@ -222,6 +222,7 @@ export type Database = {
           deleted_by: string | null
           deleted_by_name: string | null
           destinatario: string
+          endereco_completo: string | null
           id: string
           last_edited_at: string | null
           last_edited_by: string | null
@@ -259,6 +260,7 @@ export type Database = {
           deleted_by?: string | null
           deleted_by_name?: string | null
           destinatario?: string
+          endereco_completo?: string | null
           id?: string
           last_edited_at?: string | null
           last_edited_by?: string | null
@@ -296,6 +298,7 @@ export type Database = {
           deleted_by?: string | null
           deleted_by_name?: string | null
           destinatario?: string
+          endereco_completo?: string | null
           id?: string
           last_edited_at?: string | null
           last_edited_by?: string | null

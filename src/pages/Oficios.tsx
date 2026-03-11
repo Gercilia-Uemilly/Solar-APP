@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2, Heart, Save } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2, Save } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -24,25 +24,23 @@ import assinaturaFabao from "@/assets/assinatura-fabao.png";
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
 
-const tiposServico = [
-  { label: "Operação Tapa-Buracos / Pavimentação", secretaria: "Secretaria Municipal de Infraestrutura Urbana", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Obras e Infraestrutura" },
-  { label: "Iluminação Pública", secretaria: "Secretaria Municipal de Serviços Urbanos", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Serviços Urbanos" },
-  { label: "Sinalização / Semáforos / Trânsito", secretaria: "Secretaria Municipal de Trânsito e Transportes", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Trânsito e Transportes (SETTRAN)" },
-  { label: "Transporte Público / Ônibus", secretaria: "Secretaria Municipal de Trânsito e Transportes", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Trânsito e Transportes (SETTRAN)" },
-  { label: "Limpeza Urbana / Capina / Roçada", secretaria: "Secretaria Municipal de Serviços Urbanos", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Serviços Urbanos" },
-  { label: "Saúde / UBS / UAI", secretaria: "Secretaria Municipal de Saúde", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Saúde" },
-  { label: "Educação / Escolas", secretaria: "Secretaria Municipal de Educação", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Educação" },
-  { label: "Água / Esgoto / DMAE", secretaria: "DMAE", cargo: "Ilmo(a). Sr(a). Diretor(a) Geral do DMAE" },
-  { label: "Assistência Social / CRAS", secretaria: "Secretaria Municipal de Desenvolvimento Social", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Assistência Social" },
-  { label: "Meio Ambiente / Poda / Praças", secretaria: "Secretaria Municipal de Gestão Ambiental e Sustentabilidade", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Meio Ambiente e Sustentabilidade" },
-  { label: "Habitação / Casas Populares", secretaria: "Secretaria Municipal de Habitação", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Habitação" },
-  { label: "Segurança / Videomonitoramento", secretaria: "Secretaria Municipal de Segurança Integrada", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Segurança Integrada" },
-  { label: "Esporte / Poliesportivos / FUTEL", secretaria: "FUTEL", cargo: "Ilmo(a). Sr(a). Presidente da FUTEL" },
-  { label: "Cultura / Turismo / Eventos", secretaria: "Secretaria Municipal de Cultura e Turismo", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Cultura e Turismo" },
-  { label: "Fiscalização de Obras", secretaria: "Secretaria Municipal de Planejamento Urbano", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Planejamento Urbano" },
-  { label: "Agronegócio / Estradas Rurais", secretaria: "Secretaria Municipal de Agronegócio", cargo: "Ilmo(a). Sr(a). Secretário(a) Municipal de Agronegócio" },
-  { label: "PROCON / Defesa do Consumidor", secretaria: "PROCON", cargo: "Ilmo(a). Sr(a). Superintendente do PROCON" },
-  { label: "Outro", secretaria: "", cargo: "" },
+const secretariaOptions = [
+  { label: "Secretaria Municipal de Serviços Urbanos", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Serviços Urbanos", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Obras e Infraestrutura", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Obras e Infraestrutura", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Saúde", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Saúde", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Trânsito e Transportes (SETTRAN)", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Trânsito e Transportes (SETTRAN)", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Meio Ambiente e Sustentabilidade", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Meio Ambiente e Sustentabilidade", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Educação", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Educação", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Assistência Social", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Assistência Social", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Agronegócio", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Agronegócio", vocativo: "secretario" },
+  { label: "DMAE — Departamento Municipal de Água e Esgoto", destinatario: "Ilmo(a). Sr(a). Diretor(a) Geral do DMAE", vocativo: "diretor" },
+  { label: "UFU — Universidade Federal de Uberlândia", destinatario: "Magnífico(a) Reitor(a) da Universidade Federal de Uberlândia", vocativo: "reitor" },
+  { label: "Secretaria Municipal de Habitação", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Habitação", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Cultura e Turismo", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Cultura e Turismo", vocativo: "secretario" },
+  { label: "Secretaria Municipal de Esportes e Lazer", destinatario: "Ilmo(a). Sr(a). Secretário(a) Municipal de Esportes e Lazer", vocativo: "secretario" },
+  { label: "Prefeitura Municipal de Uberlândia (Gabinete do Prefeito)", destinatario: "Excelentíssimo(a) Senhor(a) Prefeito(a) Municipal", vocativo: "prefeito" },
+  { label: "Câmara Municipal de Uberlândia", destinatario: "Excelentíssimo(a) Senhor(a) Presidente da Câmara Municipal", vocativo: "presidente" },
+  { label: "Outro (campo livre)", destinatario: "", vocativo: "outro" },
 ];
 
 interface AIResult {
@@ -90,7 +88,7 @@ export default function Oficios() {
   // Form state
   const [numero, setNumero] = useState("");
   const [dataGeracao, setDataGeracao] = useState(new Date().toISOString().split("T")[0]);
-  const [tipoServico, setTipoServico] = useState("");
+  const [enderecoCompleto, setEnderecoCompleto] = useState("");
   const [assunto, setAssunto] = useState("");
   const [secretaria, setSecretaria] = useState("");
   const [destinatario, setDestinatario] = useState("");
@@ -185,9 +183,9 @@ export default function Oficios() {
     if (!destinatario && o.destinatario) setDestinatario(o.destinatario);
     if (!cargoDestinatario && o.cargo_destinatario) setCargoDestinatario(o.cargo_destinatario);
     if (!secretaria && (o as any).secretaria_identificada) setSecretaria((o as any).secretaria_identificada);
-    if (!bairro && o.bairro) setBairro(o.bairro);
+    if (!enderecoCompleto && o.bairro) setEnderecoCompleto(o.bairro);
     if (!assunto && o.assunto) setAssunto(o.assunto);
-    if (!tipoServico && (o as any).tipo_demanda) setTipoServico((o as any).tipo_demanda);
+    if (!secretaria && (o as any).tipo_demanda) setSecretaria((o as any).tipo_demanda);
     setAppliedSuggestionId(o.id);
     setShowSuggestions(false);
     if (user) {
@@ -324,19 +322,14 @@ export default function Oficios() {
     fetchProfile();
   }, [user]);
 
+  // When secretaria changes, auto-fill destinatario and cargo
   useEffect(() => {
-    const found = tiposServico.find(t => t.label === tipoServico);
-    if (found) {
-      if (found.secretaria) setSecretaria(found.secretaria);
-      if (found.cargo) {
-        setCargoDestinatario(found.cargo);
-        setDestinatario("");
-      } else {
-        setCargoDestinatario("");
-        setDestinatario("");
-      }
+    const found = secretariaOptions.find(s => s.label === secretaria);
+    if (found && found.destinatario) {
+      setCargoDestinatario(found.destinatario);
+      setDestinatario("");
     }
-  }, [tipoServico]);
+  }, [secretaria]);
 
   useEffect(() => {
     const query = `${assunto} ${descricao}`.trim();
@@ -363,7 +356,7 @@ export default function Oficios() {
     setAiResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("generate-oficio", {
-        body: { assunto, destinatario, descricao, tipo: tipoServico || "Solicitação", solicitante, bairro, prioridade, local: localDemanda },
+        body: { assunto, destinatario, descricao, tipo: secretaria || "Solicitação", solicitante, bairro: enderecoCompleto || bairro, prioridade, local: localDemanda },
       });
       if (error) throw error;
       setAiResult(data);
@@ -376,8 +369,8 @@ export default function Oficios() {
       if (data.assunto_sugerido && !assunto) setAssunto(data.assunto_sugerido);
       if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
       if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
-      setFormTab("texto");
-      toast({ title: "Ofício gerado!", description: "Revise e edite o texto antes de salvar." });
+      setFormTab("preview");
+      toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
     } catch (e: any) {
       toast({ title: "Erro ao gerar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
@@ -406,7 +399,7 @@ export default function Oficios() {
           bairro,
           local: localDemanda,
           secretaria: secretaria || aiResult?.secretaria_identificada || "",
-          tipo_demanda: tipoServico || aiResult?.tipo_demanda || "",
+          tipo_demanda: secretaria || aiResult?.tipo_demanda || "",
           urgencia: prioridade === "Urgente" ? "urgente" : "normal",
           tem_midias: temMidias,
           tipos_midias: tiposMidias || null,
@@ -431,19 +424,13 @@ export default function Oficios() {
     setDestinatario(o.destinatario || "");
     setCargoDestinatario(o.cargo_destinatario || "");
     setLocalDemanda(o.local_demanda || "");
-    setBairro(o.bairro || "");
+    setEnderecoCompleto((o as any).endereco_completo || o.bairro || "");
     setSolicitante(o.solicitante || "");
     setContatoSolicitante(o.contato_solicitante || "");
     setCodigoZ((o as any).codigo_z || "");
     setOrigemOficio((o as any).origem || "WhatsApp Gabinete");
-    // Restore secretaria and tipo_demanda from saved data
     const savedSecretaria = (o as any).secretaria_identificada || "";
     setSecretaria(savedSecretaria);
-    const savedTipo = (o as any).tipo_demanda || "";
-    if (savedTipo) {
-      const matchedTipo = tiposServico.find(t => t.label === savedTipo);
-      setTipoServico(matchedTipo ? matchedTipo.label : savedTipo);
-    }
     const content = o.conteudo || "";
     setEditedOficio(content);
     setOriginalOficio(content);
@@ -494,12 +481,12 @@ export default function Oficios() {
     const payload: Record<string, any> = {
       numero: fullNumero,
       assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
-      destinatario: destinatario || (tipoServico === "Outro" ? "A definir" : ""),
+      destinatario: destinatario || "",
       status: "Salvo",
       conteudo: editedOficio || null,
-      resposta_cidadao: editedResposta || null,
-      secretaria_identificada: aiResult?.secretaria_identificada || secretaria || null,
-      tipo_demanda: aiResult?.tipo_demanda || tipoServico || null,
+      resposta_cidadao: null,
+      secretaria_identificada: secretaria || aiResult?.secretaria_identificada || null,
+      tipo_demanda: secretaria || aiResult?.tipo_demanda || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
       codigo_z: origemOficio === "Zap Emprego" ? (codigoZ || null) : null,
@@ -507,7 +494,8 @@ export default function Oficios() {
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: cargoDestinatario || null,
       local_demanda: localDemanda || null,
-      bairro: bairro || null,
+      bairro: enderecoCompleto || bairro || null,
+      endereco_completo: enderecoCompleto || null,
       solicitante: solicitante || null,
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
@@ -643,12 +631,12 @@ export default function Oficios() {
     setEditingOficioId(null);
     setNumero("");
     setDataGeracao(new Date().toISOString().split("T")[0]);
-    setTipoServico("");
+    setEnderecoCompleto("");
     setAssunto("");
     setSecretaria("");
     setDestinatario("");
     setCargoDestinatario("");
-    setLocalDemanda("");
+    setBairro("");
     setBairro("");
     setSolicitante("");
     setContatoSolicitante("");
@@ -805,7 +793,7 @@ export default function Oficios() {
     destinatario,
     assunto,
     conteudo: editedOficio,
-    bairro,
+    bairro: enderecoCompleto || bairro,
     cargoDestinatario,
     dataGeracao: dataGeracao || undefined,
     operadorNome: profileName || user?.email || undefined,
@@ -848,11 +836,10 @@ export default function Oficios() {
           </DialogHeader>
 
           <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
-            <TabsList className="w-full bg-secondary grid grid-cols-4">
+            <TabsList className="w-full bg-secondary grid grid-cols-3">
               <TabsTrigger value="dados" className="text-xs">📋 Dados</TabsTrigger>
-              <TabsTrigger value="texto" className="text-xs">🔥 Texto</TabsTrigger>
               <TabsTrigger value="preview" className="text-xs">👁️ Visualizar</TabsTrigger>
-              <TabsTrigger value="status" className="text-xs">📊 Status</TabsTrigger>
+              <TabsTrigger value="historico" className="text-xs">📜 Histórico</TabsTrigger>
             </TabsList>
 
             {/* TAB: DADOS */}
@@ -917,11 +904,11 @@ export default function Oficios() {
               )}
 
               <div>
-                <label className="text-xs font-medium text-primary mb-1 block">Tipo de Serviço <span className="text-primary/70">(preenche secretaria automaticamente)</span></label>
-                <Select value={tipoServico} onValueChange={setTipoServico}>
-                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <label className="text-xs font-medium text-primary mb-1 block">Secretaria <span className="text-primary/70">(preenche destinatário automaticamente)</span></label>
+                <Select value={secretaria} onValueChange={setSecretaria}>
+                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione a secretaria..." /></SelectTrigger>
                   <SelectContent>
-                    {tiposServico.map(t => <SelectItem key={t.label} value={t.label}>{t.label}</SelectItem>)}
+                    {secretariaOptions.map(s => <SelectItem key={s.label} value={s.label}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -931,12 +918,7 @@ export default function Oficios() {
                 <Input placeholder="Assunto do ofício" value={assunto} onChange={e => setAssunto(e.target.value)} className="bg-secondary border-border" />
               </div>
 
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Secretaria</label>
-                <Input placeholder="Preenchido automaticamente" value={secretaria} onChange={e => setSecretaria(e.target.value)} className="bg-secondary border-border" />
-              </div>
-
-              {tipoServico === "Outro" && (
+              {secretaria === "Outro (campo livre)" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Destinatário <span className="text-destructive">*</span></label>
@@ -949,15 +931,9 @@ export default function Oficios() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Local</label>
-                  <Input placeholder="Ex: Av. K, Terminal..." value={localDemanda} onChange={e => setLocalDemanda(e.target.value)} className="bg-secondary border-border" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Bairro</label>
-                  <Input placeholder="Bairro" value={bairro} onChange={e => setBairro(e.target.value)} className="bg-secondary border-border" />
-                </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Endereço Completo</label>
+                <Input placeholder="Ex: Rua das Flores, 123 – Bairro Luizote IV" value={enderecoCompleto} onChange={e => setEnderecoCompleto(e.target.value)} className="bg-secondary border-border" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1190,133 +1166,10 @@ export default function Oficios() {
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
                 </Button>
-                <Button variant="outline" onClick={() => handleCreate(false)} className="border-border">
+                <Button variant="outline" onClick={async () => { await handleCreate(false); setFormTab("preview"); }} className="border-border">
                   Salvar Rascunho
                 </Button>
               </div>
-            </TabsContent>
-
-            {/* TAB: TEXTO */}
-            <TabsContent value="texto" className="space-y-4 mt-4">
-              {aiResult && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {aiResult.secretaria_identificada && (
-                    <span className="text-xs px-3 py-1 rounded-full bg-primary/20 text-primary flex items-center gap-1"><Landmark size={12} /> {aiResult.secretaria_identificada}</span>
-                  )}
-                  {aiResult.tipo_demanda && <span className="text-xs px-3 py-1 rounded-full bg-accent text-accent-foreground">{aiResult.tipo_demanda}</span>}
-                  {aiResult.urgencia && (
-                    <span className={`text-xs px-3 py-1 rounded-full flex items-center gap-1 ${aiResult.urgencia === "urgente" ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"}`}>
-                      {aiResult.urgencia === "urgente" ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                      {aiResult.urgencia === "urgente" ? "Urgente" : "Normal"}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-muted-foreground">Texto do Ofício</label>
-                  <div className="flex gap-1 items-center">
-                    <Button variant="ghost" size="sm" onClick={undoOficio} disabled={historyIndex <= 0} title="Desfazer (Ctrl+Z)">
-                      <Undo2 size={14} />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={redoOficio} disabled={historyIndex >= oficioHistory.length - 1} title="Refazer (Ctrl+Y)">
-                      <Redo2 size={14} />
-                    </Button>
-                    {oficioHistory.length > 1 && (
-                      <span className="text-[10px] text-muted-foreground mx-1">v{historyIndex + 1}/{oficioHistory.length}</span>
-                    )}
-                    {editedOficio && (
-                      <>
-                        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(htmlToPlain(editedOficio), "Ofício")}><Copy size={14} className="mr-1" /> Copiar</Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { handleOficioChange(""); }}><Trash2 size={14} className="mr-1" /> Limpar</Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <RichTextEditor
-                  content={editedOficio.startsWith("<") ? editedOficio : plainToHtml(editedOficio)}
-                  onChange={(html) => handleOficioChange(html)}
-                  placeholder="O texto será preenchido pela IA ou manualmente..."
-                />
-              </div>
-
-              {/* ── Resposta Empática ao Cidadão ─────────────────────────────── */}
-              <div className="space-y-2 p-4 bg-primary/5 rounded-xl border border-primary/20">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Heart size={16} className="text-primary" />
-                    Resposta Empática ao Cidadão
-                  </label>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerateResposta}
-                      disabled={isGeneratingResposta}
-                      className="border-primary/30 text-primary hover:bg-primary/10"
-                    >
-                      {isGeneratingResposta ? (
-                        <><Loader2 size={14} className="mr-1 animate-spin" /> Gerando...</>
-                      ) : (
-                        <><Sparkles size={14} className="mr-1" /> Gerar Resposta</>
-                      )}
-                    </Button>
-                    {editedResposta && (
-                      <Button variant="ghost" size="sm" onClick={() => copyToClipboard(editedResposta, "Resposta")}>
-                        <Copy size={14} className="mr-1" /> Copiar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Gera uma resposta empática e profissional para enviar ao cidadão via WhatsApp, informando o registro da demanda e o encaminhamento ao órgão competente.
-                </p>
-                <Textarea
-                  value={editedResposta}
-                  onChange={e => setEditedResposta(e.target.value)}
-                  placeholder="Clique em 'Gerar Resposta' para criar uma mensagem empática automaticamente, ou digite manualmente..."
-                  className="bg-background border-border min-h-[180px] text-sm leading-relaxed"
-                />
-                {editedResposta && (
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <CheckCircle2 size={12} className="text-primary" />
-                    <span>Resposta pronta. Revise e copie para enviar ao cidadão.</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Anexos inline */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
-                  <Paperclip size={12} /> Anexos do Ofício
-                </label>
-                <FileDropzone
-                  anexos={anexos}
-                  onChange={setAnexos}
-                  onFileAdded={(file) => {
-                    if (file.type === "application/pdf" || file.type.startsWith("image/")) {
-                      // Could trigger analysis here if needed
-                    }
-                  }}
-                />
-              </div>
-
-              {aiResult?.sugestoes_melhoria?.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">💡 Sugestões de melhoria</label>
-                  {aiResult.sugestoes_melhoria.map((s, i) => (
-                    <div key={i} className="flex items-start gap-2 p-3 bg-secondary rounded-lg">
-                      <span className="text-primary mt-0.5">💡</span>
-                      <p className="text-sm text-foreground">{s}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Button onClick={() => handleCreate(true)} className="w-full bg-primary text-primary-foreground">
-                <CheckCircle2 size={16} className="mr-1" /> Salvar Ofício
-              </Button>
             </TabsContent>
 
             {/* TAB: PREVIEW */}
@@ -1387,19 +1240,19 @@ export default function Oficios() {
               </div>
             </TabsContent>
 
-            {/* TAB: STATUS */}
-            <TabsContent value="status" className="space-y-4 mt-4">
+            {/* TAB: HISTÓRICO */}
+            <TabsContent value="historico" className="space-y-4 mt-4">
               <div className="bg-secondary rounded-lg p-4 space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Informações do Ofício</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><span className="text-muted-foreground">Número:</span> <span className="text-foreground">{numero || "—"}</span></div>
                   <div><span className="text-muted-foreground">Data:</span> <span className="text-foreground">{dataGeracao}</span></div>
                   <div><span className="text-muted-foreground">Assunto:</span> <span className="text-foreground">{assunto || "—"}</span></div>
-                  <div><span className="text-muted-foreground">Destinatário:</span> <span className="text-foreground">{destinatario || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Destinatário:</span> <span className="text-foreground">{cargoDestinatario || destinatario || "—"}</span></div>
                   <div><span className="text-muted-foreground">Secretaria:</span> <span className="text-foreground">{secretaria || "—"}</span></div>
                   <div><span className="text-muted-foreground">Prioridade:</span> <span className="text-foreground">{prioridade}</span></div>
                   <div><span className="text-muted-foreground">Solicitante:</span> <span className="text-foreground">{solicitante || "—"}</span></div>
-                  <div><span className="text-muted-foreground">Bairro:</span> <span className="text-foreground">{bairro || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Endereço:</span> <span className="text-foreground">{enderecoCompleto || "—"}</span></div>
                 </div>
                 {aiResult && (
                   <div className="pt-2 border-t border-border">
@@ -1407,9 +1260,16 @@ export default function Oficios() {
                   </div>
                 )}
               </div>
-              <Button onClick={() => handleCreate(true)} className="w-full bg-primary text-primary-foreground">
-                <CheckCircle2 size={16} className="mr-1" /> {editingOficioId ? "Atualizar Ofício" : "Salvar Ofício"}
-              </Button>
+              {oficioHistory.length > 1 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Versões do texto ({oficioHistory.length})</h4>
+                  {oficioHistory.map((_, i) => (
+                    <button key={i} onClick={() => { setHistoryIndex(i); setEditedOficio(oficioHistory[i]); }} className={`w-full text-left p-2 rounded text-xs ${i === historyIndex ? "bg-primary/10 border border-primary/30" : "bg-secondary"}`}>
+                      Versão {i + 1} {i === historyIndex && "(atual)"}
+                    </button>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </DialogContent>
