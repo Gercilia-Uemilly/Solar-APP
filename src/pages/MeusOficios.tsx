@@ -47,7 +47,15 @@ interface OficioRow {
   data_geracao: string | null;
   linha_telefonica: string | null;
   ano: number | null;
+  marcador: string | null;
 }
+
+const marcadorOptions: { value: string; emoji: string; label: string; className: string }[] = [
+  { value: "importante", emoji: "⭐", label: "Importante", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" },
+  { value: "urgente", emoji: "🔴", label: "Urgente", className: "bg-red-500/20 text-red-700 dark:text-red-400" },
+  { value: "aguardando", emoji: "🟡", label: "Aguardando", className: "bg-amber-500/20 text-amber-700 dark:text-amber-400" },
+  { value: "ok", emoji: "🟢", label: "OK", className: "bg-green-500/20 text-green-700 dark:text-green-400" },
+];
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Impresso", "Protocolado", "Feito", "Salvo no Drive", "Cancelado"];
 
