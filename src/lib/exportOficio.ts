@@ -105,8 +105,8 @@ function parseHtmlToParagraphs(html: string): (StyledRun | { image: Uint8Array; 
     } catch { return null; }
   };
 
-  const extractRuns = (node: Node, inherited: { bold?: boolean; italic?: boolean; underline?: boolean }): (StyledRun | { image: Uint8Array; width: number; height: number })[] => {
-    const runs: (StyledRun | { image: Uint8Array; width: number; height: number })[] = [];
+  const extractRuns = (node: Node, inherited: { bold?: boolean; italic?: boolean; underline?: boolean }): (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[] => {
+    const runs: (StyledRun | { image: Uint8Array; width: number; height: number; imageType: string })[] = [];
     node.childNodes.forEach(child => {
       if (child.nodeType === Node.TEXT_NODE) {
         const text = child.textContent || "";
