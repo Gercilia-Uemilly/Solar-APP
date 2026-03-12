@@ -207,6 +207,7 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
   flushInlineBuffer();
 
   const paragraphs: ParsedRun[][] = [];
+  const processedImageSrcs = new Set<string>(); // Deduplicate images
 
   const decodeBase64Image = (src: string): ParsedImageRun | null => {
     try {
@@ -216,7 +217,7 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
       const binaryStr = atob(base64);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-      return { image: bytes, width: 400, height: 300, imageType };
+      return { image: bytes, width: 480, height: 360, imageType };
     } catch {
       return null;
     }
@@ -247,7 +248,8 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
 
       if (tag === "img") {
         const src = el.getAttribute("src") || "";
-        if (src.startsWith("data:")) {
+        if (src.startsWith("data:") && !processedImageSrcs.has(src)) {
+          processedImageSrcs.add(src);
           const decoded = decodeBase64Image(src);
           if (decoded) runs.push(decoded);
         }
@@ -289,7 +291,28 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
     });
 
     if (hasRenderableContent && !textOnly.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i)) {
-      paragraphs.push(runs);
+      // Separate images into their own paragraphs for proper spacing
+      const textRuns: ParsedRun[] = [];
+      const imageRuns: ParsedImageRun[] = [];
+      
+      for (const r of runs) {
+        if ('image' in r) {
+          imageRuns.push(r as ParsedImageRun);
+        } else {
+          textRuns.push(r);
+        }
+      }
+      
+      // Add text paragraph if it has content
+      const hasText = textRuns.some(r => 'text' in r && (r as StyledRun).text.trim());
+      if (hasText) {
+        paragraphs.push(textRuns);
+      }
+      
+      // Add each image as its own paragraph (for proper spacing)
+      for (const imgRun of imageRuns) {
+        paragraphs.push([imgRun]);
+      }
     }
   });
 
