@@ -444,15 +444,25 @@ export default function Oficios() {
     setFormTab(content ? "preview" : "dados");
     setShowDialog(true);
 
-    // Load saved images from storage
+    // Load saved attachments from storage
     const { data: savedAnexos } = await supabase.from("oficio_anexos" as any).select("*").eq("oficio_id", o.id);
     if (savedAnexos && savedAnexos.length > 0) {
-      const urls = (savedAnexos as any[]).map((a: any) => {
+      const loadedAnexos: AnexoFile[] = (savedAnexos as any[]).map((a: any) => {
         const { data } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
-        return data.publicUrl;
+        return {
+          id: a.id,
+          nome: a.file_name,
+          tipo: a.mime_type || "image/jpeg",
+          tamanho: 0,
+          url: data.publicUrl,
+        };
       });
+      setAnexos(loadedAnexos);
+      // Also set image URLs for preview compatibility
+      const urls = loadedAnexos.filter(a => a.tipo.startsWith("image/")).map(a => a.url!);
       setAnexoImageUrls(urls);
     } else {
+      setAnexos([]);
       setAnexoImageUrls([]);
     }
   };
