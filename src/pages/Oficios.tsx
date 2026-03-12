@@ -815,6 +815,18 @@ export default function Oficios() {
     assinaturaUrl: assinaturaFabao,
   });
 
+  // Helper to get image File objects from unified anexos
+  const getImageFilesFromAnexos = (): File[] | undefined => {
+    const imageFiles = anexos.filter(a => a.tipo.startsWith("image/") && a.file).map(a => a.file!);
+    return imageFiles.length > 0 ? imageFiles : (anexoImages.length > 0 ? anexoImages : undefined);
+  };
+
+  // Derive image URLs for preview from unified anexos
+  const previewImageUrls = anexos
+    .filter(a => a.tipo.startsWith("image/"))
+    .map(a => a.url || (a.file ? URL.createObjectURL(a.file) : ""))
+    .filter(Boolean);
+
   const buildFormExportData = (): OficioData => ({
     numero,
     destinatario,
@@ -834,18 +846,6 @@ export default function Oficios() {
     assinaturaUrl: assinaturaFabao,
     imagens: getImageFilesFromAnexos(),
   });
-
-  // Helper to get image File objects from unified anexos
-  const getImageFilesFromAnexos = (): File[] | undefined => {
-    const imageFiles = anexos.filter(a => a.tipo.startsWith("image/") && a.file).map(a => a.file!);
-    return imageFiles.length > 0 ? imageFiles : (anexoImages.length > 0 ? anexoImages : undefined);
-  };
-
-  // Derive image URLs for preview from unified anexos
-  const previewImageUrls = anexos
-    .filter(a => a.tipo.startsWith("image/"))
-    .map(a => a.url || (a.file ? URL.createObjectURL(a.file) : ""))
-    .filter(Boolean);
 
   return (
     <div className="space-y-6">
