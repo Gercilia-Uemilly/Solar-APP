@@ -39,7 +39,7 @@ function getFileCategory(tipo: string): string {
   return "outro";
 }
 
-export default function FileDropzone({ anexos, onChange }: FileDropzoneProps) {
+export default function FileDropzone({ anexos, onChange, onFileAdded }: FileDropzoneProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
