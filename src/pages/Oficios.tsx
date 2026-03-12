@@ -787,7 +787,7 @@ export default function Oficios() {
   // Helper to get image File objects from unified anexos
   const getImageFilesFromAnexos = (): File[] | undefined => {
     const imageFiles = anexos.filter(a => a.tipo.startsWith("image/") && a.file).map(a => a.file!);
-    return imageFiles.length > 0 ? imageFiles : (anexoImages.length > 0 ? anexoImages : undefined);
+    return imageFiles.length > 0 ? imageFiles : undefined;
   };
 
   // Derive image URLs for preview from unified anexos
