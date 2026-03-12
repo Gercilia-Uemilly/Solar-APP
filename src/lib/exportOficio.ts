@@ -12,20 +12,8 @@ import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi
 const ASSINATURA_ALTURA = 113;  // ~3cm proportional
 
-function generateOperatorCode(name: string, email?: string): string {
-  const parts = (name || "").trim().split(/\s+/);
-  const first = (parts[0] || "").toLowerCase();
-  const lastInitial = parts.length > 1
-    ? parts[parts.length - 1][0]?.toLowerCase() || ""
-    : (email || "").split("@")[0]?.[0]?.toLowerCase() || "";
-  return first ? `${first}.${lastInitial}` : email?.split("@")[0]?.toLowerCase() || "usr";
-}
-
-function formatDate(dateStr?: string): string {
-  const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
-  const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
-  return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
-}
+import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, buildVocativo } from "@/lib/oficioUtils";
+export { generateOperatorCode };
 
 function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
   const cleanedNumero = cleanNumero(numero || "");
