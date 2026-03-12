@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
-import ImageUploader from "@/components/ImageUploader";
+import { generateOperatorCode, type OficioRow } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone, { type AnexoFile } from "@/components/FileDropzone";
 import type { DemandaAnexo } from "@/types";
@@ -52,24 +52,7 @@ interface AIResult {
   sugestoes_melhoria: string[];
 }
 
-interface OficioRow {
-  id: string;
-  numero: string | null;
-  assunto: string;
-  destinatario: string;
-  status: string;
-  conteudo: string | null;
-  resposta_cidadao: string | null;
-  author_id: string;
-  created_at: string;
-  cargo_destinatario: string | null;
-  local_demanda: string | null;
-  bairro: string | null;
-  solicitante: string | null;
-  contato_solicitante: string | null;
-  data_geracao: string | null;
-  ano: number | null;
-}
+// OficioRow imported from oficioUtils
 
 export default function Oficios() {
   const { user } = useAuth();
@@ -123,8 +106,6 @@ export default function Oficios() {
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
-  const [anexoImages, setAnexoImages] = useState<File[]>([]);
-  const [anexoImageUrls, setAnexoImageUrls] = useState<string[]>([]);
   const [anexos, setAnexos] = useState<AnexoFile[]>([]);
 
   // Version history for undo/redo
@@ -248,14 +229,7 @@ export default function Oficios() {
     return () => window.removeEventListener("keydown", handler);
   }, [undoOficio, redoOficio]);
 
-  const generateOperatorCode = useCallback((name: string, email: string) => {
-    const parts = (name || "").trim().split(/\s+/);
-    const first = (parts[0] || "").toLowerCase();
-    const lastInitial = parts.length > 1
-      ? parts[parts.length - 1][0]?.toLowerCase() || ""
-      : email.split("@")[0]?.[0]?.toLowerCase() || "";
-    return first ? `${first}.${lastInitial}` : email.split("@")[0]?.toLowerCase() || "usr";
-  }, []);
+  // generateOperatorCode imported from oficioUtils
 
   const generateSolicitanteCode = useCallback(() => {
     if (!user) return "USR";
@@ -382,10 +356,10 @@ export default function Oficios() {
   const handleGenerateResposta = async () => {
     setIsGeneratingResposta(true);
     try {
-      const temMidias = processedResults.length > 0 || anexoImages.length > 0 || anexos.length > 0;
+      const temMidias = processedResults.length > 0 || anexos.length > 0;
       const tiposMidias = [
         ...processedResults.map(r => r.type === "image" ? "imagens" : r.type === "video" ? "vídeos" : "áudios"),
-        ...anexoImages.map(() => "imagens"),
+        ...anexos.filter(a => a.tipo.startsWith("image/")).map(() => "imagens"),
         ...anexos.filter(a => a.tipo.includes("pdf")).map(() => "documentos PDF"),
       ].filter((v, i, a) => a.indexOf(v) === i).join(", ");
 
@@ -460,10 +434,8 @@ export default function Oficios() {
       setAnexos(loadedAnexos);
       // Also set image URLs for preview compatibility
       const urls = loadedAnexos.filter(a => a.tipo.startsWith("image/")).map(a => a.url!);
-      setAnexoImageUrls(urls);
     } else {
       setAnexos([]);
-      setAnexoImageUrls([]);
     }
   };
 
@@ -625,7 +597,7 @@ export default function Oficios() {
             file: item.file,
           };
           setAnexos(prev => [...prev, newAnexo]);
-          setAnexoImages(prev => [...prev, item.file]);
+          // image already added to anexos above
         }
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
@@ -664,7 +636,6 @@ export default function Oficios() {
     setDestinatario("");
     setCargoDestinatario("");
     setBairro("");
-    setBairro("");
     setSolicitante("");
     setContatoSolicitante("");
     setDescricao("");
@@ -682,8 +653,6 @@ export default function Oficios() {
     setProcessedResults([]);
     setProcessingQueue([]);
     setValidationErrors({});
-    setAnexoImages([]);
-    setAnexoImageUrls([]);
     setAnexos([]);
     setSuggestions([]);
     setKbSuggestions([]);
@@ -725,7 +694,7 @@ export default function Oficios() {
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
-        imagens: imgs.length > 0 ? imgs : (anexoImages.length > 0 ? anexoImages : undefined),
+        imagens: imgs.length > 0 ? imgs : getImageFilesFromAnexos(),
       });
       // Build file name: [numero]-[ano] [solicitante_code]
       const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
@@ -818,7 +787,7 @@ export default function Oficios() {
   // Helper to get image File objects from unified anexos
   const getImageFilesFromAnexos = (): File[] | undefined => {
     const imageFiles = anexos.filter(a => a.tipo.startsWith("image/") && a.file).map(a => a.file!);
-    return imageFiles.length > 0 ? imageFiles : (anexoImages.length > 0 ? anexoImages : undefined);
+    return imageFiles.length > 0 ? imageFiles : undefined;
   };
 
   // Derive image URLs for preview from unified anexos

@@ -12,20 +12,8 @@ import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi
 const ASSINATURA_ALTURA = 113;  // ~3cm proportional
 
-function generateOperatorCode(name: string, email?: string): string {
-  const parts = (name || "").trim().split(/\s+/);
-  const first = (parts[0] || "").toLowerCase();
-  const lastInitial = parts.length > 1
-    ? parts[parts.length - 1][0]?.toLowerCase() || ""
-    : (email || "").split("@")[0]?.[0]?.toLowerCase() || "";
-  return first ? `${first}.${lastInitial}` : email?.split("@")[0]?.toLowerCase() || "usr";
-}
-
-function formatDate(dateStr?: string): string {
-  const d = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
-  const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
-  return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
-}
+import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, buildVocativo } from "@/lib/oficioUtils";
+export { generateOperatorCode };
 
 function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
   const cleanedNumero = cleanNumero(numero || "");
@@ -50,14 +38,7 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
   return numPart;
 }
 
-/** Build vocativo — simplified: only role title, no department name */
-function buildVocativo(cargo?: string): string {
-  if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  const lower = cargo.toLowerCase();
-  if (lower.includes("diretor") || lower.includes("diretora")) return "Excelentíssimo(a) Senhor(a) Diretor(a),";
-  if (lower.includes("reitor") || lower.includes("reitora")) return "Magnífico(a) Reitor(a),";
-  return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-}
+// buildVocativo and cleanNumero now imported from oficioUtils
 
 // ── Dados comuns ─────────────────────────────────────────────────────────────
 export interface OficioData {
@@ -373,10 +354,7 @@ async function getAuthToken(): Promise<string> {
 }
 
 // ── Build Word blob programmatically ────────────────────────────────────────
-/** Strip any "Ofício GVF n° " prefix already in the numero string */
-function cleanNumero(raw: string): string {
-  return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
-}
+// cleanNumero imported from oficioUtils
 
 async function buildWordBlob(data: OficioData): Promise<Blob> {
   const {

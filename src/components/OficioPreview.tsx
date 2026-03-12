@@ -30,19 +30,7 @@ interface Props {
   anexoImageUrls?: string[];
 }
 
-/** Strip any "Ofício GVF n° " prefix that may already be in the numero string */
-function cleanNumero(raw: string): string {
-  return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
-}
-
-/** Extract vocativo from cargo string */
-function buildVocativo(cargo?: string): string {
-  if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  const lower = cargo.toLowerCase();
-  if (lower.includes("diretor") || lower.includes("diretora")) return "Excelentíssimo(a) Senhor(a) Diretor(a),";
-  if (lower.includes("reitor") || lower.includes("reitora")) return "Magnífico(a) Reitor(a),";
-  return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-}
+import { cleanNumero, buildVocativo } from "@/lib/oficioUtils";
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo, anexoImageUrls }, ref) => {

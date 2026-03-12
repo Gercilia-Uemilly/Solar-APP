@@ -19,36 +19,10 @@ import OficioPreview from "@/components/OficioPreview";
 import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
+import { type OficioRow } from "@/lib/oficioUtils";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao.png";
-
-interface OficioRow {
-  id: string;
-  numero: string | null;
-  assunto: string;
-  destinatario: string;
-  status: string;
-  conteudo: string | null;
-  resposta_cidadao: string | null;
-  secretaria_identificada: string | null;
-  tipo_demanda: string | null;
-  urgencia: string | null;
-  author_id: string;
-  created_at: string;
-  updated_at: string;
-  solicitante: string | null;
-  bairro: string | null;
-  contato_solicitante: string | null;
-  operador_nome: string | null;
-  link_pdf_drive: string | null;
-  cargo_destinatario: string | null;
-  local_demanda: string | null;
-  data_geracao: string | null;
-  linha_telefonica: string | null;
-  ano: number | null;
-  marcador: string | null;
-}
 
 const marcadorOptions: { value: string; emoji: string; label: string; className: string }[] = [
   { value: "importante", emoji: "⭐", label: "Importante", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" },

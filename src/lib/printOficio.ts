@@ -16,10 +16,7 @@ interface PrintData {
   secretaria?: string;
 }
 
-/** Strip any "Ofício GVF n° " prefix already in the numero string */
-function cleanNumero(raw: string): string {
-  return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
-}
+import { cleanNumero, buildVocativo, formatDateOficio } from "@/lib/oficioUtils";
 
 async function toDataUrl(src: string): Promise<string> {
   return new Promise((resolve) => {
@@ -36,16 +33,6 @@ async function toDataUrl(src: string): Promise<string> {
     img.onerror = () => resolve(src);
     img.src = src;
   });
-}
-
-function buildVocativo(cargo?: string): string {
-  if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  const cleaned = cargo
-    .replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")
-    .replace(/\s*Municipal\b/i, "")
-    .replace(/\s*da Secretaria.*$/i, "")
-    .trim();
-  return `Excelentíssimo(a) Senhor(a) ${cleaned},`;
 }
 
 export async function printOficio(data: PrintData) {
