@@ -434,10 +434,8 @@ export default function Oficios() {
       setAnexos(loadedAnexos);
       // Also set image URLs for preview compatibility
       const urls = loadedAnexos.filter(a => a.tipo.startsWith("image/")).map(a => a.url!);
-      setAnexoImageUrls(urls);
     } else {
       setAnexos([]);
-      setAnexoImageUrls([]);
     }
   };
 
