@@ -1182,12 +1182,18 @@ export default function Oficios() {
                 <Button size="sm" variant="default" onClick={() => handleCreate(true)}>
                   <Save size={14} className="mr-1" /> Salvar e Fechar
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => {
+                <Button size="sm" variant="outline" onClick={async () => {
                   if (!destinatario && !cargoDestinatario || !editedOficio) {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  exportToWord(buildFormExportData());
+                  const formData = buildFormExportData();
+                  // If no new images but we have saved URLs, fetch them as Files
+                  if (!formData.imagens && editingOficioId) {
+                    const savedImgs = await fetchSavedImages(editingOficioId);
+                    if (savedImgs.length > 0) formData.imagens = savedImgs;
+                  }
+                  exportToWord(formData);
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
