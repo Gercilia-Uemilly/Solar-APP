@@ -354,10 +354,7 @@ async function getAuthToken(): Promise<string> {
 }
 
 // ── Build Word blob programmatically ────────────────────────────────────────
-/** Strip any "Ofício GVF n° " prefix already in the numero string */
-function cleanNumero(raw: string): string {
-  return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
-}
+// cleanNumero imported from oficioUtils
 
 async function buildWordBlob(data: OficioData): Promise<Blob> {
   const {
