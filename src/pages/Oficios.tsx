@@ -125,7 +125,7 @@ export default function Oficios() {
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const [anexoImages, setAnexoImages] = useState<File[]>([]);
   const [anexoImageUrls, setAnexoImageUrls] = useState<string[]>([]);
-  const [anexos, setAnexos] = useState<DemandaAnexo[]>([]);
+  const [anexos, setAnexos] = useState<AnexoFile[]>([]);
 
   // Version history for undo/redo
   const [oficioHistory, setOficioHistory] = useState<string[]>([]);
