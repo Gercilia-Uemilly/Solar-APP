@@ -615,7 +615,18 @@ export default function Oficios() {
 
         results.push({ type: item.type, text, fileName: item.file.name, storageUrl });
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
-        if (item.type === "image") setAnexoImages(prev => [...prev, item.file]);
+        if (item.type === "image") {
+          // Add to unified anexos state
+          const newAnexo: AnexoFile = {
+            id: `${Date.now()}-media-${Math.random().toString(36).slice(2, 6)}`,
+            nome: item.file.name,
+            tipo: item.file.type,
+            tamanho: item.file.size,
+            file: item.file,
+          };
+          setAnexos(prev => [...prev, newAnexo]);
+          setAnexoImages(prev => [...prev, item.file]);
+        }
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
         toast({ title: `Erro ao processar ${item.file.name}`, description: err.message || "Tente novamente.", variant: "destructive" });
