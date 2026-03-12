@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
-import { exportToWord, exportToPDF, fetchSavedImages } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
 import ImageUploader from "@/components/ImageUploader";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone from "@/components/FileDropzone";
