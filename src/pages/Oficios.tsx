@@ -653,8 +653,6 @@ export default function Oficios() {
     setProcessedResults([]);
     setProcessingQueue([]);
     setValidationErrors({});
-    setAnexoImages([]);
-    setAnexoImageUrls([]);
     setAnexos([]);
     setSuggestions([]);
     setKbSuggestions([]);
