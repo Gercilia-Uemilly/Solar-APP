@@ -162,7 +162,15 @@ export type Database = {
           oficio_id?: string
           storage_path?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "oficio_anexos_oficio_id_fkey"
+            columns: ["oficio_id"]
+            isOneToOne: false
+            referencedRelation: "oficios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       oficio_numeracao: {
         Row: {
