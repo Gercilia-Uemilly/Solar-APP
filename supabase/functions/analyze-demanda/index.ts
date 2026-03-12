@@ -135,14 +135,14 @@ Retorne APENAS um JSON com estes campos (se não encontrar, retorne string vazia
   "descricao": "descrição estruturada da demanda"
 }`;
 
-    const analysisResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const analysisResp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "Você é um assistente de gabinete parlamentar. Analise demandas cidadãs e extraia informações estruturadas. Responda SOMENTE com JSON válido." },
           { role: "user", content: analysisPrompt },
