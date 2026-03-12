@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
-import ImageUploader from "@/components/ImageUploader";
+import { generateOperatorCode, type OficioRow } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone, { type AnexoFile } from "@/components/FileDropzone";
 import type { DemandaAnexo } from "@/types";
