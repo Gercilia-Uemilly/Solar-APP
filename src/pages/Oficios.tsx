@@ -52,24 +52,7 @@ interface AIResult {
   sugestoes_melhoria: string[];
 }
 
-interface OficioRow {
-  id: string;
-  numero: string | null;
-  assunto: string;
-  destinatario: string;
-  status: string;
-  conteudo: string | null;
-  resposta_cidadao: string | null;
-  author_id: string;
-  created_at: string;
-  cargo_destinatario: string | null;
-  local_demanda: string | null;
-  bairro: string | null;
-  solicitante: string | null;
-  contato_solicitante: string | null;
-  data_geracao: string | null;
-  ano: number | null;
-}
+// OficioRow imported from oficioUtils
 
 export default function Oficios() {
   const { user } = useAuth();
