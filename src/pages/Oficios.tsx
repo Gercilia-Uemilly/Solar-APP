@@ -788,7 +788,7 @@ export default function Oficios() {
     assinaturaUrl: assinaturaFabao,
   });
 
-  const buildFormExportData = () => ({
+  const buildFormExportData = (): OficioData => ({
     numero,
     destinatario,
     assunto,
