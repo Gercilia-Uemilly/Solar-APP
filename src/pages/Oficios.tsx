@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import OficioPreview from "@/components/OficioPreview";
-import { exportToWord, exportToPDF, fetchSavedImages } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
 import ImageUploader from "@/components/ImageUploader";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone from "@/components/FileDropzone";
@@ -788,7 +788,7 @@ export default function Oficios() {
     assinaturaUrl: assinaturaFabao,
   });
 
-  const buildFormExportData = () => ({
+  const buildFormExportData = (): OficioData => ({
     numero,
     destinatario,
     assunto,
@@ -1182,12 +1182,18 @@ export default function Oficios() {
                 <Button size="sm" variant="default" onClick={() => handleCreate(true)}>
                   <Save size={14} className="mr-1" /> Salvar e Fechar
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => {
+                <Button size="sm" variant="outline" onClick={async () => {
                   if (!destinatario && !cargoDestinatario || !editedOficio) {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  exportToWord(buildFormExportData());
+                  const formData = buildFormExportData();
+                  // If no new images but we have saved URLs, fetch them as Files
+                  if (!formData.imagens && editingOficioId) {
+                    const savedImgs = await fetchSavedImages(editingOficioId);
+                    if (savedImgs.length > 0) formData.imagens = savedImgs;
+                  }
+                  exportToWord(formData);
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
@@ -1197,7 +1203,13 @@ export default function Oficios() {
                     setFormTab("dados");
                     return;
                   }
-                  await exportToPDF(buildFormExportData());
+                  const formData = buildFormExportData();
+                  // If no new images but we have saved URLs, fetch them as Files
+                  if (!formData.imagens && editingOficioId) {
+                    const savedImgs = await fetchSavedImages(editingOficioId);
+                    if (savedImgs.length > 0) formData.imagens = savedImgs;
+                  }
+                  await exportToPDF(formData);
                 }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
