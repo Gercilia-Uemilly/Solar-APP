@@ -27,8 +27,8 @@ function extractAllItems(xml: string): string[] {
 }
 
 async function enrichWithAI(newEntries: { index: number; entry: any }[], supabaseUrl: string, supabaseKey: string) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY || newEntries.length === 0) return;
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  if (!OPENAI_API_KEY || newEntries.length === 0) return;
 
   const batchSize = 10;
   for (let b = 0; b < newEntries.length; b += batchSize) {
@@ -36,14 +36,14 @@ async function enrichWithAI(newEntries: { index: number; entry: any }[], supabas
     const batchText = batch.map((ne, i) => `[${i}] ${ne.entry.titulo}: ${ne.entry.descricao || ""}`).join("\n");
 
     try {
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",

@@ -19,8 +19,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
     // Auth check
     const userClient = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: authHeader } } });
@@ -66,11 +66,11 @@ serve(async (req) => {
         const mimeType = "audio/ogg";
 
         // Step 1: Transcribe with AI
-        const transcribeResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const transcribeResp = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "gpt-4o",
             messages: [{
               role: "user",
               content: [
@@ -110,11 +110,11 @@ RESUMO PARA OFÍCIO:
         if (!transcription) { results.push({ id: entry.id, error: "Empty transcription" }); continue; }
 
         // Step 2: Analyze for smart title and tags
-        const analyzeResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const analyzeResp = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+            model: "gpt-4o-mini",
             messages: [
               { role: "system", content: "Você é um assistente de um gabinete parlamentar. Analise a transcrição de um áudio e retorne informações estruturadas." },
               {

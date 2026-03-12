@@ -52,8 +52,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -86,14 +86,14 @@ serve(async (req) => {
         ? { type: "input_audio" as const, input_audio: { data: base64, format: mimeType.includes("wav") ? "wav" : "mp3" } }
         : { type: "image_url" as const, image_url: { url: `data:${mimeType};base64,${base64}` } };
 
-      const extractResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const extractResp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "gpt-4o",
           messages: [{ role: "user", content: [{ type: "text", text: extractPrompt }, contentPart] }],
         }),
       });
@@ -135,14 +135,14 @@ Retorne APENAS um JSON com estes campos (se não encontrar, retorne string vazia
   "descricao": "descrição estruturada da demanda"
 }`;
 
-    const analysisResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const analysisResp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "Você é um assistente de gabinete parlamentar. Analise demandas cidadãs e extraia informações estruturadas. Responda SOMENTE com JSON válido." },
           { role: "user", content: analysisPrompt },
