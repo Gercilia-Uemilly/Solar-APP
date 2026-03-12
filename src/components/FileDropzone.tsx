@@ -13,6 +13,7 @@ export interface AnexoFile {
 interface FileDropzoneProps {
   anexos: AnexoFile[];
   onChange: (anexos: AnexoFile[]) => void;
+  onFileAdded?: (file: File) => void;
 }
 
 const ACCEPTED = ".jpg,.jpeg,.png,.webp,.pdf,.docx,.doc,.xlsx,.xls";
