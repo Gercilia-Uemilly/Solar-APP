@@ -15,7 +15,7 @@ import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
 import ImageUploader from "@/components/ImageUploader";
 import RichTextEditor from "@/components/RichTextEditor";
-import FileDropzone from "@/components/FileDropzone";
+import FileDropzone, { type AnexoFile } from "@/components/FileDropzone";
 import type { DemandaAnexo } from "@/types";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
@@ -125,7 +125,7 @@ export default function Oficios() {
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const [anexoImages, setAnexoImages] = useState<File[]>([]);
   const [anexoImageUrls, setAnexoImageUrls] = useState<string[]>([]);
-  const [anexos, setAnexos] = useState<DemandaAnexo[]>([]);
+  const [anexos, setAnexos] = useState<AnexoFile[]>([]);
 
   // Version history for undo/redo
   const [oficioHistory, setOficioHistory] = useState<string[]>([]);
@@ -444,15 +444,25 @@ export default function Oficios() {
     setFormTab(content ? "preview" : "dados");
     setShowDialog(true);
 
-    // Load saved images from storage
+    // Load saved attachments from storage
     const { data: savedAnexos } = await supabase.from("oficio_anexos" as any).select("*").eq("oficio_id", o.id);
     if (savedAnexos && savedAnexos.length > 0) {
-      const urls = (savedAnexos as any[]).map((a: any) => {
+      const loadedAnexos: AnexoFile[] = (savedAnexos as any[]).map((a: any) => {
         const { data } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
-        return data.publicUrl;
+        return {
+          id: a.id,
+          nome: a.file_name,
+          tipo: a.mime_type || "image/jpeg",
+          tamanho: 0,
+          url: data.publicUrl,
+        };
       });
+      setAnexos(loadedAnexos);
+      // Also set image URLs for preview compatibility
+      const urls = loadedAnexos.filter(a => a.tipo.startsWith("image/")).map(a => a.url!);
       setAnexoImageUrls(urls);
     } else {
+      setAnexos([]);
       setAnexoImageUrls([]);
     }
   };
@@ -535,14 +545,20 @@ export default function Oficios() {
       }
     }
 
-    // Upload anexo images to storage and persist references
-    if (oficioId && anexoImages.length > 0) {
-      for (const img of anexoImages) {
-        const ext = img.name.split('.').pop() || 'jpg';
+    // Upload new anexo files to storage and persist references
+    if (oficioId) {
+      const newAnexos = anexos.filter(a => a.file); // Only new files (not already saved)
+      for (const anexo of newAnexos) {
+        if (!anexo.file) continue;
+        const ext = anexo.nome.split('.').pop() || 'bin';
         const storagePath = `oficios/${oficioId}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, img, { contentType: img.type });
+        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, anexo.file, { contentType: anexo.tipo });
         if (!upErr) {
-          await supabase.from("oficio_anexos" as any).insert({ oficio_id: oficioId, storage_path: storagePath, file_name: img.name, mime_type: img.type });
+          await supabase.from("oficio_anexos" as any).insert({ oficio_id: oficioId, storage_path: storagePath, file_name: anexo.nome, mime_type: anexo.tipo });
+          // Update the anexo with its URL so it's no longer "new"
+          const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath);
+          anexo.url = urlData.publicUrl;
+          anexo.file = undefined; // Mark as saved
         }
       }
     }
@@ -599,7 +615,18 @@ export default function Oficios() {
 
         results.push({ type: item.type, text, fileName: item.file.name, storageUrl });
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
-        if (item.type === "image") setAnexoImages(prev => [...prev, item.file]);
+        if (item.type === "image") {
+          // Add to unified anexos state
+          const newAnexo: AnexoFile = {
+            id: `${Date.now()}-media-${Math.random().toString(36).slice(2, 6)}`,
+            nome: item.file.name,
+            tipo: item.file.type,
+            tamanho: item.file.size,
+            file: item.file,
+          };
+          setAnexos(prev => [...prev, newAnexo]);
+          setAnexoImages(prev => [...prev, item.file]);
+        }
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
         toast({ title: `Erro ao processar ${item.file.name}`, description: err.message || "Tente novamente.", variant: "destructive" });
@@ -788,6 +815,18 @@ export default function Oficios() {
     assinaturaUrl: assinaturaFabao,
   });
 
+  // Helper to get image File objects from unified anexos
+  const getImageFilesFromAnexos = (): File[] | undefined => {
+    const imageFiles = anexos.filter(a => a.tipo.startsWith("image/") && a.file).map(a => a.file!);
+    return imageFiles.length > 0 ? imageFiles : (anexoImages.length > 0 ? anexoImages : undefined);
+  };
+
+  // Derive image URLs for preview from unified anexos
+  const previewImageUrls = anexos
+    .filter(a => a.tipo.startsWith("image/"))
+    .map(a => a.url || (a.file ? URL.createObjectURL(a.file) : ""))
+    .filter(Boolean);
+
   const buildFormExportData = (): OficioData => ({
     numero,
     destinatario,
@@ -805,7 +844,7 @@ export default function Oficios() {
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
-    imagens: anexoImages.length > 0 ? anexoImages : undefined,
+    imagens: getImageFilesFromAnexos(),
   });
 
   return (
@@ -1141,26 +1180,7 @@ export default function Oficios() {
                 </Select>
               </div>
 
-              <ImageUploader images={anexoImages} onChange={setAnexoImages} />
-
-              {/* Show previously saved images */}
-              {anexoImageUrls.length > 0 && (
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">📷 Imagens salvas ({anexoImageUrls.length})</label>
-                  <div className="flex flex-wrap gap-2">
-                    {anexoImageUrls.map((url, i) => (
-                      <div key={i} className="relative group">
-                        <img src={url} alt={`Anexo ${i + 1}`} className="w-16 h-16 object-cover rounded border border-border" />
-                        <button
-                          type="button"
-                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => setAnexoImageUrls(prev => prev.filter((_, idx) => idx !== i))}
-                        >×</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <FileDropzone anexos={anexos} onChange={setAnexos} />
 
               <div className="flex gap-2">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
@@ -1247,7 +1267,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} formatOptions={formatOptions} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} anexoImageUrls={[...anexoImageUrls, ...anexoImages.map(f => URL.createObjectURL(f))]} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} formatOptions={formatOptions} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} anexoImageUrls={previewImageUrls} />
               </div>
             </TabsContent>
 
