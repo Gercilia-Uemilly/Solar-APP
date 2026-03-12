@@ -423,6 +423,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   const bodyParagraphs: Paragraph[] = [];
   styledParagraphs.forEach((runs, idx) => {
     const isLastTwo = idx >= styledParagraphs.length - 2;
+    const isImageOnly = runs.length > 0 && runs.every(r => 'image' in r);
     const children: (TextRun | ImageRun)[] = [];
     
     for (const r of runs) {
@@ -446,10 +447,12 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     }
     
     bodyParagraphs.push(new Paragraph({
-      indent: { firstLine: 709 },
-      alignment: AlignmentType.JUSTIFIED,
+      indent: isImageOnly ? undefined : { firstLine: 709 },
+      alignment: isImageOnly ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
       children,
-      spacing: { before: 0, after: 0, line: lineSpacing },
+      spacing: isImageOnly 
+        ? { before: 400, after: 400, line: lineSpacing }
+        : { before: 0, after: 0, line: lineSpacing },
       keepNext: isLastTwo,
     }));
   });
