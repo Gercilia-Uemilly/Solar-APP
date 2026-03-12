@@ -230,14 +230,7 @@ export default function Oficios() {
     return () => window.removeEventListener("keydown", handler);
   }, [undoOficio, redoOficio]);
 
-  const generateOperatorCode = useCallback((name: string, email: string) => {
-    const parts = (name || "").trim().split(/\s+/);
-    const first = (parts[0] || "").toLowerCase();
-    const lastInitial = parts.length > 1
-      ? parts[parts.length - 1][0]?.toLowerCase() || ""
-      : email.split("@")[0]?.[0]?.toLowerCase() || "";
-    return first ? `${first}.${lastInitial}` : email.split("@")[0]?.toLowerCase() || "usr";
-  }, []);
+  // generateOperatorCode imported from oficioUtils
 
   const generateSolicitanteCode = useCallback(() => {
     if (!user) return "USR";
