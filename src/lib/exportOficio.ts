@@ -38,14 +38,7 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
   return numPart;
 }
 
-/** Build vocativo — simplified: only role title, no department name */
-function buildVocativo(cargo?: string): string {
-  if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-  const lower = cargo.toLowerCase();
-  if (lower.includes("diretor") || lower.includes("diretora")) return "Excelentíssimo(a) Senhor(a) Diretor(a),";
-  if (lower.includes("reitor") || lower.includes("reitora")) return "Magnífico(a) Reitor(a),";
-  return "Excelentíssimo(a) Senhor(a) Secretário(a),";
-}
+// buildVocativo and cleanNumero now imported from oficioUtils
 
 // ── Dados comuns ─────────────────────────────────────────────────────────────
 export interface OficioData {
