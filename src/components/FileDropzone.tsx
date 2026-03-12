@@ -59,11 +59,12 @@ export default function FileDropzone({ anexos, onChange, onFileAdded }: FileDrop
         file: f,
       };
       newAnexos.push(anexo);
+      onFileAdded?.(f);
     }
     if (newAnexos.length > 0) {
       onChange([...anexos, ...newAnexos]);
     }
-  }, [anexos, onChange]);
+  }, [anexos, onChange, onFileAdded]);
 
   const remove = (id: string) => onChange(anexos.filter((a) => a.id !== id));
 
