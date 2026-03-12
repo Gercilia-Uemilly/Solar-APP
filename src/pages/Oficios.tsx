@@ -1203,7 +1203,13 @@ export default function Oficios() {
                     setFormTab("dados");
                     return;
                   }
-                  await exportToPDF(buildFormExportData());
+                  const formData = buildFormExportData();
+                  // If no new images but we have saved URLs, fetch them as Files
+                  if (!formData.imagens && editingOficioId) {
+                    const savedImgs = await fetchSavedImages(editingOficioId);
+                    if (savedImgs.length > 0) formData.imagens = savedImgs;
+                  }
+                  await exportToPDF(formData);
                 }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
