@@ -597,7 +597,7 @@ export default function Oficios() {
             file: item.file,
           };
           setAnexos(prev => [...prev, newAnexo]);
-          setAnexoImages(prev => [...prev, item.file]);
+          // image already added to anexos above
         }
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
