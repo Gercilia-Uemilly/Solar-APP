@@ -356,10 +356,10 @@ export default function Oficios() {
   const handleGenerateResposta = async () => {
     setIsGeneratingResposta(true);
     try {
-      const temMidias = processedResults.length > 0 || anexoImages.length > 0 || anexos.length > 0;
+      const temMidias = processedResults.length > 0 || anexos.length > 0;
       const tiposMidias = [
         ...processedResults.map(r => r.type === "image" ? "imagens" : r.type === "video" ? "vídeos" : "áudios"),
-        ...anexoImages.map(() => "imagens"),
+        ...anexos.filter(a => a.tipo.startsWith("image/")).map(() => "imagens"),
         ...anexos.filter(a => a.tipo.includes("pdf")).map(() => "documentos PDF"),
       ].filter((v, i, a) => a.indexOf(v) === i).join(", ");
 
