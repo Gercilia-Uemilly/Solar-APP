@@ -6,30 +6,28 @@ const corsHeaders = {
 };
 
 const SYSTEM_PROMPT = `
-Você é um redator parlamentar do gabinete do Vereador Fabão.
+Você é um redator parlamentar da assessoria do vereador Fabão.
 
-Escreva ofícios oficiais com estrutura:
+Gere o corpo de um ofício parlamentar.
+
+Estrutura:
 
 1º parágrafo — introdução com solicitação  
 2º parágrafo — relato do solicitante  
 3º parágrafo — consequências do problema  
 4º parágrafo — solicitação formal  
 
-Depois finalize com a conclusão institucional.
+Use linguagem formal.
 
-Use <strong> para destacar:
-- ruas
-- bairros
-- problemas
-- ações solicitadas
+Use <strong> para destacar ruas, bairros e problemas.
 
-Retorne apenas JSON neste formato:
+Retorne JSON no formato:
 
 {
- "oficio": "texto do oficio",
- "assunto_sugerido": "assunto",
- "secretaria_identificada": "secretaria",
- "tipo_demanda": "Solicitação",
+ "oficio": "...",
+ "assunto_sugerido": "...",
+ "secretaria_identificada": "...",
+ "tipo_demanda": "...",
  "urgencia": "normal",
  "sugestoes_melhoria": []
 }
@@ -50,8 +48,6 @@ serve(async (req) => {
     }
 
     const prompt = `
-Gerar ofício parlamentar com base nos dados:
-
 SECRETARIA: ${tipo || "Não informada"}
 DESTINATÁRIO: ${destinatario || "A identificar"}
 DESCRIÇÃO: ${descricao || "Não informado"}
@@ -71,7 +67,6 @@ ASSUNTO: ${assunto || "Gerar automaticamente"}
         body: JSON.stringify({
           contents: [
             {
-              role: "user",
               parts: [{ text: SYSTEM_PROMPT }, { text: prompt }],
             },
           ],
@@ -81,9 +76,8 @@ ASSUNTO: ${assunto || "Gerar automaticamente"}
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("Gemini error:", text);
 
-      return new Response(JSON.stringify({ error: "Erro Gemini API" }), {
+      return new Response(JSON.stringify({ error: text }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -106,8 +100,8 @@ ASSUNTO: ${assunto || "Gerar automaticamente"}
       parsed = {
         oficio: content,
         assunto_sugerido: "",
-        secretaria_identificada: destinatario || "",
-        tipo_demanda: tipo || "Solicitação",
+        secretaria_identificada: tipo || "",
+        tipo_demanda: "Solicitação",
         urgencia: prioridade === "Urgente" ? "urgente" : "normal",
         sugestoes_melhoria: [],
       };
@@ -115,8 +109,6 @@ ASSUNTO: ${assunto || "Gerar automaticamente"}
 
     return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
-    console.error("Erro função:", error);
-
     return new Response(JSON.stringify({ error: "Erro interno ao gerar ofício" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
