@@ -5,21 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `Você é um redator parlamentar experiente da assessoria do Gabinete do Vereador Fabão.
+const SYSTEM_PROMPT = `
+Você é um redator parlamentar do gabinete do Vereador Fabão.
 
-Redija o corpo de ofícios oficiais.
+Escreva ofícios oficiais com estrutura:
 
-Estrutura obrigatória:
-1º parágrafo — introdução com solicitação
-2º parágrafo — relato do solicitante
-3º parágrafo — consequências
-4º parágrafo — solicitação formal
+1º parágrafo — introdução com solicitação  
+2º parágrafo — relato do solicitante  
+3º parágrafo — consequências do problema  
+4º parágrafo — solicitação formal  
 
-Finalize com a conclusão institucional.
+Depois finalize com a conclusão institucional.
 
-Use <strong> para destacar ruas, bairros, problemas e ações solicitadas.
+Use <strong> para destacar:
+- ruas
+- bairros
+- problemas
+- ações solicitadas
 
-Retorne apenas JSON.`;
+Retorne apenas JSON neste formato:
+
+{
+ "oficio": "texto do oficio",
+ "assunto_sugerido": "assunto",
+ "secretaria_identificada": "secretaria",
+ "tipo_demanda": "Solicitação",
+ "urgencia": "normal",
+ "sugestoes_melhoria": []
+}
+`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,13 +43,14 @@ serve(async (req) => {
   try {
     const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY não configurada");
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY não configurada");
     }
 
-    const userPrompt = `Gerar ofício parlamentar:
+    const prompt = `
+Gerar ofício parlamentar com base nos dados:
 
 SECRETARIA: ${tipo || "Não informada"}
 DESTINATÁRIO: ${destinatario || "A identificar"}
@@ -43,33 +58,32 @@ DESCRIÇÃO: ${descricao || "Não informado"}
 SOLICITANTE: ${solicitante || "Cidadão"}
 ENDEREÇO: ${bairro || local || "Não informado"}
 PRIORIDADE: ${prioridade || "Normal"}
-ASSUNTO: ${assunto || "Gerar automaticamente"}`;
+ASSUNTO: ${assunto || "Gerar automaticamente"}
+`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: SYSTEM_PROMPT }, { text: prompt }],
+            },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: userPrompt,
-          },
-        ],
-      }),
-    });
+    );
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("Claude error:", text);
+      console.error("Gemini error:", text);
 
-      return new Response(JSON.stringify({ error: "Erro Claude API" }), {
+      return new Response(JSON.stringify({ error: "Erro Gemini API" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -77,15 +91,33 @@ ASSUNTO: ${assunto || "Gerar automaticamente"}`;
 
     const data = await response.json();
 
-    const content = data.content?.[0]?.text || "";
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    return new Response(JSON.stringify({ oficio: content }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    let parsed;
+
+    try {
+      const cleaned = content
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = {
+        oficio: content,
+        assunto_sugerido: "",
+        secretaria_identificada: destinatario || "",
+        tipo_demanda: tipo || "Solicitação",
+        urgencia: prioridade === "Urgente" ? "urgente" : "normal",
+        sugestoes_melhoria: [],
+      };
+    }
+
+    return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("Erro função:", error);
 
-    return new Response(JSON.stringify({ error: "Erro interno" }), {
+    return new Response(JSON.stringify({ error: "Erro interno ao gerar ofício" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
