@@ -93,8 +93,8 @@ serve(async (req) => {
 
     const { numero, assunto, destinatario, descricao, solicitante, bairro, local, secretaria, tipo_demanda, urgencia, tem_midias, tipos_midias } = await req.json();
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -104,32 +104,12 @@ serve(async (req) => {
 
     // Fetch all context sources in parallel
     const [whatsappResp, kbResp, scriptsResp, oficiosResp] = await Promise.all([
-      // 1. WhatsApp conversations (PRIORITY — main style reference)
-      fetch(
-        `${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao&categoria=eq.WhatsApp&limit=10&order=created_at.desc`,
-        { headers }
-      ).catch(() => null),
-
-      // 2. Knowledge base (SOS, Instagram, uploads)
-      fetch(
-        `${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao,orgao,fonte,categoria&categoria=neq.WhatsApp&or=(titulo.ilike.%25${searchTerms}%25,descricao.ilike.%25${searchTerms}%25)&limit=5`,
-        { headers }
-      ).catch(() => null),
-
-      // 3. Scripts de atendimento
-      fetch(
-        `${supabaseUrl}/rest/v1/scripts?select=titulo,conteudo,categoria&limit=5&order=favorito.desc,updated_at.desc`,
-        { headers }
-      ).catch(() => null),
-
-      // 4. Respostas de ofícios anteriores (modelo=true prioritários)
-      fetch(
-        `${supabaseUrl}/rest/v1/oficios?select=assunto,resposta_cidadao,secretaria_identificada,bairro,tipo_demanda&resposta_cidadao=not.is.null&or=(assunto.ilike.%25${searchTerms}%25,bairro.ilike.%25${searchTerms}%25)&limit=5&order=created_at.desc`,
-        { headers }
-      ).catch(() => null),
+      fetch(`${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao&categoria=eq.WhatsApp&limit=10&order=created_at.desc`, { headers }).catch(() => null),
+      fetch(`${supabaseUrl}/rest/v1/base_conhecimento?select=titulo,descricao,orgao,fonte,categoria&categoria=neq.WhatsApp&or=(titulo.ilike.%25${searchTerms}%25,descricao.ilike.%25${searchTerms}%25)&limit=5`, { headers }).catch(() => null),
+      fetch(`${supabaseUrl}/rest/v1/scripts?select=titulo,conteudo,categoria&limit=5&order=favorito.desc,updated_at.desc`, { headers }).catch(() => null),
+      fetch(`${supabaseUrl}/rest/v1/oficios?select=assunto,resposta_cidadao,secretaria_identificada,bairro,tipo_demanda&resposta_cidadao=not.is.null&or=(assunto.ilike.%25${searchTerms}%25,bairro.ilike.%25${searchTerms}%25)&limit=5&order=created_at.desc`, { headers }).catch(() => null),
     ]);
 
-    // Process WhatsApp conversations (PRIORITY)
     let whatsappContext = "";
     try {
       if (whatsappResp?.ok) {
@@ -141,7 +121,6 @@ serve(async (req) => {
       }
     } catch (e) { console.error("WhatsApp error:", e); }
 
-    // Process knowledge base
     let kbContext = "";
     try {
       if (kbResp?.ok) {
@@ -153,7 +132,6 @@ serve(async (req) => {
       }
     } catch (e) { console.error("KB error:", e); }
 
-    // Process scripts
     let scriptsContext = "";
     try {
       if (scriptsResp?.ok) {
@@ -165,7 +143,6 @@ serve(async (req) => {
       }
     } catch (e) { console.error("Scripts error:", e); }
 
-    // Process previous oficio responses
     let oficiosContext = "";
     try {
       if (oficiosResp?.ok) {
@@ -198,39 +175,39 @@ ${midiasInfo}${whatsappContext}${kbContext}${scriptsContext}${oficiosContext}
 
 IMPORTANTE: Use o tom natural das conversas do WhatsApp como referência principal. A resposta deve soar como uma mensagem real de assessora, não como um documento oficial.`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
+        model: "claude-haiku-4-5-20250315",
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userPrompt }],
       }),
     });
 
     if (!response.ok) {
+      const t = await response.text();
+      console.error("Anthropic API error:", response.status, t);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (response.status === 401) {
+        return new Response(JSON.stringify({ error: "Chave da Anthropic inválida ou expirada." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI error:", response.status, t);
       throw new Error("Erro ao gerar resposta");
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content?.trim() || "";
+    const content = data.content?.[0]?.text?.trim() || "";
 
     return new Response(
       JSON.stringify({ resposta: content }),
