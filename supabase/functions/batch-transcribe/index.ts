@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -19,10 +21,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Auth check
     const userClient = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: authHeader } } });
     const { data: claimsData, error: claimsErr } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (claimsErr || !claimsData?.user) {
@@ -31,7 +32,6 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // Get entries with categoria='Áudio' that have no description yet
     const { data: entries, error: fetchErr } = await adminClient
       .from("base_conhecimento")
       .select("*")
@@ -55,25 +55,29 @@ serve(async (req) => {
         if (!audioResp.ok) { results.push({ id: entry.id, error: "Download failed" }); continue; }
 
         const audioBytes = new Uint8Array(await audioResp.arrayBuffer());
-
-        // Chunked base64
         let binary = "";
         const chunkSize = 8192;
         for (let i = 0; i < audioBytes.length; i += chunkSize) {
           binary += String.fromCharCode(...audioBytes.subarray(i, i + chunkSize));
         }
         const base64 = btoa(binary);
-        const mimeType = "audio/ogg";
 
-        // Step 1: Transcribe with AI
-        const transcribeResp = await fetch("https://api.openai.com/v1/chat/completions", {
+        // Step 1: Transcribe and analyze with Gemini (supports audio natively)
+        const transcribeResp = await fetch(AI_GATEWAY_URL, {
           method: "POST",
-          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            model: "gpt-4o",
+            model: "google/gemini-2.5-flash",
             messages: [{
               role: "user",
               content: [
+                {
+                  type: "image_url",
+                  image_url: { url: `data:audio/ogg;base64,${base64}` },
+                },
                 {
                   type: "text",
                   text: `Transcreva este áudio integralmente em português. Após a transcrição, organize as informações relevantes:
@@ -88,10 +92,6 @@ TRANSCRIÇÃO:
 
 RESUMO PARA OFÍCIO:
 [informações organizadas]`,
-                },
-                {
-                  type: "input_audio",
-                  input_audio: { data: base64, format: "mp3" },
                 },
               ],
             }],
@@ -110,11 +110,14 @@ RESUMO PARA OFÍCIO:
         if (!transcription) { results.push({ id: entry.id, error: "Empty transcription" }); continue; }
 
         // Step 2: Analyze for smart title and tags
-        const analyzeResp = await fetch("https://api.openai.com/v1/chat/completions", {
+        const analyzeResp = await fetch(AI_GATEWAY_URL, {
           method: "POST",
-          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "google/gemini-2.5-flash-lite",
             messages: [
               { role: "system", content: "Você é um assistente de um gabinete parlamentar. Analise a transcrição de um áudio e retorne informações estruturadas." },
               {

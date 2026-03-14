@@ -5,7 +5,7 @@ const corsHeaders = {
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const AI_GATEWAY_URL = "https://api.openai.com/v1/chat/completions";
+const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,8 +16,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -25,39 +24,33 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Auth check
     const supabaseAuth = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Usuário não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { data: isAdminResult } = await supabaseAuth.rpc("is_admin", { _user_id: user.id });
     if (!isAdminResult) {
       return new Response(JSON.stringify({ error: "Acesso restrito a administradores" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { limit = 10 } = await req.json();
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      return new Response(JSON.stringify({ error: "OPENAI_API_KEY não configurada" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Use service role to bypass RLS for updates
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get unclassified entries
     const { data: entries, error: fetchError } = await supabase
       .from("base_conhecimento")
       .select("id, link, titulo, descricao, categoria, palavras_chave")
@@ -67,8 +60,7 @@ Deno.serve(async (req) => {
 
     if (fetchError) {
       return new Response(JSON.stringify({ error: fetchError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -78,7 +70,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build batch prompt - classify ALL links at once with a single AI call
     const linksData = entries.map((e: any, i: number) => {
       const tipo = e.link?.includes("/reel/") ? "Reel" : "Post";
       return `${i + 1}. [${tipo}] ${e.link}`;
@@ -87,11 +78,11 @@ Deno.serve(async (req) => {
     const aiResponse = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
@@ -122,17 +113,15 @@ Responda APENAS o JSON array, sem markdown.`,
 
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content || "";
-    
+
     let classifications: any[] = [];
     try {
-      // Remove markdown code fences if present
       const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       classifications = JSON.parse(cleaned);
     } catch {
       console.error("Failed to parse AI response:", content.slice(0, 500));
       return new Response(JSON.stringify({ error: "Falha ao interpretar resposta da IA", raw: content.slice(0, 200) }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -174,8 +163,7 @@ Responda APENAS o JSON array, sem markdown.`,
   } catch (err) {
     console.error("Classification error:", err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Erro interno" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
