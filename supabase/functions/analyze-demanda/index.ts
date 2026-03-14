@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 const SECRETARIA_MAP: Record<string, string[]> = {
   "Secretaria de Obras": ["buraco", "asfalto", "calçada", "pavimentação", "obra", "construção", "cratera", "rua danificada", "recapeamento"],
   "Secretaria de Meio Ambiente": ["árvore", "poda", "queimada", "esgoto", "rio", "córrego", "desmatamento", "lixo", "entulho", "ambiental"],
@@ -52,8 +54,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -72,29 +74,23 @@ serve(async (req) => {
       const base64 = btoa(binary);
       const mimeType = file.type || "application/octet-stream";
 
-      const isImage = mimeType.startsWith("image/");
-      const isAudio = mimeType.startsWith("audio/");
-      const isPdf = mimeType.includes("pdf");
+      const extractPrompt = `Extraia TODO o texto visível deste documento/imagem. Transcreva integralmente.`;
 
-      const extractPrompt = isPdf || isImage
-        ? `Extraia TODO o texto visível deste documento/imagem. Transcreva integralmente.`
-        : isAudio
-        ? `Transcreva este áudio integralmente.`
-        : `Extraia o conteúdo textual deste arquivo.`;
-
-      const contentPart = isAudio
-        ? { type: "input_audio" as const, input_audio: { data: base64, format: mimeType.includes("wav") ? "wav" : "mp3" } }
-        : { type: "image_url" as const, image_url: { url: `data:${mimeType};base64,${base64}` } };
-
-      const extractResp = await fetch("https://api.openai.com/v1/chat/completions", {
+      const extractResp = await fetch(AI_GATEWAY_URL, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [{ role: "user", content: [{ type: "text", text: extractPrompt }, contentPart] }],
+          model: "google/gemini-2.5-flash",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
+              { type: "text", text: extractPrompt },
+            ],
+          }],
         }),
       });
 
@@ -110,12 +106,11 @@ serve(async (req) => {
 
     if (!extractedText.trim()) {
       return new Response(JSON.stringify({ error: "Nenhum texto extraído do arquivo" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Now analyze the text with AI to fill fields
+    // Analyze text with AI
     const analysisPrompt = `Analise o texto abaixo de uma solicitação/demanda cidadã e extraia as informações estruturadas.
 
 TEXTO:
@@ -135,14 +130,14 @@ Retorne APENAS um JSON com estes campos (se não encontrar, retorne string vazia
   "descricao": "descrição estruturada da demanda"
 }`;
 
-    const analysisResp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const analysisResp = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: "Você é um assistente de gabinete parlamentar. Analise demandas cidadãs e extraia informações estruturadas. Responda SOMENTE com JSON válido." },
           { role: "user", content: analysisPrompt },
@@ -156,15 +151,18 @@ Retorne APENAS um JSON com estes campos (se não encontrar, retorne string vazia
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (analysisResp.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       throw new Error(`Erro na análise: ${analysisResp.status}`);
     }
 
     const analysisData = await analysisResp.json();
     let aiContent = analysisData.choices?.[0]?.message?.content || "{}";
-    
-    // Clean JSON
     aiContent = aiContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    
+
     let result: Record<string, string> = {};
     try {
       result = JSON.parse(aiContent);
@@ -173,7 +171,6 @@ Retorne APENAS um JSON com estes campos (se não encontrar, retorne string vazia
       result = { descricao: extractedText };
     }
 
-    // Fallback secretaria detection
     if (!result.secretaria) {
       result.secretaria = detectSecretaria(extractedText) || "";
     }

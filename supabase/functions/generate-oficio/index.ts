@@ -7,7 +7,31 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Você é redator parlamentar do gabinete do Vereador Fabão em Uberlândia-MG.
+const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY não configurada");
+    }
+
+    const nomeOrgao = {
+      'DMAE': 'Departamento Municipal de Água e Esgoto',
+      'DMAE — Departamento Municipal de Água e Esgoto': 'Departamento Municipal de Água e Esgoto',
+      'UFU — Universidade Federal de Uberlândia': 'Universidade Federal de Uberlândia',
+      'Secretaria Municipal de Trânsito e Transportes (SETTRAN)': 'Secretaria Municipal de Trânsito e Transportes',
+    }[tipo] || tipo || 'órgão competente';
+
+    const conclusao = `Espero que o ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução das providências necessárias.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
+
+    const SYSTEM_PROMPT = `Você é redator parlamentar do gabinete do Vereador Fabão em Uberlândia-MG.
 
 Redija ofícios parlamentares com linguagem formal, objetiva e sem redundâncias.
 
@@ -47,28 +71,6 @@ Retorne JSON no formato:
   "sugestoes_melhoria": []
 }`;
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
-
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY não configurada");
-    }
-
-    const nomeOrgao = {
-      'DMAE': 'Departamento Municipal de Água e Esgoto',
-      'DMAE — Departamento Municipal de Água e Esgoto': 'Departamento Municipal de Água e Esgoto',
-      'UFU — Universidade Federal de Uberlândia': 'Universidade Federal de Uberlândia',
-      'Secretaria Municipal de Trânsito e Transportes (SETTRAN)': 'Secretaria Municipal de Trânsito e Transportes',
-    }[tipo] || tipo || 'órgão competente';
-
-    const conclusao = `Espero que o ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução das providências necessárias.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
-
     const userPrompt = `SECRETARIA/ÓRGÃO: ${tipo || "Não informada"}
 DESTINATÁRIO: ${destinatario || "A identificar"}
 DESCRIÇÃO DO PROBLEMA: ${descricao || "Não informado"}
@@ -82,39 +84,45 @@ CONCLUSÃO FIXA (copiar exatamente ao final do corpo):
 
 Gere o ofício parlamentar em JSON.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userPrompt }],
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
       }),
     });
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("Anthropic error:", response.status, text);
+      console.error("AI Gateway error:", response.status, text);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ error: text }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
-    const content = data.content?.[0]?.text || "";
+    const content = data.choices?.[0]?.message?.content || "";
 
     let parsed;
     try {
-      const cleaned = content
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
+      const cleaned = content.replace(/```json/g, "").replace(/```/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
       parsed = {

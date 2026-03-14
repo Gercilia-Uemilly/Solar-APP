@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,22 +25,20 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const fileType = formData.get("type") as string; // "image", "audio", or "video"
+    const fileType = formData.get("type") as string;
 
     if (!file) {
       return new Response(JSON.stringify({ error: "Nenhum arquivo enviado" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
-    // Chunked base64 to avoid stack overflow on large files
     let binary = "";
     const chunkSize = 8192;
     for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -47,57 +47,11 @@ serve(async (req) => {
     const base64 = btoa(binary);
     const mimeType = file.type || (fileType === "audio" ? "audio/ogg" : fileType === "video" ? "video/mp4" : "image/jpeg");
 
-    // For audio/video, use OpenAI Whisper for transcription first, then Claude for analysis
+    let prompt: string;
     if (fileType === "audio" || fileType === "video") {
-      const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-      
-      let transcription = "";
-      
-      if (OPENAI_API_KEY) {
-        // Use Whisper for transcription
-        try {
-          const blob = new Blob([bytes], { type: mimeType });
-          const whisperForm = new FormData();
-          whisperForm.append("file", blob, file.name || "audio.ogg");
-          whisperForm.append("model", "whisper-1");
-          whisperForm.append("language", "pt");
+      prompt = `Analise este ${fileType === "video" ? "vídeo" : "áudio"} e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
 
-          const whisperResp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
-            body: whisperForm,
-          });
-
-          if (whisperResp.ok) {
-            const whisperData = await whisperResp.json();
-            transcription = whisperData.text || "";
-          } else {
-            console.error("Whisper error:", whisperResp.status, await whisperResp.text());
-          }
-        } catch (e) {
-          console.error("Whisper transcription failed:", e);
-        }
-      }
-
-      if (!transcription) {
-        return new Response(JSON.stringify({ 
-          text: "⚠️ Não foi possível transcrever o áudio/vídeo. Descreva a demanda manualmente.", 
-          type: fileType 
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Now use Claude to analyze the transcription
-      const analysisContent = [
-        {
-          type: "text",
-          text: `Analise esta transcrição de ${fileType === "video" ? "vídeo" : "áudio"} e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
-
-TRANSCRIÇÃO:
-"${transcription}"
-
-Organize as informações:
+Transcreva o conteúdo integralmente e organize:
 - Qual é a demanda/problema relatado
 - Localização mencionada (ruas, bairros)
 - Nome do solicitante (se mencionado)
@@ -105,49 +59,11 @@ Organize as informações:
 
 Formato da resposta:
 TRANSCRIÇÃO:
-${transcription}
+[transcrição completa]
 
 RESUMO PARA OFÍCIO:
-[informações organizadas para criação do ofício]`,
-        },
-      ];
-
-      const claudeResp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20250315",
-          max_tokens: 1024,
-          messages: [{ role: "user", content: analysisContent }],
-        }),
-      });
-
-      if (!claudeResp.ok) {
-        const errText = await claudeResp.text();
-        console.error("Claude analysis error:", claudeResp.status, errText);
-        // Return just the transcription if analysis fails
-        return new Response(
-          JSON.stringify({ text: `TRANSCRIÇÃO:\n${transcription}`, type: fileType }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const claudeData = await claudeResp.json();
-      const analysisText = claudeData.content?.[0]?.text || transcription;
-
-      return new Response(
-        JSON.stringify({ text: analysisText, type: fileType }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // For images and PDFs, use Claude directly
-    let prompt: string;
-    if (fileType === "image") {
+[informações organizadas para criação do ofício]`;
+    } else if (fileType === "image") {
       prompt = `Analise esta imagem e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
 
 Foque em:
@@ -156,7 +72,7 @@ Foque em:
 - Localização (ruas, bairros, referências)
 - Condições gerais da situação fotografada
 
-Retorne um texto descritivo claro e objetivo com todas as informações extraídas. Se houver texto legível na imagem, transcreva-o integralmente. Se for uma foto de um problema urbano, descreva em detalhes o que está visível.`;
+Retorne um texto descritivo claro e objetivo com todas as informações extraídas. Se houver texto legível na imagem, transcreva-o integralmente.`;
     } else {
       prompt = `Analise este documento e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
 
@@ -169,74 +85,49 @@ Foque em:
 Retorne um texto descritivo claro e objetivo com todas as informações extraídas.`;
     }
 
-    // Determine Claude media type
-    const claudeMediaType = mimeType === "application/pdf" ? "document" : "image";
-    const sourceType = mimeType === "application/pdf" ? "base64" : "base64";
+    // Gemini supports images and audio via data URLs in the content
+    const contentParts: any[] = [
+      {
+        type: "image_url",
+        image_url: { url: `data:${mimeType};base64,${base64}` },
+      },
+      { type: "text", text: prompt },
+    ];
 
-    const content: any[] = [];
-    
-    if (claudeMediaType === "image") {
-      content.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: mimeType,
-          data: base64,
-        },
-      });
-    } else {
-      // PDF as document
-      content.push({
-        type: "document",
-        source: {
-          type: "base64",
-          media_type: "application/pdf",
-          data: base64,
-        },
-      });
-    }
-
-    content.push({ type: "text", text: prompt });
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20250315",
-        max_tokens: 1024,
-        messages: [{ role: "user", content }],
+        model: "google/gemini-2.5-flash",
+        messages: [{ role: "user", content: contentParts }],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Anthropic API error:", response.status, errorText);
+      console.error("AI Gateway error:", response.status, errorText);
 
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 401) {
-        return new Response(JSON.stringify({ error: "Chave da Anthropic inválida ou expirada." }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      return new Response(JSON.stringify({ error: `Erro ao processar arquivo (Anthropic ${response.status})` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: `Erro ao processar arquivo (${response.status})` }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
-    const resultText = data.content?.[0]?.text || "";
+    const resultText = data.choices?.[0]?.message?.content || "";
 
     return new Response(
       JSON.stringify({ text: resultText, type: fileType }),

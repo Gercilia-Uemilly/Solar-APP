@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 const SYSTEM_PROMPT = `Você é a assessora de comunicação do Gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
 
 Sua função é gerar respostas para cidadãos que enviaram demandas ao gabinete via WhatsApp. Você responde como se fosse o próprio Fabão ou sua equipe (SOS Uberlândia).
@@ -29,8 +31,6 @@ serve(async (req) => {
   }
 
   try {
-
-    // autenticação
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -56,22 +56,13 @@ serve(async (req) => {
     }
 
     const {
-      numero,
-      assunto,
-      destinatario,
-      descricao,
-      solicitante,
-      bairro,
-      local,
-      secretaria,
-      tipo_demanda,
-      urgencia
+      numero, assunto, destinatario, descricao, solicitante,
+      bairro, local, secretaria, tipo_demanda, urgencia
     } = await req.json();
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY não configurada");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY não configurada");
     }
 
     const protocolo = numero ? `${numero}` : "ainda não atribuído";
@@ -93,30 +84,34 @@ URGÊNCIA: ${urgencia || "Normal"}
 
 Gere a resposta para WhatsApp.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        model: "google/gemini-2.5-flash",
         messages: [
-          {
-            role: "user",
-            content: userPrompt
-          }
-        ]
-      })
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+      }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Erro Claude:", errorText);
-
+      console.error("AI Gateway error:", response.status, errorText);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(
         JSON.stringify({ error: "Erro ao gerar resposta com IA" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -124,19 +119,16 @@ Gere a resposta para WhatsApp.`;
     }
 
     const data = await response.json();
-
     const resposta =
-      data.content?.[0]?.text?.trim() ||
+      data.choices?.[0]?.message?.content?.trim() ||
       "Oi! Recebi sua mensagem e já estou verificando a situação. Assim que tiver retorno te aviso 👍";
 
     return new Response(
       JSON.stringify({ resposta }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (e) {
     console.error("Erro geral:", e);
-
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
