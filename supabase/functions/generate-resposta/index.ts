@@ -74,7 +74,7 @@ serve(async (req) => {
       throw new Error("ANTHROPIC_API_KEY não configurada");
     }
 
-    const protocolo = numero ? ${numero} : "ainda não atribuído";
+    const protocolo = numero ? `${numero}` : "ainda não atribuído";
 
     const userPrompt = `
 PROTOCOLO: ${protocolo}
