@@ -1,13 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callGemini, toGeminiMultimodal, toGeminiMessages } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -21,8 +20,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const userClient = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: authHeader } } });
     const { data: claimsData, error: claimsErr } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
@@ -50,7 +47,6 @@ serve(async (req) => {
 
     for (const entry of entries) {
       try {
-        // Download audio from storage URL
         const audioResp = await fetch(entry.link!);
         if (!audioResp.ok) { results.push({ id: entry.id, error: "Download failed" }); continue; }
 
@@ -62,25 +58,10 @@ serve(async (req) => {
         }
         const base64 = btoa(binary);
 
-        // Step 1: Transcribe and analyze with Gemini (supports audio natively)
-        const transcribeResp = await fetch(AI_GATEWAY_URL, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{
-              role: "user",
-              content: [
-                {
-                  type: "image_url",
-                  image_url: { url: `data:audio/ogg;base64,${base64}` },
-                },
-                {
-                  type: "text",
-                  text: `Transcreva este áudio integralmente em português. Após a transcrição, organize as informações relevantes:
+        // Step 1: Transcribe with Gemini
+        const { systemInstruction: si1, messages: m1 } = toGeminiMultimodal([
+          { inlineData: { mimeType: "audio/ogg", data: base64 } },
+          { text: `Transcreva este áudio integralmente em português. Após a transcrição, organize as informações relevantes:
 - Qual é a demanda/problema relatado
 - Localização mencionada (ruas, bairros)
 - Nome do solicitante (se mencionado)
@@ -91,38 +72,18 @@ TRANSCRIÇÃO:
 [transcrição completa]
 
 RESUMO PARA OFÍCIO:
-[informações organizadas]`,
-                },
-              ],
-            }],
-          }),
-        });
+[informações organizadas]` },
+        ]);
 
-        if (!transcribeResp.ok) {
-          console.error("Transcription error for", entry.id, await transcribeResp.text());
-          results.push({ id: entry.id, error: "Transcription failed" });
-          continue;
-        }
-
-        const transcribeData = await transcribeResp.json();
-        const transcription = transcribeData.choices?.[0]?.message?.content || "";
+        const transcribeResult = await callGemini({ systemInstruction: si1, messages: m1 });
+        const transcription = transcribeResult.text;
 
         if (!transcription) { results.push({ id: entry.id, error: "Empty transcription" }); continue; }
 
         // Step 2: Analyze for smart title and tags
-        const analyzeResp = await fetch(AI_GATEWAY_URL, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
-            messages: [
-              { role: "system", content: "Você é um assistente de um gabinete parlamentar. Analise a transcrição de um áudio e retorne informações estruturadas." },
-              {
-                role: "user",
-                content: `Analise esta transcrição e extraia informações estruturadas:
+        const { systemInstruction: si2, messages: m2 } = toGeminiMessages(
+          "Você é um assistente de um gabinete parlamentar. Analise a transcrição de um áudio e retorne informações estruturadas.",
+          `Analise esta transcrição e extraia informações estruturadas:
 
 "${transcription.substring(0, 3000)}"
 
@@ -131,26 +92,20 @@ Retorne SOMENTE um JSON válido (sem markdown, sem backticks) com esta estrutura
   "titulo": "título curto e descritivo do tema principal do áudio (max 80 chars)",
   "resumo": "resumo de 1-2 frases do conteúdo principal",
   "tags": ["tag1", "tag2", "tag3"],
-  "tema_principal": "categoria principal (ex: Mobilidade, Segurança, Saúde, Educação, Infraestrutura, Política Pública, Meio Ambiente, Cultura, Esporte, Habitação, Assistência Social, Economia)",
+  "tema_principal": "categoria principal",
   "bairro": "bairro mencionado ou null",
   "solicitante": "nome do solicitante ou null"
-}`,
-              },
-            ],
-          }),
-        });
+}`
+        );
 
         let analysis = { titulo: "", resumo: "", tags: [] as string[], tema_principal: "Geral", bairro: null as string | null };
 
-        if (analyzeResp.ok) {
-          const analyzeData = await analyzeResp.json();
-          const content = analyzeData.choices?.[0]?.message?.content || "";
-          try {
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
-            analysis = { ...analysis, ...parsed };
-          } catch { /* keep defaults */ }
-        }
+        try {
+          const analyzeResult = await callGemini({ model: "gemini-2.5-flash-lite", systemInstruction: si2, messages: m2 });
+          const jsonMatch = analyzeResult.text.match(/\{[\s\S]*\}/);
+          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : analyzeResult.text);
+          analysis = { ...analysis, ...parsed };
+        } catch { /* keep defaults */ }
 
         // Step 3: Update DB entry
         const smartTitle = analysis.titulo ? `🎤 ${analysis.titulo}` : entry.titulo;
@@ -178,10 +133,11 @@ Retorne SOMENTE um JSON válido (sem markdown, sem backticks) com esta estrutura
     return new Response(JSON.stringify({ processed: results.length, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("batch-transcribe error:", e);
+    const status = e.status || 500;
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

@@ -1,12 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callGemini } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 function extractTag(xml: string, tag: string): string {
   const regex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
@@ -29,8 +28,7 @@ function extractAllItems(xml: string): string[] {
 }
 
 async function enrichWithAI(newEntries: { index: number; entry: any }[], supabaseUrl: string, supabaseKey: string) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY || newEntries.length === 0) return;
+  if (newEntries.length === 0) return;
 
   const batchSize = 10;
   for (let b = 0; b < newEntries.length; b += batchSize) {
@@ -38,56 +36,43 @@ async function enrichWithAI(newEntries: { index: number; entry: any }[], supabas
     const batchText = batch.map((ne, i) => `[${i}] ${ne.entry.titulo}: ${ne.entry.descricao || ""}`).join("\n");
 
     try {
-      const aiResp = await fetch(AI_GATEWAY_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
-          messages: [
-            {
-              role: "system",
-              content: `Extraia de cada notícia: palavras_chave (string[]), orgao (string|null - órgão municipal), bairro (string|null). Responda com JSON array.`,
-            },
-            { role: "user", content: batchText },
-          ],
-          tools: [{
-            type: "function",
-            function: {
-              name: "extract_news_data",
-              description: "Extract structured data from news items",
-              parameters: {
-                type: "object",
-                properties: {
+      const result = await callGemini({
+        model: "gemini-2.5-flash-lite",
+        systemInstruction: `Extraia de cada notícia: palavras_chave (string[]), orgao (string|null - órgão municipal), bairro (string|null). Responda com JSON array.`,
+        messages: [{ role: "user", parts: [{ text: batchText }] }],
+        tools: [{
+          functionDeclarations: [{
+            name: "extract_news_data",
+            description: "Extract structured data from news items",
+            parameters: {
+              type: "object",
+              properties: {
+                items: {
+                  type: "array",
                   items: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        index: { type: "number" },
-                        palavras_chave: { type: "array", items: { type: "string" } },
-                        orgao: { type: "string" },
-                        bairro: { type: "string" },
-                      },
-                      required: ["index", "palavras_chave"],
+                    type: "object",
+                    properties: {
+                      index: { type: "number" },
+                      palavras_chave: { type: "array", items: { type: "string" } },
+                      orgao: { type: "string" },
+                      bairro: { type: "string" },
                     },
+                    required: ["index", "palavras_chave"],
                   },
                 },
-                required: ["items"],
               },
+              required: ["items"],
             },
           }],
-          tool_choice: { type: "function", function: { name: "extract_news_data" } },
-        }),
+        }],
+        toolConfig: {
+          functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["extract_news_data"] },
+        },
       });
 
-      if (aiResp.ok) {
-        const aiData = await aiResp.json();
-        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (toolCall) {
-          const extracted = JSON.parse(toolCall.function.arguments);
+      if (result.toolCalls) {
+        for (const tc of result.toolCalls) {
+          const extracted = tc.functionCall?.args || {};
           for (const item of extracted.items || []) {
             if (item.index >= 0 && item.index < batch.length) {
               const ne = batch[item.index];
@@ -458,14 +443,15 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: "Invalid action" }),
+      JSON.stringify({ error: `Ação desconhecida: ${action}` }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
-    console.error("Error:", error);
+  } catch (e: any) {
+    console.error("fetch-knowledge error:", e);
+    const status = e.status || 500;
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
