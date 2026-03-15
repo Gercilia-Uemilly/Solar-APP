@@ -72,7 +72,7 @@ export function useRealtimeTable<T extends Record<string, any>>(
       setData(result as unknown as T[]);
     }
     if (isMounted.current) setLoading(false);
-  }, [table, select, JSON.stringify(filters), JSON.stringify(isNull), JSON.stringify(orderBy)]);
+  }, [table, select, JSON.stringify(filters), JSON.stringify(isNull), JSON.stringify(isNotNull), JSON.stringify(orderBy)]);
 
   useEffect(() => {
     isMounted.current = true;
