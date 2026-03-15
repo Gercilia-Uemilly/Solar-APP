@@ -410,10 +410,12 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
-  const fontSize = 22; // 11pt in half-points
-  const fontName = "Arial";
+  const defaultFontSizePt = data.formatOptions?.fontSize || 11;
+  const defaultFontSize = defaultFontSizePt * 2; // half-points
+  const defaultFontName = data.formatOptions?.fontFamily || "Arial";
 
-  const lineSpacing = 360; // 1.5 lines (padrão fixo do modelo institucional)
+  const lineSpacingMultiplier = data.formatOptions?.lineSpacing || 1.5;
+  const lineSpacing = Math.round(lineSpacingMultiplier * 240); // 240 twips per line
 
   // operadorMarca removed — operator name no longer appears in document
 
