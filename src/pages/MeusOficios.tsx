@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOficios } from "@/hooks/useOficios";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,8 +49,7 @@ export default function MeusOficios() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [oficios, setOficios] = useState<OficioRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [filtroOperador, setFiltroOperador] = useState("Todos");
@@ -186,18 +186,7 @@ export default function MeusOficios() {
     navigate("/oficios", { state: { editOficio: o } });
   };
 
-  const fetchOficios = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from("oficios").select("*").is("deleted_at" as any, null).order("created_at", { ascending: false });
-    if (error) {
-      toast({ title: "Erro ao buscar ofícios", description: error.message, variant: "destructive" });
-    } else {
-      setOficios((data as unknown as OficioRow[]) || []);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchOficios(); }, []);
+  // fetchOficios is provided by useOficios hook with realtime sync
 
   const operadores = useMemo(() => {
     const names = new Set<string>();

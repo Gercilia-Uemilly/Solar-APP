@@ -3,15 +3,9 @@ import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, Tren
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOficios } from "@/hooks/useOficios";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-
-interface OficioRow {
-  status: string;
-  created_at: string;
-  operador_nome: string | null;
-  bairro: string | null;
-}
 
 const PIE_COLORS = [
   "hsl(var(--primary))",
@@ -24,7 +18,7 @@ const PIE_COLORS = [
 
 export default function Dashboard() {
   const { user, isAdmin } = useAuth();
-  const [oficios, setOficios] = useState<OficioRow[]>([]);
+  const { oficios } = useOficios();
   const [profileName, setProfileName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,17 +32,6 @@ export default function Dashboard() {
   const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
   const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "dezembro"];
   const dataFormatada = `${diasSemana[hoje.getDay()]}, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
-
-  useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("oficios")
-        .select("status, created_at, operador_nome, bairro")
-        .is("deleted_at" as any, null);
-      if (data) setOficios(data as OficioRow[]);
-    };
-    fetch();
-  }, []);
 
   const stats = useMemo(() => {
     const now = new Date();

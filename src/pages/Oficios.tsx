@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOficios } from "@/hooks/useOficios";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
 import { generateOperatorCode, type OficioRow } from "@/lib/oficioUtils";
@@ -87,8 +88,7 @@ export default function Oficios() {
   const { toast } = useToast();
   const location = useLocation();
 
-  const [oficios, setOficios] = useState<OficioRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticAdd, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [showDialog, setShowDialog] = useState(false);
@@ -282,14 +282,7 @@ export default function Oficios() {
       .join("\n") || div.textContent?.trim() || "";
   };
 
-  const fetchOficios = async () => {
-    setLoading(true);
-    const { data } = await supabase.from("oficios").select("*").is("deleted_at" as any, null).order("created_at", { ascending: false });
-    setOficios((data as unknown as OficioRow[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchOficios(); }, []);
+  // fetchOficios is provided by useOficios hook with realtime sync
 
   // Handle incoming edit from MeusOficios
   useEffect(() => {
