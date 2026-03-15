@@ -186,18 +186,7 @@ export default function MeusOficios() {
     navigate("/oficios", { state: { editOficio: o } });
   };
 
-  const fetchOficios = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from("oficios").select("*").is("deleted_at" as any, null).order("created_at", { ascending: false });
-    if (error) {
-      toast({ title: "Erro ao buscar ofícios", description: error.message, variant: "destructive" });
-    } else {
-      setOficios((data as unknown as OficioRow[]) || []);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchOficios(); }, []);
+  // fetchOficios is provided by useOficios hook with realtime sync
 
   const operadores = useMemo(() => {
     const names = new Set<string>();
