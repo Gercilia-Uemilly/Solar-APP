@@ -49,8 +49,7 @@ export default function MeusOficios() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [oficios, setOficios] = useState<OficioRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [filtroOperador, setFiltroOperador] = useState("Todos");
