@@ -479,8 +479,8 @@ export default function MeusOficios() {
 
   const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "protocolados">("rascunhos");
 
-  const rascunhos = filtered.filter(o => ["Rascunho", "Salvo"].includes(o.status));
   const protocolados = filtered.filter(o => ["Protocolado", "Feito"].includes(o.status));
+  const rascunhos = filtered.filter(o => !["Protocolado", "Feito"].includes(o.status));
   const listaExibida = abaAtiva === "rascunhos" ? rascunhos : protocolados;
 
   return (
