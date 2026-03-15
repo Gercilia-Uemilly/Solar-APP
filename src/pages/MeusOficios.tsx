@@ -477,11 +477,11 @@ export default function MeusOficios() {
     setDateTo(undefined);
   };
 
-  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "protocolados" | "todos">("todos");
+  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "protocolados">("rascunhos");
 
   const rascunhos = filtered.filter(o => ["Rascunho", "Salvo"].includes(o.status));
   const protocolados = filtered.filter(o => ["Protocolado", "Feito"].includes(o.status));
-  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : abaAtiva === "protocolados" ? protocolados : filtered;
+  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : protocolados;
 
   return (
     <div className="space-y-6">
@@ -495,14 +495,7 @@ export default function MeusOficios() {
         </Button>
       </div>
 
-      {/* Tabs: Rascunhos / Protocolados / Todos */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => setAbaAtiva("todos")}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "todos" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
-        >
-          📋 Todos ({filtered.length})
-        </button>
         <button
           onClick={() => setAbaAtiva("rascunhos")}
           className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-yellow-500 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
