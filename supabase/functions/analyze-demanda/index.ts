@@ -1,13 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callGemini, toGeminiMessages, toGeminiMultimodal } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 const SECRETARIA_MAP: Record<string, string[]> = {
   "Secretaria de Obras": ["buraco", "asfalto", "calçada", "pavimentação", "obra", "construção", "cratera", "rua danificada", "recapeamento"],
@@ -54,9 +53,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const textInput = formData.get("text") as string | null;
@@ -74,34 +70,13 @@ serve(async (req) => {
       const base64 = btoa(binary);
       const mimeType = file.type || "application/octet-stream";
 
-      const extractPrompt = `Extraia TODO o texto visível deste documento/imagem. Transcreva integralmente.`;
+      const { systemInstruction, messages } = toGeminiMultimodal([
+        { inlineData: { mimeType, data: base64 } },
+        { text: `Extraia TODO o texto visível deste documento/imagem. Transcreva integralmente.` },
+      ]);
 
-      const extractResp = await fetch(AI_GATEWAY_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{
-            role: "user",
-            content: [
-              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
-              { type: "text", text: extractPrompt },
-            ],
-          }],
-        }),
-      });
-
-      if (!extractResp.ok) {
-        const errText = await extractResp.text();
-        console.error("Extraction error:", extractResp.status, errText);
-        throw new Error(`Erro na extração: ${extractResp.status}`);
-      }
-
-      const extractData = await extractResp.json();
-      extractedText = extractData.choices?.[0]?.message?.content || "";
+      const extractResult = await callGemini({ systemInstruction, messages });
+      extractedText = extractResult.text;
     }
 
     if (!extractedText.trim()) {
@@ -130,37 +105,12 @@ Retorne APENAS um JSON com estes campos (se não encontrar, retorne string vazia
   "descricao": "descrição estruturada da demanda"
 }`;
 
-    const analysisResp = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "Você é um assistente de gabinete parlamentar. Analise demandas cidadãs e extraia informações estruturadas. Responda SOMENTE com JSON válido." },
-          { role: "user", content: analysisPrompt },
-        ],
-      }),
-    });
+    const systemPrompt = "Você é um assistente de gabinete parlamentar. Analise demandas cidadãs e extraia informações estruturadas. Responda SOMENTE com JSON válido.";
 
-    if (!analysisResp.ok) {
-      if (analysisResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (analysisResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`Erro na análise: ${analysisResp.status}`);
-    }
+    const { systemInstruction, messages } = toGeminiMessages(systemPrompt, analysisPrompt);
+    const analysisResult = await callGemini({ systemInstruction, messages });
 
-    const analysisData = await analysisResp.json();
-    let aiContent = analysisData.choices?.[0]?.message?.content || "{}";
+    let aiContent = analysisResult.text;
     aiContent = aiContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
     let result: Record<string, string> = {};
@@ -181,11 +131,12 @@ Retorne APENAS um JSON com estes campos (se não encontrar, retorne string vazia
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("analyze-demanda error:", e);
+    const status = e.status || 500;
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

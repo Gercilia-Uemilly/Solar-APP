@@ -1,11 +1,10 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callGemini, toGeminiMessages } from "../_shared/gemini.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -42,12 +41,6 @@ Deno.serve(async (req) => {
     }
 
     const { limit = 10 } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -75,52 +68,24 @@ Deno.serve(async (req) => {
       return `${i + 1}. [${tipo}] ${e.link}`;
     }).join("\n");
 
-    const aiResponse = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Você classifica posts do Instagram do vereador Fabão (Uberlândia/MG).
+    const systemPrompt = `Você classifica posts do Instagram do vereador Fabão (Uberlândia/MG).
 Para cada link, gere um título descritivo com emoji e classifique o tema e tags.
 
 Temas possíveis: Saúde, Educação, Transporte, Segurança, Infraestrutura, Meio Ambiente, Social, Cultura, Esporte, Político, Comunicado, Agradecimento, Evento, Conquista, Outro.
 
 Responda com um JSON array. Cada item: {"index": N, "titulo": "...", "tema": "...", "tags": ["...", "..."]}
-Responda APENAS o JSON array, sem markdown.`,
-          },
-          {
-            role: "user",
-            content: `Classifique estes ${entries.length} posts:\n${linksData}`,
-          },
-        ],
-      }),
-    });
+Responda APENAS o JSON array, sem markdown.`;
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
-      return new Response(JSON.stringify({ error: `AI error: ${aiResponse.status}` }), {
-        status: aiResponse.status === 429 ? 429 : 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
+    const { systemInstruction, messages } = toGeminiMessages(systemPrompt, `Classifique estes ${entries.length} posts:\n${linksData}`);
+    const result = await callGemini({ systemInstruction, messages });
 
     let classifications: any[] = [];
     try {
-      const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const cleaned = result.text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       classifications = JSON.parse(cleaned);
     } catch {
-      console.error("Failed to parse AI response:", content.slice(0, 500));
-      return new Response(JSON.stringify({ error: "Falha ao interpretar resposta da IA", raw: content.slice(0, 200) }), {
+      console.error("Failed to parse AI response:", result.text.slice(0, 500));
+      return new Response(JSON.stringify({ error: "Falha ao interpretar resposta da IA", raw: result.text.slice(0, 200) }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -160,10 +125,11 @@ Responda APENAS o JSON array, sem markdown.`,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  } catch (err) {
+  } catch (err: any) {
     console.error("Classification error:", err);
+    const status = err.status || 500;
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Erro interno" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

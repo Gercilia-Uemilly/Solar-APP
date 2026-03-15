@@ -1,13 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callGemini, toGeminiMessages } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,11 +14,6 @@ serve(async (req) => {
 
   try {
     const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY não configurada");
-    }
 
     const nomeOrgao = {
       'DMAE': 'Departamento Municipal de Água e Esgoto',
@@ -84,49 +77,16 @@ CONCLUSÃO FIXA (copiar exatamente ao final do corpo):
 
 Gere o ofício parlamentar em JSON.`;
 
-    const response = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("AI Gateway error:", response.status, text);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: text }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    const { systemInstruction, messages } = toGeminiMessages(SYSTEM_PROMPT, userPrompt);
+    const result = await callGemini({ systemInstruction, messages });
 
     let parsed;
     try {
-      const cleaned = content.replace(/```json/g, "").replace(/```/g, "").trim();
+      const cleaned = result.text.replace(/```json/g, "").replace(/```/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
       parsed = {
-        oficio: content,
+        oficio: result.text,
         assunto_sugerido: "",
         secretaria_identificada: tipo || "",
         tipo_demanda: "Solicitação",
@@ -138,11 +98,12 @@ Gere o ofício parlamentar em JSON.`;
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("generate-oficio error:", error);
+    const status = error.status || 500;
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro interno ao gerar ofício" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
