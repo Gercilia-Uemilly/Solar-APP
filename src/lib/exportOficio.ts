@@ -60,6 +60,11 @@ export interface OficioData {
   secretaria?: string;
   codigoZ?: string;
   contatoSolicitante?: string;
+  formatOptions?: {
+    fontSize?: number;
+    lineSpacing?: number;
+    fontFamily?: string;
+  };
 }
 
 // ── Parse HTML content into styled text runs ────────────────────────────────
@@ -69,6 +74,8 @@ interface StyledRun {
   italic?: boolean;
   underline?: boolean;
   break?: number;
+  fontSize?: number; // in pt
+  fontFamily?: string;
 }
 
 interface ParsedImageRun {
@@ -206,7 +213,7 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
 
   const extractRuns = (
     node: Node,
-    inherited: { bold?: boolean; italic?: boolean; underline?: boolean },
+    inherited: { bold?: boolean; italic?: boolean; underline?: boolean; fontSize?: number; fontFamily?: string },
   ): ParsedRun[] => {
     const runs: ParsedRun[] = [];
 
@@ -251,6 +258,19 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
       if (tag === "strong" || tag === "b" || isBoldByStyle) style.bold = true;
       if (tag === "em" || tag === "i" || isItalicByStyle) style.italic = true;
       if (tag === "u" || isUnderlineByStyle) style.underline = true;
+
+      // Extract inline font-size and font-family
+      const inlineFontSize = el.style.fontSize;
+      if (inlineFontSize) {
+        const ptMatch = inlineFontSize.match(/([\d.]+)\s*pt/i);
+        const pxMatch = inlineFontSize.match(/([\d.]+)\s*px/i);
+        if (ptMatch) style.fontSize = parseFloat(ptMatch[1]);
+        else if (pxMatch) style.fontSize = Math.round(parseFloat(pxMatch[1]) * 0.75);
+      }
+      const inlineFontFamily = el.style.fontFamily;
+      if (inlineFontFamily) {
+        style.fontFamily = inlineFontFamily.replace(/['"]/g, "").split(",")[0].trim();
+      }
 
       runs.push(...extractRuns(el, style));
     });
@@ -390,10 +410,12 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
-  const fontSize = 22; // 11pt in half-points
-  const fontName = "Arial";
+  const defaultFontSizePt = data.formatOptions?.fontSize || 11;
+  const defaultFontSize = defaultFontSizePt * 2; // half-points
+  const defaultFontName = data.formatOptions?.fontFamily || "Arial";
 
-  const lineSpacing = 360; // 1.5 lines (padrão fixo do modelo institucional)
+  const lineSpacingMultiplier = data.formatOptions?.lineSpacing || 1.5;
+  const lineSpacing = Math.round(lineSpacingMultiplier * 240); // 240 twips per line
 
   // operadorMarca removed — operator name no longer appears in document
 
@@ -412,11 +434,13 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           type: ('imageType' in r ? r.imageType : "png") as "png" | "jpg" | "gif" | "bmp",
         }));
       } else {
+        const runFontSize = r.fontSize ? r.fontSize * 2 : defaultFontSize;
+        const runFontName = r.fontFamily || defaultFontName;
         children.push(new TextRun({
           text: r.text,
           break: r.break,
-          font: fontName,
-          size: fontSize,
+          font: runFontName,
+          size: runFontSize,
           bold: r.bold,
           italics: r.italic,
           underline: r.underline ? {} : undefined,
@@ -458,7 +482,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
                   transformation: { width: 240, height: 70 },
                   type: "jpg",
                 }),
-                new TextRun({ text: "    ", font: fontName, size: fontSize }),
+                new TextRun({ text: "    ", font: defaultFontName, size: defaultFontSize }),
                 new ImageRun({
                   data: logoFabaoBytes,
                   transformation: { width: 140, height: 70 },
@@ -472,7 +496,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               alignment: AlignmentType.RIGHT,
               children: [new TextRun({
                 children: [PageNumber.CURRENT],
-                font: fontName,
+                font: defaultFontName,
                 size: 18, // 9pt
               })],
               spacing: { before: 0, after: 0 },
@@ -487,7 +511,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               alignment: AlignmentType.CENTER,
               children: [new TextRun({
                 text: "Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG",
-                font: fontName,
+                font: defaultFontName,
                 size: 18, // 9pt
                 color: "444444",
               })],
@@ -500,21 +524,21 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Date — after: 240
         new Paragraph({
           alignment: AlignmentType.RIGHT,
-          children: [new TextRun({ text: formatDate(dataGeracao), font: fontName, size: fontSize })],
+          children: [new TextRun({ text: formatDate(dataGeracao), font: defaultFontName, size: defaultFontSize })],
           spacing: { before: 120, after: 360, line: lineSpacing },
         }),
 
         // Ofício GVF n° — bold, after: 240
         new Paragraph({
-          children: [new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: fontName, size: fontSize, bold: true })],
+          children: [new TextRun({ text: `Ofício GVF n° ${numeroFormatado}`, font: defaultFontName, size: defaultFontSize, bold: true })],
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
         // DESTINATÁRIO — completo em negrito
         new Paragraph({
           children: [
-            new TextRun({ text: "DESTINATÁRIO: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: destinatarioCompleto, font: fontName, size: fontSize, bold: true }),
+            new TextRun({ text: "DESTINATÁRIO: ", font: defaultFontName, size: defaultFontSize, bold: true }),
+            new TextRun({ text: destinatarioCompleto, font: defaultFontName, size: defaultFontSize, bold: true }),
           ],
           spacing: { before: 0, after: 0, line: lineSpacing },
         }),
@@ -522,8 +546,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // ASSUNTO — completo em negrito (como modelo)
         new Paragraph({
           children: [
-            new TextRun({ text: "ASSUNTO: ", font: fontName, size: fontSize, bold: true }),
-            new TextRun({ text: assuntoFormatado, font: fontName, size: fontSize, bold: true }),
+            new TextRun({ text: "ASSUNTO: ", font: defaultFontName, size: defaultFontSize, bold: true }),
+            new TextRun({ text: assuntoFormatado, font: defaultFontName, size: defaultFontSize, bold: true }),
           ],
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
@@ -532,7 +556,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         new Paragraph({
           alignment: AlignmentType.LEFT,
           indent: { firstLine: 709 },
-          children: [new TextRun({ text: vocativo, font: fontName, size: fontSize, bold: false })],
+          children: [new TextRun({ text: vocativo, font: defaultFontName, size: defaultFontSize, bold: false })],
           spacing: { before: 0, after: 240, line: lineSpacing },
         }),
 
@@ -544,7 +568,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Atenciosamente — before: 240, after: 480, indent 1.25cm
         new Paragraph({
           indent: { firstLine: 709 },
-          children: [new TextRun({ text: "Atenciosamente,", font: fontName, size: fontSize })],
+          children: [new TextRun({ text: "Atenciosamente,", font: defaultFontName, size: defaultFontSize })],
           spacing: { before: 240, after: 480, line: lineSpacing },
         }),
 
@@ -567,7 +591,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // FABÃO — bold, centered, simple line spacing (240)
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: "FABÃO", font: fontName, size: fontSize, bold: true })],
+          children: [new TextRun({ text: "FABÃO", font: defaultFontName, size: defaultFontSize, bold: true })],
           spacing: { before: 0, after: 0, line: 240 },
           keepNext: true,
           keepLines: true,
@@ -576,7 +600,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Vereador — centered, simple line spacing (240)
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: "Vereador", font: fontName, size: fontSize })],
+          children: [new TextRun({ text: "Vereador", font: defaultFontName, size: defaultFontSize })],
           spacing: { before: 0, after: 0, line: 240 },
           keepLines: true,
         }),

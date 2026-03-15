@@ -814,6 +814,11 @@ export default function Oficios() {
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
     imagens: getImageFilesFromAnexos(),
+    formatOptions: {
+      fontSize: formatOptions.fontSize,
+      lineSpacing: formatOptions.lineSpacing,
+      fontFamily: formatOptions.fontFamily,
+    },
   });
 
   return (
