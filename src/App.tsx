@@ -27,6 +27,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const Lixeira = lazy(() => import("./pages/Lixeira"));
+const WhatsAppConectar = lazy(() => import("./pages/WhatsAppConectar"));
+const WhatsAppMensagens = lazy(() => import("./pages/WhatsAppMensagens"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -85,6 +87,8 @@ const AppRoutes = () => (
       <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>} />
       <Route path="/clipping" element={<ProtectedRoute><AppLayout><Clipping /></AppLayout></ProtectedRoute>} />
       <Route path="/sobre" element={<ProtectedRoute><AppLayout><Sobre /></AppLayout></ProtectedRoute>} />
+      <Route path="/whatsapp" element={<ProtectedRoute><AppLayout><WhatsAppConectar /></AppLayout></ProtectedRoute>} />
+      <Route path="/whatsapp-mensagens" element={<ProtectedRoute><AppLayout><WhatsAppMensagens /></AppLayout></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </Suspense>

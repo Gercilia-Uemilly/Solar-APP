@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info } from "lucide-react";
+import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info, Smartphone, MessagesSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoSolar from "@/assets/logo-solar.png";
@@ -11,6 +11,8 @@ const menuItems = [
   { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
   { label: "Scripts", icon: MessageSquare, path: "/scripts", adminOnly: false },
   { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
+  { label: "WhatsApp", icon: Smartphone, path: "/whatsapp", adminOnly: false },
+  { label: "Mensagens WA", icon: MessagesSquare, path: "/whatsapp-mensagens", adminOnly: false },
   { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
   { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
   { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
