@@ -282,14 +282,7 @@ export default function Oficios() {
       .join("\n") || div.textContent?.trim() || "";
   };
 
-  const fetchOficios = async () => {
-    setLoading(true);
-    const { data } = await supabase.from("oficios").select("*").is("deleted_at" as any, null).order("created_at", { ascending: false });
-    setOficios((data as unknown as OficioRow[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchOficios(); }, []);
+  // fetchOficios is provided by useOficios hook with realtime sync
 
   // Handle incoming edit from MeusOficios
   useEffect(() => {
