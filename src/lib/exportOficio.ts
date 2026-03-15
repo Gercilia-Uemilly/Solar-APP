@@ -213,7 +213,7 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
 
   const extractRuns = (
     node: Node,
-    inherited: { bold?: boolean; italic?: boolean; underline?: boolean },
+    inherited: { bold?: boolean; italic?: boolean; underline?: boolean; fontSize?: number; fontFamily?: string },
   ): ParsedRun[] => {
     const runs: ParsedRun[] = [];
 
