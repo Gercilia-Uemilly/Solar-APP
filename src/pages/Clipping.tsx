@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { format, startOfWeek, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
