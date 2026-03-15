@@ -25,6 +25,7 @@ export default function Lixeira() {
     channel: "lixeira-realtime",
     select: "id, numero, assunto, destinatario, deleted_at, deleted_by_name, operador_nome, created_at",
     orderBy: { column: "deleted_at", ascending: false },
+    isNotNull: ["deleted_at"],
     validate: (row) => row.deleted_at !== null,
   });
 

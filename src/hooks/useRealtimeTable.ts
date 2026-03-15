@@ -58,6 +58,11 @@ export function useRealtimeTable<T extends Record<string, any>>(
         query = query.is(col, null);
       }
     }
+    if (isNotNull) {
+      for (const col of isNotNull) {
+        query = query.not(col, "is", null);
+      }
+    }
     if (orderBy) {
       query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true });
     }
