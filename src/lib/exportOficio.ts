@@ -60,6 +60,11 @@ export interface OficioData {
   secretaria?: string;
   codigoZ?: string;
   contatoSolicitante?: string;
+  formatOptions?: {
+    fontSize?: number;
+    lineSpacing?: number;
+    fontFamily?: string;
+  };
 }
 
 // ── Parse HTML content into styled text runs ────────────────────────────────
