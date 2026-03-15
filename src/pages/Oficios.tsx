@@ -1168,7 +1168,6 @@ export default function Oficios() {
 
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
-              <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} hasChanges={editedOficio !== originalOficio} onUndo={() => setEditedOficio(originalOficio)} />
               <div className="flex gap-2 justify-end flex-wrap">
                 <Button size="sm" variant="default" onClick={() => handleCreate(false)}>
                   <Save size={14} className="mr-1" /> Salvar
