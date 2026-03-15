@@ -3,15 +3,9 @@ import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, Tren
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOficios } from "@/hooks/useOficios";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-
-interface OficioRow {
-  status: string;
-  created_at: string;
-  operador_nome: string | null;
-  bairro: string | null;
-}
 
 const PIE_COLORS = [
   "hsl(var(--primary))",
