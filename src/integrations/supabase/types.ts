@@ -553,6 +553,160 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_connections: {
+        Row: {
+          api_key: string | null
+          api_url: string | null
+          created_at: string
+          id: string
+          instance_id: string | null
+          instance_name: string
+          phone_number: string | null
+          qr_code: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key?: string | null
+          api_url?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          instance_name: string
+          phone_number?: string | null
+          qr_code?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string | null
+          api_url?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          instance_name?: string
+          phone_number?: string | null
+          qr_code?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_conversations: {
+        Row: {
+          assigned_to: string | null
+          connection_id: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          demanda_id: string | null
+          id: string
+          last_message_at: string | null
+          remote_jid: string
+          status: string
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          connection_id: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          demanda_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          remote_jid: string
+          status?: string
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          connection_id?: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          demanda_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          remote_jid?: string
+          status?: string
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversations_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          ai_analysis: Json | null
+          ai_suggested_response: string | null
+          content: string | null
+          conversation_id: string
+          created_at: string
+          direction: string
+          id: string
+          media_type: string | null
+          media_url: string | null
+          message_id: string | null
+          sender_name: string | null
+          sender_phone: string | null
+          sent_by: string | null
+          status: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_suggested_response?: string | null
+          content?: string | null
+          conversation_id: string
+          created_at?: string
+          direction?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          sent_by?: string | null
+          status?: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_suggested_response?: string | null
+          content?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          sent_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
