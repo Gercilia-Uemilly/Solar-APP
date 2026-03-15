@@ -68,8 +68,11 @@ function buildWhatsAppMessage(entry: KnowledgeEntry): string {
 export default function BancoInformacoes() {
   const { toast } = useToast();
   const { isAdmin, user } = useAuth();
-  const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: entries, setData: setEntries, loading, refetch: fetchEntries } = useRealtimeTable<KnowledgeEntry>({
+    table: "base_conhecimento",
+    channel: "base-conhecimento-realtime",
+    orderBy: { column: "created_at", ascending: false },
+  });
   const [importing, setImporting] = useState(false);
   const [scraping, setScraping] = useState(false);
   const [search, setSearch] = useState("");
@@ -104,18 +107,6 @@ export default function BancoInformacoes() {
   const [audioSearch, setAudioSearch] = useState("");
   const [audioOriginFilter, setAudioOriginFilter] = useState("Todas");
   const [audioTagFilter, setAudioTagFilter] = useState("Todos");
-
-  const fetchEntries = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("base_conhecimento" as any)
-      .select("*")
-      .order("created_at", { ascending: false });
-    setEntries((data as unknown as KnowledgeEntry[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchEntries(); }, []);
 
   // ─── Derived data ───
   const fontes = useMemo(() => {
