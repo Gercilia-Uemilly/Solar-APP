@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { useToast } from "@/hooks/use-toast";
 import { format, startOfWeek, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
