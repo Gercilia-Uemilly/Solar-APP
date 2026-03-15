@@ -259,6 +259,19 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
       if (tag === "em" || tag === "i" || isItalicByStyle) style.italic = true;
       if (tag === "u" || isUnderlineByStyle) style.underline = true;
 
+      // Extract inline font-size and font-family
+      const inlineFontSize = el.style.fontSize;
+      if (inlineFontSize) {
+        const ptMatch = inlineFontSize.match(/([\d.]+)\s*pt/i);
+        const pxMatch = inlineFontSize.match(/([\d.]+)\s*px/i);
+        if (ptMatch) style.fontSize = parseFloat(ptMatch[1]);
+        else if (pxMatch) style.fontSize = Math.round(parseFloat(pxMatch[1]) * 0.75);
+      }
+      const inlineFontFamily = el.style.fontFamily;
+      if (inlineFontFamily) {
+        style.fontFamily = inlineFontFamily.replace(/['"]/g, "").split(",")[0].trim();
+      }
+
       runs.push(...extractRuns(el, style));
     });
 
