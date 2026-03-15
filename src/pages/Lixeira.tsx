@@ -37,7 +37,7 @@ export default function Lixeira() {
     if (error) {
       toast({ title: "Erro ao restaurar", description: error.message, variant: "destructive" });
     } else {
-      setOficios(prev => prev.filter(o => o.id !== id));
+      // Realtime will auto-remove from list
       toast({ title: "✅ Ofício restaurado!" });
     }
   };
