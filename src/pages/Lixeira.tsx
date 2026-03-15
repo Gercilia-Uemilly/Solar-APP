@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trash2, RotateCcw, Loader2, AlertTriangle } from "lucide-react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 interface DeletedOficio {
   id: string;
   numero: string | null;
   assunto: string;
   destinatario: string;
-  deleted_at: string;
+  deleted_at: string | null;
   deleted_by_name: string | null;
   operador_nome: string | null;
   created_at: string;
@@ -19,21 +20,13 @@ interface DeletedOficio {
 export default function Lixeira() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
-  const [oficios, setOficios] = useState<DeletedOficio[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchDeleted = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("oficios")
-      .select("id, numero, assunto, destinatario, deleted_at, deleted_by_name, operador_nome, created_at")
-      .not("deleted_at" as any, "is", null)
-      .order("deleted_at" as any, { ascending: false });
-    setOficios((data as unknown as DeletedOficio[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchDeleted(); }, []);
+  const { data: oficios, loading, refetch: fetchDeleted } = useRealtimeTable<DeletedOficio>({
+    table: "oficios",
+    channel: "lixeira-realtime",
+    select: "id, numero, assunto, destinatario, deleted_at, deleted_by_name, operador_nome, created_at",
+    orderBy: { column: "deleted_at", ascending: false },
+    validate: (row) => row.deleted_at !== null,
+  });
 
   const handleRestore = async (id: string) => {
     const { error } = await supabase.from("oficios").update({
