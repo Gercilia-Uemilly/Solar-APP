@@ -32,15 +32,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     });
   }, [user]);
 
-  // Close mobile sidebar on route change
   useEffect(() => {
-    if (isMobile) {
-      setMobileOpen(false);
-    }
+    if (isMobile) setMobileOpen(false);
   }, [children]);
 
-  // On mobile, sidebar is overlay; on desktop, it pushes content
-  const sidebarWidth = isMobile ? 0 : (collapsed ? 64 : 220);
+  const sidebarWidth = isMobile ? 0 : (collapsed ? 56 : 220);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -51,7 +47,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-foreground/10 backdrop-blur-[2px] z-40"
             onClick={() => setMobileOpen(false)}
           />
         )}
@@ -62,10 +58,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <AnimatePresence>
           {mobileOpen && (
             <motion.div
-              initial={{ x: -260 }}
+              initial={{ x: -240 }}
               animate={{ x: 0 }}
-              exit={{ x: -260 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
+              exit={{ x: -240 }}
+              transition={{ duration: 0.15, ease: "easeInOut" }}
               className="fixed left-0 top-0 bottom-0 z-50"
             >
               <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} onOpenTour={() => setTourOpen(true)} onOpenSupport={() => setSupportOpen(true)} />
@@ -78,18 +74,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <div className="flex-1 flex flex-col" style={{ marginLeft: sidebarWidth }}>
         {/* Header */}
-        <header className="h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+        <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 sm:px-5 sticky top-0 z-30">
           <button
             onClick={() => isMobile ? setMobileOpen(!mobileOpen) : setCollapsed(!collapsed)}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
           >
-            <Menu size={18} />
+            <Menu size={16} strokeWidth={1.5} />
           </button>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2">
             <ThemeToggle />
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-foreground">{profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário"}</p>
-              <p className="text-[10px] text-muted-foreground">{profileTel ? `📱 ${profileTel}` : user?.email}</p>
+              <p className="text-[13px] font-medium text-foreground leading-tight">
+                {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário"}
+              </p>
+              <p className="text-2xs text-muted-foreground leading-tight">
+                {profileTel ? `📱 ${profileTel}` : user?.email}
+              </p>
             </div>
             <UserAvatar
               userId={user?.id}
@@ -99,32 +99,28 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             />
             <button
               onClick={() => signOut()}
-              className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150"
               title="Sair"
             >
-              <LogOut size={16} />
+              <LogOut size={15} strokeWidth={1.5} />
             </button>
           </div>
         </header>
-        <motion.main
-          className="flex-1 p-3 sm:p-6"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
+
+        {/* Main */}
+        <main className="flex-1 p-4 sm:p-6 animate-fade-in">
           {children}
-        </motion.main>
+        </main>
+
         {/* Footer */}
-        <footer className="border-t border-border px-4 py-3 text-center">
-          <p className="text-[10px] text-muted-foreground">
-            Desenvolvido por <strong className="text-foreground/70">Solar Labs</strong>
+        <footer className="border-t border-border px-4 py-2.5 text-center">
+          <p className="text-2xs text-muted-foreground">
+            Desenvolvido por <span className="font-medium text-muted-foreground/80">Solar Labs</span>
           </p>
         </footer>
       </div>
 
-      {/* Guided Tour */}
       <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
-      {/* Support Drawer */}
       <SupportDrawer open={supportOpen} onClose={() => setSupportOpen(false)} />
     </div>
   );
