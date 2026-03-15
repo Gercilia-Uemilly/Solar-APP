@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Search, Star, Copy, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 interface ScriptRow {
   id: string;
@@ -22,8 +23,11 @@ interface ScriptRow {
 export default function ScriptsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [scripts, setScripts] = useState<ScriptRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: scripts, setData: setScripts, loading, refetch: fetchScripts } = useRealtimeTable<ScriptRow>({
+    table: "scripts",
+    channel: "scripts-realtime",
+    orderBy: { column: "titulo", ascending: true },
+  });
   const [search, setSearch] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("Todas");
   const [showDialog, setShowDialog] = useState(false);
@@ -34,15 +38,6 @@ export default function ScriptsPage() {
   const [categoria, setCategoria] = useState("");
   const [tags, setTags] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  const fetchScripts = async () => {
-    setLoading(true);
-    const { data } = await supabase.from("scripts").select("*").order("categoria").order("titulo");
-    setScripts((data as unknown as ScriptRow[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchScripts(); }, []);
 
   const categorias = useMemo(() => {
     const cats = new Set(scripts.map((s) => s.categoria));
