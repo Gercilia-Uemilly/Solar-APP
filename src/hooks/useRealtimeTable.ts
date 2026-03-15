@@ -13,6 +13,8 @@ interface UseRealtimeTableOptions<T> {
   filters?: Record<string, any>;
   /** Filter for null columns (is null) */
   isNull?: string[];
+  /** Filter for not-null columns (is not null) */
+  isNotNull?: string[];
   /** Transform/validate a row before adding to state */
   validate?: (row: T) => boolean;
   /** ID field name, defaults to "id" */
