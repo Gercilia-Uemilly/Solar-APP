@@ -1,5 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight, Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info, Smartphone, MessagesSquare } from "lucide-react";
+import {
+  LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
+  Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
+  Smartphone, MessagesSquare
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoSolar from "@/assets/logo-solar.png";
@@ -34,30 +38,30 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
 
   return (
     <motion.aside
-      className="fixed left-0 top-0 bottom-0 bg-sidebar/95 backdrop-blur-xl flex flex-col border-r border-sidebar-border z-50"
-      animate={{ width: collapsed ? 64 : 220 }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
+      className="fixed left-0 top-0 bottom-0 bg-sidebar flex flex-col border-r border-sidebar-border z-50"
+      animate={{ width: collapsed ? 56 : 220 }}
+      transition={{ duration: 0.15, ease: "easeInOut" }}
     >
       {/* Logo */}
-      <div className="p-3 flex items-center gap-3 border-b border-sidebar-border min-h-[56px]">
-        <img src={logoSolar} alt="Solar" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+      <div className="px-3 py-4 flex items-center gap-2.5 border-b border-sidebar-border min-h-[52px]">
+        <img src={logoSolar} alt="Solar" className="w-7 h-7 rounded-md object-contain flex-shrink-0" />
         {!collapsed && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.05, duration: 0.15 }}
           >
-            <div className="text-sm font-medium text-foreground leading-tight">Solar</div>
-            <div className="text-[10px] text-muted-foreground">Sistema de Gerenciamento de Mandato</div>
+            <div className="text-[13px] font-semibold text-foreground leading-tight tracking-tight">Solar</div>
+            <div className="text-2xs text-muted-foreground leading-tight">Gerenciamento de Mandato</div>
           </motion.div>
         )}
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 px-2 mt-4 space-y-1">
+      <nav className="flex-1 px-2 mt-3 space-y-0.5 overflow-y-auto">
         {!collapsed && (
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mb-2 font-medium">
+          <div className="text-2xs uppercase tracking-wider text-muted-foreground/60 px-2.5 mb-2 font-medium">
             Menu
           </div>
         )}
@@ -68,42 +72,42 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
               key={item.path}
               to={item.path}
               title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+              className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] transition-all duration-150 ${
                 isActive
-                  ? "bg-primary text-primary-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-accent text-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-accent/60 hover:text-foreground"
               }`}
             >
-              <item.icon size={18} className="flex-shrink-0" />
+              <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className="flex-shrink-0" />
               {!collapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {/* Help, Support & Collapse */}
-      <div className="p-2 border-t border-sidebar-border space-y-1">
+      {/* Bottom */}
+      <div className="p-2 border-t border-sidebar-border space-y-0.5">
         <button
           onClick={onOpenTour}
           title="Tutorial de uso"
-          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+          className="flex items-center justify-center gap-2 px-2.5 py-[7px] rounded-md text-[13px] text-sidebar-foreground hover:bg-accent/60 hover:text-foreground w-full transition-colors duration-150"
         >
-          <HelpCircle size={16} className="flex-shrink-0" />
+          <HelpCircle size={15} strokeWidth={1.5} className="flex-shrink-0" />
           {!collapsed && <span>Tutorial</span>}
         </button>
         <button
           onClick={onOpenSupport}
           title="Suporte"
-          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+          className="flex items-center justify-center gap-2 px-2.5 py-[7px] rounded-md text-[13px] text-sidebar-foreground hover:bg-accent/60 hover:text-foreground w-full transition-colors duration-150"
         >
-          <Headphones size={16} className="flex-shrink-0" />
+          <Headphones size={15} strokeWidth={1.5} className="flex-shrink-0" />
           {!collapsed && <span>Suporte</span>}
         </button>
         <button
           onClick={onToggle}
-          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+          className="flex items-center justify-center gap-2 px-2.5 py-[7px] rounded-md text-[13px] text-sidebar-foreground hover:bg-accent/60 hover:text-foreground w-full transition-colors duration-150"
         >
-          {collapsed ? <ChevronRight size={16} /> : <><ChevronLeft size={16} /> <span>Recolher</span></>}
+          {collapsed ? <ChevronRight size={15} strokeWidth={1.5} /> : <><ChevronLeft size={15} strokeWidth={1.5} /> <span>Recolher</span></>}
         </button>
       </div>
     </motion.aside>
