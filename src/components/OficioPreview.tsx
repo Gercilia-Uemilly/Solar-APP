@@ -62,7 +62,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     let assuntoFormatado = assunto || "___";
     const bairroFormatado = bairro
-      ? (bairro.toLowerCase().startsWith("bairro") ? bairro : `Bairro ${bairro}`)
+      ? (bairro.toLowerCase().startsWith("bairro") || bairro.toLowerCase().includes("bairro ") ? bairro : `Bairro ${bairro}`)
       : "";
     const bairroClean = bairro?.replace(/^bairro\s*/i, "") || "";
     const assuntoJaTemBairro = bairroClean && assunto?.toLowerCase().includes(bairroClean.toLowerCase());
