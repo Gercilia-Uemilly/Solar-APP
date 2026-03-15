@@ -35,6 +35,7 @@ export function useRealtimeTable<T extends Record<string, any>>(
     orderBy,
     filters,
     isNull,
+    isNotNull,
     validate,
     idField = "id" as keyof T,
   } = options;
