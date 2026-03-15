@@ -814,11 +814,6 @@ export default function Oficios() {
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
     imagens: getImageFilesFromAnexos(),
-    formatOptions: {
-      fontSize: formatOptions.fontSize,
-      lineSpacing: formatOptions.lineSpacing,
-      fontFamily: formatOptions.fontFamily,
-    },
   });
 
   return (
@@ -1168,7 +1163,6 @@ export default function Oficios() {
 
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
-              <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} hasChanges={editedOficio !== originalOficio} onUndo={() => setEditedOficio(originalOficio)} />
               <div className="flex gap-2 justify-end flex-wrap">
                 <Button size="sm" variant="default" onClick={() => handleCreate(false)}>
                   <Save size={14} className="mr-1" /> Salvar
@@ -1241,7 +1235,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} formatOptions={formatOptions} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} anexoImageUrls={previewImageUrls} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} anexoImageUrls={previewImageUrls} bairro={enderecoCompleto || bairro} />
               </div>
             </TabsContent>
 
