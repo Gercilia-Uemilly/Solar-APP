@@ -88,8 +88,7 @@ export default function Oficios() {
   const { toast } = useToast();
   const location = useLocation();
 
-  const [oficios, setOficios] = useState<OficioRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticAdd, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [showDialog, setShowDialog] = useState(false);
