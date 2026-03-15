@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Copy, Share2, Calendar, Tag, Globe, Headphones, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Info, Smartphone, Monitor } from "lucide-react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
