@@ -27,6 +27,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const Lixeira = lazy(() => import("./pages/Lixeira"));
+const WhatsAppConectar = lazy(() => import("./pages/WhatsAppConectar"));
+const WhatsAppMensagens = lazy(() => import("./pages/WhatsAppMensagens"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
