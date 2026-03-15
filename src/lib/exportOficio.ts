@@ -74,6 +74,8 @@ interface StyledRun {
   italic?: boolean;
   underline?: boolean;
   break?: number;
+  fontSize?: number; // in pt
+  fontFamily?: string;
 }
 
 interface ParsedImageRun {
