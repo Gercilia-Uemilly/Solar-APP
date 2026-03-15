@@ -98,8 +98,11 @@ const emptyForm = {
 export default function Clipping() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [clippings, setClippings] = useState<Clipping[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: clippings, setData: setClippings, loading, refetch: fetchClippings } = useRealtimeTable<Clipping>({
+    table: "clippings",
+    channel: "clippings-realtime",
+    orderBy: { column: "data_publicacao", ascending: false },
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -125,22 +128,11 @@ export default function Clipping() {
   const igFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchClippings();
     if (user) {
       supabase.from("profiles").select("full_name").eq("id", user.id).single()
         .then(({ data }) => setProfileName(data?.full_name || ""));
     }
   }, [user]);
-
-  const fetchClippings = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("clippings" as any)
-      .select("*")
-      .order("data_publicacao", { ascending: false });
-    if (!error && data) setClippings(data as unknown as Clipping[]);
-    setLoading(false);
-  };
 
   // Dashboard stats
   const stats = useMemo(() => {
