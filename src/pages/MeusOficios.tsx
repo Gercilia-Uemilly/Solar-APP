@@ -495,14 +495,7 @@ export default function MeusOficios() {
         </Button>
       </div>
 
-      {/* Tabs: Rascunhos / Protocolados / Todos */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => setAbaAtiva("todos")}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "todos" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
-        >
-          📋 Todos ({filtered.length})
-        </button>
         <button
           onClick={() => setAbaAtiva("rascunhos")}
           className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-yellow-500 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
