@@ -397,7 +397,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` ${destinatario}` : ""}`;
   const bairroFormatado = bairro
-    ? (bairro.toLowerCase().startsWith("bairro") ? bairro : `Bairro ${bairro}`)
+    ? (bairro.toLowerCase().startsWith("bairro") || bairro.toLowerCase().includes("bairro ") ? bairro : `Bairro ${bairro}`)
     : "";
 
   let assuntoFormatado = assunto || "___";

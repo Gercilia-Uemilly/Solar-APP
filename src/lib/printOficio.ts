@@ -139,10 +139,7 @@ export async function printOficio(data: PrintData) {
       display: block;
     }
     .linha-assinatura {
-      width: 8cm;
-      border-top: 1px solid #000000;
-      margin: 0 auto 4px auto;
-      display: block;
+      display: none;
     }
     .assinatura .nome { font-weight: bold; margin: 0; line-height: 1.0; font-size: 11pt; }
     .assinatura .cargo { margin: 0; line-height: 1.0; font-size: 11pt; }
