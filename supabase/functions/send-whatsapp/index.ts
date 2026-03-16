@@ -8,29 +8,20 @@ const corsHeaders = {
 };
 
 const parseJsonSafe = (raw: string) => {
-  try {
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return { raw };
-  }
+  try { return raw ? JSON.parse(raw) : null; } catch { return { raw }; }
 };
 
 const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | null) => {
   const inst = (instanceRaw || "").trim();
   const tok = (tokenRaw || "").trim();
-
   if (!inst || !tok) return "";
-
   if (/^https?:\/\//i.test(inst)) {
     try {
       const u = new URL(inst);
       const m = u.pathname.match(/\/instances\/([^/]+)\/token\/([^/]+)/i);
-      if (m) {
-        return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
-      }
+      if (m) return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
     } catch { /* fallthrough */ }
   }
-
   return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
 };
 
@@ -43,8 +34,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -57,63 +47,51 @@ serve(async (req) => {
     const { data: userData, error: authErr } = await sb.auth.getUser();
     if (authErr || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const userId = userData.user.id;
 
     const { conversation_id, message } = await req.json();
-
     if (!conversation_id || !message) {
       return new Response(JSON.stringify({ error: "conversation_id e message são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
-    const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
+    const ZAPI_CLIENT_TOKEN = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
 
     const zapiUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
     if (!zapiUrl) {
       return new Response(
-        JSON.stringify({ error: "Credenciais Z-API inválidas. Verifique ZAPI_INSTANCE_ID e ZAPI_TOKEN." }),
+        JSON.stringify({ error: "Credenciais Z-API inválidas." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     console.log("Z-API URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
-    console.log("Z-API INSTANCE_ID length:", (ZAPI_INSTANCE_ID || "").length, "TOKEN length:", (ZAPI_TOKEN || "").length);
 
     const adminSb = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Get conversation details
     const { data: conversation } = await adminSb
-      .from("whatsapp_conversations")
-      .select("*")
-      .eq("id", conversation_id)
-      .single();
+      .from("whatsapp_conversations").select("*").eq("id", conversation_id).single();
 
     if (!conversation) {
       return new Response(JSON.stringify({ error: "Conversa não encontrada" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Extract phone from remote_jid
-    const phone = conversation.remote_jid
-      .replace("@s.whatsapp.net", "")
-      .replace("@g.us", "");
+    const phone = conversation.remote_jid.replace("@s.whatsapp.net", "").replace("@g.us", "");
 
-    // Send message via Z-API
-    // Don't send Client-Token - instance doesn't use it
+    // Build headers with Client-Token
     const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
 
     console.log("Sending to phone:", phone, "with Client-Token:", ZAPI_CLIENT_TOKEN ? "yes" : "no");
 
@@ -125,39 +103,9 @@ serve(async (req) => {
 
     const zapiText = await zapiResponse.text();
     const zapiData = parseJsonSafe(zapiText);
-
     console.log("Z-API response:", zapiResponse.status, zapiText.slice(0, 300));
 
     if (!zapiResponse.ok || zapiData?.error) {
-      // Retry without Client-Token if that was the issue
-      if (ZAPI_CLIENT_TOKEN && (zapiData?.error === "your client-token is not configured" || zapiData?.error === "NOT_FOUND")) {
-        console.log("Retrying without Client-Token...");
-        const retryRes = await fetch(zapiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, message }),
-        });
-        const retryText = await retryRes.text();
-        const retryData = parseJsonSafe(retryText);
-        console.log("Z-API retry response:", retryRes.status, retryText.slice(0, 300));
-
-        if (retryRes.ok && !retryData?.error) {
-          // Save outgoing message
-          await adminSb.from("whatsapp_messages").insert({
-            conversation_id,
-            message_id: retryData?.messageId || crypto.randomUUID(),
-            direction: "outgoing",
-            content: message,
-            status: "sent",
-            sent_by: userId,
-          });
-          await adminSb.from("whatsapp_conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conversation_id);
-          return new Response(JSON.stringify({ ok: true, data: retryData }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
-
       return new Response(
         JSON.stringify({ error: "Falha ao enviar mensagem", details: zapiData }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -174,9 +122,7 @@ serve(async (req) => {
       sent_by: userId,
     });
 
-    // Update conversation
-    await adminSb
-      .from("whatsapp_conversations")
+    await adminSb.from("whatsapp_conversations")
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", conversation_id);
 
@@ -186,8 +132,7 @@ serve(async (req) => {
   } catch (e: any) {
     console.error("Send WhatsApp error:", e);
     return new Response(JSON.stringify({ error: e.message || "Erro desconhecido" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
