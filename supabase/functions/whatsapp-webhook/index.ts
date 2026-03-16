@@ -381,43 +381,73 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     // Call Gemini directly with dedicated agent key
     try {
-      const GEMINI_KEY = Deno.env.get("GEMINI_AGENT_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY");
+      const GEMINI_KEY = (Deno.env.get("GEMINI_AGENT_API_KEY") || "").trim();
       if (!GEMINI_KEY) throw new Error("GEMINI_AGENT_API_KEY not configured");
 
-      // Try models in order: gemini-2.0-flash → gemini-2.0-flash-lite → gemini-1.5-flash
-      const models = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"];
-      let geminiRes: Response | null = null;
+      // Models em cascata (somente modelos válidos)
+      const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+      let lastError = "";
 
       for (const model of models) {
-        geminiRes = await fetch(
+        const geminiRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
-              generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+              generationConfig: {
+                temperature: 0.6,
+                maxOutputTokens: 1024,
+                responseMimeType: "application/json",
+              },
             }),
           }
         );
-        if (geminiRes.ok) {
-          console.log(`Gemini model ${model} succeeded`);
-          break;
+
+        if (!geminiRes.ok) {
+          const errText = await geminiRes.text();
+          lastError = `${model} -> ${geminiRes.status}`;
+          console.warn(`Gemini ${model} failed (${geminiRes.status}): ${errText.slice(0, 180)}`);
+          continue;
         }
-        const errText = await geminiRes.text();
-        console.warn(`Gemini ${model} failed (${geminiRes.status}): ${errText.slice(0, 150)}`);
-        geminiRes = null;
+
+        const geminiData = await geminiRes.json();
+        const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const cleaned = rawText
+          .replace(/^```json\s*/i, "")
+          .replace(/^```\s*/i, "")
+          .replace(/```$/i, "")
+          .trim();
+
+        try {
+          const parsed = JSON.parse(cleaned);
+          analysis = {
+            problema: parsed?.problema || content.slice(0, 180),
+            endereco: parsed?.endereco || "",
+            bairro: parsed?.bairro || "",
+            secretaria: parsed?.secretaria || "",
+            tipo_demanda: parsed?.tipo_demanda || "Solicitação",
+            urgencia: parsed?.urgencia || "Normal",
+            resposta: parsed?.resposta || "",
+            registrar_demanda: Boolean(parsed?.registrar_demanda),
+          };
+
+          if (analysis.resposta) {
+            console.log(`Gemini model ${model} succeeded`);
+            break;
+          }
+
+          lastError = `${model} -> resposta vazia`;
+        } catch {
+          lastError = `${model} -> JSON inválido`;
+          console.warn(`Gemini ${model} returned invalid JSON: ${cleaned.slice(0, 180)}`);
+        }
       }
 
-      if (!geminiRes) throw new Error("All Gemini models exhausted");
-
-      const geminiData = await geminiRes.json();
-      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("Gemini JSON parse failed:", rawText.slice(0, 200)); }
+      if (!analysis?.resposta) {
+        throw new Error(`All Gemini models failed (${lastError || "unknown"})`);
       }
-      console.log("Gemini agent success, registrar_demanda:", analysis?.registrar_demanda);
     } catch (aiErr: any) {
       console.error("Gemini agent error:", aiErr.message);
     }
