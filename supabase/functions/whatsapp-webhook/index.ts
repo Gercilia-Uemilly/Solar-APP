@@ -502,8 +502,8 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     console.log("Z-API INSTANCE_ID length:", (ZAPI_INSTANCE_ID || "").length, "TOKEN length:", (ZAPI_TOKEN || "").length);
 
     if (zapiUrl && analysis.resposta) {
+      // Don't send Client-Token - instance doesn't use it
       const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
 
       const sendRes = await fetch(zapiUrl, {
         method: "POST",
