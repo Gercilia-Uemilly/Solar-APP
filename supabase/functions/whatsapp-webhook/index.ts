@@ -413,7 +413,41 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       }
       console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
     } catch (aiErr: any) {
-      console.error("AI agent error:", aiErr.message);
+      console.error("Lovable AI failed:", aiErr.message, "- trying Gemini direct...");
+      
+      // Fallback to direct Gemini API
+      try {
+        const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+        if (!GOOGLE_AI_API_KEY) throw new Error("GOOGLE_AI_API_KEY not configured");
+
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
+              generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+            }),
+          }
+        );
+
+        if (!geminiRes.ok) {
+          const errText = await geminiRes.text();
+          console.error("Gemini error:", geminiRes.status, errText.slice(0, 300));
+          throw new Error(`Gemini error: ${geminiRes.status}`);
+        }
+
+        const geminiData = await geminiRes.json();
+        const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("Gemini JSON parse failed"); }
+        }
+        console.log("Gemini fallback success, registrar_demanda:", analysis?.registrar_demanda);
+      } catch (geminiErr: any) {
+        console.error("Gemini fallback also failed:", geminiErr.message);
+      }
     }
 
     if (!analysis?.resposta) {
