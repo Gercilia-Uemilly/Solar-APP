@@ -216,21 +216,9 @@ serve(async (req) => {
         media_url: mediaUrl,
       });
 
-      // If incoming, process AI agent (with dedup check - 30s window)
+      // If incoming, process AI agent
       if (!isFromMe && msgContent) {
-        const { data: existingReply } = await sb.from("whatsapp_messages")
-          .select("id")
-          .eq("conversation_id", conversationId)
-          .eq("direction", "outgoing")
-          .eq("sender_name", "Agente IA")
-          .gte("created_at", new Date(Date.now() - 30000).toISOString())
-          .limit(1);
-
-        if (!existingReply?.length) {
-          await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
-        } else {
-          console.log("Skipping duplicate AI response for conversation:", conversationId);
-        }
+        await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
       }
 
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
