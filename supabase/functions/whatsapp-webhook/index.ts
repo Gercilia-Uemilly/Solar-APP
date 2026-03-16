@@ -411,12 +411,6 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
       if (!geminiRes) throw new Error("All Gemini models exhausted");
 
-      if (!geminiRes.ok) {
-        const errText = await geminiRes.text();
-        console.error("Gemini agent error:", geminiRes.status, errText.slice(0, 300));
-        throw new Error(`Gemini error: ${geminiRes.status}`);
-      }
-
       const geminiData = await geminiRes.json();
       const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
