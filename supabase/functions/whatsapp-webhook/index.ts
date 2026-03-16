@@ -279,10 +279,18 @@ async function handleAIAgent(
 ) {
   try {
     const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-    if (!GOOGLE_AI_API_KEY) {
-      console.warn("GOOGLE_AI_API_KEY not set, skipping AI agent");
-      return;
-    }
+
+    const buildFallbackAnalysis = () => ({
+      problema: content.slice(0, 180),
+      endereco: "",
+      bairro: "",
+      secretaria: "",
+      tipo_demanda: "Solicitação",
+      urgencia: "Normal",
+      resposta: `Oi ${senderName || "colega"}, tudo bem? Recebi sua mensagem e já vou correr atrás disso pra você. Assim que eu tiver retorno te aviso por aqui. 👍`,
+      registrar_demanda: false,
+      origem: "fallback",
+    });
 
     // 1. Fetch conversation history for context
     const { data: history } = await sb
@@ -368,44 +376,44 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
-    
-    const response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          { role: "user", parts: [{ text: systemPrompt + "\n\n" + userMessage }] },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.7,
-        },
-      }),
-    });
+    let analysis: any = null;
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Gemini AI failed:", response.status, errText);
-      return;
+    if (GOOGLE_AI_API_KEY) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
+
+      const response = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userMessage }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.7,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (rawText) {
+          try {
+            analysis = JSON.parse(rawText);
+          } catch {
+            console.error("Failed to parse AI JSON:", rawText.slice(0, 200));
+          }
+        }
+      } else {
+        const errText = await response.text();
+        console.error("Gemini AI failed:", response.status, errText);
+      }
+    } else {
+      console.warn("GOOGLE_AI_API_KEY not set, using fallback auto-response");
     }
 
-    const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (!rawText) {
-      console.error("No AI response text");
-      return;
-    }
-
-    console.log("AI raw response:", rawText.slice(0, 300));
-
-    let analysis: any;
-    try {
-      analysis = JSON.parse(rawText);
-    } catch {
-      console.error("Failed to parse AI JSON:", rawText.slice(0, 200));
-      return;
+    if (!analysis?.resposta) {
+      analysis = buildFallbackAnalysis();
     }
 
     // 5. Update message with AI analysis
@@ -441,7 +449,6 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
       if (sendRes.ok) {
         const sendData = await sendRes.json();
-        // Save outgoing AI response
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
@@ -455,12 +462,14 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
           .from("whatsapp_conversations")
           .update({ last_message_at: new Date().toISOString() })
           .eq("id", conversationId);
+      } else {
+        const sendErr = await sendRes.text();
+        console.error("Z-API send failed:", sendRes.status, sendErr);
       }
     }
 
     // 7. Auto-register demand if applicable
     if (analysis.registrar_demanda) {
-      // Get first admin user as author
       const { data: adminRole } = await sb
         .from("user_roles")
         .select("user_id")
