@@ -508,81 +508,60 @@ Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // Call via Lovable AI Gateway (no quota issues)
+    // Call OpenAI API directly
     try {
-      const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
-      if (!LOVABLE_KEY) throw new Error("LOVABLE_API_KEY not configured");
+      const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+      if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-      const gatewayUrl = `${SUPABASE_URL}/functions/v1/ai-proxy`;
+      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENAI_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.8,
+          max_tokens: 1024,
+          response_format: { type: "json_object" },
+        }),
+      });
 
-      const models = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
-      let lastError = "";
-
-      for (const model of models) {
-        const gatewayRes = await fetch(gatewayUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${LOVABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userMessage },
-            ],
-            temperature: 0.8,
-            max_tokens: 1024,
-            response_format: { type: "json_object" },
-          }),
-        });
-
-        if (!gatewayRes.ok) {
-          const errText = await gatewayRes.text();
-          lastError = `${model} -> ${gatewayRes.status}`;
-          console.warn(`Gateway ${model} failed (${gatewayRes.status}): ${errText.slice(0, 180)}`);
-          continue;
-        }
-
-        const gatewayData = await gatewayRes.json();
-        const rawText = gatewayData.choices?.[0]?.message?.content || "";
-        const cleaned = rawText
-          .replace(/^```json\s*/i, "")
-          .replace(/^```\s*/i, "")
-          .replace(/```$/i, "")
-          .trim();
-
-        try {
-          const parsed = JSON.parse(cleaned);
-          analysis = {
-            problema: parsed?.problema || content.slice(0, 180),
-            endereco: parsed?.endereco || "",
-            bairro: parsed?.bairro || "",
-            secretaria: parsed?.secretaria || "",
-            tipo_demanda: parsed?.tipo_demanda || "Solicitação",
-            urgencia: parsed?.urgencia || "Normal",
-            resposta: parsed?.resposta || "",
-            registrar_demanda: Boolean(parsed?.registrar_demanda),
-          };
-
-          if (analysis.resposta) {
-            console.log(`Gateway model ${model} succeeded`);
-            break;
-          }
-
-          lastError = `${model} -> resposta vazia`;
-        } catch {
-          lastError = `${model} -> JSON inválido`;
-          console.warn(`Gateway ${model} returned invalid JSON: ${cleaned.slice(0, 180)}`);
-        }
+      if (!openaiRes.ok) {
+        const errText = await openaiRes.text();
+        throw new Error(`OpenAI ${openaiRes.status}: ${errText.slice(0, 200)}`);
       }
 
-      if (!analysis?.resposta) {
-        throw new Error(`All gateway models failed (${lastError || "unknown"})`);
+      const openaiData = await openaiRes.json();
+      const rawText = openaiData.choices?.[0]?.message?.content || "";
+      const cleaned = rawText
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/```$/i, "")
+        .trim();
+
+      try {
+        const parsed = JSON.parse(cleaned);
+        analysis = {
+          problema: parsed?.problema || content.slice(0, 180),
+          endereco: parsed?.endereco || "",
+          bairro: parsed?.bairro || "",
+          secretaria: parsed?.secretaria || "",
+          tipo_demanda: parsed?.tipo_demanda || "Solicitação",
+          urgencia: parsed?.urgencia || "Normal",
+          resposta: parsed?.resposta || "",
+          registrar_demanda: Boolean(parsed?.registrar_demanda),
+        };
+        console.log("OpenAI agent response OK");
+      } catch {
+        console.warn("OpenAI returned invalid JSON:", cleaned.slice(0, 180));
       }
     } catch (aiErr: any) {
-      console.error("AI Gateway error:", aiErr.message);
+      console.error("OpenAI API error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
