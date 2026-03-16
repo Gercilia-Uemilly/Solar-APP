@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.whatsapp-connect]
 verify_jwt = false
+
+[functions.batch-transcribe]
+verify_jwt = false
