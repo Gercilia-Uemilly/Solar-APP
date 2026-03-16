@@ -137,9 +137,14 @@ async function addAnexoToDocx(
   newRels += "</Relationships>";
   fileMap.set("word/_rels/document.xml.rels", new TextEncoder().encode(newRels));
 
-  // ── Gerar XML do Anexo I ─────────────────────────────────────────────────
+  // ── Gerar XML do Anexo ─────────────────────────────────────────────────
   const makeImageXml = (rId: string, cx: number, cy: number, idx: number) => `
 <w:p xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:pPr>
+    <w:jc w:val="center"/>
+    <w:spacing w:before="200" w:after="200"/>
+    <w:keepLines/>
+  </w:pPr>
   <w:r>
     <w:drawing>
       <wp:inline distT="0" distB="114300" distL="0" distR="0">
@@ -172,34 +177,14 @@ async function addAnexoToDocx(
   </w:r>
 </w:p>`;
 
-  // Montar 2 imagens por linha (grade 2 colunas)
+  // Build image paragraphs with proper spacing (no blank pages)
   const imageParas: string[] = [];
-  for (let i = 0; i < imageRefs.length; i += 2) {
-    const ref1 = imageRefs[i];
-    const ref2 = imageRefs[i + 1];
-    // Imagem 1
-    imageParas.push(makeImageXml(ref1.rId, ref1.cx, ref1.cy, ref1.idx));
-    // Imagem 2 (se existir)
-    if (ref2) {
-      imageParas.push(makeImageXml(ref2.rId, ref2.cx, ref2.cy, ref2.idx));
-    }
-    // Linha em branco entre pares
-    imageParas.push(`<w:p xmlns:w="${W}"><w:r><w:t> </w:t></w:r></w:p>`);
+  for (const ref of imageRefs) {
+    imageParas.push(makeImageXml(ref.rId, ref.cx, ref.cy, ref.idx));
   }
 
-  // ── Inserir Anexo I no document.xml ─────────────────────────────────────
-  const pageBreak = `<w:p xmlns:w="${W}"><w:r><w:br w:type="page"/></w:r></w:p>`;
-  const anexoTitulo = `<w:p xmlns:w="${W}">
-    <w:pPr><w:jc w:val="center"/>
-      <w:rPr><w:b/><w:sz w:val="24"/></w:rPr>
-    </w:pPr>
-    <w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr>
-      <w:t>Anexo I – Imagens</w:t>
-    </w:r>
-  </w:p>
-  <w:p xmlns:w="${W}"><w:r><w:t> </w:t></w:r></w:p>`;
-
-  const anexoBlock = pageBreak + anexoTitulo + imageParas.join("\n");
+  // ── Inserir imagens no document.xml (sem page break forçado) ───────────
+  const anexoBlock = imageParas.join("\n");
 
   // Inserir antes do </w:body>
   const newDocXml = docXml.replace("</w:body>", `${anexoBlock}</w:body>`);
