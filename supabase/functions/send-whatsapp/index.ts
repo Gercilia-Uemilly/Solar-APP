@@ -7,6 +7,71 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const parseJsonSafe = (raw: string) => {
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return { raw };
+  }
+};
+
+const resolveZapiSendUrls = (instanceRaw?: string | null, tokenRaw?: string | null) => {
+  const instanceInput = (instanceRaw || "").trim();
+  const tokenInput = (tokenRaw || "").trim();
+
+  const urls = new Set<string>();
+  const tokenCandidates = new Set<string>();
+
+  let instanceId = "";
+  let baseOrigin = "https://api.z-api.io";
+
+  if (tokenInput) {
+    if (/^https?:\/\//i.test(tokenInput)) {
+      try {
+        const parsed = new URL(tokenInput);
+        const tokenMatch = parsed.pathname.match(/\/token\/([^/]+)/i);
+        if (tokenMatch?.[1]) tokenCandidates.add(decodeURIComponent(tokenMatch[1]));
+      } catch {
+        // ignore malformed token URL
+      }
+    } else {
+      tokenCandidates.add(tokenInput);
+    }
+  }
+
+  if (/^https?:\/\//i.test(instanceInput)) {
+    try {
+      const parsed = new URL(instanceInput);
+      baseOrigin = `${parsed.protocol}//${parsed.host}`;
+      const normalizedPath = parsed.pathname.replace(/\/+$/, "");
+
+      if (/\/send-(text|message)$/i.test(normalizedPath)) {
+        urls.add(`${baseOrigin}${normalizedPath}`);
+      }
+
+      const pathMatch = normalizedPath.match(/\/instances\/([^/]+)(?:\/token\/([^/]+))?/i);
+      if (pathMatch?.[1]) instanceId = decodeURIComponent(pathMatch[1]);
+      if (pathMatch?.[2]) tokenCandidates.add(decodeURIComponent(pathMatch[2]));
+    } catch {
+      // ignore malformed URL and fallback to plain values
+    }
+  } else {
+    instanceId = instanceInput;
+  }
+
+  if (!instanceId || tokenCandidates.size === 0) {
+    return Array.from(urls);
+  }
+
+  for (const token of tokenCandidates) {
+    const base = `${baseOrigin}/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(token)}`;
+    urls.add(`${base}/send-text`);
+    urls.add(`${base}/send-message`);
+  }
+
+  return Array.from(urls);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -45,17 +110,25 @@ serve(async (req) => {
       });
     }
 
-    // Get Z-API credentials from secrets
     const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
     const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+    const zapiUrls = resolveZapiSendUrls(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+    if (!zapiUrls.length) {
       return new Response(
-        JSON.stringify({ error: "Credenciais Z-API não configuradas. Configure ZAPI_INSTANCE_ID e ZAPI_TOKEN." }),
+        JSON.stringify({
+          error: "Credenciais Z-API inválidas. Verifique ZAPI_INSTANCE_ID e ZAPI_TOKEN.",
+          hint: "Você pode informar só o instance id, ou a URL completa da instância.",
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log(
+      "Z-API candidate URLs:",
+      zapiUrls.map((url) => url.replace(/\/token\/[^/]+/i, "/token/***"))
+    );
 
     const adminSb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -81,27 +154,42 @@ serve(async (req) => {
       .replace("@s.whatsapp.net", "")
       .replace("@g.us", "");
 
-    // Send message via Z-API
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-    const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
-    if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
+    // Send message via Z-API (fallback de endpoint + fallback de header)
+    const baseHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    const headerAttempts: Record<string, string>[] = ZAPI_CLIENT_TOKEN
+      ? [{ ...baseHeaders, "Client-Token": ZAPI_CLIENT_TOKEN }, baseHeaders]
+      : [baseHeaders];
 
-    const zapiResponse = await fetch(zapiUrl, {
-      method: "POST",
-      headers: zapiHeaders,
-      body: JSON.stringify({ phone, message }),
-    });
-
-    const zapiText = await zapiResponse.text();
     let zapiData: any = null;
-    try {
-      zapiData = zapiText ? JSON.parse(zapiText) : null;
-    } catch {
-      zapiData = { raw: zapiText };
+    let sent = false;
+    let lastStatus = 500;
+
+    for (const zapiUrl of zapiUrls) {
+      for (const headers of headerAttempts) {
+        const zapiResponse = await fetch(zapiUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ phone, message }),
+        });
+
+        const zapiText = await zapiResponse.text();
+        const parsedData = parseJsonSafe(zapiText);
+
+        if (zapiResponse.ok && !parsedData?.error) {
+          zapiData = parsedData;
+          sent = true;
+          break;
+        }
+
+        lastStatus = zapiResponse.status;
+        zapiData = parsedData;
+      }
+
+      if (sent) break;
     }
 
-    if (!zapiResponse.ok || zapiData?.error) {
-      console.error("Z-API error:", { status: zapiResponse.status, data: zapiData });
+    if (!sent) {
+      console.error("Z-API error:", { status: lastStatus, data: zapiData });
       return new Response(
         JSON.stringify({ error: "Falha ao enviar mensagem", details: zapiData }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -7,6 +7,71 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const parseJsonSafe = (raw: string) => {
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return { raw };
+  }
+};
+
+const resolveZapiSendUrls = (instanceRaw?: string | null, tokenRaw?: string | null) => {
+  const instanceInput = (instanceRaw || "").trim();
+  const tokenInput = (tokenRaw || "").trim();
+
+  const urls = new Set<string>();
+  const tokenCandidates = new Set<string>();
+
+  let instanceId = "";
+  let baseOrigin = "https://api.z-api.io";
+
+  if (tokenInput) {
+    if (/^https?:\/\//i.test(tokenInput)) {
+      try {
+        const parsed = new URL(tokenInput);
+        const tokenMatch = parsed.pathname.match(/\/token\/([^/]+)/i);
+        if (tokenMatch?.[1]) tokenCandidates.add(decodeURIComponent(tokenMatch[1]));
+      } catch {
+        // ignore malformed token URL
+      }
+    } else {
+      tokenCandidates.add(tokenInput);
+    }
+  }
+
+  if (/^https?:\/\//i.test(instanceInput)) {
+    try {
+      const parsed = new URL(instanceInput);
+      baseOrigin = `${parsed.protocol}//${parsed.host}`;
+      const normalizedPath = parsed.pathname.replace(/\/+$/, "");
+
+      if (/\/send-(text|message)$/i.test(normalizedPath)) {
+        urls.add(`${baseOrigin}${normalizedPath}`);
+      }
+
+      const pathMatch = normalizedPath.match(/\/instances\/([^/]+)(?:\/token\/([^/]+))?/i);
+      if (pathMatch?.[1]) instanceId = decodeURIComponent(pathMatch[1]);
+      if (pathMatch?.[2]) tokenCandidates.add(decodeURIComponent(pathMatch[2]));
+    } catch {
+      // ignore malformed URL and fallback to plain values
+    }
+  } else {
+    instanceId = instanceInput;
+  }
+
+  if (!instanceId || tokenCandidates.size === 0) {
+    return Array.from(urls);
+  }
+
+  for (const token of tokenCandidates) {
+    const base = `${baseOrigin}/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(token)}`;
+    urls.add(`${base}/send-text`);
+    urls.add(`${base}/send-message`);
+  }
+
+  return Array.from(urls);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -436,26 +501,47 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
     const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
-    if (ZAPI_INSTANCE_ID && ZAPI_TOKEN && analysis.resposta) {
-      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-      const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
+    const zapiUrls = resolveZapiSendUrls(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+    console.log(
+      "Z-API candidate URLs:",
+      zapiUrls.map((url) => url.replace(/\/token\/[^/]+/i, "/token/***"))
+    );
 
-      const sendRes = await fetch(zapiUrl, {
-        method: "POST",
-        headers: zapiHeaders,
-        body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
-      });
+    if (zapiUrls.length && analysis.resposta) {
+      const baseHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      const headerAttempts: Record<string, string>[] = ZAPI_CLIENT_TOKEN
+        ? [{ ...baseHeaders, "Client-Token": ZAPI_CLIENT_TOKEN }, baseHeaders]
+        : [baseHeaders];
 
-      const sendText = await sendRes.text();
       let sendData: any = null;
-      try {
-        sendData = sendText ? JSON.parse(sendText) : null;
-      } catch {
-        sendData = { raw: sendText };
+      let sent = false;
+      let lastStatus = 500;
+
+      for (const zapiUrl of zapiUrls) {
+        for (const headers of headerAttempts) {
+          const sendRes = await fetch(zapiUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
+          });
+
+          const sendText = await sendRes.text();
+          const parsedData = parseJsonSafe(sendText);
+
+          if (sendRes.ok && !parsedData?.error) {
+            sendData = parsedData;
+            sent = true;
+            break;
+          }
+
+          lastStatus = sendRes.status;
+          sendData = parsedData;
+        }
+
+        if (sent) break;
       }
 
-      if (sendRes.ok && !sendData?.error) {
+      if (sent) {
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
@@ -473,7 +559,7 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
         console.log("Auto-response sent", { phone: senderPhone, messageId: sendData?.messageId || null });
       } else {
-        console.error("Z-API send failed:", sendRes.status, sendData);
+        console.error("Z-API send failed:", lastStatus, sendData);
       }
     }
 
