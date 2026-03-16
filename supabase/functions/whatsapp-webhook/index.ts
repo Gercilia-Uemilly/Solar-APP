@@ -18,21 +18,22 @@ const parseJsonSafe = (raw: string) => {
 const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | null) => {
   const inst = (instanceRaw || "").trim();
   const tok = (tokenRaw || "").trim();
-
   if (!inst || !tok) return "";
-
-  // If instance is a full URL, extract parts
   if (/^https?:\/\//i.test(inst)) {
     try {
       const u = new URL(inst);
       const m = u.pathname.match(/\/instances\/([^/]+)\/token\/([^/]+)/i);
-      if (m) {
-        return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
-      }
+      if (m) return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
     } catch { /* fallthrough */ }
   }
-
   return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
+};
+
+const buildZapiHeaders = () => {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const clientToken = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
+  if (clientToken) headers["Client-Token"] = clientToken;
+  return headers;
 };
 
 serve(async (req) => {
@@ -49,17 +50,10 @@ serve(async (req) => {
     const body = await req.json();
     console.log("Webhook received:", JSON.stringify(body).slice(0, 500));
 
-    // ── Z-API format ──
-    // Z-API sends: { phone, message, ... } or { event, ... }
-    // Also support legacy Evolution API format for backwards compat
-
     const event = body.event || body.type;
 
-    // Handle Z-API message received format
-    // Z-API sends: { phone: "55...", message: { ... }, isGroup: false, ... }
-    // or text shorthand: { phone: "55...", text: { message: "..." }, ... }
-    const isZapiMessage =
-      body.phone && (body.text || body.message || body.body);
+    // Handle Z-API message format
+    const isZapiMessage = body.phone && (body.text || body.message || body.body);
 
     if (isZapiMessage) {
       const phone = body.phone?.replace(/\D/g, "") || "";
@@ -73,7 +67,6 @@ serve(async (req) => {
       const isFromMe = body.fromMe === true;
       const remoteJid = `${phone}@s.whatsapp.net`;
 
-      // Skip groups
       if (body.isGroup) {
         return new Response(JSON.stringify({ ok: true, skipped: "group" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -87,25 +80,18 @@ serve(async (req) => {
         .eq("status", "connected")
         .limit(1);
 
-      const connectionId = connections?.[0]?.id;
-      if (!connectionId) {
-        // Auto-create a default connection record if none exists
-        const { data: allConns } = await sb
-          .from("whatsapp_connections")
-          .select("id")
-          .limit(1);
-
+      let connId: string;
+      if (connections?.[0]?.id) {
+        connId = connections[0].id;
+      } else {
+        const { data: allConns } = await sb.from("whatsapp_connections").select("id").limit(1);
         if (!allConns?.length) {
           console.error("No WhatsApp connection found");
           return new Response(JSON.stringify({ error: "No connection" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        // Use whatever connection exists
-        var connId = allConns[0].id;
-      } else {
-        var connId = connectionId;
+        connId = allConns[0].id;
       }
 
       // Upsert conversation
@@ -120,31 +106,21 @@ serve(async (req) => {
 
       if (existingConv) {
         conversationId = existingConv.id;
-        await sb
-          .from("whatsapp_conversations")
-          .update({
-            contact_name: senderName || undefined,
-            contact_phone: phone || undefined,
-            last_message_at: new Date().toISOString(),
-            unread_count: isFromMe
-              ? existingConv.unread_count
-              : (existingConv.unread_count || 0) + 1,
-          })
-          .eq("id", conversationId);
+        await sb.from("whatsapp_conversations").update({
+          contact_name: senderName || undefined,
+          contact_phone: phone || undefined,
+          last_message_at: new Date().toISOString(),
+          unread_count: isFromMe ? existingConv.unread_count : (existingConv.unread_count || 0) + 1,
+        }).eq("id", conversationId);
       } else {
-        const { data: newConv } = await sb
-          .from("whatsapp_conversations")
-          .insert({
-            connection_id: connId,
-            remote_jid: remoteJid,
-            contact_name: senderName,
-            contact_phone: phone,
-            last_message_at: new Date().toISOString(),
-            unread_count: isFromMe ? 0 : 1,
-          })
-          .select("id")
-          .single();
-
+        const { data: newConv } = await sb.from("whatsapp_conversations").insert({
+          connection_id: connId,
+          remote_jid: remoteJid,
+          contact_name: senderName,
+          contact_phone: phone,
+          last_message_at: new Date().toISOString(),
+          unread_count: isFromMe ? 0 : 1,
+        }).select("id").single();
         conversationId = newConv!.id;
       }
 
@@ -159,7 +135,7 @@ serve(async (req) => {
         status: isFromMe ? "sent" : "received",
       });
 
-      // If incoming, process AI agent before returning (more reliable)
+      // If incoming, process AI agent
       if (!isFromMe && msgContent) {
         await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
       }
@@ -169,13 +145,12 @@ serve(async (req) => {
       });
     }
 
-    // ── Legacy Evolution API format support ──
+    // Legacy Evolution API format
     if (event === "connection.update" || event === "status.instance") {
       const instanceName = body.instance?.instanceName || body.instanceName;
       const state = body.data?.state || body.state || "unknown";
       if (instanceName) {
-        await sb
-          .from("whatsapp_connections")
+        await sb.from("whatsapp_connections")
           .update({ status: state === "open" ? "connected" : state })
           .eq("instance_name", instanceName);
       }
@@ -188,8 +163,7 @@ serve(async (req) => {
       const instanceName = body.instance?.instanceName || body.instanceName;
       const qrCode = body.data?.qrcode?.base64 || body.qrcode;
       if (instanceName && qrCode) {
-        await sb
-          .from("whatsapp_connections")
+        await sb.from("whatsapp_connections")
           .update({ qr_code: qrCode, status: "qr_ready" })
           .eq("instance_name", instanceName);
       }
@@ -206,23 +180,16 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: connection } = await sb
-        .from("whatsapp_connections")
-        .select("id")
-        .eq("instance_name", instanceName)
-        .single();
+      const { data: connection } = await sb.from("whatsapp_connections")
+        .select("id").eq("instance_name", instanceName).single();
       if (!connection) {
         return new Response(JSON.stringify({ error: "Connection not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const remoteJid = messageData.key?.remoteJid || messageData.remoteJid || "";
       const fromMe = messageData.key?.fromMe || false;
-      const msgContent =
-        messageData.message?.conversation ||
-        messageData.message?.extendedTextMessage?.text ||
-        messageData.body || "";
+      const msgContent = messageData.message?.conversation || messageData.message?.extendedTextMessage?.text || messageData.body || "";
       const senderName = messageData.pushName || messageData.senderName || "";
       const senderPhone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
       const messageId = messageData.key?.id || messageData.id || crypto.randomUUID();
@@ -231,46 +198,29 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: existingConv } = await sb
-        .from("whatsapp_conversations")
-        .select("id, unread_count")
-        .eq("connection_id", connection.id)
-        .eq("remote_jid", remoteJid)
-        .single();
+      const { data: existingConv } = await sb.from("whatsapp_conversations")
+        .select("id, unread_count").eq("connection_id", connection.id).eq("remote_jid", remoteJid).single();
       let conversationId: string;
       if (existingConv) {
         conversationId = existingConv.id;
-        await sb
-          .from("whatsapp_conversations")
-          .update({
-            contact_name: senderName || undefined,
-            contact_phone: senderPhone || undefined,
-            last_message_at: new Date().toISOString(),
-            unread_count: fromMe ? existingConv.unread_count : (existingConv.unread_count || 0) + 1,
-          })
-          .eq("id", conversationId);
+        await sb.from("whatsapp_conversations").update({
+          contact_name: senderName || undefined,
+          contact_phone: senderPhone || undefined,
+          last_message_at: new Date().toISOString(),
+          unread_count: fromMe ? existingConv.unread_count : (existingConv.unread_count || 0) + 1,
+        }).eq("id", conversationId);
       } else {
-        const { data: newConv } = await sb
-          .from("whatsapp_conversations")
-          .insert({
-            connection_id: connection.id,
-            remote_jid: remoteJid,
-            contact_name: senderName,
-            contact_phone: senderPhone,
-            last_message_at: new Date().toISOString(),
-            unread_count: fromMe ? 0 : 1,
-          })
-          .select("id")
-          .single();
+        const { data: newConv } = await sb.from("whatsapp_conversations").insert({
+          connection_id: connection.id, remote_jid: remoteJid,
+          contact_name: senderName, contact_phone: senderPhone,
+          last_message_at: new Date().toISOString(), unread_count: fromMe ? 0 : 1,
+        }).select("id").single();
         conversationId = newConv!.id;
       }
       await sb.from("whatsapp_messages").insert({
-        conversation_id: conversationId,
-        message_id: messageId,
-        direction: fromMe ? "outgoing" : "incoming",
-        content: msgContent,
-        sender_name: senderName,
-        sender_phone: senderPhone,
+        conversation_id: conversationId, message_id: messageId,
+        direction: fromMe ? "outgoing" : "incoming", content: msgContent,
+        sender_name: senderName, sender_phone: senderPhone,
         status: fromMe ? "sent" : "received",
       });
       if (!fromMe && msgContent) {
@@ -287,13 +237,12 @@ serve(async (req) => {
   } catch (e: any) {
     console.error("Webhook error:", e);
     return new Response(JSON.stringify({ error: e.message || "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
 
-// ── AI Agent: auto-analyze + auto-respond + auto-register demand ──
+// ── AI Agent ──
 async function handleAIAgent(
   sb: any,
   conversationId: string,
@@ -302,55 +251,51 @@ async function handleAIAgent(
   senderPhone: string
 ) {
   try {
-    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-
     const buildFallbackAnalysis = () => ({
       problema: content.slice(0, 180),
-      endereco: "",
-      bairro: "",
-      secretaria: "",
-      tipo_demanda: "Solicitação",
-      urgencia: "Normal",
+      endereco: "", bairro: "", secretaria: "",
+      tipo_demanda: "Solicitação", urgencia: "Normal",
       resposta: `Oi ${senderName || "colega"}, tudo bem? Recebi sua mensagem e já vou correr atrás disso pra você. Assim que eu tiver retorno te aviso por aqui. 👍`,
-      registrar_demanda: false,
-      origem: "fallback",
+      registrar_demanda: false, origem: "fallback",
     });
 
-    // 1. Fetch conversation history for context
-    const { data: history } = await sb
-      .from("whatsapp_messages")
+    // 1. Conversation history
+    const { data: history } = await sb.from("whatsapp_messages")
       .select("direction, content, created_at")
       .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true })
-      .limit(20);
+      .order("created_at", { ascending: true }).limit(20);
 
     const historyText = (history || [])
       .map((m: any) => `[${m.direction === "incoming" ? "Cidadão" : "Gabinete"}]: ${m.content || ""}`)
       .join("\n");
 
-    // 2. Fetch previous demands from this citizen
-    const { data: prevDemandas } = await sb
-      .from("oficios")
+    // 2. Previous demands
+    const { data: prevDemandas } = await sb.from("oficios")
       .select("assunto, destinatario, status, bairro, created_at")
       .or(`solicitante.ilike.%${senderName}%,contato_solicitante.eq.${senderPhone}`)
-      .order("created_at", { ascending: false })
-      .limit(5);
+      .order("created_at", { ascending: false }).limit(5);
 
     const demandasText = (prevDemandas || [])
       .map((d: any) => `- ${d.assunto} → ${d.destinatario} (${d.status}) ${d.bairro || ""}`)
       .join("\n");
 
-    // 3. Fetch knowledge base for context
-    const { data: knowledge } = await sb
-      .from("base_conhecimento")
-      .select("titulo, descricao, orgao, bairro, palavras_chave")
-      .limit(30);
+    // 3. Knowledge base
+    const { data: knowledge } = await sb.from("base_conhecimento")
+      .select("titulo, descricao, orgao, bairro, palavras_chave").limit(30);
 
     const knowledgeText = (knowledge || [])
       .map((k: any) => `- ${k.titulo}: ${k.descricao?.slice(0, 100) || ""} (${k.orgao || "N/A"})`)
       .join("\n");
 
-    // 4. Call Gemini AI directly
+    // 4. Fetch corrected responses as learning examples
+    const { data: modelResponses } = await sb.from("base_conhecimento")
+      .select("titulo, descricao")
+      .eq("modelo", true).limit(10);
+
+    const modelText = (modelResponses || [])
+      .map((r: any) => `- ${r.titulo}: ${r.descricao?.slice(0, 200) || ""}`)
+      .join("\n");
+
     const systemPrompt = `Você é o Vereador Fabão (gabinete do Vereador Fabão, Câmara Municipal de Uberlândia). Responda COMO SE FOSSE O PRÓPRIO FABÃO, usando o tom de voz dele.
 
 TOM DE VOZ DO FABÃO (extraído de conversas reais):
@@ -358,22 +303,22 @@ TOM DE VOZ DO FABÃO (extraído de conversas reais):
 - Usa "tudo bem?", "tudo joia?" de forma natural
 - Demonstra empatia genuína: "Meu Deus", "Sinto muito mesmo 😔", "Nossa, mas que estranho"
 - Quando vai ajudar: "Pode deixar que eu vou correr atrás disso", "Vou verificar pra saber melhor"
-- Indignação com injustiças: "Um absurdo", "Não concordo com isso e vou correr atrás", "ABSURDO 😡", "Não dá pra ficar dessa forma"
+- Indignação com injustiças: "Um absurdo", "Não concordo com isso e vou correr atrás", "ABSURDO 😡"
 - Pede informações extras: "Só pra entender melhor...", "Me manda o endereço certinho"
-- Oferece ajuda: "No que estiver ao meu alcance, estou à disposição", "Qualquer outra dúvida fica a vontade pra perguntar"
-- Fornece dados úteis com emojis: 📞 telefones, 📍 endereços de secretarias
-- Pede para salvar contato: "Peço que você salve este número nos seus contatos"
+- Oferece ajuda: "No que estiver ao meu alcance, estou à disposição"
 - Usa emojis com moderação: 😊👍 😔 😡 👊
 - É BREVE e direto, como mensagens reais de WhatsApp
 - NUNCA é formal demais, NUNCA usa "Prezado(a)", "Vossa Senhoria" etc.
-- Fala como um amigo que se importa de verdade
 
-EXEMPLOS REAIS DO FABÃO:
-- "Bom dia Stefane, tudo bem minha amiga? Só pra entender melhor, qual é o motivo dos cancelamentos?"
-- "Pode deixar que eu vou correr atrás disso. Me manda o endereço certinho."
-- "Sinto muito mesmo que não tenha dado certo... 😔"
-- "Infelizmente é uma resolução da prefeitura. Não concordo com isso e vou correr atrás. Um absurdo. Pode deixar que vou cobrar."
-- "Vou salvar seu número aqui, e peço que você salve o meu também, por gentileza. Assim facilita a nossa comunicação."
+MAPEAMENTO DE SECRETARIAS:
+- Buraco, asfalto, pavimentação → Secretaria de Obras
+- Poste apagado, iluminação → Iluminação Pública / DMAE
+- Lixo, entulho, limpeza → Serviços Urbanos
+- Árvore, poda, desmatamento → Meio Ambiente
+- Saúde, UBS, hospital → Secretaria de Saúde
+- Escola, creche → Secretaria de Educação
+- Trânsito, semáforo → SETTRAN
+- Água, esgoto → DMAE
 
 CONTEXTO:
 
@@ -386,6 +331,9 @@ ${demandasText || "Nenhuma demanda anterior"}
 Base de conhecimento:
 ${knowledgeText || "Sem dados na base"}
 
+Respostas modelo (exemplos corrigidos por operadores):
+${modelText || "Nenhum exemplo disponível"}
+
 IMPORTANTE: Responda em JSON com esta estrutura exata:
 {
   "problema": "descrição do problema",
@@ -395,48 +343,51 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
   "tipo_demanda": "Solicitação|Reclamação|Denúncia|Sugestão|Informação",
   "urgencia": "Normal|Urgente",
   "resposta": "sua resposta como Fabão",
-  "registrar_demanda": true ou false
+  "registrar_demanda": true ou false (true se houver problema urbano claro com endereço/bairro)
 }`;
 
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`;
 
     let analysis: any = null;
 
-    // 4. Call AI via Lovable AI gateway
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    // Call Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    try {
-      const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/proxy/ai`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage },
-          ],
-          response_format: { type: "json_object" },
-          temperature: 0.7,
-        }),
-      });
+    if (LOVABLE_API_KEY) {
+      try {
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userMessage },
+            ],
+          }),
+        });
 
-      if (aiResponse.ok) {
-        const aiData = await aiResponse.json();
-        const rawText = aiData.choices?.[0]?.message?.content;
-        if (rawText) {
-          try { analysis = JSON.parse(rawText); } catch { console.error("AI JSON parse failed:", rawText.slice(0, 200)); }
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const rawText = aiData.choices?.[0]?.message?.content || "";
+          // Extract JSON from response (may be wrapped in markdown code blocks)
+          const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("AI JSON parse failed:", rawText.slice(0, 200)); }
+          }
+          console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
+        } else {
+          const errText = await aiResponse.text();
+          console.error("Lovable AI failed:", aiResponse.status, errText.slice(0, 300));
         }
-        console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
-      } else {
-        const errText = await aiResponse.text();
-        console.error("Lovable AI failed:", aiResponse.status, errText.slice(0, 300));
+      } catch (aiErr: any) {
+        console.error("AI call error:", aiErr.message);
       }
-    } catch (aiErr: any) {
-      console.error("AI call error:", aiErr.message);
+    } else {
+      console.error("LOVABLE_API_KEY not configured");
     }
 
     if (!analysis?.resposta) {
@@ -444,48 +395,44 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     }
 
     // 5. Update message with AI analysis
-    const { data: msgs } = await sb
-      .from("whatsapp_messages")
-      .select("id")
-      .eq("conversation_id", conversationId)
-      .eq("direction", "incoming")
-      .order("created_at", { ascending: false })
-      .limit(1);
+    const { data: msgs } = await sb.from("whatsapp_messages")
+      .select("id").eq("conversation_id", conversationId)
+      .eq("direction", "incoming").order("created_at", { ascending: false }).limit(1);
 
     if (msgs?.[0]) {
-      await sb
-        .from("whatsapp_messages")
-        .update({
-          ai_suggested_response: analysis.resposta,
-          ai_analysis: analysis,
-        })
-        .eq("id", msgs[0].id);
+      await sb.from("whatsapp_messages").update({
+        ai_suggested_response: analysis.resposta,
+        ai_analysis: analysis,
+      }).eq("id", msgs[0].id);
     }
 
     // 6. Auto-respond via Z-API
     const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
-    const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
-
     const zapiUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
-    console.log("Z-API URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
-    console.log("Z-API INSTANCE_ID length:", (ZAPI_INSTANCE_ID || "").length, "TOKEN length:", (ZAPI_TOKEN || "").length);
 
     if (zapiUrl && analysis.resposta) {
-      // Don't send Client-Token - instance doesn't use it
-      const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      const zapiPayload = JSON.stringify({ phone: senderPhone, message: analysis.resposta });
+      console.log("Z-API send URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
 
-      const sendRes = await fetch(zapiUrl, {
-        method: "POST",
-        headers: zapiHeaders,
-        body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
-      });
-
-      const sendText = await sendRes.text();
-      const sendData = parseJsonSafe(sendText);
+      // Try with Client-Token first, fallback without it
+      const zapiHeaders = buildZapiHeaders();
+      let sendRes = await fetch(zapiUrl, { method: "POST", headers: zapiHeaders, body: zapiPayload });
+      let sendText = await sendRes.text();
+      let sendData = parseJsonSafe(sendText);
       console.log("Z-API response:", sendRes.status, sendText.slice(0, 300));
 
+      // If client-token error, retry without it
+      if (sendData?.error === "your client-token is not configured") {
+        console.log("Retrying without Client-Token...");
+        sendRes = await fetch(zapiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: zapiPayload });
+        sendText = await sendRes.text();
+        sendData = parseJsonSafe(sendText);
+        console.log("Z-API retry response:", sendRes.status, sendText.slice(0, 300));
+      }
+
       if (sendRes.ok && !sendData?.error) {
+        // Save auto-response in conversation history
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
@@ -496,12 +443,11 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
           sender_phone: senderPhone,
         });
 
-        await sb
-          .from("whatsapp_conversations")
+        await sb.from("whatsapp_conversations")
           .update({ last_message_at: new Date().toISOString() })
           .eq("id", conversationId);
 
-        console.log("Auto-response sent", { phone: senderPhone, messageId: sendData?.messageId || null });
+        console.log("Auto-response sent successfully");
       } else {
         console.error("Z-API send failed:", sendRes.status, sendData);
       }
@@ -509,12 +455,8 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     // 7. Auto-register demand if applicable
     if (analysis.registrar_demanda) {
-      const { data: adminRole } = await sb
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin")
-        .limit(1)
-        .single();
+      const { data: adminRole } = await sb.from("user_roles")
+        .select("user_id").eq("role", "admin").limit(1).single();
 
       if (adminRole) {
         await sb.from("oficios").insert({
@@ -532,11 +474,10 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
           origem: "WhatsApp IA",
           status: "Rascunho",
         });
+        console.log("Demand auto-registered:", analysis.problema?.slice(0, 60));
       }
     }
   } catch (e) {
     console.error("AI agent error:", e);
   }
 }
-
-declare const EdgeRuntime: { waitUntil?: (promise: Promise<any>) => void } | undefined;
