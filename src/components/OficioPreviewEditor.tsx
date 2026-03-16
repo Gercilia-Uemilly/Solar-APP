@@ -1,21 +1,13 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
-// @ts-ignore
-import TextStyle from "@tiptap/extension-text-style";
-// @ts-ignore
-import Color from "@tiptap/extension-color";
-// @ts-ignore
-import TextAlign from "@tiptap/extension-text-align";
-// @ts-ignore
-import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
 import { useCallback, useRef } from "react";
 import { toast } from "sonner";
 import {
   Bold, Italic, Underline as UnderlineIcon,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  List, ListOrdered, Undo, Redo, Eraser, Highlighter,
+  List, ListOrdered, Undo, Redo, Eraser,
   ImagePlus,
 } from "lucide-react";
 
@@ -23,33 +15,6 @@ interface OficioPreviewEditorProps {
   content: string;
   onChange: (html: string) => void;
 }
-
-const FONT_SIZES = ["9", "10", "11", "12", "14", "16", "18", "20", "24"];
-const FONT_FAMILIES = ["Arial", "Times New Roman", "Calibri", "Verdana", "Georgia"];
-
-const FontSize = TextStyle.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      fontSize: {
-        default: null,
-        parseHTML: (element: HTMLElement) => element.style.fontSize?.replace(/pt|px/, "") || null,
-        renderHTML: (attributes: Record<string, any>) => {
-          if (!attributes.fontSize) return {};
-          return { style: `font-size: ${attributes.fontSize}pt` };
-        },
-      },
-      fontFamily: {
-        default: null,
-        parseHTML: (element: HTMLElement) => element.style.fontFamily?.replace(/['"]/g, "") || null,
-        renderHTML: (attributes: Record<string, any>) => {
-          if (!attributes.fontFamily) return {};
-          return { style: `font-family: ${attributes.fontFamily}` };
-        },
-      },
-    };
-  },
-});
 
 export default function OficioPreviewEditor({ content, onChange }: OficioPreviewEditorProps) {
   const initialContent = useRef(content);
@@ -63,13 +28,6 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         heading: false,
       }),
       Underline,
-      FontSize,
-      Color,
-      TextAlign.configure({
-        types: ["paragraph"],
-        defaultAlignment: "justify",
-      }),
-      Highlight.configure({ multicolor: true }),
       TiptapImage.configure({
         inline: false,
         allowBase64: true,
@@ -114,16 +72,6 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
     e.target.value = "";
   }, [editor]);
 
-  const setFontSize = useCallback((size: string) => {
-    if (!editor) return;
-    editor.chain().focus().setMark("textStyle", { fontSize: size }).run();
-  }, [editor]);
-
-  const setFontFamily = useCallback((family: string) => {
-    if (!editor) return;
-    editor.chain().focus().setMark("textStyle", { fontFamily: family }).run();
-  }, [editor]);
-
   if (!editor) return null;
 
   const ToolBtn = ({ onClick, active, children, title, disabled }: {
@@ -139,7 +87,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         onClick();
       }}
       title={title}
-      className={`p-1.5 rounded transition-colors ${disabled ? "opacity-30 cursor-not-allowed" : active ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-200"}`}
+      className={`p-1.5 rounded transition-colors ${disabled ? "opacity-30 cursor-not-allowed" : active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
     >
       {children}
     </button>
@@ -149,10 +97,10 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
     <div>
       {/* Toolbar */}
       <div
-        className="flex flex-wrap items-center gap-1 p-2 bg-gray-100 border border-gray-300 rounded-t-lg sticky top-0 z-10"
+        className="flex flex-wrap items-center gap-1 p-2 bg-muted border border-border rounded-t-lg sticky top-0 z-10"
         onMouseDown={(e) => e.preventDefault()}
       >
-        {/* Undo/Redo FIRST */}
+        {/* Undo/Redo */}
         <ToolBtn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Desfazer (Ctrl+Z)">
           <Undo size={15} />
         </ToolBtn>
@@ -160,39 +108,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           <Redo size={15} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-gray-300 mx-1" />
-
-        {/* Font Family */}
-        <select
-          className="text-xs bg-white border border-gray-300 rounded px-1 py-1 h-7"
-          onChange={(e) => {
-            setFontFamily(e.target.value);
-            setTimeout(() => editor.chain().focus().run(), 0);
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          defaultValue="Arial"
-        >
-          {FONT_FAMILIES.map(f => (
-            <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
-          ))}
-        </select>
-
-        {/* Font Size */}
-        <select
-          className="text-xs bg-white border border-gray-300 rounded px-1 py-1 h-7 w-14"
-          onChange={(e) => {
-            setFontSize(e.target.value);
-            setTimeout(() => editor.chain().focus().run(), 0);
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          defaultValue="11"
-        >
-          {FONT_SIZES.map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-
-        <div className="w-px h-5 bg-gray-300 mx-1" />
+        <div className="w-px h-5 bg-border mx-1" />
 
         {/* Bold/Italic/Underline */}
         <ToolBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Negrito (Ctrl+B)">
@@ -205,44 +121,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           <UnderlineIcon size={15} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-gray-300 mx-1" />
-
-        {/* Text Color */}
-        <div className="relative" title="Cor do texto">
-          <input
-            type="color"
-            className="w-7 h-7 rounded border border-gray-300 cursor-pointer p-0"
-            defaultValue="#000000"
-            onMouseDown={(e) => e.stopPropagation()}
-            onInput={(e) => {
-              // @ts-ignore - tiptap v3 chain command
-              editor.chain().focus().setColor((e.target as HTMLInputElement).value).run();
-            }}
-          />
-        </div>
-
-        {/* Highlight */}
-        <ToolBtn onClick={() => (editor.chain().focus() as any).toggleHighlight({ color: '#fef08a' }).run()} active={editor.isActive("highlight")} title="Realce">
-          <Highlighter size={15} />
-        </ToolBtn>
-
-        <div className="w-px h-5 bg-gray-300 mx-1" />
-
-        {/* Alignment */}
-        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Alinhar à esquerda">
-          <AlignLeft size={15} />
-        </ToolBtn>
-        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Centralizar">
-          <AlignCenter size={15} />
-        </ToolBtn>
-        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Alinhar à direita">
-          <AlignRight size={15} />
-        </ToolBtn>
-        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("justify").run()} active={editor.isActive({ textAlign: "justify" })} title="Justificar">
-          <AlignJustify size={15} />
-        </ToolBtn>
-
-        <div className="w-px h-5 bg-gray-300 mx-1" />
+        <div className="w-px h-5 bg-border mx-1" />
 
         {/* Lists */}
         <ToolBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Lista com marcadores">
@@ -252,14 +131,14 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           <ListOrdered size={15} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-gray-300 mx-1" />
+        <div className="w-px h-5 bg-border mx-1" />
 
         {/* Clear formatting */}
         <ToolBtn onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="Limpar formatação">
           <Eraser size={15} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-gray-300 mx-1" />
+        <div className="w-px h-5 bg-border mx-1" />
 
         {/* Insert Image */}
         <ToolBtn onClick={() => imageInputRef.current?.click()} title="Inserir imagem">
@@ -298,11 +177,6 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         }
         .oficio-editor-body .ProseMirror:focus {
           outline: none;
-        }
-        .oficio-editor-body mark {
-          background-color: #fef08a;
-          padding: 0 2px;
-          border-radius: 2px;
         }
         .oficio-editor-body img {
           max-width: 100%;
