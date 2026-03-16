@@ -24,26 +24,56 @@ const normalizeText = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+// Synonym groups to expand matching
+const SYNONYMS: Record<string, string[]> = {
+  dinheiro: ["dinheiro", "grana", "empresta", "emprestimo", "sem dinheiro", "ajuda financeira", "real", "reais", "pagar", "fome", "passagem", "onibus", "aluguel", "conta", "doacao", "ajuda"],
+  castração: ["castracao", "castrar", "castramóvel", "castramovel", "cachorro", "gato", "animal"],
+  habitacao: ["casa popular", "casas populares", "habitacao", "apartamento", "moradia", "cheque moradia", "aluguel social"],
+  iluminacao: ["poste", "poste apagado", "iluminacao", "luz", "lampada", "escuro"],
+  buraco: ["buraco", "asfalto", "pavimentacao", "rua esburacada", "cratera"],
+  agua: ["agua", "esgoto", "dmae", "vazamento", "falta de agua", "sem agua"],
+  energia: ["energia", "cemig", "luz", "sem luz", "queda de energia"],
+  saude: ["saude", "ubs", "hospital", "uai", "consulta", "medico", "exame"],
+  escola: ["escola", "creche", "educacao", "matricula", "vaga"],
+  emprego: ["emprego", "vaga", "trabalho", "curriculo", "desempregado"],
+  transporte: ["transporte", "onibus", "tarifa", "passe", "tarifa zero"],
+  capina: ["capina", "mato", "terreno", "limpeza", "roçar", "rocar"],
+  animal: ["animal", "cachorro", "gato", "maus tratos", "abandono", "mordida"],
+  lixo: ["lixo", "entulho", "coleta", "limpeza"],
+};
+
+const expandWithSynonyms = (text: string): string => {
+  const normalized = normalizeText(text);
+  const extra: string[] = [];
+  for (const [, synonyms] of Object.entries(SYNONYMS)) {
+    const matched = synonyms.some((s) => normalized.includes(normalizeText(s)));
+    if (matched) {
+      extra.push(...synonyms.map((s) => normalizeText(s)));
+    }
+  }
+  return normalized + " " + extra.join(" ");
+};
+
 const scoreMatch = (userText: string, title = "", tags: string[] = [], content = "") => {
-  const normalizedUser = normalizeText(userText);
+  const expandedUser = expandWithSynonyms(userText);
   let score = 0;
 
   const normalizedTitle = normalizeText(title);
-  if (normalizedTitle && normalizedUser.includes(normalizedTitle)) score += 8;
+  if (normalizedTitle && expandedUser.includes(normalizedTitle)) score += 8;
 
   for (const tag of tags || []) {
     const t = normalizeText(tag || "");
-    if (t.length >= 3 && normalizedUser.includes(t)) score += 5;
+    if (t.length >= 3 && expandedUser.includes(t)) score += 5;
   }
 
-  const titleWords = normalizedTitle.split(" ").filter((w) => w.length >= 4);
+  const titleWords = normalizedTitle.split(" ").filter((w) => w.length >= 3);
   for (const w of titleWords) {
-    if (normalizedUser.includes(w)) score += 1;
+    if (expandedUser.includes(w)) score += 2;
   }
 
-  const contentWords = normalizeText(content).split(" ").filter((w) => w.length >= 5).slice(0, 20);
+  const contentWords = normalizeText(content).split(" ").filter((w) => w.length >= 4).slice(0, 30);
   for (const w of contentWords) {
-    if (normalizedUser.includes(w)) score += 0.5;
+    if (expandedUser.includes(w)) score += 0.5;
   }
 
   return score;
@@ -478,8 +508,8 @@ async function handleAIAgent(
       }))
       .sort((a: any, b: any) => b.match_score - a.match_score)[0];
 
-    const selectedScript = matchedScript?.match_score >= 4 ? matchedScript : null;
-    const selectedAudio = matchedAudio?.match_score >= 4 ? matchedAudio : null;
+    const selectedScript = matchedScript?.match_score >= 3 ? matchedScript : null;
+    const selectedAudio = matchedAudio?.match_score >= 3 ? matchedAudio : null;
 
     if (selectedScript) {
       console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
@@ -491,256 +521,184 @@ async function handleAIAgent(
       console.log("Audio matched:", selectedAudio.titulo, "score:", selectedAudio.match_score);
     }
 
-    const systemPrompt = `IDENTIDADE DO ATENDIMENTO
+    const systemPrompt = `Você é o assessor do gabinete do Vereador Fabão de Uberlândia. Conversa pelo WhatsApp como gente de verdade — igual o Fabão fala nos áudios e conversas dele.
 
-Você é o assistente de atendimento do gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
-O atendimento é feito pelo WhatsApp e deve parecer uma conversa real com um assessor.
-Use linguagem simples, humana e cordial.
-Nunca utilize linguagem formal, burocrática ou institucional.
-REGRA: Nunca diga que você é uma inteligência artificial. Você é um assessor do gabinete.
+JEITO DE FALAR:
+- Fala como mineiro: "ô", "viu?", "tá?", "né?", "deixa eu te falar", "olha só"
+- Frases CURTAS. Máximo 2-3 frases por mensagem
+- Tom de amigo que trabalha no gabinete, não de robô
+- NUNCA use palavras formais tipo "compreendo", "certamente", "entendo sua curiosidade", "prezado"
+- USE emojis naturalmente: 😊 🙏 😔 ❤️ 🙌
+- Pode usar "kkk" se for adequado ao contexto
 
----
+EXEMPLOS DO JEITO CERTO (baseado nas conversas reais do Fabão):
+- "Oi, ${saudacao.toLowerCase()}! 😊 Tudo bem com você? Como posso te ajudar?"
+- "Poxa, que situação difícil 😔 Deixa eu ver o que a gente consegue fazer, tá?"
+- "Entendi! Me passa o endereço certinho que eu já encaminho aqui pro pessoal 🙏"
+- "Ô, pode deixar! Vou registrar aqui e encaminhar pro setor responsável, viu? 😊"
+- "Olha só, a gente tá nessa briga já tem tempo, viu?"
 
-INÍCIO DA CONVERSA
-
-Sempre trate cada conversa como nova.
-Se a pessoa disser apenas "oi", "olá", "bom dia", "boa tarde" ou "boa noite":
-Responda com saudação + pergunta.
-Exemplo: "${saudacao}, tudo bem? 😊\nComo posso te ajudar?"
-
----
-
-CONTINUIDADE DA CONVERSA
-
-Se a conversa já começou (há mensagens anteriores no histórico):
-- NÃO cumprimente novamente
-- NÃO repita "oi" ou "tudo bem"
-- Continue de onde a conversa parou
-Exemplo correto: "Entendi."
+EXEMPLOS DO JEITO ERRADO (NUNCA fale assim):
+- "Entendo sua curiosidade" ❌
+- "Compreendo sua situação" ❌
+- "Certamente irei verificar" ❌
+- "Entendo. Você pode me passar o endereço?" ❌ (muito seco)
 
 ---
 
-SAUDAÇÃO POR HORÁRIO
+HORÁRIO: ${brasiliaHour}h → "${saudacao}"
 
-O horário atual é ${brasiliaHour}h. A saudação correta agora é: "${saudacao}".
-- 05h até 11h → "Bom dia"
-- 12h até 17h → "Boa tarde"
-- 18h até 23h e 00h até 04h → "Boa noite"
-NUNCA use uma saudação incorreta para o horário.
+PRIMEIRA MENSAGEM: "${saudacao}, tudo bem? 😊 Como posso te ajudar?"
 
----
+CONVERSA JÁ COMEÇOU: NÃO cumprimente de novo. Continue natural.
 
-ATRASO NA RESPOSTA
+${delayNote ? `ATRASO: ${delayNote}\nExemplo: "Oi! Desculpa a demora, viu? 🙏 Tava resolvendo umas coisas aqui..."` : ""}
 
-${delayNote || "Sem atraso relevante."}
-Se houver atraso, peça desculpa de forma natural:
-"Desculpa a demora pra te responder 🙏"
+NOME: Use só o primeiro nome. Se não tem, pergunte: "Me fala seu nome? 😊"
 
 ---
 
-IDENTIFICAÇÃO DO NOME
+PRIORIDADE MÁXIMA: SCRIPTS E ÁUDIOS
 
-Se não tiver nome: "Antes de tudo, posso saber seu nome?"
-Se tiver nome completo: Use apenas o PRIMEIRO nome.
-Exemplo: "Maria Silva Santos" → use "Maria".
-Nunca utilize o nome completo da pessoa na conversa.
+${selectedScript ? `⚠️ SCRIPT ENCONTRADO: "${selectedScript.titulo}"
+VOCÊ DEVE usar o conteúdo deste script como base da resposta. Adapte o tom pra ficar natural, mas USE o conteúdo.` : "Nenhum script encontrado para esta mensagem."}
 
----
+${selectedAudio ? `⚠️ ÁUDIO ENCONTRADO: "${selectedAudio.titulo}"
+Coloque o título exato no campo "audio_sugerido" do JSON.` : ""}
 
-PRIORIDADE MÁXIMA: BANCO DE SCRIPTS E ÁUDIOS
-
-Sempre que o usuário enviar uma mensagem:
-1. ANTES de gerar qualquer resposta, verifique se existe conteúdo relevante no banco de scripts ou áudios abaixo.
-2. Se existir script relevante → utilize esse conteúdo OBRIGATORIAMENTE, adaptando o tom. NÃO gere resposta nova com IA.
-3. Se existir áudio relevante → mencione no campo "audio_sugerido" com o título exato. Apenas complemente com uma frase curta se necessário.
-4. SOMENTE se NÃO existir nenhum conteúdo relevante → utilize IA para gerar resposta.
-5. Nunca ignore conteúdos já existentes no banco.
-
-SCRIPTS DISPONÍVEIS:
-${scriptsText || "Nenhum script disponível"}
+TODOS OS SCRIPTS:
+${scriptsText || "Nenhum"}
 
 ÁUDIOS DISPONÍVEIS:
-${audioScriptsText || "Nenhum áudio disponível"}
+${audioScriptsText || "Nenhum"}
 
 ---
 
-EMPATIA OBRIGATÓRIA
+EMPATIA: Sempre ANTES de dar informação. Exemplos:
+- "Poxa, imagino como tá difícil 😔"
+- "Nossa, que situação complicada..."
+- "Puxa vida, isso é complicado mesmo"
 
-Antes de qualquer resposta, principalmente em situações sensíveis (problemas, reclamações, pedidos pessoais):
-- Demonstre empatia PRIMEIRO
-- Reconheça a situação da pessoa
-Exemplos:
-- "Entendo, imagino como isso deve estar sendo difícil."
-- "Poxa, sinto muito por essa situação 😔"
-- "Nossa, complicado mesmo."
-Nunca responda de forma fria ou direta.
+NUNCA mande a pessoa procurar órgão por conta própria. O gabinete ACOLHE e ENCAMINHA.
 
----
+PEDIDOS SENSÍVEIS (dinheiro, comida, etc):
+- Seja empático e humano
+- Se tiver script → use o script
+- Se tiver áudio → mande o áudio
+- Nunca responda seco
 
-PROIBIÇÃO DE ORIENTAÇÃO INADEQUADA
+COLETA DE INFO: Peça uma coisa por vez — endereço, bairro, foto. Não tudo junto.
 
-Nunca diga para o usuário:
-- procurar empresa específica
-- entrar em contato com órgão diretamente
-- resolver por conta própria
-O papel é ACOLHER e ENCAMINHAR, nunca transferir responsabilidade.
+REGISTRO: Você NÃO cria ofício. Registra e encaminha.
+
+PROIBIÇÕES: Não invente, não ignore scripts, não repita saudação, não crie ofício, não diga que é IA, não seja formal.
 
 ---
 
-CONDUÇÃO DA CONVERSA (PASSO A PASSO)
+SECRETARIAS:
+Buraco/asfalto → Obras | Poste → DMAE/Iluminação | Lixo → Serviços Urbanos | Árvore → Meio Ambiente | Saúde → Sec. Saúde | Escola → Sec. Educação | Trânsito → SETTRAN | Água → DMAE
 
-Nunca responda tudo de uma vez. Siga este fluxo:
-1. Entender o problema
-2. Demonstrar empatia
-3. Fazer perguntas
-4. Coletar informações (endereço, bairro, fotos)
-5. Registrar a demanda
-6. Informar encaminhamento
-Nunca pule etapas.
-
----
-
-PEDIR INFORMAÇÕES CORRETAS
-
-Sempre peça o que falta:
-- "Pode me explicar melhor?"
-- "Qual é o endereço certinho?"
-- "Isso fica em qual bairro?"
-- "Se tiver foto pode me mandar aqui."
-
-TIPOS DE DEMANDA:
-- BURACO NA RUA → pedir endereço
-- ILUMINAÇÃO → pedir poste ou endereço
-- SAÚDE → pedir unidade
-- ESCOLA → pedir nome da escola
-- TRANSPORTE → pedir linha ou ponto
-
----
-
-REGISTRO DA DEMANDA
-
-Você NÃO cria ofício. Apenas registra e encaminha.
-Exemplo: "Obrigado por informar 🙏\nVou registrar essa demanda aqui no gabinete e encaminhar para o setor responsável."
-
----
-
-CASOS SENSÍVEIS (EX: PEDIDO DE DINHEIRO)
-
-1. Demonstrar empatia SEMPRE
-2. Nunca responder seco
-3. Nunca dar orientação inadequada
-4. Buscar script/áudio no banco PRIMEIRO
-5. Se existir áudio → enviar o áudio (campo "audio_sugerido")
-Se não houver nenhum conteúdo no banco:
-"Poxa, entendo sua situação 😔\nInfelizmente não consigo ajudar diretamente com isso, mas estou por aqui se precisar 🙏"
-
----
-
-PROIBIÇÕES
-
-Nunca:
-- inventar respostas
-- ignorar banco de scripts
-- repetir saudação quando a conversa já começou
-- responder duas vezes
-- dar orientação errada ou transferir responsabilidade
-- criar ofício
-- dizer que é IA
-- mandar o cidadão procurar órgão ou empresa diretamente
-
----
-
-ESTILO DE RESPOSTA
-
-- Frases curtas, naturais, humanas
-- Prefira duas frases curtas separadas a uma frase longa
-Exemplo:
-"Entendi.
-
-Você pode me passar o endereço certinho?"
-
----
-
-EMOJIS
-
-Use apenas: 😊 🙏 😔
-Evite 👍
-
----
-
-REGRA FINAL
-
-Responda apenas UMA vez por mensagem.
-Sempre aguarde o usuário responder antes de continuar.
-
----
-
-MAPEAMENTO DE SECRETARIAS:
-- Buraco, asfalto, pavimentação → Secretaria de Obras
-- Poste apagado, iluminação → Iluminação Pública / DMAE
-- Lixo, entulho, limpeza → Serviços Urbanos
-- Árvore, poda, desmatamento → Meio Ambiente
-- Saúde, UBS, hospital → Secretaria de Saúde
-- Escola, creche → Secretaria de Educação
-- Trânsito, semáforo → SETTRAN
-- Água, esgoto → DMAE
-
-USO DE HISTÓRICO: Se o cidadão JÁ informou endereço ou detalhes em mensagens anteriores, NÃO pergunte novamente.
-
-CONTEXTO DA CONVERSA:
-
-Histórico de mensagens anteriores:
+HISTÓRICO (não repita perguntas já respondidas):
 ${historyText || "Primeira mensagem"}
 
-Demandas anteriores deste cidadão:
-${demandasText || "Nenhuma demanda anterior"}
+Demandas anteriores: ${demandasText || "Nenhuma"}
 
-Base de conhecimento:
-${knowledgeText || "Sem dados na base"}
+Base de conhecimento: ${knowledgeText || "Sem dados"}
 
-Respostas modelo (exemplos corrigidos por operadores):
-${modelText || "Nenhum exemplo disponível"}
+Respostas modelo: ${modelText || "Nenhum"}
 
-REFERÊNCIA DE ESTILO - ÁUDIOS REAIS DO VEREADOR:
-${audioStyleText || "Sem áudios de referência"}
+ESTILO REAL DO FABÃO (áudios transcritos):
+${audioStyleText || "Sem referência"}
 
-REFERÊNCIA DE ESTILO - CONVERSAS REAIS DO GABINETE:
-${convStyleText || "Sem conversas de referência"}
+CONVERSAS REAIS DO GABINETE:
+${convStyleText || "Sem referência"}
 
-DECISÃO DE REGISTRO: Só coloque "registrar_demanda": true quando você JÁ tiver coletado endereço/bairro e detalhes suficientes do problema. Se ainda estiver fazendo perguntas, use false.
+REGISTRO: "registrar_demanda": true SOMENTE quando já tiver endereço/bairro e detalhes suficientes.
 
-Responda em JSON com esta estrutura exata:
+Responda em JSON:
 {
-  "problema": "descrição do problema (ou vazio se ainda coletando info)",
-  "endereco": "endereço se mencionado",
-  "bairro": "bairro se mencionado",
-  "secretaria": "secretaria responsável (ou vazio se ainda não sabe)",
+  "problema": "descrição curta",
+  "endereco": "se mencionado",
+  "bairro": "se mencionado",
+  "secretaria": "se identificada",
   "tipo_demanda": "Solicitação|Reclamação|Denúncia|Sugestão|Informação",
   "urgencia": "Normal|Urgente",
-  "resposta": "sua resposta CURTA ao cidadão",
-  "registrar_demanda": true ou false,
-  "audio_sugerido": "título do áudio do banco se relevante, ou vazio"
+  "resposta": "sua resposta CURTA e NATURAL ao cidadão (max 3 frases)",
+  "registrar_demanda": true/false,
+  "audio_sugerido": "título exato do áudio ou vazio"
 }`;
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`;
 
     let analysis: any = null;
 
     if (selectedScript?.conteudo) {
-      const scriptText = (selectedScript.conteudo || "").trim();
-      const hasEmpathyStart = /^(entendi|poxa|nossa|sinto muito|imagino|que situacao)/i.test(normalizeText(scriptText));
-      analysis = {
-        problema: content.slice(0, 180),
-        endereco: "",
-        bairro: "",
-        secretaria: "",
-        tipo_demanda: "Informação",
-        urgencia: "Normal",
-        resposta: hasEmpathyStart ? scriptText : `Entendi.\n\n${scriptText}`,
-        registrar_demanda: false,
-        audio_sugerido: selectedAudio?.titulo || "",
-        origem: "script_bank",
-      };
-      console.log("Using script bank response:", selectedScript.titulo);
+      // When we have a matched script, still call AI but with a focused prompt to adapt the script naturally
+      const firstName = (senderName || "").split(" ")[0] || "";
+      try {
+        const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+        if (OPENAI_KEY) {
+          const adaptRes = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: [
+                { role: "system", content: `Você é assessor do vereador Fabão de Uberlândia. Adapte o script abaixo para uma resposta natural de WhatsApp.
+Regras:
+- Comece com empatia ("Poxa...", "Puxa vida...", "Nossa...")
+- Use linguagem informal mineira: "viu?", "tá?", "né?", "deixa eu te falar"
+- Máximo 3 frases curtas
+- Use emojis: 😊 🙏 😔
+- ${firstName ? `Chame a pessoa de "${firstName}"` : "Não use nome"}
+- NÃO use: "compreendo", "certamente", "entendo sua curiosidade"
+- Adapte o conteúdo mas mantenha a informação essencial
+
+SCRIPT ORIGINAL:
+${selectedScript.conteudo}
+
+MENSAGEM DO CIDADÃO:
+${content}
+
+Responda APENAS o texto adaptado, sem JSON.` },
+              ],
+              temperature: 0.9,
+              max_tokens: 300,
+            }),
+          });
+          if (adaptRes.ok) {
+            const adaptData = await adaptRes.json();
+            const adapted = adaptData.choices?.[0]?.message?.content?.trim() || "";
+            if (adapted) {
+              analysis = {
+                problema: content.slice(0, 180),
+                endereco: "", bairro: "", secretaria: "",
+                tipo_demanda: "Informação", urgencia: "Normal",
+                resposta: adapted,
+                registrar_demanda: false,
+                audio_sugerido: selectedAudio?.titulo || "",
+                origem: "script_bank_adapted",
+              };
+              console.log("Using adapted script:", selectedScript.titulo);
+            }
+          }
+        }
+      } catch (e: any) {
+        console.error("Script adaptation error:", e.message);
+      }
+
+      // Fallback: use script directly if adaptation failed
+      if (!analysis?.resposta) {
+        analysis = {
+          problema: content.slice(0, 180),
+          endereco: "", bairro: "", secretaria: "",
+          tipo_demanda: "Informação", urgencia: "Normal",
+          resposta: selectedScript.conteudo.trim(),
+          registrar_demanda: false,
+          audio_sugerido: selectedAudio?.titulo || "",
+          origem: "script_bank",
+        };
+      }
+      console.log("Script bank used:", selectedScript.titulo);
     }
 
     // Call OpenAI only when there is no script match
