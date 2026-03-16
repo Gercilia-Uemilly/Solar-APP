@@ -1,9 +1,13 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+// @ts-ignore - tiptap v3 type declarations
 import { TextStyle } from "@tiptap/extension-text-style";
+// @ts-ignore - tiptap v3 type declarations
 import Color from "@tiptap/extension-color";
+// @ts-ignore - tiptap v3 type declarations
 import TextAlign from "@tiptap/extension-text-align";
+// @ts-ignore - tiptap v3 type declarations
 import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
 import { useCallback, useRef } from "react";
