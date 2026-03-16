@@ -229,16 +229,16 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         <div className="w-px h-5 bg-gray-300 mx-1" />
 
         {/* Alignment */}
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Alinhar à esquerda">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Alinhar à esquerda">
           <AlignLeft size={15} />
         </ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Centralizar">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Centralizar">
           <AlignCenter size={15} />
         </ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Alinhar à direita">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Alinhar à direita">
           <AlignRight size={15} />
         </ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("justify").run()} active={editor.isActive({ textAlign: "justify" })} title="Justificar">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("justify").run()} active={editor.isActive({ textAlign: "justify" })} title="Justificar">
           <AlignJustify size={15} />
         </ToolBtn>
 
