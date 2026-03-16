@@ -134,19 +134,20 @@ ESTRUTURA OBRIGATÓRIA — exatamente 4 parágrafos de corpo + conclusão:
 §1 INTRODUÇÃO DO PEDIDO:
 Apresentar a solicitação do gabinete de forma institucional. Indicar o local ou situação informada no prompt.
 Exemplo de abertura: "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar..."
-→ Destacar com <strong>: a ação principal, a rua e o bairro.
+→ Usar <strong> para destacar: a AÇÃO PRINCIPAL (ex: <strong>tapa-buraco</strong>), o ENDEREÇO (ex: <strong>Rua Carnaúba, nº 78</strong>) e o BAIRRO (ex: <strong>Bairro Morumbi</strong>).
 
 §2 CONTEXTUALIZAÇÃO DA DEMANDA:
 Descrever o problema relatado pelos cidadãos ou observado no local. Manter-se fiel à descrição original.
-→ Sem negrito excessivo, apenas em termos-chave.
+→ Usar <strong> apenas em termos-chave relevantes (ex: nome do problema, tipo de risco mencionado pelo cidadão).
 
 §3 CONSEQUÊNCIAS E JUSTIFICATIVA:
 Explicar brevemente por que a intervenção é necessária. Manter-se realista e proporcional ao problema descrito.
 → NÃO dramatizar. NÃO inventar riscos que o cidadão não mencionou.
+→ Destacar com <strong> os impactos principais (ex: <strong>segurança dos moradores</strong>, <strong>mobilidade urbana</strong>).
 
 §4 SOLICITAÇÃO FORMAL:
 Reforçar o pedido de forma objetiva, solicitando avaliação técnica e providências.
-→ Destacar com <strong> as ações solicitadas.
+→ Destacar com <strong> as AÇÕES solicitadas (ex: <strong>avaliação técnica</strong>, <strong>reparo imediato</strong>, <strong>capina e roçagem</strong>).
 
 §5-§6 CONCLUSÃO (usar EXATAMENTE a conclusão fixa fornecida no prompt do usuário, separada em dois parágrafos <p>)
 
@@ -154,7 +155,7 @@ FORMATAÇÃO:
 - Cada parágrafo deve estar em uma tag <p>
 - A conclusão fixa deve estar em DUAS tags <p> separadas
 - Negrito SOMENTE com <strong>, NUNCA com <b>
-- NÃO usar negrito excessivo — use apenas em termos-chave importantes (ação principal, local, serviço)
+- USE negrito estrategicamente: ação principal, endereço, bairro, serviço solicitado e impactos relevantes
 - Linguagem formal, clara, objetiva
 - NÃO inclua formatação inline (sem font-family, font-size, style) — apenas <p> e <strong>
 
