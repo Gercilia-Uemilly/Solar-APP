@@ -54,17 +54,47 @@ serve(async (req) => {
 
     const event = body.event || body.type;
 
-    // Handle Z-API message format
-    const isZapiMessage = body.phone && (body.text || body.message || body.body);
+    // Handle Z-API message format (text, audio, image)
+    const isZapiMessage = body.phone && (body.text || body.message || body.body || body.audio || body.image);
 
     if (isZapiMessage) {
       const phone = body.phone?.replace(/\D/g, "") || "";
       const senderName = body.senderName || body.chatName || body.name || "";
-      const msgContent =
+      let msgContent =
         body.text?.message ||
         body.body ||
         (typeof body.message === "string" ? body.message : body.message?.conversation) ||
         "";
+      
+      // Handle audio messages - transcribe via Gemini
+      const audioUrl = body.audio?.audioUrl || body.audioMessage?.url || "";
+      let mediaType: string | null = null;
+      let mediaUrl: string | null = null;
+
+      if (audioUrl && !msgContent) {
+        mediaType = "audio";
+        mediaUrl = audioUrl;
+        try {
+          const transcription = await transcribeAudio(audioUrl);
+          if (transcription) {
+            msgContent = `[ÁUDIO TRANSCRITO]: ${transcription}`;
+            console.log("Audio transcribed:", transcription.slice(0, 100));
+          } else {
+            msgContent = "[Áudio recebido - não foi possível transcrever]";
+          }
+        } catch (e: any) {
+          console.error("Audio transcription error:", e.message);
+          msgContent = "[Áudio recebido - erro na transcrição]";
+        }
+      }
+
+      // Handle image messages
+      const imageUrl = body.image?.imageUrl || body.imageMessage?.url || "";
+      if (imageUrl && !msgContent) {
+        mediaType = "image";
+        mediaUrl = imageUrl;
+        msgContent = body.image?.caption || "[Imagem recebida]";
+      }
       const messageId = body.messageId || body.id?.id || crypto.randomUUID();
       const isFromMe = body.fromMe === true;
       const remoteJid = `${phone}@s.whatsapp.net`;
@@ -135,6 +165,8 @@ serve(async (req) => {
         sender_name: senderName,
         sender_phone: phone,
         status: isFromMe ? "sent" : "received",
+        media_type: mediaType,
+        media_url: mediaUrl,
       });
 
       // If incoming, process AI agent (with dedup check)
@@ -605,4 +637,82 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
   } catch (e) {
     console.error("AI agent error:", e);
   }
+}
+
+// ── Audio Transcription via Gemini ──
+async function transcribeAudio(audioUrl: string): Promise<string | null> {
+  const GEMINI_KEY = (Deno.env.get("GEMINI_AGENT_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+  if (!GEMINI_KEY) {
+    console.error("No Gemini key for audio transcription");
+    return null;
+  }
+
+  // Download audio
+  const audioRes = await fetch(audioUrl);
+  if (!audioRes.ok) {
+    console.error("Failed to download audio:", audioRes.status);
+    return null;
+  }
+
+  const audioBuffer = await audioRes.arrayBuffer();
+  const audioBytes = new Uint8Array(audioBuffer);
+  
+  // Convert to base64 in chunks to avoid stack overflow
+  let base64 = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < audioBytes.length; i += chunkSize) {
+    const chunk = audioBytes.slice(i, i + chunkSize);
+    base64 += String.fromCharCode(...chunk);
+  }
+  const audioBase64 = btoa(base64);
+
+  const mimeType = audioRes.headers.get("content-type") || "audio/ogg";
+
+  // Use Gemini to transcribe
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+  
+  for (const model of models) {
+    try {
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: audioBase64,
+                  },
+                },
+                {
+                  text: "Transcreva este áudio em português brasileiro. Retorne APENAS o texto transcrito, sem formatação, sem aspas, sem explicações.",
+                },
+              ],
+            }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
+          }),
+        }
+      );
+
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        console.warn(`Transcription ${model} failed (${geminiRes.status}): ${errText.slice(0, 100)}`);
+        continue;
+      }
+
+      const data = await geminiRes.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      if (text) {
+        console.log(`Audio transcribed with ${model}`);
+        return text;
+      }
+    } catch (e: any) {
+      console.warn(`Transcription ${model} error: ${e.message}`);
+    }
+  }
+
+  return null;
 }
