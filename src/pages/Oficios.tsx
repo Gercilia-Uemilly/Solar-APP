@@ -654,6 +654,7 @@ export default function Oficios() {
     setDataGeracao(new Date().toISOString().split("T")[0]);
     setEnderecoCompleto("");
     setAssunto("");
+    setAssuntoEditedInPreview(false);
     setSecretaria("");
     setDestinatario("");
     setCargoDestinatario("");
