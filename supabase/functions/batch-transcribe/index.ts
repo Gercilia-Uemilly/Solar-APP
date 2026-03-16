@@ -13,24 +13,23 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const token = authHeader.replace("Bearer ", "");
 
-    // Allow service role key directly (for internal/admin calls)
-    const isServiceRole = token === serviceKey;
-
-    if (!isServiceRole) {
-      const userClient = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: authHeader } } });
-      const { data: claimsData, error: claimsErr } = await userClient.auth.getUser(token);
-      if (claimsErr || !claimsData?.user) {
-        return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Auth: allow service role, anon key, or valid user token
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      const isServiceOrAnon = token === serviceKey || token === supabaseAnon;
+      if (!isServiceOrAnon) {
+        const userClient = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: authHeader } } });
+        const { data: claimsData, error: claimsErr } = await userClient.auth.getUser(token);
+        if (claimsErr || !claimsData?.user) {
+          return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
       }
+    } else {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const adminClient = createClient(supabaseUrl, serviceKey);
