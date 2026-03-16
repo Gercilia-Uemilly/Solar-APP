@@ -434,12 +434,16 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     // 6. Auto-respond via Z-API
     const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+    const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
     if (ZAPI_INSTANCE_ID && ZAPI_TOKEN && analysis.resposta) {
       const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+      const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
+
       const sendRes = await fetch(zapiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: zapiHeaders,
         body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
       });
 
