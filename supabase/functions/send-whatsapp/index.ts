@@ -89,22 +89,19 @@ serve(async (req) => {
 
     const phone = conversation.remote_jid.replace("@s.whatsapp.net", "").replace("@g.us", "");
 
-    // Build headers with Client-Token
-    const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
-    if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
-
-    console.log("Sending to phone:", phone, "with Client-Token:", ZAPI_CLIENT_TOKEN ? "yes" : "no");
+    // Try WITHOUT Client-Token first
+    console.log("Sending to phone:", phone);
 
     const zapiPayload = JSON.stringify({ phone, message });
-    let zapiResponse = await fetch(zapiUrl, { method: "POST", headers: zapiHeaders, body: zapiPayload });
+    let zapiResponse = await fetch(zapiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: zapiPayload });
     let zapiText = await zapiResponse.text();
     let zapiData = parseJsonSafe(zapiText);
     console.log("Z-API response:", zapiResponse.status, zapiText.slice(0, 300));
 
-    // If client-token error, retry without it
-    if (zapiData?.error === "your client-token is not configured") {
-      console.log("Retrying without Client-Token...");
-      zapiResponse = await fetch(zapiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: zapiPayload });
+    // If auth error, retry WITH Client-Token
+    if (!zapiResponse.ok && zapiData?.error && ZAPI_CLIENT_TOKEN) {
+      console.log("Retrying with Client-Token...");
+      zapiResponse = await fetch(zapiUrl, { method: "POST", headers: { "Content-Type": "application/json", "Client-Token": ZAPI_CLIENT_TOKEN }, body: zapiPayload });
       zapiText = await zapiResponse.text();
       zapiData = parseJsonSafe(zapiText);
       console.log("Z-API retry response:", zapiResponse.status, zapiText.slice(0, 300));
