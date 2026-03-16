@@ -652,11 +652,11 @@ Responda em JSON com esta estrutura exata:
   }
 }
 
-// ── Audio Transcription via Lovable AI Gateway ──
+// ── Audio Transcription via OpenAI GPT-4o-mini (multimodal) ──
 async function transcribeAudio(audioUrl: string): Promise<string | null> {
-  const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
-  if (!LOVABLE_KEY) {
-    console.error("No LOVABLE_API_KEY for audio transcription");
+  const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+  if (!OPENAI_KEY) {
+    console.error("No OPENAI_API_KEY for audio transcription");
     return null;
   }
 
@@ -681,56 +681,49 @@ async function transcribeAudio(audioUrl: string): Promise<string | null> {
 
   const mimeType = audioRes.headers.get("content-type") || "audio/ogg";
 
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-  const gatewayUrl = `${SUPABASE_URL}/functions/v1/ai-proxy`;
+  try {
+    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${audioBase64}` },
+              },
+              {
+                type: "text",
+                text: "Transcreva este áudio em português brasileiro. Retorne APENAS o texto transcrito, sem formatação, sem aspas, sem explicações.",
+              },
+            ],
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2048,
+      }),
+    });
 
-  const models = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
-  
-  for (const model of models) {
-    try {
-      const gatewayRes = await fetch(gatewayUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${LOVABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "image_url",
-                  image_url: { url: `data:${mimeType};base64,${audioBase64}` },
-                },
-                {
-                  type: "text",
-                  text: "Transcreva este áudio em português brasileiro. Retorne APENAS o texto transcrito, sem formatação, sem aspas, sem explicações.",
-                },
-              ],
-            },
-          ],
-          temperature: 0.1,
-          max_tokens: 2048,
-        }),
-      });
-
-      if (!gatewayRes.ok) {
-        const errText = await gatewayRes.text();
-        console.warn(`Transcription ${model} failed (${gatewayRes.status}): ${errText.slice(0, 100)}`);
-        continue;
-      }
-
-      const data = await gatewayRes.json();
-      const text = data.choices?.[0]?.message?.content?.trim() || "";
-      if (text) {
-        console.log(`Audio transcribed with ${model}`);
-        return text;
-      }
-    } catch (e: any) {
-      console.warn(`Transcription ${model} error: ${e.message}`);
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text();
+      console.warn(`Audio transcription failed (${openaiRes.status}): ${errText.slice(0, 100)}`);
+      return null;
     }
+
+    const data = await openaiRes.json();
+    const text = data.choices?.[0]?.message?.content?.trim() || "";
+    if (text) {
+      console.log("Audio transcribed via OpenAI");
+      return text;
+    }
+  } catch (e: any) {
+    console.warn(`Audio transcription error: ${e.message}`);
   }
 
   return null;
