@@ -27,15 +27,14 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: authErr } = await sb.auth.getClaims(token);
-    if (authErr || !claimsData?.claims) {
+    const { data: userData, error: authErr } = await sb.auth.getUser();
+    if (authErr || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
 
     const { conversation_id, message } = await req.json();
 

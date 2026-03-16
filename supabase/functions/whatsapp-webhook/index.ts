@@ -447,8 +447,15 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
         body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
       });
 
-      if (sendRes.ok) {
-        const sendData = await sendRes.json();
+      const sendText = await sendRes.text();
+      let sendData: any = null;
+      try {
+        sendData = sendText ? JSON.parse(sendText) : null;
+      } catch {
+        sendData = { raw: sendText };
+      }
+
+      if (sendRes.ok && !sendData?.error) {
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
@@ -456,15 +463,17 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
           content: analysis.resposta,
           status: "sent",
           sender_name: "Agente IA",
+          sender_phone: senderPhone,
         });
 
         await sb
           .from("whatsapp_conversations")
           .update({ last_message_at: new Date().toISOString() })
           .eq("id", conversationId);
+
+        console.log("Auto-response sent", { phone: senderPhone, messageId: sendData?.messageId || null });
       } else {
-        const sendErr = await sendRes.text();
-        console.error("Z-API send failed:", sendRes.status, sendErr);
+        console.error("Z-API send failed:", sendRes.status, sendData);
       }
     }
 
