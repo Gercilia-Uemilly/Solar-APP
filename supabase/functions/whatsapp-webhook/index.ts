@@ -575,9 +575,9 @@ ${audioScriptsText || "Nenhum"}
 ---
 
 EMPATIA: Sempre ANTES de dar informação. Exemplos:
-- "Poxa, imagino como tá difícil 😔"
-- "Nossa, que situação complicada..."
-- "Puxa vida, isso é complicado mesmo"
+- "Então, colega, imagino como tá difícil 😔"
+- "Nossa, fulano/fulana, que situação complicada..."
+- "Então, deixa eu te falar, isso é complicado mesmo"
 
 NUNCA mande a pessoa procurar órgão por conta própria. O gabinete ACOLHE e ENCAMINHA.
 
