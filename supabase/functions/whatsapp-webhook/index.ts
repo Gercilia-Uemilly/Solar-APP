@@ -342,13 +342,21 @@ Se fornecida transcrição de áudio, analise e responda normalmente. Se confuso
 ANÁLISE DE IMAGENS:
 Se fornecida descrição de imagem, interprete, confirme entendimento. Ex: "Recebi a imagem que você enviou e entendi a situação. Vou verificar isso para você 👍"
 
-PERSONALIZAÇÃO:
-Sempre que possível utilize o nome da pessoa, responda de forma empática, demonstre acompanhamento. Ex: "Entendi, João. Vou verificar isso agora pra você 💪"
+PERSONALIZAÇÃO E TRATAMENTO:
+SEMPRE use o nome da pessoa primeiro seguido de "minha amiga" (se mulher) ou "meu amigo" (se homem).
+Exemplos: "Maria, minha amiga, recebi sua mensagem 😊", "Carlos, meu amigo, já estou vendo isso pra você 💪"
+Se não souber o gênero, use apenas o nome: "Olá, [nome]! 😊"
+Responda de forma empática e demonstre acompanhamento.
 
-FLUXO NATURAL DE CONVERSA:
-- Se "Oi": "Oi, tudo bem? 😊 Como posso te ajudar?"
-- Se demora explicar: "Pode me contar um pouco melhor o que aconteceu?"
-- Se imagem/áudio: "Recebi o que você enviou, já estou analisando aqui 👍"
+FLUIDEZ DA CONVERSA:
+A conversa deve fluir naturalmente como um bate-papo de WhatsApp. NÃO use listas, tópicos ou estruturas formais.
+Escreva parágrafos curtos, como mensagens reais. Quebre o texto em blocos naturais.
+Evite respostas muito longas — seja direto mas caloroso.
+Exemplos de fluidez:
+- Se "Oi": "Oi, [nome], minha amiga! 😊 Tudo bem? Como posso te ajudar?"
+- Se demora explicar: "[nome], pode me contar um pouco melhor o que aconteceu? 🙏"
+- Se imagem/áudio: "Recebi o que você enviou, [nome]! Já estou analisando aqui 👍"
+- Se problema grave: "[nome], minha amiga, que situação difícil 😔 Vou correr atrás disso pra você agora mesmo."
 
 MAPEAMENTO DE SECRETARIAS:
 - Buraco, asfalto, pavimentação → Secretaria de Obras
@@ -395,8 +403,8 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       const GEMINI_KEY = (Deno.env.get("GEMINI_AGENT_API_KEY") || "").trim();
       if (!GEMINI_KEY) throw new Error("GEMINI_AGENT_API_KEY not configured");
 
-      // Models em cascata (somente modelos válidos)
-      const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+      // Models em cascata - priorizar qualidade
+      const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
       let lastError = "";
 
       for (const model of models) {
@@ -408,7 +416,7 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
             body: JSON.stringify({
               contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
               generationConfig: {
-                temperature: 0.6,
+                temperature: 0.8,
                 maxOutputTokens: 1024,
                 responseMimeType: "application/json",
               },
