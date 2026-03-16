@@ -246,9 +246,7 @@ serve(async (req) => {
         status: fromMe ? "sent" : "received",
       });
       if (!fromMe && msgContent) {
-        EdgeRuntime?.waitUntil?.(
-          handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone)
-        );
+        await handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone);
       }
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
