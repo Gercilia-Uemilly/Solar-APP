@@ -465,6 +465,33 @@ async function handleAIAgent(
       .map((a: any) => `- ${a.titulo} (palavras-chave: ${(a.palavras_chave || []).join(", ")}): ${a.descricao?.slice(0, 100) || ""}`)
       .join("\n");
 
+    const matchedScript = (scripts || [])
+      .map((s: any) => ({
+        ...s,
+        match_score: scoreMatch(content, s.titulo || "", s.tags || [], s.conteudo || ""),
+      }))
+      .sort((a: any, b: any) => b.match_score - a.match_score)[0];
+
+    const matchedAudio = (audioEntries || [])
+      .map((a: any) => ({
+        ...a,
+        match_score: scoreMatch(content, a.titulo || "", a.palavras_chave || [], a.descricao || ""),
+      }))
+      .sort((a: any, b: any) => b.match_score - a.match_score)[0];
+
+    const selectedScript = matchedScript?.match_score >= 4 ? matchedScript : null;
+    const selectedAudio = matchedAudio?.match_score >= 4 ? matchedAudio : null;
+
+    if (selectedScript) {
+      console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
+    } else {
+      console.log("No script matched for:", content);
+    }
+
+    if (selectedAudio) {
+      console.log("Audio matched:", selectedAudio.titulo, "score:", selectedAudio.match_score);
+    }
+
     const systemPrompt = `IDENTIDADE DO ATENDIMENTO
 
 Você é o assistente de atendimento do gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
