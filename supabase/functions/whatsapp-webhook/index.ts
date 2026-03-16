@@ -131,11 +131,9 @@ serve(async (req) => {
         status: isFromMe ? "sent" : "received",
       });
 
-      // If incoming, trigger AI agent (fire-and-forget)
+      // If incoming, process AI agent before returning (more reliable)
       if (!isFromMe && msgContent) {
-        EdgeRuntime?.waitUntil?.(
-          handleAIAgent(sb, conversationId, msgContent, senderName, phone)
-        );
+        await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
       }
 
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
@@ -248,9 +246,7 @@ serve(async (req) => {
         status: fromMe ? "sent" : "received",
       });
       if (!fromMe && msgContent) {
-        EdgeRuntime?.waitUntil?.(
-          handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone)
-        );
+        await handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone);
       }
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -438,17 +434,28 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     // 6. Auto-respond via Z-API
     const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+    const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
     if (ZAPI_INSTANCE_ID && ZAPI_TOKEN && analysis.resposta) {
       const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+      const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
+
       const sendRes = await fetch(zapiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: zapiHeaders,
         body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
       });
 
-      if (sendRes.ok) {
-        const sendData = await sendRes.json();
+      const sendText = await sendRes.text();
+      let sendData: any = null;
+      try {
+        sendData = sendText ? JSON.parse(sendText) : null;
+      } catch {
+        sendData = { raw: sendText };
+      }
+
+      if (sendRes.ok && !sendData?.error) {
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
@@ -456,15 +463,17 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
           content: analysis.resposta,
           status: "sent",
           sender_name: "Agente IA",
+          sender_phone: senderPhone,
         });
 
         await sb
           .from("whatsapp_conversations")
           .update({ last_message_at: new Date().toISOString() })
           .eq("id", conversationId);
+
+        console.log("Auto-response sent", { phone: senderPhone, messageId: sendData?.messageId || null });
       } else {
-        const sendErr = await sendRes.text();
-        console.error("Z-API send failed:", sendRes.status, sendErr);
+        console.error("Z-API send failed:", sendRes.status, sendData);
       }
     }
 

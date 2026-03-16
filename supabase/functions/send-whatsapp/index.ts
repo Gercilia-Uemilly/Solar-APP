@@ -27,15 +27,14 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: authErr } = await sb.auth.getClaims(token);
-    if (authErr || !claimsData?.claims) {
+    const { data: userData, error: authErr } = await sb.auth.getUser();
+    if (authErr || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
 
     const { conversation_id, message } = await req.json();
 
@@ -49,6 +48,7 @@ serve(async (req) => {
     // Get Z-API credentials from secrets
     const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+    const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
     if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
       return new Response(
@@ -83,16 +83,25 @@ serve(async (req) => {
 
     // Send message via Z-API
     const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+    const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
+
     const zapiResponse = await fetch(zapiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: zapiHeaders,
       body: JSON.stringify({ phone, message }),
     });
 
-    const zapiData = await zapiResponse.json();
+    const zapiText = await zapiResponse.text();
+    let zapiData: any = null;
+    try {
+      zapiData = zapiText ? JSON.parse(zapiText) : null;
+    } catch {
+      zapiData = { raw: zapiText };
+    }
 
-    if (!zapiResponse.ok) {
-      console.error("Z-API error:", zapiData);
+    if (!zapiResponse.ok || zapiData?.error) {
+      console.error("Z-API error:", { status: zapiResponse.status, data: zapiData });
       return new Response(
         JSON.stringify({ error: "Falha ao enviar mensagem", details: zapiData }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
