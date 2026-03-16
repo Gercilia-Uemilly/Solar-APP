@@ -206,7 +206,18 @@ export async function printOficio(data: PrintData) {
     </div>
   </div>
   <script>
-    window.onload = function() { window.print(); };
+    window.onload = async function() {
+      await Promise.all(
+        Array.from(document.images)
+          .filter(function(img) { return !img.complete; })
+          .map(function(img) {
+            return new Promise(function(resolve) {
+              img.onload = img.onerror = resolve;
+            });
+          })
+      );
+      window.print();
+    };
   </script>
 </body>
 </html>`;
