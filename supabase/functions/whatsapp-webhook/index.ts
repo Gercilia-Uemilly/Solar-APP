@@ -139,19 +139,58 @@ serve(async (req) => {
 
       // If incoming, process AI agent (with dedup check)
       if (!isFromMe && msgContent) {
-        // Check if we already responded to this messageId
-        const { data: existingReply } = await sb.from("whatsapp_messages")
-          .select("id")
-          .eq("conversation_id", conversationId)
-          .eq("direction", "outgoing")
-          .eq("sender_name", "Agente IA")
-          .gte("created_at", new Date(Date.now() - 10000).toISOString()) // last 10 seconds
-          .limit(1);
+        const msgLower = msgContent.trim().toLowerCase();
+        const resetKeywords = ["reiniciar", "começar de novo", "recomeçar", "limpar conversa", "novo atendimento", "reset"];
+        const isReset = resetKeywords.some(k => msgLower === k || msgLower.includes(k));
 
-        if (!existingReply?.length) {
-          await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
+        if (isReset) {
+          // Delete old messages to reset context
+          await sb.from("whatsapp_messages")
+            .delete()
+            .eq("conversation_id", conversationId)
+            .neq("id", "00000000-0000-0000-0000-000000000000"); // delete all
+
+          // Reset unread count
+          await sb.from("whatsapp_conversations")
+            .update({ unread_count: 0 })
+            .eq("id", conversationId);
+
+          // Send reset confirmation via Z-API
+          const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
+          const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+          const resetUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+          if (resetUrl) {
+            const resetMsg = `Oi${senderName ? `, ${senderName.split(" ")[0]}` : ""}! 😊\n\nConversa reiniciada! Pode me contar, como posso te ajudar?`;
+            let res = await fetch(resetUrl, { method: "POST", headers: buildZapiHeaders(false), body: JSON.stringify({ phone, message: resetMsg }) });
+            if (!res.ok) {
+              res = await fetch(resetUrl, { method: "POST", headers: buildZapiHeaders(true), body: JSON.stringify({ phone, message: resetMsg }) });
+            }
+            // Log the reset response
+            await sb.from("whatsapp_messages").insert({
+              conversation_id: conversationId,
+              direction: "outgoing",
+              content: resetMsg,
+              status: "sent",
+              sender_name: "Agente IA",
+              sender_phone: phone,
+            });
+          }
+          console.log("Conversation reset for:", conversationId);
         } else {
-          console.log("Skipping duplicate AI response for conversation:", conversationId);
+          // Normal flow with dedup check
+          const { data: existingReply } = await sb.from("whatsapp_messages")
+            .select("id")
+            .eq("conversation_id", conversationId)
+            .eq("direction", "outgoing")
+            .eq("sender_name", "Agente IA")
+            .gte("created_at", new Date(Date.now() - 10000).toISOString())
+            .limit(1);
+
+          if (!existingReply?.length) {
+            await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
+          } else {
+            console.log("Skipping duplicate AI response for conversation:", conversationId);
+          }
         }
       }
 
