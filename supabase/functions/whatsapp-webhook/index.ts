@@ -402,71 +402,41 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // 4. Call AI via Lovable AI gateway (no API key needed)
+    // 4. Call AI via Lovable AI gateway
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    if (LOVABLE_API_KEY) {
-      try {
-        const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/proxy/ai/chat`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userMessage },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.7,
-          }),
-        });
+    try {
+      const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/proxy/ai`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+        }),
+      });
 
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const rawText = aiData.choices?.[0]?.message?.content;
-          if (rawText) {
-            try {
-              analysis = JSON.parse(rawText);
-            } catch {
-              console.error("Failed to parse AI JSON:", rawText.slice(0, 200));
-            }
-          }
-        } else {
-          const errText = await aiResponse.text();
-          console.error("Lovable AI failed:", aiResponse.status, errText.slice(0, 300));
+      if (aiResponse.ok) {
+        const aiData = await aiResponse.json();
+        const rawText = aiData.choices?.[0]?.message?.content;
+        if (rawText) {
+          try { analysis = JSON.parse(rawText); } catch { console.error("AI JSON parse failed:", rawText.slice(0, 200)); }
         }
-      } catch (aiErr) {
-        console.error("AI call error:", aiErr);
+        console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
+      } else {
+        const errText = await aiResponse.text();
+        console.error("Lovable AI failed:", aiResponse.status, errText.slice(0, 300));
       }
-    } else {
-      // Fallback: try direct Gemini if API key exists
-      const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-      if (GOOGLE_AI_API_KEY) {
-        try {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
-          const response = await fetch(geminiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userMessage }] }],
-              generationConfig: { responseMimeType: "application/json", temperature: 0.7 },
-            }),
-          });
-          if (response.ok) {
-            const data = await response.json();
-            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (rawText) {
-              try { analysis = JSON.parse(rawText); } catch { /* ignore */ }
-            }
-          } else {
-            console.error("Gemini failed:", response.status);
-          }
-        } catch { /* ignore */ }
-      }
+    } catch (aiErr: any) {
+      console.error("AI call error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {

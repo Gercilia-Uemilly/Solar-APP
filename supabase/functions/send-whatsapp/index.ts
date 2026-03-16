@@ -112,8 +112,8 @@ serve(async (req) => {
       .replace("@g.us", "");
 
     // Send message via Z-API
+    // Don't send Client-Token - instance doesn't use it
     const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
-    if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
 
     console.log("Sending to phone:", phone, "with Client-Token:", ZAPI_CLIENT_TOKEN ? "yes" : "no");
 
