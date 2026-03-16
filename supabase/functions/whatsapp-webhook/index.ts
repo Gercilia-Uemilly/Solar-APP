@@ -502,6 +502,10 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
     const zapiUrls = resolveZapiSendUrls(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+    console.log(
+      "Z-API candidate URLs:",
+      zapiUrls.map((url) => url.replace(/\/token\/[^/]+/i, "/token/***"))
+    );
 
     if (zapiUrls.length && analysis.resposta) {
       const baseHeaders: Record<string, string> = { "Content-Type": "application/json" };

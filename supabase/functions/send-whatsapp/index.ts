@@ -125,6 +125,11 @@ serve(async (req) => {
       );
     }
 
+    console.log(
+      "Z-API candidate URLs:",
+      zapiUrls.map((url) => url.replace(/\/token\/[^/]+/i, "/token/***"))
+    );
+
     const adminSb = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
