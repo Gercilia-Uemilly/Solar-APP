@@ -638,3 +638,81 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     console.error("AI agent error:", e);
   }
 }
+
+// ── Audio Transcription via Gemini ──
+async function transcribeAudio(audioUrl: string): Promise<string | null> {
+  const GEMINI_KEY = (Deno.env.get("GEMINI_AGENT_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+  if (!GEMINI_KEY) {
+    console.error("No Gemini key for audio transcription");
+    return null;
+  }
+
+  // Download audio
+  const audioRes = await fetch(audioUrl);
+  if (!audioRes.ok) {
+    console.error("Failed to download audio:", audioRes.status);
+    return null;
+  }
+
+  const audioBuffer = await audioRes.arrayBuffer();
+  const audioBytes = new Uint8Array(audioBuffer);
+  
+  // Convert to base64 in chunks to avoid stack overflow
+  let base64 = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < audioBytes.length; i += chunkSize) {
+    const chunk = audioBytes.slice(i, i + chunkSize);
+    base64 += String.fromCharCode(...chunk);
+  }
+  const audioBase64 = btoa(base64);
+
+  const mimeType = audioRes.headers.get("content-type") || "audio/ogg";
+
+  // Use Gemini to transcribe
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+  
+  for (const model of models) {
+    try {
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: audioBase64,
+                  },
+                },
+                {
+                  text: "Transcreva este áudio em português brasileiro. Retorne APENAS o texto transcrito, sem formatação, sem aspas, sem explicações.",
+                },
+              ],
+            }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
+          }),
+        }
+      );
+
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        console.warn(`Transcription ${model} failed (${geminiRes.status}): ${errText.slice(0, 100)}`);
+        continue;
+      }
+
+      const data = await geminiRes.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      if (text) {
+        console.log(`Audio transcribed with ${model}`);
+        return text;
+      }
+    } catch (e: any) {
+      console.warn(`Transcription ${model} error: ${e.message}`);
+    }
+  }
+
+  return null;
+}
