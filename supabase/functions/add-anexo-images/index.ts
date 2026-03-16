@@ -124,9 +124,9 @@ async function addAnexoToDocx(
     newRels += `<Relationship Id="${rId}" Type="${mimeType}" Target="media/anexo_img_${i + 1}.${ext}"/>`;
     nextRid++;
 
-    // Tamanho padrão: max 8cm largura (mantendo proporção)
-    // 1cm = 360000 EMU, 8cm = 2880000 EMU
-    const maxCx = 2880000;
+    // Tamanho: max 6.5cm largura para caber 2 por linha com gap
+    // 1cm = 360000 EMU, 6.5cm = 2340000 EMU
+    const maxCx = 2340000;
     const cx = maxCx;
     const cy = Math.round(maxCx * 0.75); // proporção 4:3 como fallback
 
