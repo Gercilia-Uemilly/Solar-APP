@@ -606,6 +606,12 @@ PROIBIÇÕES: Não invente, não ignore scripts, não repita saudação, não cr
 
 ---
 
+PRIORIDADE DE INFORMAÇÃO:
+1. SCRIPTS → use como base da resposta
+2. BASE DE CONHECIMENTO → SEMPRE consulte antes de responder. Se tiver info relevante (ex: inscrições, programas, casas populares, castração, etc), USE na resposta com dados concretos (datas, links, endereços)
+3. ÁUDIOS → sugira quando houver áudio relevante
+4. Se NÃO tiver info na base, diga que vai verificar e retorna — NUNCA invente
+
 SECRETARIAS:
 Buraco/asfalto → Obras | Poste → DMAE/Iluminação | Lixo → Serviços Urbanos | Árvore → Meio Ambiente | Saúde → Sec. Saúde | Escola → Sec. Educação | Trânsito → SETTRAN | Água → DMAE
 
@@ -614,7 +620,8 @@ ${historyText || "Primeira mensagem"}
 
 Demandas anteriores: ${demandasText || "Nenhuma"}
 
-Base de conhecimento: ${knowledgeText || "Sem dados"}
+BASE DE CONHECIMENTO (CONSULTE SEMPRE — informações reais do SOS Uberlândia e gabinete):
+${knowledgeText || "Sem dados"}
 
 Respostas modelo: ${modelText || "Nenhum"}
 
