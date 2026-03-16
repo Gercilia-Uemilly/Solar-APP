@@ -401,12 +401,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     ? (bairroExtraido.toLowerCase().startsWith("bairro") || bairroExtraido.toLowerCase().includes("bairro ") ? bairroExtraido : `Bairro ${bairroExtraido}`)
     : "";
 
-  let assuntoFormatado = assunto || "___";
-  const bairroClean = bairroExtraido?.replace(/^bairro\s*/i, "") || "";
-  // Only append bairro if the assunto doesn't already contain the bairro info
-  if (bairroFormatado && bairroClean && !assunto?.toLowerCase().includes(bairroClean.toLowerCase())) {
-    assuntoFormatado = `${assunto} – ${bairroFormatado}`;
-  }
+  // Use assunto exactly as provided — bairro is already included by the AI or user
+  const assuntoFormatado = assunto || "___";
 
   const vocativo = buildVocativo(cargoDestinatario);
 
