@@ -289,14 +289,31 @@ async function handleAIAgent(
       .map((k: any) => `- ${k.titulo}: ${k.descricao?.slice(0, 100) || ""} (${k.orgao || "N/A"})`)
       .join("\n");
 
-    // 4. Fetch corrected responses as learning examples
+    // 4. Fetch model responses AND audio transcriptions for style reference
     const { data: modelResponses } = await sb.from("base_conhecimento")
       .select("titulo, descricao")
       .eq("modelo", true).limit(10);
 
+    // 5. Fetch audio transcriptions (the vereador's real voice/style)
+    const { data: audioTranscriptions } = await sb.from("base_conhecimento")
+      .select("titulo, descricao")
+      .eq("categoria", "Áudio")
+      .not("descricao", "is", null)
+      .order("created_at", { ascending: false }).limit(5);
+
     const modelText = (modelResponses || [])
-      .map((r: any) => `- ${r.titulo}: ${r.descricao?.slice(0, 200) || ""}`)
+      .map((r: any) => `- ${r.titulo}: ${r.descricao?.slice(0, 300) || ""}`)
       .join("\n");
+
+    const audioStyleText = (audioTranscriptions || [])
+      .map((a: any) => {
+        const desc = a.descricao || "";
+        // Extract just the transcription part (before "RESUMO")
+        const transcOnly = desc.split("RESUMO")[0].replace("TRANSCRIÇÃO:", "").trim();
+        return transcOnly.slice(0, 400);
+      })
+      .filter((t: string) => t.length > 50)
+      .join("\n---\n");
 
     const systemPrompt = `Você é um assistente responsável pelo atendimento via WhatsApp do Gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
 
