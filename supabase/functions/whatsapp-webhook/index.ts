@@ -396,17 +396,16 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       const zapiPayload = JSON.stringify({ phone: senderPhone, message: analysis.resposta });
       console.log("Z-API send URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
 
-      // Try with Client-Token first, fallback without it
-      const zapiHeaders = buildZapiHeaders();
-      let sendRes = await fetch(zapiUrl, { method: "POST", headers: zapiHeaders, body: zapiPayload });
+      // Try WITHOUT Client-Token first (most instances don't use it)
+      let sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(false), body: zapiPayload });
       let sendText = await sendRes.text();
       let sendData = parseJsonSafe(sendText);
       console.log("Z-API response:", sendRes.status, sendText.slice(0, 300));
 
-      // If client-token error, retry without it
-      if (sendData?.error === "your client-token is not configured") {
-        console.log("Retrying without Client-Token...");
-        sendRes = await fetch(zapiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: zapiPayload });
+      // If auth error, retry WITH Client-Token
+      if (!sendRes.ok && sendData?.error) {
+        console.log("Retrying with Client-Token...");
+        sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(true), body: zapiPayload });
         sendText = await sendRes.text();
         sendData = parseJsonSafe(sendText);
         console.log("Z-API retry response:", sendRes.status, sendText.slice(0, 300));
