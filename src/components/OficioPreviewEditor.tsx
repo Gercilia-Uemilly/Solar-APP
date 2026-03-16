@@ -215,6 +215,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
             defaultValue="#000000"
             onMouseDown={(e) => e.stopPropagation()}
             onInput={(e) => {
+              // @ts-ignore - tiptap v3 chain command
               editor.chain().focus().setColor((e.target as HTMLInputElement).value).run();
             }}
           />
