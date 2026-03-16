@@ -15,6 +15,40 @@ const parseJsonSafe = (raw: string) => {
   }
 };
 
+const normalizeText = (value: string) =>
+  (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const scoreMatch = (userText: string, title = "", tags: string[] = [], content = "") => {
+  const normalizedUser = normalizeText(userText);
+  let score = 0;
+
+  const normalizedTitle = normalizeText(title);
+  if (normalizedTitle && normalizedUser.includes(normalizedTitle)) score += 8;
+
+  for (const tag of tags || []) {
+    const t = normalizeText(tag || "");
+    if (t.length >= 3 && normalizedUser.includes(t)) score += 5;
+  }
+
+  const titleWords = normalizedTitle.split(" ").filter((w) => w.length >= 4);
+  for (const w of titleWords) {
+    if (normalizedUser.includes(w)) score += 1;
+  }
+
+  const contentWords = normalizeText(content).split(" ").filter((w) => w.length >= 5).slice(0, 20);
+  for (const w of contentWords) {
+    if (normalizedUser.includes(w)) score += 0.5;
+  }
+
+  return score;
+};
+
 const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | null) => {
   const inst = (instanceRaw || "").trim();
   const tok = (tokenRaw || "").trim();
@@ -182,21 +216,9 @@ serve(async (req) => {
         media_url: mediaUrl,
       });
 
-      // If incoming, process AI agent (with dedup check - 30s window)
+      // If incoming, process AI agent
       if (!isFromMe && msgContent) {
-        const { data: existingReply } = await sb.from("whatsapp_messages")
-          .select("id")
-          .eq("conversation_id", conversationId)
-          .eq("direction", "outgoing")
-          .eq("sender_name", "Agente IA")
-          .gte("created_at", new Date(Date.now() - 30000).toISOString())
-          .limit(1);
-
-        if (!existingReply?.length) {
-          await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
-        } else {
-          console.log("Skipping duplicate AI response for conversation:", conversationId);
-        }
+        await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
       }
 
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
@@ -276,14 +298,25 @@ serve(async (req) => {
         }).select("id").single();
         conversationId = newConv!.id;
       }
-      await sb.from("whatsapp_messages").insert({
-        conversation_id: conversationId, message_id: messageId,
-        direction: fromMe ? "outgoing" : "incoming", content: msgContent,
-        sender_name: senderName, sender_phone: senderPhone,
-        status: fromMe ? "sent" : "received",
-      });
-      if (!fromMe && msgContent) {
-        await handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone);
+      const { data: existingMsgLegacy } = await sb.from("whatsapp_messages")
+        .select("id")
+        .eq("conversation_id", conversationId)
+        .eq("message_id", messageId)
+        .limit(1);
+
+      if (existingMsgLegacy?.length) {
+        console.log("Skipping duplicate legacy message:", messageId);
+      } else {
+        await sb.from("whatsapp_messages").insert({
+          conversation_id: conversationId, message_id: messageId,
+          direction: fromMe ? "outgoing" : "incoming", content: msgContent,
+          sender_name: senderName, sender_phone: senderPhone,
+          status: fromMe ? "sent" : "received",
+        });
+
+        if (!fromMe && msgContent) {
+          await handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone);
+        }
       }
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -430,6 +463,33 @@ async function handleAIAgent(
     const audioScriptsText = (audioEntries || [])
       .map((a: any) => `- ${a.titulo} (palavras-chave: ${(a.palavras_chave || []).join(", ")}): ${a.descricao?.slice(0, 100) || ""}`)
       .join("\n");
+
+    const matchedScript = (scripts || [])
+      .map((s: any) => ({
+        ...s,
+        match_score: scoreMatch(content, s.titulo || "", s.tags || [], s.conteudo || ""),
+      }))
+      .sort((a: any, b: any) => b.match_score - a.match_score)[0];
+
+    const matchedAudio = (audioEntries || [])
+      .map((a: any) => ({
+        ...a,
+        match_score: scoreMatch(content, a.titulo || "", a.palavras_chave || [], a.descricao || ""),
+      }))
+      .sort((a: any, b: any) => b.match_score - a.match_score)[0];
+
+    const selectedScript = matchedScript?.match_score >= 4 ? matchedScript : null;
+    const selectedAudio = matchedAudio?.match_score >= 4 ? matchedAudio : null;
+
+    if (selectedScript) {
+      console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
+    } else {
+      console.log("No script matched for:", content);
+    }
+
+    if (selectedAudio) {
+      console.log("Audio matched:", selectedAudio.titulo, "score:", selectedAudio.match_score);
+    }
 
     const systemPrompt = `IDENTIDADE DO ATENDIMENTO
 
@@ -665,65 +725,88 @@ Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // Call OpenAI API directly
-    try {
-      const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
-      if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
+    if (selectedScript?.conteudo) {
+      const scriptText = (selectedScript.conteudo || "").trim();
+      const hasEmpathyStart = /^(entendi|poxa|nossa|sinto muito|imagino|que situacao)/i.test(normalizeText(scriptText));
+      analysis = {
+        problema: content.slice(0, 180),
+        endereco: "",
+        bairro: "",
+        secretaria: "",
+        tipo_demanda: "Informação",
+        urgencia: "Normal",
+        resposta: hasEmpathyStart ? scriptText : `Entendi.\n\n${scriptText}`,
+        registrar_demanda: false,
+        audio_sugerido: selectedAudio?.titulo || "",
+        origem: "script_bank",
+      };
+      console.log("Using script bank response:", selectedScript.titulo);
+    }
 
-      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage },
-          ],
-          temperature: 0.8,
-          max_tokens: 1024,
-          response_format: { type: "json_object" },
-        }),
-      });
-
-      if (!openaiRes.ok) {
-        const errText = await openaiRes.text();
-        throw new Error(`OpenAI ${openaiRes.status}: ${errText.slice(0, 200)}`);
-      }
-
-      const openaiData = await openaiRes.json();
-      const rawText = openaiData.choices?.[0]?.message?.content || "";
-      const cleaned = rawText
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/i, "")
-        .replace(/```$/i, "")
-        .trim();
-
+    // Call OpenAI only when there is no script match
+    if (!analysis?.resposta) {
       try {
-        const parsed = JSON.parse(cleaned);
-        analysis = {
-          problema: parsed?.problema || content.slice(0, 180),
-          endereco: parsed?.endereco || "",
-          bairro: parsed?.bairro || "",
-          secretaria: parsed?.secretaria || "",
-          tipo_demanda: parsed?.tipo_demanda || "Solicitação",
-          urgencia: parsed?.urgencia || "Normal",
-          resposta: parsed?.resposta || "",
-          registrar_demanda: Boolean(parsed?.registrar_demanda),
-          audio_sugerido: parsed?.audio_sugerido || "",
-        };
-        console.log("OpenAI agent response OK");
-      } catch {
-        console.warn("OpenAI returned invalid JSON:", cleaned.slice(0, 180));
+        const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+        if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
+
+        const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userMessage },
+            ],
+            temperature: 0.8,
+            max_tokens: 1024,
+            response_format: { type: "json_object" },
+          }),
+        });
+
+        if (!openaiRes.ok) {
+          const errText = await openaiRes.text();
+          throw new Error(`OpenAI ${openaiRes.status}: ${errText.slice(0, 200)}`);
+        }
+
+        const openaiData = await openaiRes.json();
+        const rawText = openaiData.choices?.[0]?.message?.content || "";
+        const cleaned = rawText
+          .replace(/^```json\s*/i, "")
+          .replace(/^```\s*/i, "")
+          .replace(/```$/i, "")
+          .trim();
+
+        try {
+          const parsed = JSON.parse(cleaned);
+          analysis = {
+            problema: parsed?.problema || content.slice(0, 180),
+            endereco: parsed?.endereco || "",
+            bairro: parsed?.bairro || "",
+            secretaria: parsed?.secretaria || "",
+            tipo_demanda: parsed?.tipo_demanda || "Solicitação",
+            urgencia: parsed?.urgencia || "Normal",
+            resposta: parsed?.resposta || "",
+            registrar_demanda: Boolean(parsed?.registrar_demanda),
+            audio_sugerido: parsed?.audio_sugerido || selectedAudio?.titulo || "",
+          };
+          console.log("OpenAI agent response OK");
+        } catch {
+          console.warn("OpenAI returned invalid JSON:", cleaned.slice(0, 180));
+        }
+      } catch (aiErr: any) {
+        console.error("OpenAI API error:", aiErr.message);
       }
-    } catch (aiErr: any) {
-      console.error("OpenAI API error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
-      analysis = buildFallbackAnalysis();
+      analysis = {
+        ...buildFallbackAnalysis(),
+        audio_sugerido: selectedAudio?.titulo || "",
+      };
     }
 
     // 5. Update message with AI analysis
