@@ -45,15 +45,8 @@ export async function printOficio(data: PrintData) {
     ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
     : "___";
 
-  let assuntoFmt = data.assunto || "___";
-  if (data.bairro) {
-    const bairroExtraido = extrairBairro(data.bairro) || data.bairro;
-    const bairroClean = bairroExtraido.replace(/^bairro\s*/i, "");
-    if (bairroClean && !assuntoFmt.toLowerCase().includes(bairroClean.toLowerCase())) {
-      const bairroLabel = bairroExtraido.toLowerCase().startsWith("bairro") ? bairroExtraido : `Bairro ${bairroExtraido}`;
-      assuntoFmt += ` – ${bairroLabel}`;
-    }
-  }
+  // Use assunto exactly as provided — bairro is already included by the AI or user
+  const assuntoFmt = data.assunto || "___";
 
   const destinatarioCompleto = data.cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${data.destinatario ? ` ${data.destinatario}` : ""}`;
 
