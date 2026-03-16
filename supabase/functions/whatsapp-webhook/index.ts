@@ -425,7 +425,10 @@ ${modelText || "Nenhum exemplo disponível"}
 REFERÊNCIA DE ESTILO - ÁUDIOS REAIS DO VEREADOR (COPIE ESTE TOM E JEITO DE FALAR):
 ${audioStyleText || "Sem áudios de referência"}
 
-REGRA CRÍTICA DE ESTILO: Analise os áudios acima e copie o jeito de falar: expressões como "a gente corre atrás", "qualquer coisa que você precisar", "pode me chamar", "vou verificar isso pra você". Use o mesmo tom coloquial, próximo e acolhedor. NÃO use linguagem formal.
+REFERÊNCIA DE ESTILO - CONVERSAS REAIS DO GABINETE (COPIE ESTE JEITO DE RESPONDER):
+${convStyleText || "Sem conversas de referência"}
+
+REGRA CRÍTICA DE ESTILO: Analise os áudios e conversas acima e copie EXATAMENTE o jeito de falar: expressões como "a gente corre atrás", "qualquer coisa que você precisar", "pode me chamar", "vou verificar isso pra você", "deixa eu te falar". Use o mesmo tom coloquial, próximo e acolhedor das conversas reais. NÃO use linguagem formal. A resposta deve parecer que foi escrita pelo próprio vereador ou equipe.
 
 IMPORTANTE: Responda em JSON com esta estrutura exata:
 {
