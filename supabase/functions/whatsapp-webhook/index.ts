@@ -156,7 +156,20 @@ serve(async (req) => {
         conversationId = newConv!.id;
       }
 
-      // Insert message
+      // Insert message (dedup by message_id)
+      const { data: existingMsg } = await sb.from("whatsapp_messages")
+        .select("id")
+        .eq("conversation_id", conversationId)
+        .eq("message_id", messageId)
+        .limit(1);
+
+      if (existingMsg?.length) {
+        console.log("Skipping duplicate message:", messageId);
+        return new Response(JSON.stringify({ ok: true, skipped: "duplicate_message" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       await sb.from("whatsapp_messages").insert({
         conversation_id: conversationId,
         message_id: messageId,
@@ -169,14 +182,14 @@ serve(async (req) => {
         media_url: mediaUrl,
       });
 
-      // If incoming, process AI agent (with dedup check)
+      // If incoming, process AI agent (with dedup check - 30s window)
       if (!isFromMe && msgContent) {
         const { data: existingReply } = await sb.from("whatsapp_messages")
           .select("id")
           .eq("conversation_id", conversationId)
           .eq("direction", "outgoing")
           .eq("sender_name", "Agente IA")
-          .gte("created_at", new Date(Date.now() - 10000).toISOString())
+          .gte("created_at", new Date(Date.now() - 30000).toISOString())
           .limit(1);
 
         if (!existingReply?.length) {
