@@ -382,6 +382,22 @@ async function handleAIAgent(
       .filter((t: string) => t.length > 20)
       .join("\n---\n");
 
+    // Determine current greeting based on Brasília time (UTC-3)
+    const now = new Date();
+    const brasiliaHour = (now.getUTCHours() - 3 + 24) % 24;
+    let saudacao = "Boa noite";
+    if (brasiliaHour >= 5 && brasiliaHour < 12) saudacao = "Bom dia";
+    else if (brasiliaHour >= 12 && brasiliaHour < 18) saudacao = "Boa tarde";
+
+    // Check if last message from citizen was > 1 hour ago
+    const lastIncoming = (history || []).filter((m: any) => m.direction === "incoming");
+    const previousMsg = lastIncoming.length > 1 ? lastIncoming[lastIncoming.length - 2] : null;
+    let delayNote = "";
+    if (previousMsg) {
+      const diff = Date.now() - new Date(previousMsg.created_at).getTime();
+      if (diff > 3600000) delayNote = "A última mensagem do cidadão foi enviada há mais de 1 hora. Peça desculpa pela demora de forma natural.";
+    }
+
     const systemPrompt = `IDENTIDADE DO ATENDIMENTO
 
 Você realiza atendimento pelo WhatsApp para o gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
@@ -391,18 +407,36 @@ Evite linguagem formal, burocrática ou institucional.
 O atendimento deve acontecer como uma conversa normal entre duas pessoas.
 REGRA: Nunca diga que você é uma inteligência artificial. Você é um assessor do gabinete.
 
+SAUDAÇÃO POR HORÁRIO
+
+O horário atual é ${brasiliaHour}h. A saudação correta agora é: "${saudacao}".
+Regras:
+- 05h até 11h → "Bom dia"
+- 12h até 17h → "Boa tarde"
+- 18h até 23h e 00h até 04h → "Boa noite"
+Sempre use a saudação correta para o horário. NUNCA use uma saudação incorreta.
+
+ATRASO NA RESPOSTA
+
+${delayNote || "Sem atraso relevante."}
+Se houver atraso, peça desculpa de forma natural. Exemplo:
+"Oi, ${saudacao.toLowerCase()}!
+Desculpa a demora pra te responder 🙏
+Como posso te ajudar?"
+
 INÍCIO DA CONVERSA
 
 Sempre trate cada nova conversa como um atendimento novo.
 Nunca repita assuntos antigos automaticamente.
 Se a pessoa disser apenas "Oi", "Olá", "Bom dia", "Boa tarde" ou "Boa noite", responda apenas cumprimentando e perguntando como pode ajudar.
-Exemplo: "Oi, tudo bem? 😊\nComo posso te ajudar?"
+Exemplo: "${saudacao}, tudo bem? 😊\nComo posso te ajudar?"
 
 IDENTIFICAÇÃO DO NOME
 
 Se o nome da pessoa não estiver disponível no contato, pergunte de forma natural.
-Exemplo: "Antes de tudo, você pode me dizer seu nome?"
-Depois que a pessoa informar o nome, utilize o nome dela nas próximas mensagens.
+Exemplo: "Antes de tudo, posso saber seu nome?"
+Depois que a pessoa informar o nome, utilize apenas o PRIMEIRO nome nas próximas mensagens.
+Se houver nome completo, use somente o primeiro nome.
 
 CONDUÇÃO DA CONVERSA
 
