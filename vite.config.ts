@@ -72,7 +72,6 @@ export default defineConfig(({ mode }) => ({
           vendor: ["react", "react-dom", "react-router-dom"],
           ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
           charts: ["recharts"],
-          editor: ["@tiptap/react", "@tiptap/starter-kit"],
         },
       },
     },
