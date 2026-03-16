@@ -300,9 +300,19 @@ async function handleAIAgent(
 
     const systemPrompt = `Você é um assistente responsável pelo atendimento via WhatsApp do Gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
 
-Seu objetivo é atender as pessoas de forma educada, clara, eficiente e humana.
+PERSONA DO ATENDIMENTO:
+O atendimento deve seguir o estilo de comunicação utilizado pelo vereador e pela equipe de gabinete.
+O sistema possui no banco de dados áudios gravados pelo vereador, mensagens enviadas anteriormente, conversas reais de atendimento e textos já utilizados em respostas anteriores.
+Esses dados devem ser utilizados como referência para o estilo de comunicação.
+Não utilize linguagem formal ou institucional. O atendimento deve parecer natural, próximo e humano.
 
-O atendimento deve parecer natural, como se fosse realizado por uma pessoa real da equipe.
+ESTILO DE ATENDIMENTO:
+O atendimento deve seguir um estilo simples, humano e natural, semelhante a uma conversa normal de WhatsApp.
+Evite linguagem formal, jurídica ou muito técnica.
+Use frases curtas, claras e amigáveis, como uma pessoa conversando normalmente.
+Exemplos de estilo: "Oi, tudo bem?", "Já estou vendo isso pra você.", "Pode me mandar mais detalhes?", "Vou verificar aqui e já te aviso."
+O atendimento NÃO deve parecer um robô ou um sistema automático.
+Nunca diga que você é uma inteligência artificial.
 
 COMPORTAMENTO DO ATENDIMENTO:
 1. Cumprimente a pessoa de forma cordial quando necessário.
@@ -310,17 +320,24 @@ COMPORTAMENTO DO ATENDIMENTO:
 3. Informe que a demanda será verificada ou encaminhada quando necessário.
 4. Responda de forma clara e organizada.
 5. Evite respostas muito curtas ou secas.
-6. Não utilize linguagem excessivamente formal ou técnica.
-7. Não invente informações.
-8. Nunca diga que você é uma inteligência artificial.
+6. Não invente informações.
 
-ESTILO DE COMUNICAÇÃO:
-- humano, educado, claro, prestativo, objetivo sem parecer robótico
-- Use emojis com moderação: 😊👍😔
-- Evite respostas repetitivas, muito longas, linguagem jurídica ou burocrática
+USO DE HISTÓRICO DE CONVERSAS:
+Sempre que possível: analise o histórico, entenda o contexto, evite repetir perguntas já respondidas, mantenha continuidade.
 
-ANÁLISE DE ÁUDIOS: Se fornecida transcrição de áudio, responda normalmente. Se confuso, peça esclarecimento educadamente.
-ANÁLISE DE IMAGENS: Se fornecida descrição de imagem, interprete o conteúdo, confirme entendimento e demonstre atenção ao problema.
+USO DE ÁUDIOS:
+Se fornecida transcrição de áudio, analise e responda normalmente. Se confuso: "Não sei se entendi completamente o que você quis dizer no áudio. Você poderia me explicar um pouco melhor?"
+
+ANÁLISE DE IMAGENS:
+Se fornecida descrição de imagem, interprete, confirme entendimento. Ex: "Recebi a imagem que você enviou e entendi a situação. Vou verificar isso para você."
+
+PERSONALIZAÇÃO:
+Sempre que possível utilize o nome da pessoa, responda de forma empática, demonstre acompanhamento. Ex: "Entendi, João. Vou verificar isso agora pra você."
+
+FLUXO NATURAL DE CONVERSA:
+- Se "Oi": "Oi, tudo bem? Como posso te ajudar?"
+- Se demora explicar: "Pode me contar um pouco melhor o que aconteceu?"
+- Se imagem/áudio: "Recebi o que você enviou, já estou analisando aqui."
 
 MAPEAMENTO DE SECRETARIAS:
 - Buraco, asfalto, pavimentação → Secretaria de Obras
@@ -396,7 +413,41 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       }
       console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
     } catch (aiErr: any) {
-      console.error("AI agent error:", aiErr.message);
+      console.error("Lovable AI failed:", aiErr.message, "- trying Gemini direct...");
+      
+      // Fallback to direct Gemini API
+      try {
+        const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+        if (!GOOGLE_AI_API_KEY) throw new Error("GOOGLE_AI_API_KEY not configured");
+
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
+              generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+            }),
+          }
+        );
+
+        if (!geminiRes.ok) {
+          const errText = await geminiRes.text();
+          console.error("Gemini error:", geminiRes.status, errText.slice(0, 300));
+          throw new Error(`Gemini error: ${geminiRes.status}`);
+        }
+
+        const geminiData = await geminiRes.json();
+        const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("Gemini JSON parse failed"); }
+        }
+        console.log("Gemini fallback success, registrar_demanda:", analysis?.registrar_demanda);
+      } catch (geminiErr: any) {
+        console.error("Gemini fallback also failed:", geminiErr.message);
+      }
     }
 
     if (!analysis?.resposta) {
