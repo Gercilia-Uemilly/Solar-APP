@@ -699,6 +699,7 @@ Responda em JSON com esta estrutura exata:
           urgencia: parsed?.urgencia || "Normal",
           resposta: parsed?.resposta || "",
           registrar_demanda: Boolean(parsed?.registrar_demanda),
+          audio_sugerido: parsed?.audio_sugerido || "",
         };
         console.log("OpenAI agent response OK");
       } catch {
@@ -762,6 +763,31 @@ Responda em JSON com esta estrutura exata:
           .eq("id", conversationId);
 
         console.log("Auto-response sent successfully");
+
+        // Send audio if suggested
+        if (analysis.audio_sugerido) {
+          const matchedAudio = (audioEntries || []).find(
+            (a: any) => a.titulo?.toLowerCase().includes(analysis.audio_sugerido.toLowerCase()) ||
+                         analysis.audio_sugerido.toLowerCase().includes(a.titulo?.toLowerCase() || "")
+          );
+          if (matchedAudio?.link) {
+            const audioUrl = matchedAudio.link.startsWith("http") 
+              ? matchedAudio.link 
+              : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/midias/${matchedAudio.link}`;
+            
+            const sendAudioUrl = zapiUrl.replace("/send-text", "/send-audio");
+            const audioPayload = JSON.stringify({ phone: senderPhone, audio: audioUrl });
+            
+            let audioRes = await fetch(sendAudioUrl, { method: "POST", headers: buildZapiHeaders(false), body: audioPayload });
+            if (!audioRes.ok) {
+              audioRes = await fetch(sendAudioUrl, { method: "POST", headers: buildZapiHeaders(true), body: audioPayload });
+            }
+            const audioResText = await audioRes.text();
+            console.log("Audio send result:", audioRes.status, audioResText.slice(0, 200));
+          } else {
+            console.log("Audio suggested but not found in bank:", analysis.audio_sugerido);
+          }
+        }
       } else {
         console.error("Z-API send failed:", sendRes.status, sendData);
       }
