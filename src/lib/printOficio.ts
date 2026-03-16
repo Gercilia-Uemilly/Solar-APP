@@ -150,6 +150,22 @@ export async function printOficio(data: PrintData) {
       text-align: center;
       padding-top: 6px;
     }
+    .anexo-imagens {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .imagem-item {
+      width: 45%;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .imagem-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
     @media screen {
       body { background: #eee; display: flex; justify-content: center; padding: 20px; }
       .page { background: #fff; width: 210mm; padding: 30mm 20mm 20mm 30mm; box-shadow: 0 2px 20px rgba(0,0,0,0.15); }
