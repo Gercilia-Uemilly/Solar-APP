@@ -278,9 +278,9 @@ async function handleAIAgent(
   senderPhone: string
 ) {
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.warn("LOVABLE_API_KEY not set, skipping AI agent");
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+    if (!GOOGLE_AI_API_KEY) {
+      console.warn("GOOGLE_AI_API_KEY not set, skipping AI agent");
       return;
     }
 
@@ -318,7 +318,7 @@ async function handleAIAgent(
       .map((k: any) => `- ${k.titulo}: ${k.descricao?.slice(0, 100) || ""} (${k.orgao || "N/A"})`)
       .join("\n");
 
-    // 4. Call AI
+    // 4. Call Gemini AI directly
     const systemPrompt = `Você é o Vereador Fabão (gabinete do Vereador Fabão, Câmara Municipal de Uberlândia). Responda COMO SE FOSSE O PRÓPRIO FABÃO, usando o tom de voz dele.
 
 TOM DE VOZ DO FABÃO (extraído de conversas reais):
@@ -343,13 +343,6 @@ EXEMPLOS REAIS DO FABÃO:
 - "Infelizmente é uma resolução da prefeitura. Não concordo com isso e vou correr atrás. Um absurdo. Pode deixar que vou cobrar."
 - "Vou salvar seu número aqui, e peço que você salve o meu também, por gentileza. Assim facilita a nossa comunicação."
 
-Quando uma mensagem chegar:
-1. Entender o problema do cidadão
-2. Identificar endereço/bairro
-3. Identificar secretaria responsável
-4. Decidir se deve registrar demanda
-5. Responder como o Fabão responderia
-
 CONTEXTO:
 
 Histórico da conversa:
@@ -359,65 +352,61 @@ Demandas anteriores deste cidadão:
 ${demandasText || "Nenhuma demanda anterior"}
 
 Base de conhecimento:
-${knowledgeText || "Sem dados na base"}`;
+${knowledgeText || "Sem dados na base"}
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+IMPORTANTE: Responda em JSON com esta estrutura exata:
+{
+  "problema": "descrição do problema",
+  "endereco": "endereço se mencionado",
+  "bairro": "bairro se mencionado",
+  "secretaria": "secretaria responsável",
+  "tipo_demanda": "Solicitação|Reclamação|Denúncia|Sugestão|Informação",
+  "urgencia": "Normal|Urgente",
+  "resposta": "sua resposta como Fabão",
+  "registrar_demanda": true ou false
+}`;
+
+    const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`;
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
+    
+    const response = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`,
-          },
+        contents: [
+          { role: "user", parts: [{ text: systemPrompt + "\n\n" + userMessage }] },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "process_citizen_message",
-              description: "Processa a mensagem do cidadão e retorna análise + resposta",
-              parameters: {
-                type: "object",
-                properties: {
-                  problema: { type: "string" },
-                  endereco: { type: "string" },
-                  bairro: { type: "string" },
-                  secretaria: { type: "string" },
-                  tipo_demanda: {
-                    type: "string",
-                    enum: ["Solicitação", "Reclamação", "Denúncia", "Sugestão", "Informação"],
-                  },
-                  urgencia: { type: "string", enum: ["Normal", "Urgente"] },
-                  resposta: { type: "string" },
-                  registrar_demanda: { type: "boolean" },
-                },
-                required: ["problema", "resposta", "registrar_demanda"],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "process_citizen_message" } },
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.7,
+        },
       }),
     });
 
     if (!response.ok) {
-      console.error("AI agent failed:", response.status);
+      const errText = await response.text();
+      console.error("Gemini AI failed:", response.status, errText);
       return;
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!rawText) {
+      console.error("No AI response text");
+      return;
+    }
 
-    if (!toolCall?.function?.arguments) return;
+    console.log("AI raw response:", rawText.slice(0, 300));
 
-    const analysis = JSON.parse(toolCall.function.arguments);
+    let analysis: any;
+    try {
+      analysis = JSON.parse(rawText);
+    } catch {
+      console.error("Failed to parse AI JSON:", rawText.slice(0, 200));
+      return;
+    }
 
     // 5. Update message with AI analysis
     const { data: msgs } = await sb
