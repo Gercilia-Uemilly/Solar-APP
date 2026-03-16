@@ -351,44 +351,22 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // Call Lovable AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    // Call Google Gemini directly (free tier)
+    try {
+      const geminiInput = toGeminiMessages(systemPrompt, userMessage);
+      const geminiResult = await callGemini({
+        ...geminiInput,
+        model: "gemini-2.5-flash",
+      });
 
-    if (LOVABLE_API_KEY) {
-      try {
-        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userMessage },
-            ],
-          }),
-        });
-
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const rawText = aiData.choices?.[0]?.message?.content || "";
-          // Extract JSON from response (may be wrapped in markdown code blocks)
-          const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("AI JSON parse failed:", rawText.slice(0, 200)); }
-          }
-          console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
-        } else {
-          const errText = await aiResponse.text();
-          console.error("Lovable AI failed:", aiResponse.status, errText.slice(0, 300));
-        }
-      } catch (aiErr: any) {
-        console.error("AI call error:", aiErr.message);
+      const rawText = geminiResult.text || "";
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("Gemini JSON parse failed:", rawText.slice(0, 200)); }
       }
-    } else {
-      console.error("LOVABLE_API_KEY not configured");
+      console.log("Gemini AI success, registrar_demanda:", analysis?.registrar_demanda);
+    } catch (aiErr: any) {
+      console.error("Gemini AI error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
