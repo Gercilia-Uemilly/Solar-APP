@@ -508,8 +508,8 @@ async function handleAIAgent(
       }))
       .sort((a: any, b: any) => b.match_score - a.match_score)[0];
 
-    const selectedScript = matchedScript?.match_score >= 4 ? matchedScript : null;
-    const selectedAudio = matchedAudio?.match_score >= 4 ? matchedAudio : null;
+    const selectedScript = matchedScript?.match_score >= 3 ? matchedScript : null;
+    const selectedAudio = matchedAudio?.match_score >= 3 ? matchedAudio : null;
 
     if (selectedScript) {
       console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
