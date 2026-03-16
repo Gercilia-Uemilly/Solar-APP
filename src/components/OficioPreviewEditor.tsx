@@ -80,60 +80,60 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-1 p-2 bg-muted border border-border rounded-t-lg sticky top-0 z-10">
+      <div className="flex flex-wrap items-center gap-1 p-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg mb-2 sticky top-0 z-10">
         <ToolBtn onClick={() => exec("undo")} title="Desfazer (Ctrl+Z)">
-          <Undo size={15} />
+          <Undo size={14} />
         </ToolBtn>
         <ToolBtn onClick={() => exec("redo")} title="Refazer (Ctrl+Y)">
-          <Redo size={15} />
+          <Redo size={14} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-border mx-1" />
+        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
 
         <ToolBtn onClick={() => exec("bold")} title="Negrito (Ctrl+B)">
-          <Bold size={15} />
+          <Bold size={14} />
         </ToolBtn>
         <ToolBtn onClick={() => exec("italic")} title="Itálico (Ctrl+I)">
-          <Italic size={15} />
+          <Italic size={14} />
         </ToolBtn>
         <ToolBtn onClick={() => exec("underline")} title="Sublinhado (Ctrl+U)">
-          <UnderlineIcon size={15} />
+          <UnderlineIcon size={14} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-border mx-1" />
+        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
 
         <ToolBtn onClick={() => exec("insertUnorderedList")} title="Lista com marcadores">
-          <List size={15} />
+          <List size={14} />
         </ToolBtn>
         <ToolBtn onClick={() => exec("insertOrderedList")} title="Lista numerada">
-          <ListOrdered size={15} />
+          <ListOrdered size={14} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-border mx-1" />
+        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
 
         <ToolBtn onClick={() => exec("justifyLeft")} title="Alinhar à esquerda">
-          <AlignLeft size={15} />
+          <AlignLeft size={14} />
         </ToolBtn>
         <ToolBtn onClick={() => exec("justifyCenter")} title="Centralizar">
-          <AlignCenter size={15} />
+          <AlignCenter size={14} />
         </ToolBtn>
         <ToolBtn onClick={() => exec("justifyRight")} title="Alinhar à direita">
-          <AlignRight size={15} />
+          <AlignRight size={14} />
         </ToolBtn>
         <ToolBtn onClick={() => exec("justifyFull")} title="Justificar">
-          <AlignJustify size={15} />
+          <AlignJustify size={14} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-border mx-1" />
+        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
 
         <ToolBtn onClick={() => exec("removeFormat")} title="Limpar formatação">
-          <Eraser size={15} />
+          <Eraser size={14} />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-border mx-1" />
+        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
 
         <ToolBtn onClick={() => imageInputRef.current?.click()} title="Inserir imagem">
-          <ImagePlus size={15} />
+          <ImagePlus size={14} />
         </ToolBtn>
       </div>
 
@@ -150,14 +150,24 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
-        className="min-h-[120px] p-3 border border-t-0 border-border rounded-b-lg focus:outline-none bg-white text-black"
+        style={{
+          minHeight: "60px",
+          outline: "none",
+          textAlign: "justify",
+          fontSize: "11pt",
+          lineHeight: "1.5",
+          fontFamily: "Arial, sans-serif",
+          color: "#000",
+        }}
       />
 
       <style>{`
         [contenteditable="true"] p {
           text-indent: 1.25cm;
-          margin-bottom: 10px;
+          margin-bottom: 0;
+          margin-top: 0;
           line-height: 1.5;
+          font-size: 11pt;
         }
         [contenteditable="true"] ul,
         [contenteditable="true"] ol {
