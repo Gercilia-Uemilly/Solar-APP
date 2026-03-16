@@ -19,26 +19,57 @@ const resolveZapiSendUrls = (instanceRaw?: string | null, tokenRaw?: string | nu
   const instanceInput = (instanceRaw || "").trim();
   const tokenInput = (tokenRaw || "").trim();
 
-  let instanceId = instanceInput;
-  let token = tokenInput;
+  const urls = new Set<string>();
+  const tokenCandidates = new Set<string>();
+
+  let instanceId = "";
+  let baseOrigin = "https://api.z-api.io";
+
+  if (tokenInput) {
+    if (/^https?:\/\//i.test(tokenInput)) {
+      try {
+        const parsed = new URL(tokenInput);
+        const tokenMatch = parsed.pathname.match(/\/token\/([^/]+)/i);
+        if (tokenMatch?.[1]) tokenCandidates.add(decodeURIComponent(tokenMatch[1]));
+      } catch {
+        // ignore malformed token URL
+      }
+    } else {
+      tokenCandidates.add(tokenInput);
+    }
+  }
 
   if (/^https?:\/\//i.test(instanceInput)) {
     try {
       const parsed = new URL(instanceInput);
-      const pathMatch = parsed.pathname.match(/\/instances\/([^/]+)(?:\/token\/([^/]+))?/i);
+      baseOrigin = `${parsed.protocol}//${parsed.host}`;
+      const normalizedPath = parsed.pathname.replace(/\/+$/, "");
+
+      if (/\/send-(text|message)$/i.test(normalizedPath)) {
+        urls.add(`${baseOrigin}${normalizedPath}`);
+      }
+
+      const pathMatch = normalizedPath.match(/\/instances\/([^/]+)(?:\/token\/([^/]+))?/i);
       if (pathMatch?.[1]) instanceId = decodeURIComponent(pathMatch[1]);
-      if (!token && pathMatch?.[2]) token = decodeURIComponent(pathMatch[2]);
+      if (pathMatch?.[2]) tokenCandidates.add(decodeURIComponent(pathMatch[2]));
     } catch {
-      // ignore malformed URL and keep raw value
+      // ignore malformed URL and fallback to plain values
     }
+  } else {
+    instanceId = instanceInput;
   }
 
-  if (!instanceId || !token) {
-    return [] as string[];
+  if (!instanceId || tokenCandidates.size === 0) {
+    return Array.from(urls);
   }
 
-  const base = `https://api.z-api.io/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(token)}`;
-  return [`${base}/send-text`, `${base}/send-message`];
+  for (const token of tokenCandidates) {
+    const base = `${baseOrigin}/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(token)}`;
+    urls.add(`${base}/send-text`);
+    urls.add(`${base}/send-message`);
+  }
+
+  return Array.from(urls);
 };
 
 serve(async (req) => {
