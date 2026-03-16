@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callGemini, toGeminiMessages } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -258,7 +257,7 @@ async function handleAIAgent(
       problema: content.slice(0, 180),
       endereco: "", bairro: "", secretaria: "",
       tipo_demanda: "Solicitação", urgencia: "Normal",
-      resposta: `Oi ${senderName || "colega"}, tudo bem? Recebi sua mensagem e já vou correr atrás disso pra você. Assim que eu tiver retorno te aviso por aqui. 👍`,
+      resposta: `Olá${senderName ? ` ${senderName}` : ""}, tudo bem?\n\nRecebi sua mensagem e já estou verificando essa situação para você.\n\nAssim que eu tiver mais informações ou um retorno sobre isso, aviso por aqui.\n\nSe precisar enviar mais detalhes também pode me mandar por aqui.`,
       registrar_demanda: false, origem: "fallback",
     });
 
@@ -299,19 +298,29 @@ async function handleAIAgent(
       .map((r: any) => `- ${r.titulo}: ${r.descricao?.slice(0, 200) || ""}`)
       .join("\n");
 
-    const systemPrompt = `Você é o Vereador Fabão (gabinete do Vereador Fabão, Câmara Municipal de Uberlândia). Responda COMO SE FOSSE O PRÓPRIO FABÃO, usando o tom de voz dele.
+    const systemPrompt = `Você é um assistente responsável pelo atendimento via WhatsApp do Gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
 
-TOM DE VOZ DO FABÃO (extraído de conversas reais):
-- Começa cumprimentando pelo nome: "Oi [Nome]", "Bom dia [Nome]", "Oi Colega"
-- Usa "tudo bem?", "tudo joia?" de forma natural
-- Demonstra empatia genuína: "Meu Deus", "Sinto muito mesmo 😔", "Nossa, mas que estranho"
-- Quando vai ajudar: "Pode deixar que eu vou correr atrás disso", "Vou verificar pra saber melhor"
-- Indignação com injustiças: "Um absurdo", "Não concordo com isso e vou correr atrás", "ABSURDO 😡"
-- Pede informações extras: "Só pra entender melhor...", "Me manda o endereço certinho"
-- Oferece ajuda: "No que estiver ao meu alcance, estou à disposição"
-- Usa emojis com moderação: 😊👍 😔 😡 👊
-- É BREVE e direto, como mensagens reais de WhatsApp
-- NUNCA é formal demais, NUNCA usa "Prezado(a)", "Vossa Senhoria" etc.
+Seu objetivo é atender as pessoas de forma educada, clara, eficiente e humana.
+
+O atendimento deve parecer natural, como se fosse realizado por uma pessoa real da equipe.
+
+COMPORTAMENTO DO ATENDIMENTO:
+1. Cumprimente a pessoa de forma cordial quando necessário.
+2. Demonstre que recebeu e entendeu a solicitação.
+3. Informe que a demanda será verificada ou encaminhada quando necessário.
+4. Responda de forma clara e organizada.
+5. Evite respostas muito curtas ou secas.
+6. Não utilize linguagem excessivamente formal ou técnica.
+7. Não invente informações.
+8. Nunca diga que você é uma inteligência artificial.
+
+ESTILO DE COMUNICAÇÃO:
+- humano, educado, claro, prestativo, objetivo sem parecer robótico
+- Use emojis com moderação: 😊👍😔
+- Evite respostas repetitivas, muito longas, linguagem jurídica ou burocrática
+
+ANÁLISE DE ÁUDIOS: Se fornecida transcrição de áudio, responda normalmente. Se confuso, peça esclarecimento educadamente.
+ANÁLISE DE IMAGENS: Se fornecida descrição de imagem, interprete o conteúdo, confirme entendimento e demonstre atenção ao problema.
 
 MAPEAMENTO DE SECRETARIAS:
 - Buraco, asfalto, pavimentação → Secretaria de Obras
@@ -323,9 +332,9 @@ MAPEAMENTO DE SECRETARIAS:
 - Trânsito, semáforo → SETTRAN
 - Água, esgoto → DMAE
 
-CONTEXTO:
+CONTEXTO DA CONVERSA:
 
-Histórico da conversa:
+Histórico de mensagens anteriores:
 ${historyText || "Primeira mensagem"}
 
 Demandas anteriores deste cidadão:
@@ -345,7 +354,7 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
   "secretaria": "secretaria responsável",
   "tipo_demanda": "Solicitação|Reclamação|Denúncia|Sugestão|Informação",
   "urgencia": "Normal|Urgente",
-  "resposta": "sua resposta como Fabão",
+  "resposta": "sua resposta ao cidadão",
   "registrar_demanda": true ou false (true se houver problema urbano claro com endereço/bairro)
 }`;
 
@@ -353,22 +362,41 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // Call Google Gemini directly (free tier)
+    // Call Lovable AI Gateway
     try {
-      const geminiInput = toGeminiMessages(systemPrompt, userMessage);
-      const geminiResult = await callGemini({
-        ...geminiInput,
-        model: "gemini-2.5-flash",
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+        }),
       });
 
-      const rawText = geminiResult.text || "";
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        console.error("Lovable AI error:", aiResponse.status, errText.slice(0, 300));
+        throw new Error(`AI Gateway error: ${aiResponse.status}`);
+      }
+
+      const aiData = await aiResponse.json();
+      const rawText = aiData.choices?.[0]?.message?.content || "";
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("Gemini JSON parse failed:", rawText.slice(0, 200)); }
+        try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("AI JSON parse failed:", rawText.slice(0, 200)); }
       }
-      console.log("Gemini AI success, registrar_demanda:", analysis?.registrar_demanda);
+      console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
     } catch (aiErr: any) {
-      console.error("Gemini AI error:", aiErr.message);
+      console.error("AI agent error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
@@ -396,13 +424,11 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       const zapiPayload = JSON.stringify({ phone: senderPhone, message: analysis.resposta });
       console.log("Z-API send URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
 
-      // Try WITHOUT Client-Token first (most instances don't use it)
       let sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(false), body: zapiPayload });
       let sendText = await sendRes.text();
       let sendData = parseJsonSafe(sendText);
       console.log("Z-API response:", sendRes.status, sendText.slice(0, 300));
 
-      // If auth error, retry WITH Client-Token
       if (!sendRes.ok && sendData?.error) {
         console.log("Retrying with Client-Token...");
         sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(true), body: zapiPayload });
@@ -412,7 +438,6 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       }
 
       if (sendRes.ok && !sendData?.error) {
-        // Save auto-response in conversation history
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
