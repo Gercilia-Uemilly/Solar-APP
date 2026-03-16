@@ -222,7 +222,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         </div>
 
         {/* Highlight */}
-        <ToolBtn onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()} active={editor.isActive("highlight")} title="Realce">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).toggleHighlight({ color: '#fef08a' }).run()} active={editor.isActive("highlight")} title="Realce">
           <Highlighter size={15} />
         </ToolBtn>
 
