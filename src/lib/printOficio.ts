@@ -16,7 +16,7 @@ interface PrintData {
   secretaria?: string;
 }
 
-import { cleanNumero, buildVocativo, formatDateOficio } from "@/lib/oficioUtils";
+import { cleanNumero, buildVocativo, formatDateOficio, extrairBairro } from "@/lib/oficioUtils";
 
 async function toDataUrl(src: string): Promise<string> {
   return new Promise((resolve) => {
@@ -47,9 +47,10 @@ export async function printOficio(data: PrintData) {
 
   let assuntoFmt = data.assunto || "___";
   if (data.bairro) {
-    const bairroClean = data.bairro.replace(/^bairro\s*/i, "");
-    if (!assuntoFmt.toLowerCase().includes(bairroClean.toLowerCase())) {
-      const bairroLabel = data.bairro.toLowerCase().startsWith("bairro") ? data.bairro : `Bairro ${data.bairro}`;
+    const bairroExtraido = extrairBairro(data.bairro) || data.bairro;
+    const bairroClean = bairroExtraido.replace(/^bairro\s*/i, "");
+    if (bairroClean && !assuntoFmt.toLowerCase().includes(bairroClean.toLowerCase())) {
+      const bairroLabel = bairroExtraido.toLowerCase().startsWith("bairro") ? bairroExtraido : `Bairro ${bairroExtraido}`;
       assuntoFmt += ` – ${bairroLabel}`;
     }
   }

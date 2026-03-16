@@ -1,9 +1,13 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+// @ts-ignore - tiptap v3 type declarations
 import { TextStyle } from "@tiptap/extension-text-style";
+// @ts-ignore - tiptap v3 type declarations
 import Color from "@tiptap/extension-color";
+// @ts-ignore - tiptap v3 type declarations
 import TextAlign from "@tiptap/extension-text-align";
+// @ts-ignore - tiptap v3 type declarations
 import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
 import { useCallback, useRef } from "react";
@@ -211,29 +215,30 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
             defaultValue="#000000"
             onMouseDown={(e) => e.stopPropagation()}
             onInput={(e) => {
+              // @ts-ignore - tiptap v3 chain command
               editor.chain().focus().setColor((e.target as HTMLInputElement).value).run();
             }}
           />
         </div>
 
         {/* Highlight */}
-        <ToolBtn onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()} active={editor.isActive("highlight")} title="Realce">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).toggleHighlight({ color: '#fef08a' }).run()} active={editor.isActive("highlight")} title="Realce">
           <Highlighter size={15} />
         </ToolBtn>
 
         <div className="w-px h-5 bg-gray-300 mx-1" />
 
         {/* Alignment */}
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Alinhar à esquerda">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Alinhar à esquerda">
           <AlignLeft size={15} />
         </ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Centralizar">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Centralizar">
           <AlignCenter size={15} />
         </ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Alinhar à direita">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Alinhar à direita">
           <AlignRight size={15} />
         </ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("justify").run()} active={editor.isActive({ textAlign: "justify" })} title="Justificar">
+        <ToolBtn onClick={() => (editor.chain().focus() as any).setTextAlign("justify").run()} active={editor.isActive({ textAlign: "justify" })} title="Justificar">
           <AlignJustify size={15} />
         </ToolBtn>
 

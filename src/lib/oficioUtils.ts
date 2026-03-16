@@ -24,7 +24,33 @@ export function formatDateOficio(dateStr?: string): string {
   return `Uberlândia, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}.`;
 }
 
-/** Generate operator code from name and email */
+/** Extract only the bairro name from a full address string */
+export function extrairBairro(endereco: string): string {
+  if (!endereco) return "";
+  
+  // Try "Bairro XYZ" pattern first
+  const matchBairro = endereco.match(/bairro\s+([A-Za-zÀ-ÿ\s]+?)(?:\s*[,\-–]|$)/i);
+  if (matchBairro) return matchBairro[1].trim();
+  
+  // Try "- BairroName, Cidade" pattern (e.g. "Av. X, 123 - Santa Mônica, Uberlândia")
+  const matchDash = endereco.match(/[-–]\s*([A-Za-zÀ-ÿ\s]+?)\s*[,\-–]/);
+  if (matchDash) {
+    const candidate = matchDash[1].trim();
+    // Exclude city/state names
+    if (!candidate.match(/^(Uberlândia|MG|Minas Gerais)$/i)) return candidate;
+  }
+  
+  // Fallback: second-to-last comma-separated part
+  const partes = endereco.split(",").map(p => p.trim());
+  if (partes.length >= 3) {
+    const candidate = partes[partes.length - 2].replace(/[-–].*/, "").trim();
+    if (candidate && !candidate.match(/^(Uberlândia|MG|Minas Gerais|nº?\s*\d+)$/i)) return candidate;
+  }
+  
+  return "";
+}
+
+
 export function generateOperatorCode(name: string, email?: string): string {
   const parts = (name || "").trim().split(/\s+/);
   const first = (parts[0] || "").toLowerCase();

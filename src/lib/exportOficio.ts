@@ -12,7 +12,7 @@ import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi
 const ASSINATURA_ALTURA = 113;  // ~3cm proportional
 
-import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, buildVocativo } from "@/lib/oficioUtils";
+import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, buildVocativo, extrairBairro } from "@/lib/oficioUtils";
 export { generateOperatorCode };
 
 function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
@@ -396,13 +396,15 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     : "___";
 
   const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` ${destinatario}` : ""}`;
-  const bairroFormatado = bairro
-    ? (bairro.toLowerCase().startsWith("bairro") || bairro.toLowerCase().includes("bairro ") ? bairro : `Bairro ${bairro}`)
+  const bairroExtraido = bairro ? (extrairBairro(bairro) || bairro) : "";
+  const bairroFormatado = bairroExtraido
+    ? (bairroExtraido.toLowerCase().startsWith("bairro") || bairroExtraido.toLowerCase().includes("bairro ") ? bairroExtraido : `Bairro ${bairroExtraido}`)
     : "";
 
   let assuntoFormatado = assunto || "___";
+  const bairroClean = bairroExtraido?.replace(/^bairro\s*/i, "") || "";
   // Only append bairro if the assunto doesn't already contain the bairro info
-  if (bairroFormatado && !assunto?.toLowerCase().includes(bairro?.toLowerCase().replace(/^bairro\s*/i, "") || "___")) {
+  if (bairroFormatado && bairroClean && !assunto?.toLowerCase().includes(bairroClean.toLowerCase())) {
     assuntoFormatado = `${assunto} – ${bairroFormatado}`;
   }
 

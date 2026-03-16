@@ -30,7 +30,7 @@ interface Props {
   anexoImageUrls?: string[];
 }
 
-import { cleanNumero, buildVocativo } from "@/lib/oficioUtils";
+import { cleanNumero, buildVocativo, extrairBairro } from "@/lib/oficioUtils";
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo, anexoImageUrls }, ref) => {
@@ -61,10 +61,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       : "___";
 
     let assuntoFormatado = assunto || "___";
-    const bairroFormatado = bairro
-      ? (bairro.toLowerCase().startsWith("bairro") || bairro.toLowerCase().includes("bairro ") ? bairro : `Bairro ${bairro}`)
+    // Extract only the bairro name from full address for assunto formatting
+    const bairroExtraido = bairro ? (extrairBairro(bairro) || bairro) : "";
+    const bairroFormatado = bairroExtraido
+      ? (bairroExtraido.toLowerCase().startsWith("bairro") || bairroExtraido.toLowerCase().includes("bairro ") ? bairroExtraido : `Bairro ${bairroExtraido}`)
       : "";
-    const bairroClean = bairro?.replace(/^bairro\s*/i, "") || "";
+    const bairroClean = bairroExtraido?.replace(/^bairro\s*/i, "") || "";
     const assuntoJaTemBairro = bairroClean && assunto?.toLowerCase().includes(bairroClean.toLowerCase());
     if (!assuntoJaTemBairro) {
       if (logradouro && numeroEnd && bairroFormatado) {
