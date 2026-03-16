@@ -21,96 +21,197 @@ serve(async (req) => {
     const body = await req.json();
     console.log("Webhook received:", JSON.stringify(body).slice(0, 500));
 
+    // ── Z-API format ──
+    // Z-API sends: { phone, message, ... } or { event, ... }
+    // Also support legacy Evolution API format for backwards compat
+
     const event = body.event || body.type;
 
-    // Handle connection status updates
-    if (event === "connection.update" || event === "status.instance") {
-      const instanceName = body.instance?.instanceName || body.instanceName;
-      const state = body.data?.state || body.state || "unknown";
+    // Handle Z-API message received format
+    // Z-API sends: { phone: "55...", message: { ... }, isGroup: false, ... }
+    // or text shorthand: { phone: "55...", text: { message: "..." }, ... }
+    const isZapiMessage =
+      body.phone && (body.text || body.message || body.body);
 
-      if (instanceName) {
-        await sb
-          .from("whatsapp_connections")
-          .update({ status: state === "open" ? "connected" : state })
-          .eq("instance_name", instanceName);
-      }
+    if (isZapiMessage) {
+      const phone = body.phone?.replace(/\D/g, "") || "";
+      const senderName = body.senderName || body.chatName || body.name || "";
+      const msgContent =
+        body.text?.message ||
+        body.body ||
+        (typeof body.message === "string" ? body.message : body.message?.conversation) ||
+        "";
+      const messageId = body.messageId || body.id?.id || crypto.randomUUID();
+      const isFromMe = body.fromMe === true;
+      const remoteJid = `${phone}@s.whatsapp.net`;
 
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Handle QR code updates
-    if (event === "qrcode.updated") {
-      const instanceName = body.instance?.instanceName || body.instanceName;
-      const qrCode = body.data?.qrcode?.base64 || body.qrcode;
-
-      if (instanceName && qrCode) {
-        await sb
-          .from("whatsapp_connections")
-          .update({ qr_code: qrCode, status: "qr_ready" })
-          .eq("instance_name", instanceName);
-      }
-
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Handle incoming messages
-    if (event === "messages.upsert" || event === "message") {
-      const instanceName = body.instance?.instanceName || body.instanceName;
-      const messageData = body.data?.message || body.message || body.data;
-
-      if (!messageData || !instanceName) {
-        return new Response(JSON.stringify({ ok: true, skipped: "no message data" }), {
+      // Skip groups
+      if (body.isGroup) {
+        return new Response(JSON.stringify({ ok: true, skipped: "group" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Find connection
-      const { data: connection } = await sb
+      // Find or use the first connection
+      const { data: connections } = await sb
         .from("whatsapp_connections")
         .select("id")
-        .eq("instance_name", instanceName)
-        .single();
+        .eq("status", "connected")
+        .limit(1);
 
-      if (!connection) {
-        console.error("Connection not found for instance:", instanceName);
-        return new Response(JSON.stringify({ error: "Connection not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      const connectionId = connections?.[0]?.id;
+      if (!connectionId) {
+        // Auto-create a default connection record if none exists
+        const { data: allConns } = await sb
+          .from("whatsapp_connections")
+          .select("id")
+          .limit(1);
 
-      const remoteJid = messageData.key?.remoteJid || messageData.remoteJid || "";
-      const fromMe = messageData.key?.fromMe || false;
-      const msgContent =
-        messageData.message?.conversation ||
-        messageData.message?.extendedTextMessage?.text ||
-        messageData.body ||
-        "";
-      const senderName = messageData.pushName || messageData.senderName || "";
-      const senderPhone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
-      const messageId = messageData.key?.id || messageData.id || crypto.randomUUID();
-
-      // Skip status broadcasts and group messages for now
-      if (remoteJid === "status@broadcast" || remoteJid.endsWith("@g.us")) {
-        return new Response(JSON.stringify({ ok: true, skipped: "broadcast/group" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        if (!allConns?.length) {
+          console.error("No WhatsApp connection found");
+          return new Response(JSON.stringify({ error: "No connection" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // Use whatever connection exists
+        var connId = allConns[0].id;
+      } else {
+        var connId = connectionId;
       }
 
       // Upsert conversation
       const { data: existingConv } = await sb
         .from("whatsapp_conversations")
         .select("id, unread_count")
-        .eq("connection_id", connection.id)
+        .eq("connection_id", connId)
         .eq("remote_jid", remoteJid)
         .single();
 
       let conversationId: string;
 
+      if (existingConv) {
+        conversationId = existingConv.id;
+        await sb
+          .from("whatsapp_conversations")
+          .update({
+            contact_name: senderName || undefined,
+            contact_phone: phone || undefined,
+            last_message_at: new Date().toISOString(),
+            unread_count: isFromMe
+              ? existingConv.unread_count
+              : (existingConv.unread_count || 0) + 1,
+          })
+          .eq("id", conversationId);
+      } else {
+        const { data: newConv } = await sb
+          .from("whatsapp_conversations")
+          .insert({
+            connection_id: connId,
+            remote_jid: remoteJid,
+            contact_name: senderName,
+            contact_phone: phone,
+            last_message_at: new Date().toISOString(),
+            unread_count: isFromMe ? 0 : 1,
+          })
+          .select("id")
+          .single();
+
+        conversationId = newConv!.id;
+      }
+
+      // Insert message
+      await sb.from("whatsapp_messages").insert({
+        conversation_id: conversationId,
+        message_id: messageId,
+        direction: isFromMe ? "outgoing" : "incoming",
+        content: msgContent,
+        sender_name: senderName,
+        sender_phone: phone,
+        status: isFromMe ? "sent" : "received",
+      });
+
+      // If incoming, trigger AI agent (fire-and-forget)
+      if (!isFromMe && msgContent) {
+        EdgeRuntime?.waitUntil?.(
+          handleAIAgent(sb, conversationId, msgContent, senderName, phone)
+        );
+      }
+
+      return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Legacy Evolution API format support ──
+    if (event === "connection.update" || event === "status.instance") {
+      const instanceName = body.instance?.instanceName || body.instanceName;
+      const state = body.data?.state || body.state || "unknown";
+      if (instanceName) {
+        await sb
+          .from("whatsapp_connections")
+          .update({ status: state === "open" ? "connected" : state })
+          .eq("instance_name", instanceName);
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (event === "qrcode.updated") {
+      const instanceName = body.instance?.instanceName || body.instanceName;
+      const qrCode = body.data?.qrcode?.base64 || body.qrcode;
+      if (instanceName && qrCode) {
+        await sb
+          .from("whatsapp_connections")
+          .update({ qr_code: qrCode, status: "qr_ready" })
+          .eq("instance_name", instanceName);
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (event === "messages.upsert" || event === "message") {
+      const instanceName = body.instance?.instanceName || body.instanceName;
+      const messageData = body.data?.message || body.message || body.data;
+      if (!messageData || !instanceName) {
+        return new Response(JSON.stringify({ ok: true, skipped: "no message data" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: connection } = await sb
+        .from("whatsapp_connections")
+        .select("id")
+        .eq("instance_name", instanceName)
+        .single();
+      if (!connection) {
+        return new Response(JSON.stringify({ error: "Connection not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const remoteJid = messageData.key?.remoteJid || messageData.remoteJid || "";
+      const fromMe = messageData.key?.fromMe || false;
+      const msgContent =
+        messageData.message?.conversation ||
+        messageData.message?.extendedTextMessage?.text ||
+        messageData.body || "";
+      const senderName = messageData.pushName || messageData.senderName || "";
+      const senderPhone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
+      const messageId = messageData.key?.id || messageData.id || crypto.randomUUID();
+      if (remoteJid === "status@broadcast" || remoteJid.endsWith("@g.us")) {
+        return new Response(JSON.stringify({ ok: true, skipped: "broadcast/group" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: existingConv } = await sb
+        .from("whatsapp_conversations")
+        .select("id, unread_count")
+        .eq("connection_id", connection.id)
+        .eq("remote_jid", remoteJid)
+        .single();
+      let conversationId: string;
       if (existingConv) {
         conversationId = existingConv.id;
         await sb
@@ -135,11 +236,8 @@ serve(async (req) => {
           })
           .select("id")
           .single();
-
         conversationId = newConv!.id;
       }
-
-      // Insert message
       await sb.from("whatsapp_messages").insert({
         conversation_id: conversationId,
         message_id: messageId,
@@ -149,21 +247,16 @@ serve(async (req) => {
         sender_phone: senderPhone,
         status: fromMe ? "sent" : "received",
       });
-
-      // If incoming message, trigger AI analysis (async, don't block webhook)
       if (!fromMe && msgContent) {
-        // Fire-and-forget AI analysis
         EdgeRuntime?.waitUntil?.(
-          analyzeWithAI(sb, conversationId, msgContent, senderName, senderPhone)
+          handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone)
         );
       }
-
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Default: acknowledge unknown events
     return new Response(JSON.stringify({ ok: true, event: event || "unknown" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -176,8 +269,8 @@ serve(async (req) => {
   }
 });
 
-// AI analysis helper
-async function analyzeWithAI(
+// ── AI Agent: auto-analyze + auto-respond + auto-register demand ──
+async function handleAIAgent(
   sb: any,
   conversationId: string,
   content: string,
@@ -187,27 +280,85 @@ async function analyzeWithAI(
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.warn("LOVABLE_API_KEY not set, skipping AI analysis");
+      console.warn("LOVABLE_API_KEY not set, skipping AI agent");
       return;
     }
 
-    const systemPrompt = `Você é a assessora de comunicação do Gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
+    // 1. Fetch conversation history for context
+    const { data: history } = await sb
+      .from("whatsapp_messages")
+      .select("direction, content, created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true })
+      .limit(20);
 
-Analise a mensagem do cidadão e extraia as seguintes informações em formato JSON:
-- problema: descrição do problema relatado
-- endereco: endereço ou local mencionado (se houver)
-- bairro: bairro mencionado (se houver)
-- secretaria: secretaria municipal responsável (inferir com base no problema)
-- tipo_demanda: classificação (Solicitação, Reclamação, Denúncia, Sugestão, Informação)
-- urgencia: nível de urgência (Normal, Urgente)
-- resposta_sugerida: resposta empática e natural para WhatsApp, no estilo do gabinete
+    const historyText = (history || [])
+      .map((m: any) => `[${m.direction === "incoming" ? "Cidadão" : "Gabinete"}]: ${m.content || ""}`)
+      .join("\n");
 
-A resposta sugerida deve:
-- Cumprimentar pelo nome quando disponível
-- Demonstrar empatia
-- Confirmar recebimento
-- Informar encaminhamento ao órgão responsável
-- Ser curta e natural (estilo WhatsApp)`;
+    // 2. Fetch previous demands from this citizen
+    const { data: prevDemandas } = await sb
+      .from("oficios")
+      .select("assunto, destinatario, status, bairro, created_at")
+      .or(`solicitante.ilike.%${senderName}%,contato_solicitante.eq.${senderPhone}`)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const demandasText = (prevDemandas || [])
+      .map((d: any) => `- ${d.assunto} → ${d.destinatario} (${d.status}) ${d.bairro || ""}`)
+      .join("\n");
+
+    // 3. Fetch knowledge base for context
+    const { data: knowledge } = await sb
+      .from("base_conhecimento")
+      .select("titulo, descricao, orgao, bairro, palavras_chave")
+      .limit(30);
+
+    const knowledgeText = (knowledge || [])
+      .map((k: any) => `- ${k.titulo}: ${k.descricao?.slice(0, 100) || ""} (${k.orgao || "N/A"})`)
+      .join("\n");
+
+    // 4. Call AI
+    const systemPrompt = `Você é a assistente virtual do gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
+
+Seu trabalho é atender cidadãos que enviam mensagens pelo WhatsApp.
+
+Quando uma mensagem chegar:
+1. Entender o problema
+2. Identificar o endereço ou bairro
+3. Identificar qual secretaria deve resolver
+4. Registrar automaticamente a demanda
+5. Responder ao cidadão confirmando o registro
+
+ESTILO DE RESPOSTA:
+- Respostas devem parecer mensagens reais de WhatsApp
+- Use linguagem natural e empática
+- Sempre chame a pessoa pelo nome quando disponível
+- Seja breve e direto
+- Use emojis com moderação
+
+CONTEXTO DISPONÍVEL:
+
+Histórico da conversa:
+${historyText || "Primeira mensagem"}
+
+Demandas anteriores deste cidadão:
+${demandasText || "Nenhuma demanda anterior"}
+
+Base de conhecimento:
+${knowledgeText || "Sem dados na base"}
+
+Retorne SEMPRE um JSON com estes campos:
+{
+  "problema": "descrição do problema",
+  "endereco": "endereço mencionado ou vazio",
+  "bairro": "bairro mencionado ou vazio",
+  "secretaria": "secretaria responsável",
+  "tipo_demanda": "Solicitação|Reclamação|Denúncia|Sugestão|Informação",
+  "urgencia": "Normal|Urgente",
+  "resposta": "mensagem de resposta para o cidadão",
+  "registrar_demanda": true/false
+}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -221,15 +372,15 @@ A resposta sugerida deve:
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Nome do cidadão: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`,
+            content: `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`,
           },
         ],
         tools: [
           {
             type: "function",
             function: {
-              name: "analyze_message",
-              description: "Analisa a mensagem do cidadão e retorna dados estruturados",
+              name: "process_citizen_message",
+              description: "Processa a mensagem do cidadão e retorna análise + resposta",
               parameters: {
                 type: "object",
                 properties: {
@@ -237,54 +388,117 @@ A resposta sugerida deve:
                   endereco: { type: "string" },
                   bairro: { type: "string" },
                   secretaria: { type: "string" },
-                  tipo_demanda: { type: "string", enum: ["Solicitação", "Reclamação", "Denúncia", "Sugestão", "Informação"] },
+                  tipo_demanda: {
+                    type: "string",
+                    enum: ["Solicitação", "Reclamação", "Denúncia", "Sugestão", "Informação"],
+                  },
                   urgencia: { type: "string", enum: ["Normal", "Urgente"] },
-                  resposta_sugerida: { type: "string" },
+                  resposta: { type: "string" },
+                  registrar_demanda: { type: "boolean" },
                 },
-                required: ["problema", "resposta_sugerida"],
+                required: ["problema", "resposta", "registrar_demanda"],
                 additionalProperties: false,
               },
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "analyze_message" } },
+        tool_choice: { type: "function", function: { name: "process_citizen_message" } },
       }),
     });
 
     if (!response.ok) {
-      console.error("AI analysis failed:", response.status);
+      console.error("AI agent failed:", response.status);
       return;
     }
 
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
-    if (toolCall?.function?.arguments) {
-      const analysis = JSON.parse(toolCall.function.arguments);
+    if (!toolCall?.function?.arguments) return;
 
-      // Get the latest message for this conversation and update it
-      const { data: messages } = await sb
+    const analysis = JSON.parse(toolCall.function.arguments);
+
+    // 5. Update message with AI analysis
+    const { data: msgs } = await sb
+      .from("whatsapp_messages")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .eq("direction", "incoming")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (msgs?.[0]) {
+      await sb
         .from("whatsapp_messages")
-        .select("id")
-        .eq("conversation_id", conversationId)
-        .eq("direction", "incoming")
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .update({
+          ai_suggested_response: analysis.resposta,
+          ai_analysis: analysis,
+        })
+        .eq("id", msgs[0].id);
+    }
 
-      if (messages?.[0]) {
+    // 6. Auto-respond via Z-API
+    const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
+    const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+
+    if (ZAPI_INSTANCE_ID && ZAPI_TOKEN && analysis.resposta) {
+      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+      const sendRes = await fetch(zapiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
+      });
+
+      if (sendRes.ok) {
+        const sendData = await sendRes.json();
+        // Save outgoing AI response
+        await sb.from("whatsapp_messages").insert({
+          conversation_id: conversationId,
+          message_id: sendData?.messageId || crypto.randomUUID(),
+          direction: "outgoing",
+          content: analysis.resposta,
+          status: "sent",
+          sender_name: "Agente IA",
+        });
+
         await sb
-          .from("whatsapp_messages")
-          .update({
-            ai_suggested_response: analysis.resposta_sugerida,
-            ai_analysis: analysis,
-          })
-          .eq("id", messages[0].id);
+          .from("whatsapp_conversations")
+          .update({ last_message_at: new Date().toISOString() })
+          .eq("id", conversationId);
+      }
+    }
+
+    // 7. Auto-register demand if applicable
+    if (analysis.registrar_demanda) {
+      // Get first admin user as author
+      const { data: adminRole } = await sb
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .limit(1)
+        .single();
+
+      if (adminRole) {
+        await sb.from("oficios").insert({
+          author_id: adminRole.user_id,
+          assunto: analysis.problema || content.slice(0, 100),
+          destinatario: analysis.secretaria || "Prefeitura Municipal de Uberlândia",
+          conteudo: `Demanda recebida via WhatsApp.\n\nCidadão: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nRelato:\n${content}`,
+          solicitante: senderName || "Cidadão via WhatsApp",
+          contato_solicitante: senderPhone,
+          bairro: analysis.bairro || null,
+          local_demanda: analysis.endereco || null,
+          secretaria_identificada: analysis.secretaria || null,
+          tipo_demanda: analysis.tipo_demanda || "Solicitação",
+          urgencia: analysis.urgencia?.toLowerCase() || "normal",
+          origem: "WhatsApp IA",
+          status: "Rascunho",
+        });
       }
     }
   } catch (e) {
-    console.error("AI analysis error:", e);
+    console.error("AI agent error:", e);
   }
 }
 
-// Declare EdgeRuntime for Deno
 declare const EdgeRuntime: { waitUntil?: (promise: Promise<any>) => void } | undefined;

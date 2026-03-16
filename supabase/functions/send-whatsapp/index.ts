@@ -27,17 +27,17 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: userData, error: authErr } = await sb.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authErr || !userData?.user) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: authErr } = await sb.auth.getClaims(token);
+    if (authErr || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const userId = claimsData.claims.sub;
 
-    const { conversation_id, message, connection_id } = await req.json();
+    const { conversation_id, message } = await req.json();
 
     if (!conversation_id || !message) {
       return new Response(JSON.stringify({ error: "conversation_id e message são obrigatórios" }), {
@@ -46,15 +46,26 @@ serve(async (req) => {
       });
     }
 
-    // Get conversation details
+    // Get Z-API credentials from secrets
+    const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
+    const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+
+    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+      return new Response(
+        JSON.stringify({ error: "Credenciais Z-API não configuradas. Configure ZAPI_INSTANCE_ID e ZAPI_TOKEN." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const adminSb = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Get conversation details
     const { data: conversation } = await adminSb
       .from("whatsapp_conversations")
-      .select("*, whatsapp_connections(*)")
+      .select("*")
       .eq("id", conversation_id)
       .single();
 
@@ -65,34 +76,25 @@ serve(async (req) => {
       });
     }
 
-    const conn = conversation.whatsapp_connections;
-    if (!conn?.api_url || !conn?.api_key) {
-      return new Response(
-        JSON.stringify({ error: "Conexão WhatsApp não configurada. Configure a URL e API Key da Evolution API." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Extract phone from remote_jid
+    const phone = conversation.remote_jid
+      .replace("@s.whatsapp.net", "")
+      .replace("@g.us", "");
 
-    // Send message via Evolution API
-    const evolutionUrl = `${conn.api_url}/message/sendText/${conn.instance_name}`;
-    const evolutionResponse = await fetch(evolutionUrl, {
+    // Send message via Z-API
+    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+    const zapiResponse = await fetch(zapiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: conn.api_key,
-      },
-      body: JSON.stringify({
-        number: conversation.remote_jid.replace("@s.whatsapp.net", ""),
-        text: message,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, message }),
     });
 
-    const evolutionData = await evolutionResponse.json();
+    const zapiData = await zapiResponse.json();
 
-    if (!evolutionResponse.ok) {
-      console.error("Evolution API error:", evolutionData);
+    if (!zapiResponse.ok) {
+      console.error("Z-API error:", zapiData);
       return new Response(
-        JSON.stringify({ error: "Falha ao enviar mensagem", details: evolutionData }),
+        JSON.stringify({ error: "Falha ao enviar mensagem", details: zapiData }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -100,11 +102,11 @@ serve(async (req) => {
     // Save outgoing message
     await adminSb.from("whatsapp_messages").insert({
       conversation_id,
-      message_id: evolutionData?.key?.id || crypto.randomUUID(),
+      message_id: zapiData?.messageId || crypto.randomUUID(),
       direction: "outgoing",
       content: message,
       status: "sent",
-      sent_by: userData.user.id,
+      sent_by: userId,
     });
 
     // Update conversation
@@ -113,7 +115,7 @@ serve(async (req) => {
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", conversation_id);
 
-    return new Response(JSON.stringify({ ok: true, data: evolutionData }), {
+    return new Response(JSON.stringify({ ok: true, data: zapiData }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

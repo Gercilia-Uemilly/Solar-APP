@@ -2,19 +2,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Wifi, WifiOff, QrCode, RefreshCw, Unplug, Smartphone } from "lucide-react";
+import { Loader2, Wifi, WifiOff, Unplug, Smartphone, Bot, CheckCircle2 } from "lucide-react";
 
 export default function WhatsAppConectar() {
   const { user } = useAuth();
-  const [apiUrl, setApiUrl] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [instanceName, setInstanceName] = useState("");
   const [status, setStatus] = useState<string>("not_configured");
-  const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [connection, setConnection] = useState<any>(null);
@@ -23,9 +18,8 @@ export default function WhatsAppConectar() {
     checkStatus();
   }, []);
 
-  // Poll status when connecting
   useEffect(() => {
-    if (status === "connecting" || status === "qr_ready") {
+    if (status === "connecting") {
       const interval = setInterval(checkStatus, 5000);
       return () => clearInterval(interval);
     }
@@ -36,70 +30,13 @@ export default function WhatsAppConectar() {
       const { data, error } = await supabase.functions.invoke("whatsapp-connect", {
         body: { action: "status" },
       });
-
       if (error) throw error;
-
       setStatus(data.status || "not_configured");
-      if (data.connection) {
-        setConnection(data.connection);
-        setApiUrl(data.connection.api_url || "");
-        setApiKey(data.connection.api_key || "");
-        setInstanceName(data.connection.instance_name || "");
-        if (data.connection.qr_code && data.status === "qr_ready") {
-          setQrCode(data.connection.qr_code);
-        }
-      }
+      if (data.connection) setConnection(data.connection);
     } catch (e) {
       console.error("Check status error:", e);
     } finally {
       setChecking(false);
-    }
-  };
-
-  const handleConnect = async () => {
-    if (!apiUrl || !apiKey || !instanceName) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("whatsapp-connect", {
-        body: { action: "create", api_url: apiUrl.replace(/\/$/, ""), api_key: apiKey, instance_name: instanceName },
-      });
-
-      if (error) throw error;
-
-      if (data.qr_code) {
-        setQrCode(data.qr_code);
-        setStatus("qr_ready");
-      } else {
-        setStatus("connecting");
-      }
-
-      toast({ title: "Instância criada! Escaneie o QR Code." });
-    } catch (e: any) {
-      toast({ title: "Erro ao conectar", description: e.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefreshQR = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("whatsapp-connect", {
-        body: { action: "qrcode" },
-      });
-
-      if (error) throw error;
-      if (data.qr_code) {
-        setQrCode(data.qr_code);
-        setStatus("qr_ready");
-      }
-    } catch (e: any) {
-      toast({ title: "Erro ao atualizar QR", description: e.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -109,10 +46,8 @@ export default function WhatsAppConectar() {
       const { error } = await supabase.functions.invoke("whatsapp-connect", {
         body: { action: "disconnect" },
       });
-
       if (error) throw error;
       setStatus("disconnected");
-      setQrCode(null);
       toast({ title: "WhatsApp desconectado" });
     } catch (e: any) {
       toast({ title: "Erro ao desconectar", description: e.message, variant: "destructive" });
@@ -125,7 +60,6 @@ export default function WhatsAppConectar() {
     not_configured: { label: "Não configurado", color: "secondary", icon: WifiOff },
     disconnected: { label: "Desconectado", color: "destructive", icon: WifiOff },
     connecting: { label: "Conectando...", color: "outline", icon: Loader2 },
-    qr_ready: { label: "Aguardando QR Code", color: "outline", icon: QrCode },
     connected: { label: "Conectado", color: "default", icon: Wifi },
     open: { label: "Conectado", color: "default", icon: Wifi },
   };
@@ -150,7 +84,7 @@ export default function WhatsAppConectar() {
           Conectar WhatsApp
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Conecte seu número de WhatsApp via Evolution API para receber e enviar mensagens.
+          Integração via Z-API para receber e enviar mensagens com atendimento automático por IA.
         </p>
       </div>
 
@@ -170,75 +104,36 @@ export default function WhatsAppConectar() {
         </CardHeader>
       </Card>
 
-      {/* QR Code */}
-      {(status === "qr_ready" || status === "connecting") && qrCode && (
+      {/* Not configured */}
+      {(status === "not_configured" || status === "disconnected") && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Escaneie o QR Code</CardTitle>
+            <CardTitle className="text-base">Configuração Z-API</CardTitle>
             <CardDescription>
-              Abra o WhatsApp no celular → Dispositivos conectados → Conectar dispositivo
+              As credenciais da Z-API (Instance ID e Token) são configuradas de forma segura no backend.
+              Entre em contato com o administrador para configurar ou atualizar as credenciais.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
-            <div className="bg-white p-4 rounded-xl">
-              <img
-                src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
-                alt="QR Code WhatsApp"
-                className="w-64 h-64 object-contain"
-              />
+          <CardContent>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                <span>Webhook configurado automaticamente para receber mensagens</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Bot size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                <span>Agente de IA responde automaticamente aos cidadãos</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                <span>Demandas são registradas automaticamente no sistema</span>
+              </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleRefreshQR} disabled={loading}>
-              {loading ? <Loader2 size={14} className="animate-spin mr-1" /> : <RefreshCw size={14} className="mr-1" />}
-              Atualizar QR Code
-            </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Connection Form */}
-      {!isConnected && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Configuração da Evolution API</CardTitle>
-            <CardDescription>
-              Informe os dados da sua instância Evolution API para conectar o WhatsApp.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-foreground">URL da API</label>
-              <Input
-                placeholder="https://sua-evolution-api.com"
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">API Key</label>
-              <Input
-                type="password"
-                placeholder="Sua chave de API"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Nome da Instância</label>
-              <Input
-                placeholder="gabinete-fabao"
-                value={instanceName}
-                onChange={(e) => setInstanceName(e.target.value)}
-              />
-            </div>
-            <Button onClick={handleConnect} disabled={loading} className="w-full">
-              {loading ? <Loader2 size={14} className="animate-spin mr-2" /> : <QrCode size={14} className="mr-2" />}
-              Conectar WhatsApp
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Connected Actions */}
+      {/* Connected */}
       {isConnected && (
         <Card>
           <CardContent className="pt-6">
@@ -248,9 +143,9 @@ export default function WhatsAppConectar() {
                   <Wifi size={20} className="text-green-500" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">WhatsApp conectado</p>
+                  <p className="font-medium text-foreground">WhatsApp conectado via Z-API</p>
                   <p className="text-sm text-muted-foreground">
-                    Instância: {connection?.instance_name}
+                    Agente de IA ativo • Demandas registradas automaticamente
                   </p>
                 </div>
               </div>
@@ -262,6 +157,27 @@ export default function WhatsAppConectar() {
           </CardContent>
         </Card>
       )}
+
+      {/* AI Agent Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bot size={18} />
+            Agente de Atendimento IA
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>O agente automático realiza as seguintes ações para cada mensagem recebida:</p>
+          <ul className="space-y-2 list-disc list-inside">
+            <li>Interpreta o problema relatado pelo cidadão</li>
+            <li>Identifica endereço, bairro e secretaria responsável</li>
+            <li>Registra automaticamente a demanda no sistema</li>
+            <li>Responde ao cidadão com linguagem empática e natural</li>
+            <li>Consulta histórico de conversas e demandas anteriores</li>
+            <li>Utiliza a base de conhecimento do sistema</li>
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }
