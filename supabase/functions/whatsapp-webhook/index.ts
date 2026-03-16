@@ -298,14 +298,25 @@ serve(async (req) => {
         }).select("id").single();
         conversationId = newConv!.id;
       }
-      await sb.from("whatsapp_messages").insert({
-        conversation_id: conversationId, message_id: messageId,
-        direction: fromMe ? "outgoing" : "incoming", content: msgContent,
-        sender_name: senderName, sender_phone: senderPhone,
-        status: fromMe ? "sent" : "received",
-      });
-      if (!fromMe && msgContent) {
-        await handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone);
+      const { data: existingMsgLegacy } = await sb.from("whatsapp_messages")
+        .select("id")
+        .eq("conversation_id", conversationId)
+        .eq("message_id", messageId)
+        .limit(1);
+
+      if (existingMsgLegacy?.length) {
+        console.log("Skipping duplicate legacy message:", messageId);
+      } else {
+        await sb.from("whatsapp_messages").insert({
+          conversation_id: conversationId, message_id: messageId,
+          direction: fromMe ? "outgoing" : "incoming", content: msgContent,
+          sender_name: senderName, sender_phone: senderPhone,
+          status: fromMe ? "sent" : "received",
+        });
+
+        if (!fromMe && msgContent) {
+          await handleAIAgent(sb, conversationId, msgContent, senderName, senderPhone);
+        }
       }
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
