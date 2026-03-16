@@ -16,7 +16,7 @@ interface PrintData {
   secretaria?: string;
 }
 
-import { cleanNumero, buildVocativo, formatDateOficio } from "@/lib/oficioUtils";
+import { cleanNumero, buildVocativo, formatDateOficio, extrairBairro } from "@/lib/oficioUtils";
 
 async function toDataUrl(src: string): Promise<string> {
   return new Promise((resolve) => {
