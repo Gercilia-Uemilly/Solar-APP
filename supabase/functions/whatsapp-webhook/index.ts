@@ -384,23 +384,32 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       const GEMINI_KEY = Deno.env.get("GEMINI_AGENT_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY");
       if (!GEMINI_KEY) throw new Error("GEMINI_AGENT_API_KEY not configured");
 
-      const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
-          }),
-        }
-      );
+      // Try models in order: gemini-2.0-flash → gemini-2.0-flash-lite → gemini-1.5-flash
+      const models = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"];
+      let geminiRes: Response | null = null;
 
-      if (!geminiRes.ok) {
+      for (const model of models) {
+        geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
+              generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+            }),
+          }
+        );
+        if (geminiRes.ok) {
+          console.log(`Gemini model ${model} succeeded`);
+          break;
+        }
         const errText = await geminiRes.text();
-        console.error("Gemini agent error:", geminiRes.status, errText.slice(0, 300));
-        throw new Error(`Gemini error: ${geminiRes.status}`);
+        console.warn(`Gemini ${model} failed (${geminiRes.status}): ${errText.slice(0, 150)}`);
+        geminiRes = null;
       }
+
+      if (!geminiRes) throw new Error("All Gemini models exhausted");
 
       const geminiData = await geminiRes.json();
       const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
