@@ -301,6 +301,14 @@ async function handleAIAgent(
       .not("descricao", "is", null)
       .order("created_at", { ascending: false }).limit(5);
 
+    // 6. Fetch exported WhatsApp conversations for style reference
+    const { data: exportedConversations } = await sb.from("base_conhecimento")
+      .select("titulo, descricao")
+      .eq("categoria", "Conversa WhatsApp")
+      .eq("modelo", true)
+      .not("descricao", "is", null)
+      .order("created_at", { ascending: false }).limit(5);
+
     const modelText = (modelResponses || [])
       .map((r: any) => `- ${r.titulo}: ${r.descricao?.slice(0, 300) || ""}`)
       .join("\n");
@@ -308,11 +316,26 @@ async function handleAIAgent(
     const audioStyleText = (audioTranscriptions || [])
       .map((a: any) => {
         const desc = a.descricao || "";
-        // Extract just the transcription part (before "RESUMO")
         const transcOnly = desc.split("RESUMO")[0].replace("TRANSCRIÇÃO:", "").trim();
         return transcOnly.slice(0, 400);
       })
       .filter((t: string) => t.length > 50)
+      .join("\n---\n");
+
+    // Extract only the Gabinete/Fabão responses from exported conversations
+    const convStyleText = (exportedConversations || [])
+      .map((c: any) => {
+        const desc = c.descricao || "";
+        // Extract lines that are from Fabão/Gabinete (outgoing responses)
+        const lines = desc.split("\n");
+        const gabineteLines = lines
+          .filter((l: string) => /Fabão|Gabinete|Solar Labs/i.test(l) && l.length > 20)
+          .slice(0, 5)
+          .map((l: string) => l.replace(/^\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}\s-\s[^:]+:\s*/, "").trim())
+          .filter((l: string) => l.length > 10);
+        return gabineteLines.join("\n");
+      })
+      .filter((t: string) => t.length > 20)
       .join("\n---\n");
 
     const systemPrompt = `Você é um assistente responsável pelo atendimento via WhatsApp do Gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
@@ -402,7 +425,10 @@ ${modelText || "Nenhum exemplo disponível"}
 REFERÊNCIA DE ESTILO - ÁUDIOS REAIS DO VEREADOR (COPIE ESTE TOM E JEITO DE FALAR):
 ${audioStyleText || "Sem áudios de referência"}
 
-REGRA CRÍTICA DE ESTILO: Analise os áudios acima e copie o jeito de falar: expressões como "a gente corre atrás", "qualquer coisa que você precisar", "pode me chamar", "vou verificar isso pra você". Use o mesmo tom coloquial, próximo e acolhedor. NÃO use linguagem formal.
+REFERÊNCIA DE ESTILO - CONVERSAS REAIS DO GABINETE (COPIE ESTE JEITO DE RESPONDER):
+${convStyleText || "Sem conversas de referência"}
+
+REGRA CRÍTICA DE ESTILO: Analise os áudios e conversas acima e copie EXATAMENTE o jeito de falar: expressões como "a gente corre atrás", "qualquer coisa que você precisar", "pode me chamar", "vou verificar isso pra você", "deixa eu te falar". Use o mesmo tom coloquial, próximo e acolhedor das conversas reais. NÃO use linguagem formal. A resposta deve parecer que foi escrita pelo próprio vereador ou equipe.
 
 IMPORTANTE: Responda em JSON com esta estrutura exata:
 {
