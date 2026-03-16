@@ -15,61 +15,24 @@ const parseJsonSafe = (raw: string) => {
   }
 };
 
-const resolveZapiSendUrls = (instanceRaw?: string | null, tokenRaw?: string | null) => {
-  const instanceInput = (instanceRaw || "").trim();
-  const tokenInput = (tokenRaw || "").trim();
+const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | null) => {
+  const inst = (instanceRaw || "").trim();
+  const tok = (tokenRaw || "").trim();
 
-  const urls = new Set<string>();
-  const tokenCandidates = new Set<string>();
+  if (!inst || !tok) return "";
 
-  let instanceId = "";
-  let baseOrigin = "https://api.z-api.io";
-
-  if (tokenInput) {
-    if (/^https?:\/\//i.test(tokenInput)) {
-      try {
-        const parsed = new URL(tokenInput);
-        const tokenMatch = parsed.pathname.match(/\/token\/([^/]+)/i);
-        if (tokenMatch?.[1]) tokenCandidates.add(decodeURIComponent(tokenMatch[1]));
-      } catch {
-        // ignore malformed token URL
-      }
-    } else {
-      tokenCandidates.add(tokenInput);
-    }
-  }
-
-  if (/^https?:\/\//i.test(instanceInput)) {
+  // If instance is a full URL, extract parts
+  if (/^https?:\/\//i.test(inst)) {
     try {
-      const parsed = new URL(instanceInput);
-      baseOrigin = `${parsed.protocol}//${parsed.host}`;
-      const normalizedPath = parsed.pathname.replace(/\/+$/, "");
-
-      if (/\/send-(text|message)$/i.test(normalizedPath)) {
-        urls.add(`${baseOrigin}${normalizedPath}`);
+      const u = new URL(inst);
+      const m = u.pathname.match(/\/instances\/([^/]+)\/token\/([^/]+)/i);
+      if (m) {
+        return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
       }
-
-      const pathMatch = normalizedPath.match(/\/instances\/([^/]+)(?:\/token\/([^/]+))?/i);
-      if (pathMatch?.[1]) instanceId = decodeURIComponent(pathMatch[1]);
-      if (pathMatch?.[2]) tokenCandidates.add(decodeURIComponent(pathMatch[2]));
-    } catch {
-      // ignore malformed URL and fallback to plain values
-    }
-  } else {
-    instanceId = instanceInput;
+    } catch { /* fallthrough */ }
   }
 
-  if (!instanceId || tokenCandidates.size === 0) {
-    return Array.from(urls);
-  }
-
-  for (const token of tokenCandidates) {
-    const base = `${baseOrigin}/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(token)}`;
-    urls.add(`${base}/send-text`);
-    urls.add(`${base}/send-message`);
-  }
-
-  return Array.from(urls);
+  return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
 };
 
 serve(async (req) => {
@@ -439,38 +402,41 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    if (GOOGLE_AI_API_KEY) {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
+    // 4. Call AI via Lovable AI gateway
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-      const response = await fetch(geminiUrl, {
+    try {
+      const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/proxy/ai`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userMessage }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.7,
-          },
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
+      if (aiResponse.ok) {
+        const aiData = await aiResponse.json();
+        const rawText = aiData.choices?.[0]?.message?.content;
         if (rawText) {
-          try {
-            analysis = JSON.parse(rawText);
-          } catch {
-            console.error("Failed to parse AI JSON:", rawText.slice(0, 200));
-          }
+          try { analysis = JSON.parse(rawText); } catch { console.error("AI JSON parse failed:", rawText.slice(0, 200)); }
         }
+        console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
       } else {
-        const errText = await response.text();
-        console.error("Gemini AI failed:", response.status, errText);
+        const errText = await aiResponse.text();
+        console.error("Lovable AI failed:", aiResponse.status, errText.slice(0, 300));
       }
-    } else {
-      console.warn("GOOGLE_AI_API_KEY not set, using fallback auto-response");
+    } catch (aiErr: any) {
+      console.error("AI call error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
@@ -501,47 +467,25 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
     const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
-    const zapiUrls = resolveZapiSendUrls(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
-    console.log(
-      "Z-API candidate URLs:",
-      zapiUrls.map((url) => url.replace(/\/token\/[^/]+/i, "/token/***"))
-    );
+    const zapiUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+    console.log("Z-API URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
+    console.log("Z-API INSTANCE_ID length:", (ZAPI_INSTANCE_ID || "").length, "TOKEN length:", (ZAPI_TOKEN || "").length);
 
-    if (zapiUrls.length && analysis.resposta) {
-      const baseHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      const headerAttempts: Record<string, string>[] = ZAPI_CLIENT_TOKEN
-        ? [{ ...baseHeaders, "Client-Token": ZAPI_CLIENT_TOKEN }, baseHeaders]
-        : [baseHeaders];
+    if (zapiUrl && analysis.resposta) {
+      // Don't send Client-Token - instance doesn't use it
+      const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
 
-      let sendData: any = null;
-      let sent = false;
-      let lastStatus = 500;
+      const sendRes = await fetch(zapiUrl, {
+        method: "POST",
+        headers: zapiHeaders,
+        body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
+      });
 
-      for (const zapiUrl of zapiUrls) {
-        for (const headers of headerAttempts) {
-          const sendRes = await fetch(zapiUrl, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
-          });
+      const sendText = await sendRes.text();
+      const sendData = parseJsonSafe(sendText);
+      console.log("Z-API response:", sendRes.status, sendText.slice(0, 300));
 
-          const sendText = await sendRes.text();
-          const parsedData = parseJsonSafe(sendText);
-
-          if (sendRes.ok && !parsedData?.error) {
-            sendData = parsedData;
-            sent = true;
-            break;
-          }
-
-          lastStatus = sendRes.status;
-          sendData = parsedData;
-        }
-
-        if (sent) break;
-      }
-
-      if (sent) {
+      if (sendRes.ok && !sendData?.error) {
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
@@ -559,7 +503,7 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
         console.log("Auto-response sent", { phone: senderPhone, messageId: sendData?.messageId || null });
       } else {
-        console.error("Z-API send failed:", lastStatus, sendData);
+        console.error("Z-API send failed:", sendRes.status, sendData);
       }
     }
 
