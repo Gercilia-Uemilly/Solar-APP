@@ -165,6 +165,8 @@ serve(async (req) => {
         sender_name: senderName,
         sender_phone: phone,
         status: isFromMe ? "sent" : "received",
+        media_type: mediaType,
+        media_url: mediaUrl,
       });
 
       // If incoming, process AI agent (with dedup check)
