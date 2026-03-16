@@ -632,21 +632,73 @@ Responda em JSON:
     let analysis: any = null;
 
     if (selectedScript?.conteudo) {
-      const scriptText = (selectedScript.conteudo || "").trim();
-      const hasEmpathyStart = /^(entendi|poxa|nossa|sinto muito|imagino|que situacao)/i.test(normalizeText(scriptText));
-      analysis = {
-        problema: content.slice(0, 180),
-        endereco: "",
-        bairro: "",
-        secretaria: "",
-        tipo_demanda: "Informação",
-        urgencia: "Normal",
-        resposta: hasEmpathyStart ? scriptText : `Entendi.\n\n${scriptText}`,
-        registrar_demanda: false,
-        audio_sugerido: selectedAudio?.titulo || "",
-        origem: "script_bank",
-      };
-      console.log("Using script bank response:", selectedScript.titulo);
+      // When we have a matched script, still call AI but with a focused prompt to adapt the script naturally
+      const firstName = (senderName || "").split(" ")[0] || "";
+      try {
+        const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+        if (OPENAI_KEY) {
+          const adaptRes = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: [
+                { role: "system", content: `Você é assessor do vereador Fabão de Uberlândia. Adapte o script abaixo para uma resposta natural de WhatsApp.
+Regras:
+- Comece com empatia ("Poxa...", "Puxa vida...", "Nossa...")
+- Use linguagem informal mineira: "viu?", "tá?", "né?", "deixa eu te falar"
+- Máximo 3 frases curtas
+- Use emojis: 😊 🙏 😔
+- ${firstName ? `Chame a pessoa de "${firstName}"` : "Não use nome"}
+- NÃO use: "compreendo", "certamente", "entendo sua curiosidade"
+- Adapte o conteúdo mas mantenha a informação essencial
+
+SCRIPT ORIGINAL:
+${selectedScript.conteudo}
+
+MENSAGEM DO CIDADÃO:
+${content}
+
+Responda APENAS o texto adaptado, sem JSON.` },
+              ],
+              temperature: 0.9,
+              max_tokens: 300,
+            }),
+          });
+          if (adaptRes.ok) {
+            const adaptData = await adaptRes.json();
+            const adapted = adaptData.choices?.[0]?.message?.content?.trim() || "";
+            if (adapted) {
+              analysis = {
+                problema: content.slice(0, 180),
+                endereco: "", bairro: "", secretaria: "",
+                tipo_demanda: "Informação", urgencia: "Normal",
+                resposta: adapted,
+                registrar_demanda: false,
+                audio_sugerido: selectedAudio?.titulo || "",
+                origem: "script_bank_adapted",
+              };
+              console.log("Using adapted script:", selectedScript.titulo);
+            }
+          }
+        }
+      } catch (e: any) {
+        console.error("Script adaptation error:", e.message);
+      }
+
+      // Fallback: use script directly if adaptation failed
+      if (!analysis?.resposta) {
+        analysis = {
+          problema: content.slice(0, 180),
+          endereco: "", bairro: "", secretaria: "",
+          tipo_demanda: "Informação", urgencia: "Normal",
+          resposta: selectedScript.conteudo.trim(),
+          registrar_demanda: false,
+          audio_sugerido: selectedAudio?.titulo || "",
+          origem: "script_bank",
+        };
+      }
+      console.log("Script bank used:", selectedScript.titulo);
     }
 
     // Call OpenAI only when there is no script match
