@@ -20,11 +20,17 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
 
-    const userClient = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: authHeader } } });
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (claimsErr || !claimsData?.user) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Allow service role key directly (for internal/admin calls)
+    const isServiceRole = token === serviceKey;
+
+    if (!isServiceRole) {
+      const userClient = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: authHeader } } });
+      const { data: claimsData, error: claimsErr } = await userClient.auth.getUser(token);
+      if (claimsErr || !claimsData?.user) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     const adminClient = createClient(supabaseUrl, serviceKey);
