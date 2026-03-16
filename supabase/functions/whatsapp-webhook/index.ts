@@ -699,6 +699,7 @@ Responda em JSON com esta estrutura exata:
           urgencia: parsed?.urgencia || "Normal",
           resposta: parsed?.resposta || "",
           registrar_demanda: Boolean(parsed?.registrar_demanda),
+          audio_sugerido: parsed?.audio_sugerido || "",
         };
         console.log("OpenAI agent response OK");
       } catch {
