@@ -131,11 +131,9 @@ serve(async (req) => {
         status: isFromMe ? "sent" : "received",
       });
 
-      // If incoming, trigger AI agent (fire-and-forget)
+      // If incoming, process AI agent before returning (more reliable)
       if (!isFromMe && msgContent) {
-        EdgeRuntime?.waitUntil?.(
-          handleAIAgent(sb, conversationId, msgContent, senderName, phone)
-        );
+        await handleAIAgent(sb, conversationId, msgContent, senderName, phone);
       }
 
       return new Response(JSON.stringify({ ok: true, conversation_id: conversationId }), {
