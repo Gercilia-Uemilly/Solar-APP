@@ -401,12 +401,23 @@ async function handleAIAgent(
       .map((d: any) => `- ${d.assunto} → ${d.destinatario} (${d.status}) ${d.bairro || ""}`)
       .join("\n");
 
-    // 3. Knowledge base
+    // 3. Knowledge base — fetch more and score by relevance
     const { data: knowledge } = await sb.from("base_conhecimento")
-      .select("titulo, descricao, orgao, bairro, palavras_chave").limit(30);
+      .select("titulo, descricao, orgao, bairro, palavras_chave, categoria, link")
+      .order("created_at", { ascending: false }).limit(100);
 
-    const knowledgeText = (knowledge || [])
-      .map((k: any) => `- ${k.titulo}: ${k.descricao?.slice(0, 100) || ""} (${k.orgao || "N/A"})`)
+    // Score and rank knowledge by relevance to user message
+    const scoredKnowledge = (knowledge || [])
+      .map((k: any) => ({
+        ...k,
+        relevance: scoreMatch(content, k.titulo || "", k.palavras_chave || [], k.descricao || ""),
+      }))
+      .sort((a: any, b: any) => b.relevance - a.relevance);
+
+    const topKnowledge = scoredKnowledge.slice(0, 15);
+
+    const knowledgeText = topKnowledge
+      .map((k: any) => `- [${k.categoria || "Info"}] ${k.titulo}: ${k.descricao?.slice(0, 200) || ""} (Órgão: ${k.orgao || "N/A"})${k.link ? ` Link: ${k.link}` : ""}`)
       .join("\n");
 
     // 4. Fetch model responses AND audio transcriptions for style reference
