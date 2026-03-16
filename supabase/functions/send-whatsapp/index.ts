@@ -95,15 +95,20 @@ serve(async (req) => {
 
     console.log("Sending to phone:", phone, "with Client-Token:", ZAPI_CLIENT_TOKEN ? "yes" : "no");
 
-    const zapiResponse = await fetch(zapiUrl, {
-      method: "POST",
-      headers: zapiHeaders,
-      body: JSON.stringify({ phone, message }),
-    });
-
-    const zapiText = await zapiResponse.text();
-    const zapiData = parseJsonSafe(zapiText);
+    const zapiPayload = JSON.stringify({ phone, message });
+    let zapiResponse = await fetch(zapiUrl, { method: "POST", headers: zapiHeaders, body: zapiPayload });
+    let zapiText = await zapiResponse.text();
+    let zapiData = parseJsonSafe(zapiText);
     console.log("Z-API response:", zapiResponse.status, zapiText.slice(0, 300));
+
+    // If client-token error, retry without it
+    if (zapiData?.error === "your client-token is not configured") {
+      console.log("Retrying without Client-Token...");
+      zapiResponse = await fetch(zapiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: zapiPayload });
+      zapiText = await zapiResponse.text();
+      zapiData = parseJsonSafe(zapiText);
+      console.log("Z-API retry response:", zapiResponse.status, zapiText.slice(0, 300));
+    }
 
     if (!zapiResponse.ok || zapiData?.error) {
       return new Response(
