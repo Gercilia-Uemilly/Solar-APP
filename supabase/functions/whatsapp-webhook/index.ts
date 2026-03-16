@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callGemini, toGeminiMessages } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,10 +30,12 @@ const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | nul
   return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
 };
 
-const buildZapiHeaders = () => {
+const buildZapiHeaders = (withToken = false) => {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const clientToken = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
-  if (clientToken) headers["Client-Token"] = clientToken;
+  if (withToken) {
+    const clientToken = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
+    if (clientToken) headers["Client-Token"] = clientToken;
+  }
   return headers;
 };
 
@@ -350,44 +353,22 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // Call Lovable AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    // Call Google Gemini directly (free tier)
+    try {
+      const geminiInput = toGeminiMessages(systemPrompt, userMessage);
+      const geminiResult = await callGemini({
+        ...geminiInput,
+        model: "gemini-2.5-flash",
+      });
 
-    if (LOVABLE_API_KEY) {
-      try {
-        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userMessage },
-            ],
-          }),
-        });
-
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const rawText = aiData.choices?.[0]?.message?.content || "";
-          // Extract JSON from response (may be wrapped in markdown code blocks)
-          const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("AI JSON parse failed:", rawText.slice(0, 200)); }
-          }
-          console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
-        } else {
-          const errText = await aiResponse.text();
-          console.error("Lovable AI failed:", aiResponse.status, errText.slice(0, 300));
-        }
-      } catch (aiErr: any) {
-        console.error("AI call error:", aiErr.message);
+      const rawText = geminiResult.text || "";
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("Gemini JSON parse failed:", rawText.slice(0, 200)); }
       }
-    } else {
-      console.error("LOVABLE_API_KEY not configured");
+      console.log("Gemini AI success, registrar_demanda:", analysis?.registrar_demanda);
+    } catch (aiErr: any) {
+      console.error("Gemini AI error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
@@ -415,17 +396,16 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       const zapiPayload = JSON.stringify({ phone: senderPhone, message: analysis.resposta });
       console.log("Z-API send URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
 
-      // Try with Client-Token first, fallback without it
-      const zapiHeaders = buildZapiHeaders();
-      let sendRes = await fetch(zapiUrl, { method: "POST", headers: zapiHeaders, body: zapiPayload });
+      // Try WITHOUT Client-Token first (most instances don't use it)
+      let sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(false), body: zapiPayload });
       let sendText = await sendRes.text();
       let sendData = parseJsonSafe(sendText);
       console.log("Z-API response:", sendRes.status, sendText.slice(0, 300));
 
-      // If client-token error, retry without it
-      if (sendData?.error === "your client-token is not configured") {
-        console.log("Retrying without Client-Token...");
-        sendRes = await fetch(zapiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: zapiPayload });
+      // If auth error, retry WITH Client-Token
+      if (!sendRes.ok && sendData?.error) {
+        console.log("Retrying with Client-Token...");
+        sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(true), body: zapiPayload });
         sendText = await sendRes.text();
         sendData = parseJsonSafe(sendText);
         console.log("Z-API retry response:", sendRes.status, sendText.slice(0, 300));
