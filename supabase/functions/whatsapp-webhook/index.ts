@@ -402,38 +402,71 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    if (GOOGLE_AI_API_KEY) {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
+    // 4. Call AI via Lovable AI gateway (no API key needed)
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-      const response = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userMessage }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.7,
+    if (LOVABLE_API_KEY) {
+      try {
+        const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/proxy/ai/chat`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           },
-        }),
-      });
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userMessage },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+          }),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (rawText) {
-          try {
-            analysis = JSON.parse(rawText);
-          } catch {
-            console.error("Failed to parse AI JSON:", rawText.slice(0, 200));
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const rawText = aiData.choices?.[0]?.message?.content;
+          if (rawText) {
+            try {
+              analysis = JSON.parse(rawText);
+            } catch {
+              console.error("Failed to parse AI JSON:", rawText.slice(0, 200));
+            }
           }
+        } else {
+          const errText = await aiResponse.text();
+          console.error("Lovable AI failed:", aiResponse.status, errText.slice(0, 300));
         }
-      } else {
-        const errText = await response.text();
-        console.error("Gemini AI failed:", response.status, errText);
+      } catch (aiErr) {
+        console.error("AI call error:", aiErr);
       }
     } else {
-      console.warn("GOOGLE_AI_API_KEY not set, using fallback auto-response");
+      // Fallback: try direct Gemini if API key exists
+      const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+      if (GOOGLE_AI_API_KEY) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
+          const response = await fetch(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userMessage }] }],
+              generationConfig: { responseMimeType: "application/json", temperature: 0.7 },
+            }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawText) {
+              try { analysis = JSON.parse(rawText); } catch { /* ignore */ }
+            }
+          } else {
+            console.error("Gemini failed:", response.status);
+          }
+        } catch { /* ignore */ }
+      }
     }
 
     if (!analysis?.resposta) {
@@ -464,47 +497,25 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
     const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
-    const zapiUrls = resolveZapiSendUrls(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
-    console.log(
-      "Z-API candidate URLs:",
-      zapiUrls.map((url) => url.replace(/\/token\/[^/]+/i, "/token/***"))
-    );
+    const zapiUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+    console.log("Z-API URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
+    console.log("Z-API INSTANCE_ID length:", (ZAPI_INSTANCE_ID || "").length, "TOKEN length:", (ZAPI_TOKEN || "").length);
 
-    if (zapiUrls.length && analysis.resposta) {
-      const baseHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      const headerAttempts: Record<string, string>[] = ZAPI_CLIENT_TOKEN
-        ? [{ ...baseHeaders, "Client-Token": ZAPI_CLIENT_TOKEN }, baseHeaders]
-        : [baseHeaders];
+    if (zapiUrl && analysis.resposta) {
+      const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
 
-      let sendData: any = null;
-      let sent = false;
-      let lastStatus = 500;
+      const sendRes = await fetch(zapiUrl, {
+        method: "POST",
+        headers: zapiHeaders,
+        body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
+      });
 
-      for (const zapiUrl of zapiUrls) {
-        for (const headers of headerAttempts) {
-          const sendRes = await fetch(zapiUrl, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
-          });
+      const sendText = await sendRes.text();
+      const sendData = parseJsonSafe(sendText);
+      console.log("Z-API response:", sendRes.status, sendText.slice(0, 300));
 
-          const sendText = await sendRes.text();
-          const parsedData = parseJsonSafe(sendText);
-
-          if (sendRes.ok && !parsedData?.error) {
-            sendData = parsedData;
-            sent = true;
-            break;
-          }
-
-          lastStatus = sendRes.status;
-          sendData = parsedData;
-        }
-
-        if (sent) break;
-      }
-
-      if (sent) {
+      if (sendRes.ok && !sendData?.error) {
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
@@ -522,7 +533,7 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
         console.log("Auto-response sent", { phone: senderPhone, messageId: sendData?.messageId || null });
       } else {
-        console.error("Z-API send failed:", lastStatus, sendData);
+        console.error("Z-API send failed:", sendRes.status, sendData);
       }
     }
 
