@@ -470,26 +470,45 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
     const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
-    if (ZAPI_INSTANCE_ID && ZAPI_TOKEN && analysis.resposta) {
-      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+    const zapiUrls = resolveZapiSendUrls(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+
+    if (zapiUrls.length && analysis.resposta) {
       const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
       if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
 
-      const sendRes = await fetch(zapiUrl, {
-        method: "POST",
-        headers: zapiHeaders,
-        body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
-      });
-
-      const sendText = await sendRes.text();
       let sendData: any = null;
-      try {
-        sendData = sendText ? JSON.parse(sendText) : null;
-      } catch {
-        sendData = { raw: sendText };
+      let sent = false;
+      let lastStatus = 500;
+
+      for (const zapiUrl of zapiUrls) {
+        const sendRes = await fetch(zapiUrl, {
+          method: "POST",
+          headers: zapiHeaders,
+          body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
+        });
+
+        const sendText = await sendRes.text();
+        const parsedData = parseJsonSafe(sendText);
+
+        if (sendRes.ok && !parsedData?.error) {
+          sendData = parsedData;
+          sent = true;
+          break;
+        }
+
+        lastStatus = sendRes.status;
+        sendData = parsedData;
+
+        const isMethodNotFound =
+          parsedData?.error === "NOT_FOUND" ||
+          /matching target resource method/i.test(String(parsedData?.message || parsedData?.raw || ""));
+
+        if (!isMethodNotFound) {
+          break;
+        }
       }
 
-      if (sendRes.ok && !sendData?.error) {
+      if (sent) {
         await sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
           message_id: sendData?.messageId || crypto.randomUUID(),
@@ -507,7 +526,7 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
         console.log("Auto-response sent", { phone: senderPhone, messageId: sendData?.messageId || null });
       } else {
-        console.error("Z-API send failed:", sendRes.status, sendData);
+        console.error("Z-API send failed:", lastStatus, sendData);
       }
     }
 
