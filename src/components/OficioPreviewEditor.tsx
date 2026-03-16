@@ -150,7 +150,7 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
-        className="min-h-[120px] p-3 border border-t-0 border-border rounded-b-lg focus:outline-none bg-background text-foreground"
+        className="min-h-[120px] p-3 border border-t-0 border-border rounded-b-lg focus:outline-none bg-white text-black"
       />
 
       <style>{`
