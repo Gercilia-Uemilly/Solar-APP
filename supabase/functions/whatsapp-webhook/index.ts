@@ -7,6 +7,40 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const parseJsonSafe = (raw: string) => {
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return { raw };
+  }
+};
+
+const resolveZapiSendUrls = (instanceRaw?: string | null, tokenRaw?: string | null) => {
+  const instanceInput = (instanceRaw || "").trim();
+  const tokenInput = (tokenRaw || "").trim();
+
+  let instanceId = instanceInput;
+  let token = tokenInput;
+
+  if (/^https?:\/\//i.test(instanceInput)) {
+    try {
+      const parsed = new URL(instanceInput);
+      const pathMatch = parsed.pathname.match(/\/instances\/([^/]+)(?:\/token\/([^/]+))?/i);
+      if (pathMatch?.[1]) instanceId = decodeURIComponent(pathMatch[1]);
+      if (!token && pathMatch?.[2]) token = decodeURIComponent(pathMatch[2]);
+    } catch {
+      // ignore malformed URL and keep raw value
+    }
+  }
+
+  if (!instanceId || !token) {
+    return [] as string[];
+  }
+
+  const base = `https://api.z-api.io/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(token)}`;
+  return [`${base}/send-text`, `${base}/send-message`];
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
