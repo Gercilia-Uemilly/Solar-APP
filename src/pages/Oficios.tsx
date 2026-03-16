@@ -101,6 +101,7 @@ export default function Oficios() {
   const [dataGeracao, setDataGeracao] = useState(new Date().toISOString().split("T")[0]);
   const [enderecoCompleto, setEnderecoCompleto] = useState("");
   const [assunto, setAssunto] = useState("");
+  const [assuntoEditedInPreview, setAssuntoEditedInPreview] = useState(false);
   const [secretaria, setSecretaria] = useState("");
   const [destinatario, setDestinatario] = useState("");
   const [cargoDestinatario, setCargoDestinatario] = useState("");
