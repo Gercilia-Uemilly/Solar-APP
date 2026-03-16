@@ -54,17 +54,47 @@ serve(async (req) => {
 
     const event = body.event || body.type;
 
-    // Handle Z-API message format
-    const isZapiMessage = body.phone && (body.text || body.message || body.body);
+    // Handle Z-API message format (text, audio, image)
+    const isZapiMessage = body.phone && (body.text || body.message || body.body || body.audio || body.image);
 
     if (isZapiMessage) {
       const phone = body.phone?.replace(/\D/g, "") || "";
       const senderName = body.senderName || body.chatName || body.name || "";
-      const msgContent =
+      let msgContent =
         body.text?.message ||
         body.body ||
         (typeof body.message === "string" ? body.message : body.message?.conversation) ||
         "";
+      
+      // Handle audio messages - transcribe via Gemini
+      const audioUrl = body.audio?.audioUrl || body.audioMessage?.url || "";
+      let mediaType: string | null = null;
+      let mediaUrl: string | null = null;
+
+      if (audioUrl && !msgContent) {
+        mediaType = "audio";
+        mediaUrl = audioUrl;
+        try {
+          const transcription = await transcribeAudio(audioUrl);
+          if (transcription) {
+            msgContent = `[ÁUDIO TRANSCRITO]: ${transcription}`;
+            console.log("Audio transcribed:", transcription.slice(0, 100));
+          } else {
+            msgContent = "[Áudio recebido - não foi possível transcrever]";
+          }
+        } catch (e: any) {
+          console.error("Audio transcription error:", e.message);
+          msgContent = "[Áudio recebido - erro na transcrição]";
+        }
+      }
+
+      // Handle image messages
+      const imageUrl = body.image?.imageUrl || body.imageMessage?.url || "";
+      if (imageUrl && !msgContent) {
+        mediaType = "image";
+        mediaUrl = imageUrl;
+        msgContent = body.image?.caption || "[Imagem recebida]";
+      }
       const messageId = body.messageId || body.id?.id || crypto.randomUUID();
       const isFromMe = body.fromMe === true;
       const remoteJid = `${phone}@s.whatsapp.net`;
