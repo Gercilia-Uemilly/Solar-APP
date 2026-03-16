@@ -726,65 +726,88 @@ Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // Call OpenAI API directly
-    try {
-      const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
-      if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
+    if (selectedScript?.conteudo) {
+      const scriptText = (selectedScript.conteudo || "").trim();
+      const hasEmpathyStart = /^(entendi|poxa|nossa|sinto muito|imagino|que situacao)/i.test(normalizeText(scriptText));
+      analysis = {
+        problema: content.slice(0, 180),
+        endereco: "",
+        bairro: "",
+        secretaria: "",
+        tipo_demanda: "Informação",
+        urgencia: "Normal",
+        resposta: hasEmpathyStart ? scriptText : `Entendi.\n\n${scriptText}`,
+        registrar_demanda: false,
+        audio_sugerido: selectedAudio?.titulo || "",
+        origem: "script_bank",
+      };
+      console.log("Using script bank response:", selectedScript.titulo);
+    }
 
-      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage },
-          ],
-          temperature: 0.8,
-          max_tokens: 1024,
-          response_format: { type: "json_object" },
-        }),
-      });
-
-      if (!openaiRes.ok) {
-        const errText = await openaiRes.text();
-        throw new Error(`OpenAI ${openaiRes.status}: ${errText.slice(0, 200)}`);
-      }
-
-      const openaiData = await openaiRes.json();
-      const rawText = openaiData.choices?.[0]?.message?.content || "";
-      const cleaned = rawText
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/i, "")
-        .replace(/```$/i, "")
-        .trim();
-
+    // Call OpenAI only when there is no script match
+    if (!analysis?.resposta) {
       try {
-        const parsed = JSON.parse(cleaned);
-        analysis = {
-          problema: parsed?.problema || content.slice(0, 180),
-          endereco: parsed?.endereco || "",
-          bairro: parsed?.bairro || "",
-          secretaria: parsed?.secretaria || "",
-          tipo_demanda: parsed?.tipo_demanda || "Solicitação",
-          urgencia: parsed?.urgencia || "Normal",
-          resposta: parsed?.resposta || "",
-          registrar_demanda: Boolean(parsed?.registrar_demanda),
-          audio_sugerido: parsed?.audio_sugerido || "",
-        };
-        console.log("OpenAI agent response OK");
-      } catch {
-        console.warn("OpenAI returned invalid JSON:", cleaned.slice(0, 180));
+        const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+        if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
+
+        const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userMessage },
+            ],
+            temperature: 0.8,
+            max_tokens: 1024,
+            response_format: { type: "json_object" },
+          }),
+        });
+
+        if (!openaiRes.ok) {
+          const errText = await openaiRes.text();
+          throw new Error(`OpenAI ${openaiRes.status}: ${errText.slice(0, 200)}`);
+        }
+
+        const openaiData = await openaiRes.json();
+        const rawText = openaiData.choices?.[0]?.message?.content || "";
+        const cleaned = rawText
+          .replace(/^```json\s*/i, "")
+          .replace(/^```\s*/i, "")
+          .replace(/```$/i, "")
+          .trim();
+
+        try {
+          const parsed = JSON.parse(cleaned);
+          analysis = {
+            problema: parsed?.problema || content.slice(0, 180),
+            endereco: parsed?.endereco || "",
+            bairro: parsed?.bairro || "",
+            secretaria: parsed?.secretaria || "",
+            tipo_demanda: parsed?.tipo_demanda || "Solicitação",
+            urgencia: parsed?.urgencia || "Normal",
+            resposta: parsed?.resposta || "",
+            registrar_demanda: Boolean(parsed?.registrar_demanda),
+            audio_sugerido: parsed?.audio_sugerido || selectedAudio?.titulo || "",
+          };
+          console.log("OpenAI agent response OK");
+        } catch {
+          console.warn("OpenAI returned invalid JSON:", cleaned.slice(0, 180));
+        }
+      } catch (aiErr: any) {
+        console.error("OpenAI API error:", aiErr.message);
       }
-    } catch (aiErr: any) {
-      console.error("OpenAI API error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
-      analysis = buildFallbackAnalysis();
+      analysis = {
+        ...buildFallbackAnalysis(),
+        audio_sugerido: selectedAudio?.titulo || "",
+      };
     }
 
     // 5. Update message with AI analysis
