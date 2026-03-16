@@ -101,6 +101,7 @@ export default function Oficios() {
   const [dataGeracao, setDataGeracao] = useState(new Date().toISOString().split("T")[0]);
   const [enderecoCompleto, setEnderecoCompleto] = useState("");
   const [assunto, setAssunto] = useState("");
+  const [assuntoEditedInPreview, setAssuntoEditedInPreview] = useState(false);
   const [secretaria, setSecretaria] = useState("");
   const [destinatario, setDestinatario] = useState("");
   const [cargoDestinatario, setCargoDestinatario] = useState("");
@@ -653,6 +654,7 @@ export default function Oficios() {
     setDataGeracao(new Date().toISOString().split("T")[0]);
     setEnderecoCompleto("");
     setAssunto("");
+    setAssuntoEditedInPreview(false);
     setSecretaria("");
     setDestinatario("");
     setCargoDestinatario("");
@@ -837,7 +839,7 @@ export default function Oficios() {
     destinatario,
     assunto,
     conteudo: editedOficio,
-    bairro: enderecoCompleto || bairro,
+    bairro: assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro),
     cargoDestinatario,
     dataGeracao: dataGeracao || undefined,
     operadorNome: profileName || user?.email || undefined,
@@ -1271,7 +1273,7 @@ export default function Oficios() {
                 </Button>
               </div>
               <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={setAssunto} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} anexoImageUrls={previewImageUrls} bairro={enderecoCompleto || bairro} />
+                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={(val) => { setAssunto(val); setAssuntoEditedInPreview(true); }} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} anexoImageUrls={previewImageUrls} bairro={assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro)} />
               </div>
             </TabsContent>
 
