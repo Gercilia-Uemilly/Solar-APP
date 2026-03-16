@@ -379,75 +379,38 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // Call Lovable AI Gateway
+    // Call Gemini directly with dedicated agent key
     try {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+      const GEMINI_KEY = Deno.env.get("GEMINI_AGENT_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY");
+      if (!GEMINI_KEY) throw new Error("GEMINI_AGENT_API_KEY not configured");
 
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage },
-          ],
-        }),
-      });
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+          }),
+        }
+      );
 
-      if (!aiResponse.ok) {
-        const errText = await aiResponse.text();
-        console.error("Lovable AI error:", aiResponse.status, errText.slice(0, 300));
-        throw new Error(`AI Gateway error: ${aiResponse.status}`);
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        console.error("Gemini agent error:", geminiRes.status, errText.slice(0, 300));
+        throw new Error(`Gemini error: ${geminiRes.status}`);
       }
 
-      const aiData = await aiResponse.json();
-      const rawText = aiData.choices?.[0]?.message?.content || "";
+      const geminiData = await geminiRes.json();
+      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("AI JSON parse failed:", rawText.slice(0, 200)); }
+        try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("Gemini JSON parse failed:", rawText.slice(0, 200)); }
       }
-      console.log("Lovable AI success, registrar_demanda:", analysis?.registrar_demanda);
+      console.log("Gemini agent success, registrar_demanda:", analysis?.registrar_demanda);
     } catch (aiErr: any) {
-      console.error("Lovable AI failed:", aiErr.message, "- trying Gemini direct...");
-      
-      // Fallback to direct Gemini API
-      try {
-        const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-        if (!GOOGLE_AI_API_KEY) throw new Error("GOOGLE_AI_API_KEY not configured");
-
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
-              generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
-            }),
-          }
-        );
-
-        if (!geminiRes.ok) {
-          const errText = await geminiRes.text();
-          console.error("Gemini error:", geminiRes.status, errText.slice(0, 300));
-          throw new Error(`Gemini error: ${geminiRes.status}`);
-        }
-
-        const geminiData = await geminiRes.json();
-        const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try { analysis = JSON.parse(jsonMatch[0]); } catch { console.error("Gemini JSON parse failed"); }
-        }
-        console.log("Gemini fallback success, registrar_demanda:", analysis?.registrar_demanda);
-      } catch (geminiErr: any) {
-        console.error("Gemini fallback also failed:", geminiErr.message);
-      }
+      console.error("Gemini agent error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
