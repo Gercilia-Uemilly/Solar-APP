@@ -60,33 +60,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
       : "___";
 
-    let assuntoFormatado = assunto || "___";
-    // Extract only the bairro name from full address for assunto formatting
-    const bairroExtraido = bairro ? (extrairBairro(bairro) || bairro) : "";
-    const bairroFormatado = bairroExtraido
-      ? (bairroExtraido.toLowerCase().startsWith("bairro") || bairroExtraido.toLowerCase().includes("bairro ") ? bairroExtraido : `Bairro ${bairroExtraido}`)
-      : "";
-    const bairroClean = bairroExtraido?.replace(/^bairro\s*/i, "") || "";
-    const assuntoJaTemBairro = bairroClean && assunto?.toLowerCase().includes(bairroClean.toLowerCase());
-    if (!assuntoJaTemBairro) {
-      if (logradouro && numeroEnd && bairroFormatado) {
-        assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd} – ${bairroFormatado}`;
-      } else if (logradouro && bairroFormatado) {
-        assuntoFormatado = `${assunto} – ${logradouro} – ${bairroFormatado}`;
-      } else if (logradouro && numeroEnd) {
-        assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd}`;
-      } else if (logradouro) {
-        assuntoFormatado = `${assunto} – ${logradouro}`;
-      } else if (bairroFormatado) {
-        assuntoFormatado = `${assunto} – ${bairroFormatado}`;
-      }
-    } else if (logradouro) {
-      if (numeroEnd) {
-        assuntoFormatado = `${assunto} – ${logradouro}, nº ${numeroEnd}`;
-      } else {
-        assuntoFormatado = `${assunto} – ${logradouro}`;
-      }
-    }
+    // Assunto formatting — simply use assunto as-is. 
+    // The bairro is already included in the AI-generated assunto or set by the user.
+    // Do NOT append bairro again to avoid duplication.
+    const assuntoFormatado = assunto || "___";
 
     
 
