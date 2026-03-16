@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, ChangeEvent } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
 import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2, Save } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
@@ -811,11 +811,26 @@ export default function Oficios() {
     return imageFiles.length > 0 ? imageFiles : undefined;
   };
 
-  // Derive image URLs for preview from unified anexos
-  const previewImageUrls = anexos
-    .filter(a => a.tipo.startsWith("image/"))
-    .map(a => a.url || (a.file ? URL.createObjectURL(a.file) : ""))
-    .filter(Boolean);
+  // Derive image URLs for preview from unified anexos — stable with useMemo
+  const previewImageUrls = useMemo(() => {
+    const imageAnexos = anexos.filter(a => a.tipo.startsWith("image/"));
+    return imageAnexos.map(a => {
+      if (a.url) return a.url;
+      if (a.file) return URL.createObjectURL(a.file);
+      return "";
+    }).filter(Boolean);
+  }, [anexos]);
+
+  // Cleanup object URLs on unmount or when anexos change
+  useEffect(() => {
+    return () => {
+      previewImageUrls.forEach(url => {
+        if (url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [previewImageUrls]);
 
   const buildFormExportData = (): OficioData => ({
     numero,
