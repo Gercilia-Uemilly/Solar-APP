@@ -382,64 +382,82 @@ async function handleAIAgent(
       .filter((t: string) => t.length > 20)
       .join("\n---\n");
 
-    const systemPrompt = `Você realiza atendimento via WhatsApp para o gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
+    const systemPrompt = `IDENTIDADE DO ATENDIMENTO
 
-REGRA NÚMERO 1: Responda apenas UMA vez para cada mensagem recebida. Nunca gere múltiplas versões da mesma resposta.
-REGRA NÚMERO 2: Nunca diga que você é uma inteligência artificial. Você é um assessor do gabinete.
+Você realiza atendimento pelo WhatsApp para o gabinete do Vereador Fabão, Câmara Municipal de Uberlândia.
+O atendimento deve parecer uma conversa natural com um assessor do gabinete.
+Use linguagem simples, humana e cordial.
+Evite linguagem formal, burocrática ou institucional.
+O atendimento deve acontecer como uma conversa normal entre duas pessoas.
+REGRA: Nunca diga que você é uma inteligência artificial. Você é um assessor do gabinete.
 
-PERSONA:
-O atendimento deve acontecer como uma CONVERSA NATURAL de WhatsApp.
-Use linguagem simples e humana. Evite textos longos.
-Prefira respostas CURTAS que incentivem a continuação da conversa.
+INÍCIO DA CONVERSA
 
-FLUXO DE CONVERSA HUMANIZADO (REGRA MAIS IMPORTANTE):
-- NÃO responda tudo de uma vez.
-- Conduza a conversa em ETAPAS, fazendo perguntas quando necessário.
-- Sempre que a pessoa relatar um problema, primeiro PEÇA AS INFORMAÇÕES NECESSÁRIAS antes de dar uma resposta completa.
-- Só encaminhe/registre a demanda quando tiver as informações suficientes (endereço, bairro, detalhes do problema).
+Sempre trate cada nova conversa como um atendimento novo.
+Nunca repita assuntos antigos automaticamente.
+Se a pessoa disser apenas "Oi", "Olá", "Bom dia", "Boa tarde" ou "Boa noite", responda apenas cumprimentando e perguntando como pode ajudar.
+Exemplo: "Oi, tudo bem? 😊\nComo posso te ajudar?"
 
-Exemplo de fluxo correto:
-Cidadão: "Tem um buraco enorme na rua aqui"
-Resposta: "Você pode me passar o endereço certinho do local?"
-(Cidadão responde o endereço)
-Resposta: "Agradeço por informar 🙏\n\nVou encaminhar essa situação para o gabinete verificar com o setor responsável.\n\nAssim que eu tiver retorno te aviso por aqui."
+IDENTIFICAÇÃO DO NOME
 
-CONDUÇÃO DA CONVERSA:
-Sempre que faltar informação importante, faça perguntas como:
-- "Pode me explicar melhor o que aconteceu?"
+Se o nome da pessoa não estiver disponível no contato, pergunte de forma natural.
+Exemplo: "Antes de tudo, você pode me dizer seu nome?"
+Depois que a pessoa informar o nome, utilize o nome dela nas próximas mensagens.
+
+CONDUÇÃO DA CONVERSA
+
+Nunca responda tudo de uma vez.
+Conduza a conversa em etapas, como uma pessoa conversando.
+Primeiro entenda o problema.
+Depois peça as informações necessárias.
+Depois informe que irá encaminhar a demanda.
+
+PEDIR INFORMAÇÕES NECESSÁRIAS
+
+Sempre peça as informações importantes para registrar a demanda.
+Exemplos:
+- "Pode me explicar melhor o que está acontecendo?"
 - "Qual é o endereço certinho do local?"
-- "Isso aconteceu em qual bairro?"
+- "Isso fica em qual bairro?"
 - "Se tiver foto também pode me mandar aqui."
 
-ESTILO DE COMUNICAÇÃO:
-- Respostas CURTAS (2-4 linhas no máximo)
-- Linguagem simples e direta
-- Emojis apenas 😊 e 🙏 (evite 👍)
-- NÃO use listas, tópicos ou estrutura formal
-- NÃO seja robótico
-- NÃO escreva parágrafos longos
+IDENTIFICAÇÃO AUTOMÁTICA DO TIPO DE DEMANDA
 
-EXEMPLOS DE ESTILO:
-- "Oi, tudo bem? 😊"
-- "Pode me explicar melhor o que está acontecendo?"
-- "Você pode me passar o endereço certinho do local?"
+Quando a pessoa relatar um problema, identifique automaticamente o tipo de solicitação e peça as informações:
+- BURACO NA RUA → "Qual é o endereço certinho da rua?"
+- ILUMINAÇÃO PÚBLICA → "Qual é o endereço ou o poste mais próximo?"
+- TRANSPORTE / ÔNIBUS → "Qual linha ou qual ponto de ônibus?"
+- ESCOLA / EDUCAÇÃO → "Qual é o nome da escola?"
+- SAÚDE → "Qual unidade de saúde ou hospital?"
+Sempre peça as informações antes de finalizar o atendimento.
+
+REGISTRO DA DEMANDA
+
+Seu papel é apenas registrar a demanda.
+Nunca crie ofício automaticamente.
+Nunca escreva textos formais de ofício.
+Você deve apenas coletar informações e informar que a demanda será encaminhada.
+Exemplo: "Obrigado por informar 🙏\nVou registrar essa demanda aqui no gabinete e encaminhar para o setor responsável."
+
+ESTILO DE RESPOSTA
+
+Use frases curtas e naturais (2-4 linhas no máximo).
+Exemplos:
+- "Entendi."
+- "Pode me explicar melhor?"
+- "Você pode me passar o endereço?"
 - "Agradeço por informar 🙏"
-- "Vou verificar isso e te dou um retorno por aqui."
 
-TRATAMENTO:
-Use o nome da pessoa de forma natural e amigável.
-Ex: "Oi Maria, tudo bem? 😊"
-Ex: "Carlos, pode me passar o endereço certinho?"
+EMOJIS
 
-SITUAÇÕES ESPECÍFICAS:
-- Primeira mensagem / "Oi": "Oi, tudo bem? 😊 Como posso te ajudar?"
-- Problema relatado SEM endereço: Pergunte o endereço antes de tudo.
-- Problema relatado SEM detalhes: "Pode me explicar melhor o que aconteceu?"
-- Áudio/Imagem recebido: "Recebi! Deixa eu analisar aqui 😊"
-- Problema grave: Demonstre empatia primeiro, depois peça informações.
-- Já tem todas as informações: Confirme que vai encaminhar e dar retorno.
+Use apenas emojis simples: 😊 e 🙏
+Evite usar o emoji 👍.
 
-USO DE HISTÓRICO: Analise o histórico da conversa. Se o cidadão JÁ informou endereço ou detalhes em mensagens anteriores, NÃO pergunte novamente. Use as informações já fornecidas.
+REGRA IMPORTANTE
+
+Responda apenas uma vez para cada mensagem recebida.
+Nunca gere múltiplas respostas para a mesma mensagem.
+Sempre aguarde a próxima mensagem da pessoa antes de continuar.
 
 MAPEAMENTO DE SECRETARIAS:
 - Buraco, asfalto, pavimentação → Secretaria de Obras
@@ -450,6 +468,8 @@ MAPEAMENTO DE SECRETARIAS:
 - Escola, creche → Secretaria de Educação
 - Trânsito, semáforo → SETTRAN
 - Água, esgoto → DMAE
+
+USO DE HISTÓRICO: Se o cidadão JÁ informou endereço ou detalhes em mensagens anteriores, NÃO pergunte novamente.
 
 CONTEXTO DA CONVERSA:
 
@@ -471,11 +491,9 @@ ${audioStyleText || "Sem áudios de referência"}
 REFERÊNCIA DE ESTILO - CONVERSAS REAIS DO GABINETE:
 ${convStyleText || "Sem conversas de referência"}
 
-REGRA CRÍTICA DE ESTILO: Copie o tom das conversas e áudios reais acima. Use expressões naturais. A resposta deve parecer escrita por uma pessoa real.
-
 DECISÃO DE REGISTRO: Só coloque "registrar_demanda": true quando você JÁ tiver coletado endereço/bairro e detalhes suficientes do problema. Se ainda estiver fazendo perguntas, use false.
 
-IMPORTANTE: Responda em JSON com esta estrutura exata:
+Responda em JSON com esta estrutura exata:
 {
   "problema": "descrição do problema (ou vazio se ainda coletando info)",
   "endereco": "endereço se mencionado",
@@ -484,88 +502,66 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
   "tipo_demanda": "Solicitação|Reclamação|Denúncia|Sugestão|Informação",
   "urgencia": "Normal|Urgente",
   "resposta": "sua resposta CURTA ao cidadão",
-  "registrar_demanda": true ou false (true SOMENTE se já tem informações suficientes)
+  "registrar_demanda": true ou false
 }`;
-
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`;
 
     let analysis: any = null;
 
-    // Call via Lovable AI Gateway (no quota issues)
+    // Call OpenAI API directly
     try {
-      const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
-      if (!LOVABLE_KEY) throw new Error("LOVABLE_API_KEY not configured");
+      const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+      if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-      const gatewayUrl = `${SUPABASE_URL}/functions/v1/ai-proxy`;
+      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENAI_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.8,
+          max_tokens: 1024,
+          response_format: { type: "json_object" },
+        }),
+      });
 
-      const models = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
-      let lastError = "";
-
-      for (const model of models) {
-        const gatewayRes = await fetch(gatewayUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${LOVABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userMessage },
-            ],
-            temperature: 0.8,
-            max_tokens: 1024,
-            response_format: { type: "json_object" },
-          }),
-        });
-
-        if (!gatewayRes.ok) {
-          const errText = await gatewayRes.text();
-          lastError = `${model} -> ${gatewayRes.status}`;
-          console.warn(`Gateway ${model} failed (${gatewayRes.status}): ${errText.slice(0, 180)}`);
-          continue;
-        }
-
-        const gatewayData = await gatewayRes.json();
-        const rawText = gatewayData.choices?.[0]?.message?.content || "";
-        const cleaned = rawText
-          .replace(/^```json\s*/i, "")
-          .replace(/^```\s*/i, "")
-          .replace(/```$/i, "")
-          .trim();
-
-        try {
-          const parsed = JSON.parse(cleaned);
-          analysis = {
-            problema: parsed?.problema || content.slice(0, 180),
-            endereco: parsed?.endereco || "",
-            bairro: parsed?.bairro || "",
-            secretaria: parsed?.secretaria || "",
-            tipo_demanda: parsed?.tipo_demanda || "Solicitação",
-            urgencia: parsed?.urgencia || "Normal",
-            resposta: parsed?.resposta || "",
-            registrar_demanda: Boolean(parsed?.registrar_demanda),
-          };
-
-          if (analysis.resposta) {
-            console.log(`Gateway model ${model} succeeded`);
-            break;
-          }
-
-          lastError = `${model} -> resposta vazia`;
-        } catch {
-          lastError = `${model} -> JSON inválido`;
-          console.warn(`Gateway ${model} returned invalid JSON: ${cleaned.slice(0, 180)}`);
-        }
+      if (!openaiRes.ok) {
+        const errText = await openaiRes.text();
+        throw new Error(`OpenAI ${openaiRes.status}: ${errText.slice(0, 200)}`);
       }
 
-      if (!analysis?.resposta) {
-        throw new Error(`All gateway models failed (${lastError || "unknown"})`);
+      const openaiData = await openaiRes.json();
+      const rawText = openaiData.choices?.[0]?.message?.content || "";
+      const cleaned = rawText
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/```$/i, "")
+        .trim();
+
+      try {
+        const parsed = JSON.parse(cleaned);
+        analysis = {
+          problema: parsed?.problema || content.slice(0, 180),
+          endereco: parsed?.endereco || "",
+          bairro: parsed?.bairro || "",
+          secretaria: parsed?.secretaria || "",
+          tipo_demanda: parsed?.tipo_demanda || "Solicitação",
+          urgencia: parsed?.urgencia || "Normal",
+          resposta: parsed?.resposta || "",
+          registrar_demanda: Boolean(parsed?.registrar_demanda),
+        };
+        console.log("OpenAI agent response OK");
+      } catch {
+        console.warn("OpenAI returned invalid JSON:", cleaned.slice(0, 180));
       }
     } catch (aiErr: any) {
-      console.error("AI Gateway error:", aiErr.message);
+      console.error("OpenAI API error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
@@ -656,11 +652,11 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
   }
 }
 
-// ── Audio Transcription via Lovable AI Gateway ──
+// ── Audio Transcription via OpenAI GPT-4o-mini (multimodal) ──
 async function transcribeAudio(audioUrl: string): Promise<string | null> {
-  const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
-  if (!LOVABLE_KEY) {
-    console.error("No LOVABLE_API_KEY for audio transcription");
+  const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+  if (!OPENAI_KEY) {
+    console.error("No OPENAI_API_KEY for audio transcription");
     return null;
   }
 
@@ -685,56 +681,49 @@ async function transcribeAudio(audioUrl: string): Promise<string | null> {
 
   const mimeType = audioRes.headers.get("content-type") || "audio/ogg";
 
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-  const gatewayUrl = `${SUPABASE_URL}/functions/v1/ai-proxy`;
+  try {
+    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${audioBase64}` },
+              },
+              {
+                type: "text",
+                text: "Transcreva este áudio em português brasileiro. Retorne APENAS o texto transcrito, sem formatação, sem aspas, sem explicações.",
+              },
+            ],
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2048,
+      }),
+    });
 
-  const models = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
-  
-  for (const model of models) {
-    try {
-      const gatewayRes = await fetch(gatewayUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${LOVABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "image_url",
-                  image_url: { url: `data:${mimeType};base64,${audioBase64}` },
-                },
-                {
-                  type: "text",
-                  text: "Transcreva este áudio em português brasileiro. Retorne APENAS o texto transcrito, sem formatação, sem aspas, sem explicações.",
-                },
-              ],
-            },
-          ],
-          temperature: 0.1,
-          max_tokens: 2048,
-        }),
-      });
-
-      if (!gatewayRes.ok) {
-        const errText = await gatewayRes.text();
-        console.warn(`Transcription ${model} failed (${gatewayRes.status}): ${errText.slice(0, 100)}`);
-        continue;
-      }
-
-      const data = await gatewayRes.json();
-      const text = data.choices?.[0]?.message?.content?.trim() || "";
-      if (text) {
-        console.log(`Audio transcribed with ${model}`);
-        return text;
-      }
-    } catch (e: any) {
-      console.warn(`Transcription ${model} error: ${e.message}`);
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text();
+      console.warn(`Audio transcription failed (${openaiRes.status}): ${errText.slice(0, 100)}`);
+      return null;
     }
+
+    const data = await openaiRes.json();
+    const text = data.choices?.[0]?.message?.content?.trim() || "";
+    if (text) {
+      console.log("Audio transcribed via OpenAI");
+      return text;
+    }
+  } catch (e: any) {
+    console.warn(`Audio transcription error: ${e.message}`);
   }
 
   return null;
