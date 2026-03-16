@@ -30,7 +30,7 @@ interface Props {
   anexoImageUrls?: string[];
 }
 
-import { cleanNumero, buildVocativo } from "@/lib/oficioUtils";
+import { cleanNumero, buildVocativo, extrairBairro } from "@/lib/oficioUtils";
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo, anexoImageUrls }, ref) => {
