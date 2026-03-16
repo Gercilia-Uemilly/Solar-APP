@@ -645,7 +645,7 @@ Responda em JSON:
               messages: [
                 { role: "system", content: `Você é assessor do vereador Fabão de Uberlândia. Adapte o script abaixo para uma resposta natural de WhatsApp.
 Regras:
-- Comece com empatia ("Poxa...", "Puxa vida...", "Nossa...")
+- Comece com empatia ("Então, colega...", "Então, fulano...", "Nossa...")
 - Use linguagem informal mineira: "viu?", "tá?", "né?", "deixa eu te falar"
 - Máximo 3 frases curtas
 - Use emojis: 😊 🙏 😔
