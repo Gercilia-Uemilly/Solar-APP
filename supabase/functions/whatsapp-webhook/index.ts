@@ -656,11 +656,11 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
   }
 }
 
-// ── Audio Transcription via Gemini ──
+// ── Audio Transcription via Lovable AI Gateway ──
 async function transcribeAudio(audioUrl: string): Promise<string | null> {
-  const GEMINI_KEY = (Deno.env.get("GEMINI_AGENT_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
-  if (!GEMINI_KEY) {
-    console.error("No Gemini key for audio transcription");
+  const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
+  if (!LOVABLE_KEY) {
+    console.error("No LOVABLE_API_KEY for audio transcription");
     return null;
   }
 
@@ -685,43 +685,49 @@ async function transcribeAudio(audioUrl: string): Promise<string | null> {
 
   const mimeType = audioRes.headers.get("content-type") || "audio/ogg";
 
-  // Use Gemini to transcribe
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+  const gatewayUrl = `${SUPABASE_URL}/functions/v1/ai-proxy`;
+
+  const models = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
   
   for (const model of models) {
     try {
-      const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
+      const gatewayRes = await fetch(gatewayUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${LOVABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "user",
+              content: [
                 {
-                  inlineData: {
-                    mimeType: mimeType,
-                    data: audioBase64,
-                  },
+                  type: "image_url",
+                  image_url: { url: `data:${mimeType};base64,${audioBase64}` },
                 },
                 {
+                  type: "text",
                   text: "Transcreva este áudio em português brasileiro. Retorne APENAS o texto transcrito, sem formatação, sem aspas, sem explicações.",
                 },
               ],
-            }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
-          }),
-        }
-      );
+            },
+          ],
+          temperature: 0.1,
+          max_tokens: 2048,
+        }),
+      });
 
-      if (!geminiRes.ok) {
-        const errText = await geminiRes.text();
-        console.warn(`Transcription ${model} failed (${geminiRes.status}): ${errText.slice(0, 100)}`);
+      if (!gatewayRes.ok) {
+        const errText = await gatewayRes.text();
+        console.warn(`Transcription ${model} failed (${gatewayRes.status}): ${errText.slice(0, 100)}`);
         continue;
       }
 
-      const data = await geminiRes.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      const data = await gatewayRes.json();
+      const text = data.choices?.[0]?.message?.content?.trim() || "";
       if (text) {
         console.log(`Audio transcribed with ${model}`);
         return text;
