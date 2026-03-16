@@ -15,61 +15,24 @@ const parseJsonSafe = (raw: string) => {
   }
 };
 
-const resolveZapiSendUrls = (instanceRaw?: string | null, tokenRaw?: string | null) => {
-  const instanceInput = (instanceRaw || "").trim();
-  const tokenInput = (tokenRaw || "").trim();
+const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | null) => {
+  const inst = (instanceRaw || "").trim();
+  const tok = (tokenRaw || "").trim();
 
-  const urls = new Set<string>();
-  const tokenCandidates = new Set<string>();
+  if (!inst || !tok) return "";
 
-  let instanceId = "";
-  let baseOrigin = "https://api.z-api.io";
-
-  if (tokenInput) {
-    if (/^https?:\/\//i.test(tokenInput)) {
-      try {
-        const parsed = new URL(tokenInput);
-        const tokenMatch = parsed.pathname.match(/\/token\/([^/]+)/i);
-        if (tokenMatch?.[1]) tokenCandidates.add(decodeURIComponent(tokenMatch[1]));
-      } catch {
-        // ignore malformed token URL
-      }
-    } else {
-      tokenCandidates.add(tokenInput);
-    }
-  }
-
-  if (/^https?:\/\//i.test(instanceInput)) {
+  // If instance is a full URL, extract parts
+  if (/^https?:\/\//i.test(inst)) {
     try {
-      const parsed = new URL(instanceInput);
-      baseOrigin = `${parsed.protocol}//${parsed.host}`;
-      const normalizedPath = parsed.pathname.replace(/\/+$/, "");
-
-      if (/\/send-(text|message)$/i.test(normalizedPath)) {
-        urls.add(`${baseOrigin}${normalizedPath}`);
+      const u = new URL(inst);
+      const m = u.pathname.match(/\/instances\/([^/]+)\/token\/([^/]+)/i);
+      if (m) {
+        return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
       }
-
-      const pathMatch = normalizedPath.match(/\/instances\/([^/]+)(?:\/token\/([^/]+))?/i);
-      if (pathMatch?.[1]) instanceId = decodeURIComponent(pathMatch[1]);
-      if (pathMatch?.[2]) tokenCandidates.add(decodeURIComponent(pathMatch[2]));
-    } catch {
-      // ignore malformed URL and fallback to plain values
-    }
-  } else {
-    instanceId = instanceInput;
+    } catch { /* fallthrough */ }
   }
 
-  if (!instanceId || tokenCandidates.size === 0) {
-    return Array.from(urls);
-  }
-
-  for (const token of tokenCandidates) {
-    const base = `${baseOrigin}/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(token)}`;
-    urls.add(`${base}/send-text`);
-    urls.add(`${base}/send-message`);
-  }
-
-  return Array.from(urls);
+  return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
 };
 
 serve(async (req) => {
