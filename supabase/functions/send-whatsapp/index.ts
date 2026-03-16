@@ -88,10 +88,16 @@ serve(async (req) => {
       body: JSON.stringify({ phone, message }),
     });
 
-    const zapiData = await zapiResponse.json();
+    const zapiText = await zapiResponse.text();
+    let zapiData: any = null;
+    try {
+      zapiData = zapiText ? JSON.parse(zapiText) : null;
+    } catch {
+      zapiData = { raw: zapiText };
+    }
 
-    if (!zapiResponse.ok) {
-      console.error("Z-API error:", zapiData);
+    if (!zapiResponse.ok || zapiData?.error) {
+      console.error("Z-API error:", { status: zapiResponse.status, data: zapiData });
       return new Response(
         JSON.stringify({ error: "Falha ao enviar mensagem", details: zapiData }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
