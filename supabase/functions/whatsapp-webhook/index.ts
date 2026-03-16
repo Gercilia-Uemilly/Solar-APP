@@ -24,26 +24,56 @@ const normalizeText = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+// Synonym groups to expand matching
+const SYNONYMS: Record<string, string[]> = {
+  dinheiro: ["dinheiro", "grana", "empresta", "emprestimo", "sem dinheiro", "ajuda financeira", "real", "reais", "pagar", "fome", "passagem", "onibus", "aluguel", "conta", "doacao", "ajuda"],
+  castração: ["castracao", "castrar", "castramóvel", "castramovel", "cachorro", "gato", "animal"],
+  habitacao: ["casa popular", "casas populares", "habitacao", "apartamento", "moradia", "cheque moradia", "aluguel social"],
+  iluminacao: ["poste", "poste apagado", "iluminacao", "luz", "lampada", "escuro"],
+  buraco: ["buraco", "asfalto", "pavimentacao", "rua esburacada", "cratera"],
+  agua: ["agua", "esgoto", "dmae", "vazamento", "falta de agua", "sem agua"],
+  energia: ["energia", "cemig", "luz", "sem luz", "queda de energia"],
+  saude: ["saude", "ubs", "hospital", "uai", "consulta", "medico", "exame"],
+  escola: ["escola", "creche", "educacao", "matricula", "vaga"],
+  emprego: ["emprego", "vaga", "trabalho", "curriculo", "desempregado"],
+  transporte: ["transporte", "onibus", "tarifa", "passe", "tarifa zero"],
+  capina: ["capina", "mato", "terreno", "limpeza", "roçar", "rocar"],
+  animal: ["animal", "cachorro", "gato", "maus tratos", "abandono", "mordida"],
+  lixo: ["lixo", "entulho", "coleta", "limpeza"],
+};
+
+const expandWithSynonyms = (text: string): string => {
+  const normalized = normalizeText(text);
+  const extra: string[] = [];
+  for (const [, synonyms] of Object.entries(SYNONYMS)) {
+    const matched = synonyms.some((s) => normalized.includes(normalizeText(s)));
+    if (matched) {
+      extra.push(...synonyms.map((s) => normalizeText(s)));
+    }
+  }
+  return normalized + " " + extra.join(" ");
+};
+
 const scoreMatch = (userText: string, title = "", tags: string[] = [], content = "") => {
-  const normalizedUser = normalizeText(userText);
+  const expandedUser = expandWithSynonyms(userText);
   let score = 0;
 
   const normalizedTitle = normalizeText(title);
-  if (normalizedTitle && normalizedUser.includes(normalizedTitle)) score += 8;
+  if (normalizedTitle && expandedUser.includes(normalizedTitle)) score += 8;
 
   for (const tag of tags || []) {
     const t = normalizeText(tag || "");
-    if (t.length >= 3 && normalizedUser.includes(t)) score += 5;
+    if (t.length >= 3 && expandedUser.includes(t)) score += 5;
   }
 
-  const titleWords = normalizedTitle.split(" ").filter((w) => w.length >= 4);
+  const titleWords = normalizedTitle.split(" ").filter((w) => w.length >= 3);
   for (const w of titleWords) {
-    if (normalizedUser.includes(w)) score += 1;
+    if (expandedUser.includes(w)) score += 2;
   }
 
-  const contentWords = normalizeText(content).split(" ").filter((w) => w.length >= 5).slice(0, 20);
+  const contentWords = normalizeText(content).split(" ").filter((w) => w.length >= 4).slice(0, 30);
   for (const w of contentWords) {
-    if (normalizedUser.includes(w)) score += 0.5;
+    if (expandedUser.includes(w)) score += 0.5;
   }
 
   return score;
