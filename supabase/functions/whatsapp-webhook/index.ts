@@ -491,41 +491,45 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
 
     let analysis: any = null;
 
-    // Call Gemini directly with dedicated agent key
+    // Call via Lovable AI Gateway (no quota issues)
     try {
-      const GEMINI_KEY = (Deno.env.get("GEMINI_AGENT_API_KEY") || "").trim();
-      if (!GEMINI_KEY) throw new Error("GEMINI_AGENT_API_KEY not configured");
+      const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
+      if (!LOVABLE_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-      // Models em cascata - priorizar qualidade
-      const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+      const gatewayUrl = `${SUPABASE_URL}/functions/v1/ai-proxy`;
+
+      const models = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
       let lastError = "";
 
       for (const model of models) {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
-              generationConfig: {
-                temperature: 0.8,
-                maxOutputTokens: 1024,
-                responseMimeType: "application/json",
-              },
-            }),
-          }
-        );
+        const gatewayRes = await fetch(gatewayUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${LOVABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userMessage },
+            ],
+            temperature: 0.8,
+            max_tokens: 1024,
+            response_format: { type: "json_object" },
+          }),
+        });
 
-        if (!geminiRes.ok) {
-          const errText = await geminiRes.text();
-          lastError = `${model} -> ${geminiRes.status}`;
-          console.warn(`Gemini ${model} failed (${geminiRes.status}): ${errText.slice(0, 180)}`);
+        if (!gatewayRes.ok) {
+          const errText = await gatewayRes.text();
+          lastError = `${model} -> ${gatewayRes.status}`;
+          console.warn(`Gateway ${model} failed (${gatewayRes.status}): ${errText.slice(0, 180)}`);
           continue;
         }
 
-        const geminiData = await geminiRes.json();
-        const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const gatewayData = await gatewayRes.json();
+        const rawText = gatewayData.choices?.[0]?.message?.content || "";
         const cleaned = rawText
           .replace(/^```json\s*/i, "")
           .replace(/^```\s*/i, "")
@@ -546,22 +550,22 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
           };
 
           if (analysis.resposta) {
-            console.log(`Gemini model ${model} succeeded`);
+            console.log(`Gateway model ${model} succeeded`);
             break;
           }
 
           lastError = `${model} -> resposta vazia`;
         } catch {
           lastError = `${model} -> JSON inválido`;
-          console.warn(`Gemini ${model} returned invalid JSON: ${cleaned.slice(0, 180)}`);
+          console.warn(`Gateway ${model} returned invalid JSON: ${cleaned.slice(0, 180)}`);
         }
       }
 
       if (!analysis?.resposta) {
-        throw new Error(`All Gemini models failed (${lastError || "unknown"})`);
+        throw new Error(`All gateway models failed (${lastError || "unknown"})`);
       }
     } catch (aiErr: any) {
-      console.error("Gemini agent error:", aiErr.message);
+      console.error("AI Gateway error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
