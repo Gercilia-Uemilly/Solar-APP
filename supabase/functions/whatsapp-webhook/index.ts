@@ -15,6 +15,40 @@ const parseJsonSafe = (raw: string) => {
   }
 };
 
+const normalizeText = (value: string) =>
+  (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const scoreMatch = (userText: string, title = "", tags: string[] = [], content = "") => {
+  const normalizedUser = normalizeText(userText);
+  let score = 0;
+
+  const normalizedTitle = normalizeText(title);
+  if (normalizedTitle && normalizedUser.includes(normalizedTitle)) score += 8;
+
+  for (const tag of tags || []) {
+    const t = normalizeText(tag || "");
+    if (t.length >= 3 && normalizedUser.includes(t)) score += 5;
+  }
+
+  const titleWords = normalizedTitle.split(" ").filter((w) => w.length >= 4);
+  for (const w of titleWords) {
+    if (normalizedUser.includes(w)) score += 1;
+  }
+
+  const contentWords = normalizeText(content).split(" ").filter((w) => w.length >= 5).slice(0, 20);
+  for (const w of contentWords) {
+    if (normalizedUser.includes(w)) score += 0.5;
+  }
+
+  return score;
+};
+
 const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | null) => {
   const inst = (instanceRaw || "").trim();
   const tok = (tokenRaw || "").trim();
