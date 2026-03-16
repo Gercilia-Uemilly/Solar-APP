@@ -473,39 +473,37 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
     const zapiUrls = resolveZapiSendUrls(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
 
     if (zapiUrls.length && analysis.resposta) {
-      const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
+      const baseHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      const headerAttempts: Record<string, string>[] = ZAPI_CLIENT_TOKEN
+        ? [{ ...baseHeaders, "Client-Token": ZAPI_CLIENT_TOKEN }, baseHeaders]
+        : [baseHeaders];
 
       let sendData: any = null;
       let sent = false;
       let lastStatus = 500;
 
       for (const zapiUrl of zapiUrls) {
-        const sendRes = await fetch(zapiUrl, {
-          method: "POST",
-          headers: zapiHeaders,
-          body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
-        });
+        for (const headers of headerAttempts) {
+          const sendRes = await fetch(zapiUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ phone: senderPhone, message: analysis.resposta }),
+          });
 
-        const sendText = await sendRes.text();
-        const parsedData = parseJsonSafe(sendText);
+          const sendText = await sendRes.text();
+          const parsedData = parseJsonSafe(sendText);
 
-        if (sendRes.ok && !parsedData?.error) {
+          if (sendRes.ok && !parsedData?.error) {
+            sendData = parsedData;
+            sent = true;
+            break;
+          }
+
+          lastStatus = sendRes.status;
           sendData = parsedData;
-          sent = true;
-          break;
         }
 
-        lastStatus = sendRes.status;
-        sendData = parsedData;
-
-        const isMethodNotFound =
-          parsedData?.error === "NOT_FOUND" ||
-          /matching target resource method/i.test(String(parsedData?.message || parsedData?.raw || ""));
-
-        if (!isMethodNotFound) {
-          break;
-        }
+        if (sent) break;
       }
 
       if (sent) {

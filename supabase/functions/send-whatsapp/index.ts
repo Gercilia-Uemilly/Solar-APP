@@ -118,40 +118,38 @@ serve(async (req) => {
       .replace("@s.whatsapp.net", "")
       .replace("@g.us", "");
 
-    // Send message via Z-API (com fallback de endpoint)
-    const zapiHeaders: Record<string, string> = { "Content-Type": "application/json" };
-    if (ZAPI_CLIENT_TOKEN) zapiHeaders["Client-Token"] = ZAPI_CLIENT_TOKEN;
+    // Send message via Z-API (fallback de endpoint + fallback de header)
+    const baseHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    const headerAttempts: Record<string, string>[] = ZAPI_CLIENT_TOKEN
+      ? [{ ...baseHeaders, "Client-Token": ZAPI_CLIENT_TOKEN }, baseHeaders]
+      : [baseHeaders];
 
     let zapiData: any = null;
     let sent = false;
     let lastStatus = 500;
 
     for (const zapiUrl of zapiUrls) {
-      const zapiResponse = await fetch(zapiUrl, {
-        method: "POST",
-        headers: zapiHeaders,
-        body: JSON.stringify({ phone, message }),
-      });
+      for (const headers of headerAttempts) {
+        const zapiResponse = await fetch(zapiUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ phone, message }),
+        });
 
-      const zapiText = await zapiResponse.text();
-      const parsedData = parseJsonSafe(zapiText);
+        const zapiText = await zapiResponse.text();
+        const parsedData = parseJsonSafe(zapiText);
 
-      if (zapiResponse.ok && !parsedData?.error) {
+        if (zapiResponse.ok && !parsedData?.error) {
+          zapiData = parsedData;
+          sent = true;
+          break;
+        }
+
+        lastStatus = zapiResponse.status;
         zapiData = parsedData;
-        sent = true;
-        break;
       }
 
-      lastStatus = zapiResponse.status;
-      zapiData = parsedData;
-
-      const isMethodNotFound =
-        parsedData?.error === "NOT_FOUND" ||
-        /matching target resource method/i.test(String(parsedData?.message || parsedData?.raw || ""));
-
-      if (!isMethodNotFound) {
-        break;
-      }
+      if (sent) break;
     }
 
     if (!sent) {
