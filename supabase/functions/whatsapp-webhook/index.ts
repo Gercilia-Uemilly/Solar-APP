@@ -30,10 +30,12 @@ const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | nul
   return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
 };
 
-const buildZapiHeaders = () => {
+const buildZapiHeaders = (withToken = false) => {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const clientToken = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
-  if (clientToken) headers["Client-Token"] = clientToken;
+  if (withToken) {
+    const clientToken = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
+    if (clientToken) headers["Client-Token"] = clientToken;
+  }
   return headers;
 };
 
