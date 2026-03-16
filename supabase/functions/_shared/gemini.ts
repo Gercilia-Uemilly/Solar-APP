@@ -29,10 +29,15 @@ interface GeminiResponse {
 
 // Map short Gemini model names to gateway model IDs
 function mapModel(m?: string): string {
-  if (!m) return "google/gemini-2.5-flash";
+  if (!m) return "google/gemini-3-flash-preview";
   if (m.startsWith("google/") || m.startsWith("openai/")) return m;
-  // e.g. "gemini-2.5-flash-lite" → "google/gemini-2.5-flash-lite"
-  return `google/${m}`;
+  // Map short names: "gemini-2.5-flash-lite" → "google/gemini-2.5-flash-lite"
+  const modelMap: Record<string, string> = {
+    "gemini-2.5-flash": "google/gemini-2.5-flash",
+    "gemini-2.5-flash-lite": "google/gemini-2.5-flash-lite",
+    "gemini-2.5-pro": "google/gemini-2.5-pro",
+  };
+  return modelMap[m] || `google/${m}`;
 }
 
 // Convert GeminiPart[] to OpenAI content array
