@@ -399,6 +399,11 @@ ${knowledgeText || "Sem dados na base"}
 Respostas modelo (exemplos corrigidos por operadores):
 ${modelText || "Nenhum exemplo disponível"}
 
+REFERÊNCIA DE ESTILO - ÁUDIOS REAIS DO VEREADOR (COPIE ESTE TOM E JEITO DE FALAR):
+${audioStyleText || "Sem áudios de referência"}
+
+REGRA CRÍTICA DE ESTILO: Analise os áudios acima e copie o jeito de falar: expressões como "a gente corre atrás", "qualquer coisa que você precisar", "pode me chamar", "vou verificar isso pra você". Use o mesmo tom coloquial, próximo e acolhedor. NÃO use linguagem formal.
+
 IMPORTANTE: Responda em JSON com esta estrutura exata:
 {
   "problema": "descrição do problema",
