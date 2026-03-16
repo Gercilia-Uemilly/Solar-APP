@@ -403,8 +403,8 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
       const GEMINI_KEY = (Deno.env.get("GEMINI_AGENT_API_KEY") || "").trim();
       if (!GEMINI_KEY) throw new Error("GEMINI_AGENT_API_KEY not configured");
 
-      // Models em cascata (somente modelos válidos)
-      const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+      // Models em cascata - priorizar qualidade
+      const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
       let lastError = "";
 
       for (const model of models) {
@@ -416,7 +416,7 @@ IMPORTANTE: Responda em JSON com esta estrutura exata:
             body: JSON.stringify({
               contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
               generationConfig: {
-                temperature: 0.6,
+                temperature: 0.8,
                 maxOutputTokens: 1024,
                 responseMimeType: "application/json",
               },
