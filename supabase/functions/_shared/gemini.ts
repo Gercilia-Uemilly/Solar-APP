@@ -1,7 +1,7 @@
-// Shared AI helper — uses Lovable AI Gateway (OpenAI-compatible)
+// Shared AI helper — uses OpenAI API directly with OPENAI_API_KEY
 // Keeps the same interface so all edge functions work without changes.
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
 export interface GeminiPart {
   text?: string;
@@ -27,17 +27,21 @@ interface GeminiResponse {
   raw: any;
 }
 
-// Map short Gemini model names to gateway model IDs
 function mapModel(m?: string): string {
-  if (!m) return "openai/gpt-5-mini";
-  if (m.startsWith("google/") || m.startsWith("openai/")) return m;
-  // Map short Gemini names used by existing functions
+  if (!m) return "gpt-4o-mini";
   const modelMap: Record<string, string> = {
-    "gemini-2.5-flash": "openai/gpt-5-mini",
-    "gemini-2.5-flash-lite": "openai/gpt-5-nano",
-    "gemini-2.5-pro": "openai/gpt-5",
+    "gemini-2.5-flash": "gpt-4o-mini",
+    "gemini-2.5-flash-lite": "gpt-4o-mini",
+    "gemini-2.5-pro": "gpt-4o",
+    "openai/gpt-5": "gpt-4o",
+    "openai/gpt-5-mini": "gpt-4o-mini",
+    "openai/gpt-5-nano": "gpt-4o-mini",
+    "google/gemini-2.5-flash": "gpt-4o-mini",
+    "google/gemini-2.5-flash-lite": "gpt-4o-mini",
+    "google/gemini-2.5-pro": "gpt-4o",
+    "google/gemini-3-flash-preview": "gpt-4o-mini",
   };
-  return modelMap[m] || `openai/${m}`;
+  return modelMap[m] || "gpt-4o-mini";
 }
 
 // Convert GeminiPart[] to OpenAI content array
@@ -81,7 +85,7 @@ function convertTools(tools?: any[]): any[] | undefined {
   return out;
 }
 
-function convertToolConfig(toolConfig?: any, tools?: any[]): any {
+function convertToolConfig(toolConfig?: any): any {
   if (!toolConfig) return undefined;
   const fcc = toolConfig.functionCallingConfig;
   if (fcc?.mode === "ANY" && fcc.allowedFunctionNames?.length === 1) {
@@ -91,8 +95,8 @@ function convertToolConfig(toolConfig?: any, tools?: any[]): any {
 }
 
 export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
 
   const openaiMessages: any[] = [];
 
@@ -118,12 +122,12 @@ export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
   if (convertedTools) {
     body.tools = convertedTools;
   }
-  const toolChoice = convertToolConfig(opts.toolConfig, opts.tools);
+  const toolChoice = convertToolConfig(opts.toolConfig);
   if (toolChoice) {
     body.tool_choice = toolChoice;
   }
 
-  const response = await fetch(GATEWAY_URL, {
+  const response = await fetch(OPENAI_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -134,28 +138,26 @@ export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error("AI Gateway error:", response.status, errText);
+    console.error("OpenAI API error:", response.status, errText);
 
     if (response.status === 429) {
       throw Object.assign(new Error("Limite de requisições excedido. Tente novamente."), { status: 429 });
     }
-    if (response.status === 402) {
-      throw Object.assign(new Error("Créditos insuficientes no Lovable AI. Adicione créditos."), { status: 402 });
+    if (response.status === 401) {
+      throw Object.assign(new Error("Chave da API OpenAI inválida."), { status: 401 });
     }
-    if (response.status === 403) {
-      throw Object.assign(new Error("Chave da API inválida ou sem permissão."), { status: 403 });
+    if (response.status === 402 || response.status === 403) {
+      throw Object.assign(new Error("Sem créditos ou sem permissão na OpenAI."), { status: response.status });
     }
-    throw Object.assign(new Error(`Erro AI Gateway: ${response.status}`), { status: response.status });
+    throw Object.assign(new Error(`Erro OpenAI: ${response.status}`), { status: response.status });
   }
 
   const data = await response.json();
   const choice = data.choices?.[0];
   const message = choice?.message;
 
-  // Extract text
   const text = message?.content || "";
 
-  // Extract tool calls — convert OpenAI format back to Gemini-style for compatibility
   let toolCalls: any[] | undefined;
   if (message?.tool_calls && message.tool_calls.length > 0) {
     toolCalls = message.tool_calls.map((tc: any) => ({
@@ -171,7 +173,7 @@ export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
   return { text, toolCalls, raw: data };
 }
 
-// Helper to convert system+user to Gemini format (unchanged interface)
+// Helper to convert system+user to message format (unchanged interface)
 export function toGeminiMessages(systemPrompt: string | null, userPrompt: string): { systemInstruction?: string; messages: GeminiMessage[] } {
   return {
     systemInstruction: systemPrompt || undefined,
