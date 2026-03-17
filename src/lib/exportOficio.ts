@@ -6,7 +6,7 @@ import JSZip from "jszip";
 // ── Assets ──────────────────────────────────────────────────────────────────
 import logoCamaraSrc from "@/assets/logo-camara-docx.jpeg";
 import logoFabaoSrc from "@/assets/logo-fabao-docx.png";
-import assinaturaClean from "@/assets/assinatura-1.png";
+import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
 
 // ── FIXED signature dimensions — NEVER change these ─────────────────────────
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi

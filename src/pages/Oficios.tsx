@@ -20,7 +20,7 @@ import FileDropzone, { type AnexoFile } from "@/components/FileDropzone";
 import type { DemandaAnexo } from "@/types";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
-import assinaturaFabao from "@/assets/assinatura-1.png";
+import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
