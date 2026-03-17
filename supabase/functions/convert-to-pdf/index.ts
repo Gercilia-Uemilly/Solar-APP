@@ -326,3 +326,49 @@ async function convertWithConvertApi(
 
   return new Uint8Array(await pdfResp.arrayBuffer());
 }
+
+// ── Api2PDF (LibreOffice via API) ────────────────────────────────────────────
+async function convertWithApi2Pdf(
+  docxBytes: Uint8Array,
+  filename: string,
+  apiKey: string
+): Promise<Uint8Array> {
+  // Encode to base64 in chunks to avoid stack overflow
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < docxBytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...docxBytes.subarray(i, i + chunkSize));
+  }
+  const base64 = btoa(binary);
+
+  const resp = await fetch("https://v2.api2pdf.com/libreoffice/any-to-pdf", {
+    method: "POST",
+    headers: {
+      "Authorization": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      fileName: filename.replace(".docx", ".pdf"),
+      options: {
+        base64Content: base64,
+        fileName: filename,
+      },
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Api2PDF error: ${resp.status} ${errText}`);
+  }
+
+  const result = await resp.json();
+
+  if (!result.FileUrl) {
+    throw new Error(`Api2PDF: no FileUrl in response — ${JSON.stringify(result)}`);
+  }
+
+  const pdfResp = await fetch(result.FileUrl);
+  if (!pdfResp.ok) throw new Error("Api2PDF: failed to download PDF");
+
+  return new Uint8Array(await pdfResp.arrayBuffer());
+}
