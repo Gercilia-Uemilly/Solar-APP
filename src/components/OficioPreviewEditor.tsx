@@ -19,6 +19,9 @@ import {
 interface OficioPreviewEditorProps {
   content: string;
   onChange: (html: string) => void;
+  fontFamily?: string;
+  fontSize?: number;
+  lineSpacing?: number;
 }
 
 export default function OficioPreviewEditor({ content, onChange }: OficioPreviewEditorProps) {
