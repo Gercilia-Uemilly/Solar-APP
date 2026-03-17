@@ -832,6 +832,23 @@ Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_de
       console.warn("All AI providers failed — using fallback response");
     }
 
+    const recentOutgoingForGuard = history
+      .filter((m: any) => m.direction === "outgoing" && m.content)
+      .slice(-5)
+      .map((m: any) => m.content as string);
+
+    const userAnswersForGuard = history
+      .filter((m: any) => m.direction === "incoming" && m.content)
+      .slice(-8)
+      .map((m: any) => m.content as string);
+
+    analysis.resposta = enforceNoLoopResponse(
+      analysis.resposta,
+      recentOutgoingForGuard,
+      userAnswersForGuard,
+      selectedScript
+    );
+
     // ── UPDATE + SEND in parallel ──
     const { data: msgs } = await sb.from("whatsapp_messages")
       .select("id").eq("conversation_id", conversationId)
