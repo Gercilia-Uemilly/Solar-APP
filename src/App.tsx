@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useGlobalSync } from "@/hooks/useGlobalSync";
 import { ReactNode, lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 
