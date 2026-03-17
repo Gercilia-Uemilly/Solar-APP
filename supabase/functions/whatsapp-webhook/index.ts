@@ -715,14 +715,21 @@ Responda em JSON:
 Regras:
 - Comece com empatia ("Então, colega...", "Então, fulano...", "Nossa...")
 - Use linguagem informal mineira: "viu?", "tá?", "né?", "deixa eu te falar"
-- Máximo 3 frases curtas
+- Máximo 2-3 frases curtas
 - Use emojis: 😊 🙏 😔
 - ${firstName ? `Chame a pessoa de "${firstName}"` : "Não use nome"}
 - NÃO use: "compreendo", "certamente", "entendo sua curiosidade"
+- NÃO entregue TUDO de uma vez. Dê a informação principal e TERMINE com uma pergunta para continuar a conversa
+- NÃO jogue telefone/contato direto sem antes acolher
+- NUNCA encerre a conversa. SEMPRE termine com pergunta útil
+- FRASES PROIBIDAS: "se precisar é só falar", "qualquer coisa estou aqui", "posso ajudar em algo mais", "estou à disposição"
 - Adapte o conteúdo mas mantenha a informação essencial
 
 SCRIPT ORIGINAL:
 ${selectedScript.conteudo}
+
+HISTÓRICO DA CONVERSA:
+${historyText || "Primeira mensagem"}
 
 MENSAGEM DO CIDADÃO:
 ${content}
