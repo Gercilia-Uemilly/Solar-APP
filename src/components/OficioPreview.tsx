@@ -234,6 +234,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               boxShadow: "none",
               borderRadius: "0",
               padding: "0",
+              clipPath: "inset(3px)",
+              WebkitClipPath: "inset(3px)",
             }}
           />
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0", border: "none" }}>FABÃO</p>
