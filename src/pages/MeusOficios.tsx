@@ -78,8 +78,22 @@ export default function MeusOficios() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-  const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
+  const formatStorageKey = "oficio_preview_format_options";
+  const [formatOptions, setFormatOptions] = useState<FormatOptions>(() => {
+    try {
+      const raw = localStorage.getItem(formatStorageKey);
+      if (!raw) return defaultFormatOptions;
+      const parsed = JSON.parse(raw) as Partial<FormatOptions>;
+      return { ...defaultFormatOptions, ...parsed };
+    } catch {
+      return defaultFormatOptions;
+    }
+  });
   const [editorKey, setEditorKey] = useState(0);
+
+  useEffect(() => {
+    localStorage.setItem(formatStorageKey, JSON.stringify(formatOptions));
+  }, [formatOptions]);
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
