@@ -19,6 +19,10 @@ interface UseRealtimeTableOptions<T> {
   validate?: (row: T) => boolean;
   /** ID field name, defaults to "id" */
   idField?: keyof T;
+  /** Max rows to fetch (default: no limit) */
+  limit?: number;
+  /** Disable realtime subscription for large tables */
+  disableRealtime?: boolean;
 }
 
 /**
