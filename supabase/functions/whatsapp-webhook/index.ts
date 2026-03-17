@@ -579,6 +579,16 @@ ${knowledgeText || "Sem dados"}
 HISTÓRICO (historico_conversa):
 ${historyText || "Primeira mensagem"}
 
+═══ MEMÓRIA DE ESTILO (REFERÊNCIA) ═══
+Baseie seu estilo nas respostas reais já enviadas pelo Gabinete neste histórico.
+Se houver dúvida sobre como responder → escolha SEMPRE a forma mais simples e natural.
+Respostas curtas. Tom humano. Empatia real. Continuidade.
+${(() => {
+  const outMsgs = history.filter((m: any) => m.direction === "outgoing" && m.content && m.content.length > 10).slice(-5);
+  if (!outMsgs.length) return "Sem respostas anteriores para referência.";
+  return "Exemplos reais do Gabinete:\n" + outMsgs.map((m: any) => `→ "${(m.content || "").slice(0, 120)}"`).join("\n");
+})()}
+
 Demandas anteriores: ${demandasText || "Nenhuma"}
 
 Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_demanda":"Solicitação|Reclamação|Denúncia|Sugestão|Informação","urgencia":"Normal|Urgente","resposta":"texto curto baseado no script","registrar_demanda":false,"audio_sugerido":""}`;
