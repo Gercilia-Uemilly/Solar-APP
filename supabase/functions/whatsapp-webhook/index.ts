@@ -1019,6 +1019,93 @@ Responda APENAS o texto adaptado, sem JSON.` },
   }
 }
 
+// ── Passive Learning — silently improves scripts from real conversations ──
+async function passiveLearning(
+  sb: any,
+  conversationId: string,
+  historyText: string,
+  existingScripts: any[],
+  userId?: string
+) {
+  if (!historyText || historyText.length < 50) return;
+
+  const apiKey = (Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+  if (!apiKey) return;
+
+  const scriptsSummary = existingScripts
+    .map((s: any) => `[${s.categoria}] ${s.titulo} | tags: ${(s.tags || []).join(",")}`)
+    .join("\n");
+
+  const prompt = `Analise esta conversa real de WhatsApp de um gabinete político e decida se deve CRIAR um novo script ou MELHORAR um existente.
+
+SCRIPTS EXISTENTES (${existingScripts.length}):
+${scriptsSummary}
+
+CONVERSA:
+${historyText}
+
+REGRAS:
+- Só sugira algo se a conversa revelar um padrão NOVO ou uma melhoria CLARA
+- Script deve ser curto, estilo WhatsApp, primeiro passo da conversa
+- SEMPRE terminar com pergunta
+- Se não há nada novo para aprender, retorne []
+
+Retorne JSON array (sem markdown):
+[{"action":"create","titulo":"...","categoria":"...","palavras_chave":["..."],"script_base":"..."}]
+ou
+[{"action":"update","existing_script_id":"uuid","titulo":"...","script_base":"texto melhorado"}]
+ou [] se nada novo`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: "Você é um sistema de aprendizado que melhora scripts de atendimento com base em conversas reais. Seja conservador: só sugira mudanças quando há um padrão claro." }] },
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 2048, temperature: 0.3 },
+    }),
+  });
+
+  if (!res.ok) return;
+
+  const data = await res.json();
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+
+  let suggestions: any[];
+  try {
+    const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+    suggestions = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+  } catch {
+    return;
+  }
+
+  if (!suggestions?.length) return;
+
+  const authorId = userId || (await sb.from("user_roles").select("user_id").eq("role", "admin").limit(1).single())?.data?.user_id;
+  if (!authorId) return;
+
+  for (const s of suggestions) {
+    if (s.action === "update" && s.existing_script_id) {
+      await sb.from("scripts").update({
+        conteudo: s.script_base,
+        tags: s.palavras_chave || [],
+      }).eq("id", s.existing_script_id);
+      console.log("📚 Script UPDATED by learning:", s.titulo);
+    } else if (s.action === "create" && s.titulo) {
+      await sb.from("scripts").insert({
+        titulo: s.titulo,
+        conteudo: s.script_base || "",
+        categoria: s.categoria || "Outros",
+        tags: s.palavras_chave || [],
+        author_id: authorId,
+      });
+      console.log("📚 Script CREATED by learning:", s.titulo);
+    }
+  }
+}
+
 // ── Audio Transcription via OpenAI GPT-4o-mini (multimodal) ──
 async function transcribeAudio(audioUrl: string): Promise<string | null> {
   const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
