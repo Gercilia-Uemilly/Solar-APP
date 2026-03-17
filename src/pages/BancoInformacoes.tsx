@@ -87,6 +87,11 @@ export default function BancoInformacoes() {
     limit: 500,
     disableRealtime: true,
   });
+  const { data: scripts, setData: setScriptsData, loading: scriptsLoading, refetch: fetchScripts } = useRealtimeTable<ScriptRow>({
+    table: "scripts",
+    channel: "scripts-banco-realtime",
+    orderBy: { column: "titulo", ascending: true },
+  });
   const [importing, setImporting] = useState(false);
   const [scraping, setScraping] = useState(false);
   const [search, setSearch] = useState("");
