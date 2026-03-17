@@ -205,6 +205,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           pageBreakInside: "avoid",
           breakInside: "avoid",
           lineHeight: "1.0",
+          border: "none",
+          borderTop: "none",
+          borderBottom: "none",
         }}>
           {/* Imagem assinatura */}
           <img
@@ -219,10 +222,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               border: "none",
               outline: "none",
               boxShadow: "none",
+              borderTop: "none",
+              borderBottom: "none",
             }}
           />
-          <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0" }}>FABÃO</p>
-          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0" }}>Vereador</p>
+          <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0", border: "none" }}>FABÃO</p>
+          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0", border: "none" }}>Vereador</p>
         </div>
 
         {/* ANEXO DE IMAGENS */}
