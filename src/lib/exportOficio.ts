@@ -430,7 +430,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
     fetchImageBytes(logoCamaraSrc),
     fetchImageBytes(logoFabaoSrc),
-    fetchImageBytes(assinaturaClean),
+    fetchImageBytes(assinaturaClean, 3),
   ]);
 
   const hoje = new Date();
