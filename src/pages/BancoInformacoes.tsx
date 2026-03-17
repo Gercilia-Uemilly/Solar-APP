@@ -35,8 +35,20 @@ interface ExistingScript {
   categoria: string;
 }
 
+interface ScriptRow {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  categoria: string;
+  tags: string[];
+  favorito: boolean;
+  author_id: string;
+  created_at: string;
+}
+
 const TAB_CONFIG = [
   { value: "base", label: "Base", icon: Library, adminOnly: false },
+  { value: "scripts", label: "Scripts", icon: MessageSquareText, adminOnly: false },
   { value: "audios", label: "Áudios", icon: Headphones, adminOnly: false },
   { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: false },
   { value: "instagram", label: "Instagram", icon: InstagramIcon, adminOnly: false },
