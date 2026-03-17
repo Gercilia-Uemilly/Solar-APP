@@ -519,7 +519,7 @@ export default function BancoInformacoes() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        {isAdmin && <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-yellow-500/10"><Star size={20} className="text-yellow-500" /></div>
             <div>
@@ -527,7 +527,7 @@ export default function BancoInformacoes() {
               <p className="text-[11px] text-muted-foreground mt-0.5">Modelos</p>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
       </div>
 
       {/* Tabs */}
@@ -582,14 +582,14 @@ export default function BancoInformacoes() {
                 <Library size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhuma entrada encontrada</p>
               </div>
             ) : filtered.map(entry => (
-              <Card key={entry.id} className={`group hover:shadow-md transition-all ${entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
+              <Card key={entry.id} className={`group hover:shadow-md transition-all ${isAdmin && entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       {categoriaIcon(entry.categoria)}
                       <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{entry.titulo}</h3>
                     </div>
-                    {entry.modelo && <Badge variant="default" className="text-[9px] px-1.5 flex-shrink-0">Modelo</Badge>}
+                    {isAdmin && entry.modelo && <Badge variant="default" className="text-[9px] px-1.5 flex-shrink-0">Modelo</Badge>}
                   </div>
                   {entry.descricao && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{entry.descricao}</p>}
                   <div className="flex flex-wrap items-center gap-1.5 mt-3">
@@ -607,7 +607,7 @@ export default function BancoInformacoes() {
                     </div>
                   )}
                   <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => toggleModelo(entry)} className={`p-1.5 rounded-md ${entry.modelo ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>{entry.modelo ? <Star size={14} /> : <StarOff size={14} />}</button>
+                    {isAdmin && <button onClick={() => toggleModelo(entry)} className={`p-1.5 rounded-md ${entry.modelo ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>{entry.modelo ? <Star size={14} /> : <StarOff size={14} />}</button>}
                     <button onClick={() => openDialog(entry)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"><MessageSquare size={14} /></button>
                     {entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><ExternalLink size={14} /></a>}
                     <button onClick={() => handleDelete(entry.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto"><Trash2 size={14} /></button>
