@@ -487,10 +487,22 @@ REGRAS:
 
 ${isFirst ? "PRIMEIRA MSG: Apenas cumprimente natural. Ex: '" + saudacao + (senderName ? ", " + senderName.split(" ")[0] : "") + ", tudo bem? 😊' — SÓ ISSO. NÃO pergunte 'como posso te ajudar'. Deixe a pessoa falar." : "CONTINUIDADE: NÃO cumprimente de novo. NÃO repita o nome da pessoa. NÃO diga 'oi fulano tudo bem' de novo. Continue direto no assunto. Comece com 'Então...', 'Entendi...', 'Olha só...' — NUNCA com saudação ou nome."}
 
-${selectedScript ? `⚠️ SCRIPT OBRIGATÓRIO: "${selectedScript.titulo}"
+${selectedScript ? (() => {
+  // Find related link from knowledge base
+  const scriptKws = (selectedScript.tags || []).map((t: string) => normalizeText(t));
+  const relatedLink = topKnowledge.find((k: any) => {
+    if (!k.link) return false;
+    const kKws = (k.palavras_chave || []).map((p: string) => normalizeText(p));
+    return scriptKws.some((sk: string) => kKws.includes(sk) || normalizeText(k.titulo || "").includes(sk));
+  });
+  const linkInfo = relatedLink ? `\nLINK RELACIONADO (INCLUA na resposta de forma natural): ${relatedLink.link}\nEx: "Consigo te mandar o link aqui 😊👇\n${relatedLink.link}"` : "";
+  return `⚠️ SCRIPT OBRIGATÓRIO — USE O script_base COMO BASE DA RESPOSTA: "${selectedScript.titulo}"
+SCRIPT_BASE (use como resposta, adaptando o tom):
 ${selectedScript.conteudo?.slice(0, 600) || ""}
-Adapte o tom mas USE a informação. Termine com pergunta.
-Se o script ou a base de conhecimento tiver um LINK relacionado, inclua naturalmente na resposta. Ex: "Consigo te mandar o link aqui 😊👇\n[link]". NÃO invente links.` : "Sem script. Use base de conhecimento ou acolha e pergunte mais. Se tiver link relevante na base, inclua naturalmente."}
+
+REGRA: Sua resposta DEVE ser baseada no script_base acima. NÃO invente outra resposta. Adapte o tom mineiro mas mantenha a estrutura e pergunta do script.${linkInfo}
+NÃO invente links. Só use links que aparecem aqui.`;
+})() : "Sem script. Use base de conhecimento ou acolha e pergunte mais. Se tiver link relevante na base, inclua naturalmente."}
 
 ${selectedAudio ? `ÁUDIO VALIDADO: "${selectedAudio.titulo}"` : "Sem áudio validado."}
 
