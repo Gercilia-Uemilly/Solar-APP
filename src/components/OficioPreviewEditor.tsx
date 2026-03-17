@@ -24,7 +24,7 @@ interface OficioPreviewEditorProps {
   lineSpacing?: number;
 }
 
-export default function OficioPreviewEditor({ content, onChange }: OficioPreviewEditorProps) {
+export default function OficioPreviewEditor({ content, onChange, fontFamily = "Arial", fontSize = 11, lineSpacing = 1.5 }: OficioPreviewEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
