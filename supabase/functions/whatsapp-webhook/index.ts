@@ -485,7 +485,7 @@ REGRAS:
 - PROIBIDO: "se precisar é só avisar", "qualquer coisa estou aqui", "posso ajudar em algo mais", "estou à disposição"
 - NÃO use: "compreendo", "certamente", "prezado"
 
-${isFirst ? `PRIMEIRA MSG: Apenas cumprimente de forma natural e leve. Ex: "${saudacao}${senderName ? `, ${senderName.split(" ")[0]}` : ""}, tudo bem? 😊" — SÓ ISSO. NÃO pergunte "como posso te ajudar" nem "em que posso ajudar". Deixe a pessoa falar. Seja natural como quem acabou de responder o telefone.` : "CONTINUIDADE: não cumprimente de novo, continue direto"}
+${isFirst ? "PRIMEIRA MSG: Apenas cumprimente natural. Ex: '" + saudacao + (senderName ? ", " + senderName.split(" ")[0] : "") + ", tudo bem? 😊' — SÓ ISSO. NÃO pergunte 'como posso te ajudar'. Deixe a pessoa falar." : "CONTINUIDADE: NÃO cumprimente de novo. NÃO repita o nome da pessoa. NÃO diga 'oi fulano tudo bem' de novo. Continue direto no assunto. Comece com 'Então...', 'Entendi...', 'Olha só...' — NUNCA com saudação ou nome."}
 
 ${selectedScript ? `⚠️ SCRIPT OBRIGATÓRIO: "${selectedScript.titulo}"
 ${selectedScript.conteudo?.slice(0, 600) || ""}
