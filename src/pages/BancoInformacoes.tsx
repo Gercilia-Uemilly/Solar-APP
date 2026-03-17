@@ -519,7 +519,7 @@ export default function BancoInformacoes() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        {isAdmin && <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-yellow-500/10"><Star size={20} className="text-yellow-500" /></div>
             <div>
@@ -527,7 +527,7 @@ export default function BancoInformacoes() {
               <p className="text-[11px] text-muted-foreground mt-0.5">Modelos</p>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
       </div>
 
       {/* Tabs */}
