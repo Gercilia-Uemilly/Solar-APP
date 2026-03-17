@@ -23,7 +23,7 @@ import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFi
 import { type OficioRow } from "@/lib/oficioUtils";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
-import assinaturaFabao from "@/assets/assinatura-fabao.png";
+import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 
 const marcadorOptions: { value: string; emoji: string; label: string; className: string }[] = [
   { value: "importante", emoji: "⭐", label: "Importante", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" },
@@ -77,6 +77,7 @@ export default function MeusOficios() {
   const [originalContent, setOriginalContent] = useState<string>("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inlineFieldSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const formatStorageKey = "oficio_preview_format_options";
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(() => {
@@ -94,6 +95,13 @@ export default function MeusOficios() {
   useEffect(() => {
     localStorage.setItem(formatStorageKey, JSON.stringify(formatOptions));
   }, [formatOptions]);
+
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      if (inlineFieldSaveTimerRef.current) clearTimeout(inlineFieldSaveTimerRef.current);
+    };
+  }, []);
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
@@ -132,12 +140,13 @@ export default function MeusOficios() {
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
     if (error) {
       setSaveStatus("error");
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       setSaveStatus("saved");
       setViewOficio(prev => prev ? { ...prev, ...fields } : prev);
       setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...fields } : o));
     }
-  }, [viewOficio, user, profileName]);
+  }, [viewOficio, user, profileName, toast, setOficios]);
 
   const handleSaveContent = useCallback(async () => {
     if (!viewOficio) return;
@@ -162,12 +171,13 @@ export default function MeusOficios() {
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
     if (error) {
       setSaveStatus("error");
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       setSaveStatus("saved");
       setOriginalContent(contentToSave);
       setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...updatePayload } : o));
     }
-  }, [viewOficio, user, profileName]);
+  }, [viewOficio, user, profileName, toast, setOficios]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditedContent(newContent);
@@ -193,12 +203,17 @@ export default function MeusOficios() {
         });
       }
     }, 2000);
-  }, [viewOficio, user, profileName]);
+  }, [viewOficio, user, profileName, setOficios]);
 
   const handleInlineFieldChange = useCallback((field: string, value: string) => {
     setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
     setSaveStatus("idle");
-  }, []);
+
+    if (inlineFieldSaveTimerRef.current) clearTimeout(inlineFieldSaveTimerRef.current);
+    inlineFieldSaveTimerRef.current = setTimeout(() => {
+      saveFieldToDb({ [field]: value });
+    }, 600);
+  }, [saveFieldToDb]);
 
   const handleEditForm = (o: OficioRow) => {
     navigate("/oficios", { state: { editOficio: o } });
