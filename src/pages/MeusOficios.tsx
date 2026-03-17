@@ -17,7 +17,7 @@ import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon,
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
-import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
+import PreviewFormatToolbar, { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
 import { type OficioRow } from "@/lib/oficioUtils";
@@ -773,7 +773,9 @@ export default function MeusOficios() {
             </DialogTitle>
           </DialogHeader>
           {viewOficio && (
-            <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "65vh", overflowY: "auto" }}>
+            <>
+            <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
+            <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
               <OficioPreview
                 key={editorKey}
                 ref={previewRef}
@@ -795,6 +797,7 @@ export default function MeusOficios() {
                 initialConteudo={originalContent}
               />
             </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
