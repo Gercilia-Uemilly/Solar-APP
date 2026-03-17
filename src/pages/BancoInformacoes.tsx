@@ -608,7 +608,7 @@ export default function BancoInformacoes() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMainTab("base")}>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10"><Library size={20} className="text-primary" /></div>
