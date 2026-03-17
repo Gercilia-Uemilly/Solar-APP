@@ -131,6 +131,9 @@ export async function printOficio(data: PrintData) {
       object-fit: contain;
       margin-bottom: 0;
       display: block;
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
     }
     .linha-assinatura {
       display: none;
