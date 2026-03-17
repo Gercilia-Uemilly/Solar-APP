@@ -773,7 +773,9 @@ export default function MeusOficios() {
             </DialogTitle>
           </DialogHeader>
           {viewOficio && (
-            <div className="overflow-x-auto border border-border rounded-lg" style={{ maxHeight: "65vh", overflowY: "auto" }}>
+            <>
+            <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
+            <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
               <OficioPreview
                 key={editorKey}
                 ref={previewRef}
