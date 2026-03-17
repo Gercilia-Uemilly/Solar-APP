@@ -169,8 +169,8 @@ export default function OficioPreviewEditor({ content, onChange, fontFamily = "A
           text-indent: 1.25cm;
           margin-bottom: 0;
           margin-top: 0;
-          line-height: 1.5;
-          font-size: 11pt;
+          line-height: ${lineSpacing};
+          font-size: ${fontSize}pt;
         }
         [contenteditable="true"] ul,
         [contenteditable="true"] ol {
