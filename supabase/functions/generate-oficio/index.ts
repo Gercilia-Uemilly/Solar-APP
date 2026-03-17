@@ -137,19 +137,28 @@ Exemplo de abertura: "Este parlamentar, no uso de suas prerrogativas legais e re
 → Usar <strong> para destacar: a AÇÃO PRINCIPAL (ex: <strong>tapa-buraco</strong>), o ENDEREÇO (ex: <strong>Rua Carnaúba, nº 78</strong>) e o BAIRRO (ex: <strong>Bairro Morumbi</strong>).
 
 §2 CONTEXTUALIZAÇÃO DA DEMANDA:
+Iniciar SEMPRE com: "Conforme relatos encaminhados a este gabinete..."
 Descrever o problema relatado pelos cidadãos ou observado no local. Manter-se fiel à descrição original.
 → Usar <strong> apenas em termos-chave relevantes (ex: nome do problema, tipo de risco mencionado pelo cidadão).
+→ NÃO repetir bairro ou endereço se já mencionados no §1.
 
 §3 CONSEQUÊNCIAS E JUSTIFICATIVA:
 Explicar brevemente por que a intervenção é necessária. Manter-se realista e proporcional ao problema descrito.
 → NÃO dramatizar. NÃO inventar riscos que o cidadão não mencionou.
 → Destacar com <strong> os impactos principais (ex: <strong>segurança dos moradores</strong>, <strong>mobilidade urbana</strong>).
+→ NÃO repetir bairro, endereço ou secretaria já mencionados.
 
 §4 SOLICITAÇÃO FORMAL:
 Reforçar o pedido de forma objetiva, solicitando avaliação técnica e providências.
 → Destacar com <strong> as AÇÕES solicitadas (ex: <strong>avaliação técnica</strong>, <strong>reparo imediato</strong>, <strong>capina e roçagem</strong>).
 
 §5-§6 CONCLUSÃO (usar EXATAMENTE a conclusão fixa fornecida no prompt do usuário, separada em dois parágrafos <p>)
+
+REGRAS DE NÃO-DUPLICAÇÃO (OBRIGATÓRIO):
+- O bairro deve aparecer apenas UMA vez no corpo do texto.
+- O endereço completo (rua, número) deve aparecer apenas UMA vez.
+- A secretaria/órgão destinatário deve aparecer apenas UMA vez.
+- NUNCA repita informações já mencionadas em parágrafos anteriores.
 
 FORMATAÇÃO:
 - Cada parágrafo deve estar em uma tag <p>
@@ -159,9 +168,17 @@ FORMATAÇÃO:
 - Linguagem formal, clara, objetiva
 - NÃO inclua formatação inline (sem font-family, font-size, style) — apenas <p> e <strong>
 
-GERAÇÃO DO ASSUNTO:
-- Formato: "Solicitação de [SERVIÇO] – [LOCAL/BAIRRO]"
-- NÃO duplicar "Bairro" no assunto
+GERAÇÃO DO ASSUNTO (REGRAS ATUALIZADAS):
+- O BAIRRO é OBRIGATÓRIO no assunto. Se não houver bairro, deixar o assunto vazio.
+- Formato padrão: "Solicitação de [SERVIÇO] – Bairro [NOME]"
+- Se houver nome de local (escola, UBS, praça): "Solicitação de [SERVIÇO] – [NOME DO LOCAL] (Bairro [NOME])"
+- NUNCA incluir endereço completo (rua, número) no assunto.
+- NUNCA duplicar "Bairro" (ex: "Bairro Bairro Tubalina" é ERRADO).
+- NUNCA duplicar informação no assunto.
+- Exemplos corretos:
+  ✔ "Solicitação de limpeza – Bairro Martins"
+  ✔ "Solicitação de reparos – Escola Municipal José da Costa (Bairro Martins)"
+  ✔ "Solicitação de tapa-buraco – Bairro Planalto"
 
 IMPORTANTE: O texto final deve refletir fielmente a demanda enviada pelo cidadão, apenas com correção gramatical e organização institucional. NUNCA adicione informações que não existam na descrição original.
 
