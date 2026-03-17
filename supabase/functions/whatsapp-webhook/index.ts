@@ -79,6 +79,104 @@ const scoreMatch = (userText: string, title = "", tags: string[] = [], content =
   return score;
 };
 
+const splitSentences = (text: string) =>
+  (text || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const limitToTwoShortSentences = (text: string) => splitSentences(text).slice(0, 2).join(" ").trim();
+
+const extractUrls = (text: string) => (text || "").match(/https?:\/\/[^\s),]+/g) || [];
+
+const extractQuestionSignature = (text: string) => {
+  const q = splitSentences(text).find((s) => s.includes("?")) || "";
+  return normalizeText(q.replace(/[?!.,]/g, " "));
+};
+
+const tokenOverlap = (a: string, b: string) => {
+  const aw = new Set(normalizeText(a).split(" ").filter((w) => w.length >= 3));
+  const bw = new Set(normalizeText(b).split(" ").filter((w) => w.length >= 3));
+  if (!aw.size || !bw.size) return 0;
+  let inter = 0;
+  for (const w of aw) if (bw.has(w)) inter++;
+  return inter / Math.max(aw.size, bw.size);
+};
+
+const hasAnsweredWorkStatus = (answers: string[]) =>
+  answers.some((a) => /(procur|desempreg|sem trabalho|sem trampo|trabalh|empregado)/.test(normalizeText(a)));
+
+const isAskingWorkStatus = (response: string) =>
+  /(ja ta trabalhando|ja esta trabalhando|ta trabalhando|esta trabalhando|procurando agora|trabalhando ou|ta procurando|esta procurando)/.test(
+    normalizeText(response)
+  );
+
+const pickUnusedProgressQuestion = (recentOutgoing: string[]) => {
+  const candidates = [
+    "Quer que eu te passe o contato certinho agora?",
+    "Quer que eu te mande o endereço completo também?",
+    "Se você quiser, já te envio o próximo passo certo.",
+  ];
+  const recent = recentOutgoing.map((r) => normalizeText(r));
+  return (
+    candidates.find((c) => !recent.some((r) => tokenOverlap(r, c) >= 0.65)) ||
+    candidates[0]
+  );
+};
+
+const buildProgressiveNoLoopReply = (selectedScript: any, recentOutgoing: string[]) => {
+  const links = extractUrls(selectedScript?.conteudo || "");
+  const compactScript = (selectedScript?.conteudo || "")
+    .split("\n")
+    .map((l: string) => l.trim())
+    .filter((l: string) => l.length > 3 && !/^passo\s*\d+/i.test(l))
+    .slice(0, 2)
+    .join(" ");
+  const nextQuestion = pickUnusedProgressQuestion(recentOutgoing);
+
+  if (links.length) {
+    return limitToTwoShortSentences(`Beleza… pra resolver isso, te mando direto aqui 👇 ${links[0]} ${nextQuestion}`);
+  }
+  if (compactScript) {
+    return limitToTwoShortSentences(`Beleza… então vamos direto ao ponto: ${compactScript}. ${nextQuestion}`);
+  }
+  return limitToTwoShortSentences(`Beleza… vamos seguir sem repetir. ${nextQuestion}`);
+};
+
+const enforceNoLoopResponse = (
+  rawResponse: string,
+  recentOutgoing: string[],
+  userAnswers: string[],
+  selectedScript: any
+) => {
+  const response = limitToTwoShortSentences(rawResponse || "");
+  if (!response) return buildProgressiveNoLoopReply(selectedScript, recentOutgoing);
+
+  const normalizedResponse = normalizeText(response);
+  const normalizedRecent = recentOutgoing.map((r) => normalizeText(r)).filter(Boolean);
+
+  const directRepeat = normalizedRecent.some(
+    (prev) => prev === normalizedResponse || tokenOverlap(prev, normalizedResponse) >= 0.72
+  );
+
+  const responseQuestionSig = extractQuestionSignature(response);
+  const repeatedQuestion = Boolean(responseQuestionSig) && recentOutgoing.some((prev) => {
+    const prevQuestionSig = extractQuestionSignature(prev);
+    return Boolean(prevQuestionSig) && (prevQuestionSig === responseQuestionSig || tokenOverlap(prevQuestionSig, responseQuestionSig) >= 0.65);
+  });
+
+  const workStatusLoop = hasAnsweredWorkStatus(userAnswers) && isAskingWorkStatus(response);
+
+  if (directRepeat || repeatedQuestion || workStatusLoop) {
+    console.log("No-loop guard activated:", JSON.stringify({ directRepeat, repeatedQuestion, workStatusLoop }));
+    return buildProgressiveNoLoopReply(selectedScript, recentOutgoing);
+  }
+
+  return response;
+};
+
 const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | null) => {
   const inst = (instanceRaw || "").trim();
   const tok = (tokenRaw || "").trim();
