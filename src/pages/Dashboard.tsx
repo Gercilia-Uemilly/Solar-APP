@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, TrendingDown, Minus, MapPin, UserCheck, Trophy } from "lucide-react";
+import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, TrendingDown, Minus, MapPin, UserCheck, Trophy, Circle } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOficios } from "@/hooks/useOficios";
+import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
