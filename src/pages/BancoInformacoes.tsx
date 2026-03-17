@@ -582,7 +582,7 @@ export default function BancoInformacoes() {
                 <Library size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhuma entrada encontrada</p>
               </div>
             ) : filtered.map(entry => (
-              <Card key={entry.id} className={`group hover:shadow-md transition-all ${entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
+              <Card key={entry.id} className={`group hover:shadow-md transition-all ${isAdmin && entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
