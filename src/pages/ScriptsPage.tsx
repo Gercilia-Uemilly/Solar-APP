@@ -180,10 +180,6 @@ export default function ScriptsPage() {
             <Plus size={16} className="mr-1" /> Novo Script
           </Button>
         </div>
-          <Button onClick={() => { setEditingId(null); setTitulo(""); setConteudo(""); setCategoria(""); setTags(""); setShowDialog(true); }} className="bg-primary text-primary-foreground">
-            <Plus size={16} className="mr-1" /> Novo Script
-          </Button>
-        </div>
       </div>
 
       {/* Search */}
