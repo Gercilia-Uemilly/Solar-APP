@@ -713,7 +713,7 @@ ${(() => {
 
 Demandas anteriores: ${demandasText || "Nenhuma"}
 
-Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_demanda":"Solicitação|Reclamação|Denúncia|Sugestão|Informação","urgencia":"Normal|Urgente","resposta":"MÁXIMO 2 FRASES CURTAS + pergunta","registrar_demanda":false,"audio_sugerido":""}`;
+Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_demanda":"Solicitação|Reclamação|Denúncia|Sugestão|Informação","urgencia":"Normal|Urgente","resposta":"MÁXIMO 2 FRASES CURTAS","registrar_demanda":false,"audio_sugerido":""}`;
 
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\nMensagem: ${content}`;
 
