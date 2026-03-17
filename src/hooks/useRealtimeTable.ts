@@ -72,13 +72,16 @@ export function useRealtimeTable<T extends Record<string, any>>(
     if (orderBy) {
       query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true });
     }
+    if (limit) {
+      query = query.limit(limit);
+    }
 
     const { data: result, error } = await query;
     if (!error && result && isMounted.current) {
       setData(result as unknown as T[]);
     }
     if (isMounted.current) setLoading(false);
-  }, [table, select, JSON.stringify(filters), JSON.stringify(isNull), JSON.stringify(isNotNull), JSON.stringify(orderBy)]);
+  }, [table, select, JSON.stringify(filters), JSON.stringify(isNull), JSON.stringify(isNotNull), JSON.stringify(orderBy), limit]);
 
   useEffect(() => {
     isMounted.current = true;
