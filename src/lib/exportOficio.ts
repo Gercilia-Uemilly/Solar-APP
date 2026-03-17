@@ -568,7 +568,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 240, after: 480, line: lineSpacing },
         }),
 
-        // Signature image
+        // Signature image — NO borders
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
@@ -581,24 +581,42 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0 },
           keepNext: true,
           keepLines: true,
+          border: {
+            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          },
         }),
 
 
-        // FABÃO — bold, centered, simple line spacing (240)
+        // FABÃO — bold, centered, simple line spacing (240), NO borders
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "FABÃO", font: defaultFontName, size: defaultFontSize, bold: true })],
           spacing: { before: 0, after: 0, line: 240 },
           keepNext: true,
           keepLines: true,
+          border: {
+            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          },
         }),
 
-        // Vereador — centered, simple line spacing (240)
+        // Vereador — centered, simple line spacing (240), NO borders
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [new TextRun({ text: "Vereador", font: defaultFontName, size: defaultFontSize })],
           spacing: { before: 0, after: 0, line: 240 },
           keepLines: true,
+          border: {
+            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          },
         }),
       ],
     }],
