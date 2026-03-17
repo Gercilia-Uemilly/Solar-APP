@@ -1004,6 +1004,16 @@ Responda APENAS o texto adaptado, sem JSON.` },
         console.log("Demand auto-registered:", analysis.problema?.slice(0, 60));
       }
     }
+
+    // 8. Passive Learning — analyze conversation and improve scripts silently
+    // Only run every ~5 conversations (when incoming count is multiple of 5) to avoid overhead
+    if (incomingCount > 0 && incomingCount % 5 === 0) {
+      try {
+        await passiveLearning(sb, conversationId, historyText, scripts || [], userData?.user?.id);
+      } catch (learnErr) {
+        console.error("Passive learning error (non-blocking):", learnErr);
+      }
+    }
   } catch (e) {
     console.error("AI agent error:", e);
   }
