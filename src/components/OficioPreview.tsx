@@ -114,7 +114,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           top: "30mm",
           right: "20mm",
           fontSize: "9pt",
-          fontFamily: "Arial, Helvetica, sans-serif",
+          fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
         }}>1</div>
 
         {/* DATA — after: 240 (~16px) */}
