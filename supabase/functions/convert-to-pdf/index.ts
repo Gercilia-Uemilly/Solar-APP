@@ -92,11 +92,17 @@ serve(async (req) => {
     // ── Tentativa 3: Api2PDF (LibreOffice) ───────────────────────────────────
     const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
     if (API2PDF_KEY) {
+      let tempUpload: { bucket: string; path: string; publicUrl: string } | null = null;
       try {
-        const pdfBytes = await convertWithApi2Pdf(docxBytes, filename, API2PDF_KEY);
+        tempUpload = await uploadTempDocxAndGetPublicUrl(docxBytes, filename);
+        const pdfBytes = await convertWithApi2Pdf(tempUpload.publicUrl, filename, API2PDF_KEY);
         return new Response(pdfBytes, { headers: pdfHeaders });
       } catch (e) {
         console.error("Api2PDF failed, trying next provider:", e);
+      } finally {
+        if (tempUpload) {
+          await removeTempUpload(tempUpload.bucket, tempUpload.path);
+        }
       }
     }
 
