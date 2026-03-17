@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, TrendingDown, Minus, MapPin, UserCheck, Trophy } from "lucide-react";
+import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, TrendingDown, Minus, MapPin, UserCheck, Trophy, Circle } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOficios } from "@/hooks/useOficios";
+import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
@@ -19,6 +20,7 @@ const PIE_COLORS = [
 export default function Dashboard() {
   const { user, isAdmin } = useAuth();
   const { oficios } = useOficios();
+  const onlineUsers = useOnlineUsers();
   const [profileName, setProfileName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -135,6 +137,20 @@ export default function Dashboard() {
           Bem-vindo, {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operador"}
         </h1>
         <p className="text-sm text-muted-foreground">Solar · Gabinete Vereador Fabão · Câmara Municipal de Uberlândia</p>
+        {/* Online Users Indicator */}
+        {onlineUsers.length > 0 && (
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            {onlineUsers.map((u) => (
+              <span
+                key={u.user_id}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted/60 rounded-full px-3 py-1"
+              >
+                <Circle size={8} className="fill-emerald-500 text-emerald-500" />
+                {u.nome}
+              </span>
+            ))}
+          </div>
+        )}
       </motion.div>
 
       {/* Stat Cards */}
