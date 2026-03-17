@@ -1178,6 +1178,73 @@ export default function BancoInformacoes() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Script Create/Edit Dialog */}
+      <Dialog open={showScriptDialog} onOpenChange={setShowScriptDialog}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <MessageSquareText size={18} /> {sEditingId ? "Editar Script" : "Novo Script"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Script para atendimento via WhatsApp.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div><label className="text-xs text-muted-foreground mb-1 block">Título</label><Input value={sFormTitulo} onChange={e => setSFormTitulo(e.target.value)} placeholder="Ex: Tarifa Zero Escolar" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Categoria</label><Input value={sFormCategoria} onChange={e => setSFormCategoria(e.target.value)} placeholder="Ex: Saúde, Habitação, Infraestrutura" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Tags (separadas por vírgula)</label><Input value={sFormTags} onChange={e => setSFormTags(e.target.value)} placeholder="escola, transporte, criança" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Conteúdo</label><Textarea value={sFormConteudo} onChange={e => setSFormConteudo(e.target.value)} rows={10} placeholder="Escreva o script aqui..." /></div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowScriptDialog(false)}>Cancelar</Button>
+              <Button onClick={handleScriptCreate} disabled={!sFormTitulo.trim() || !sFormConteudo.trim()}>
+                {sEditingId ? "Salvar" : "Criar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Script Generator Dialog */}
+      <Dialog open={showAIScriptDialog} onOpenChange={setShowAIScriptDialog}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2"><Sparkles size={18} /> Gerar Script com IA</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Cole uma conversa do WhatsApp e a IA cria um script estruturado.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea value={aiScriptInput} onChange={e => setAiScriptInput(e.target.value)} rows={8} placeholder="Cole aqui um trecho de conversa do WhatsApp..." />
+            <Button onClick={handleGenerateAIScript} disabled={aiScriptGenerating || !aiScriptInput.trim()} className="gap-1.5 w-full">
+              {aiScriptGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {aiScriptGenerating ? "Gerando..." : "Gerar Script"}
+            </Button>
+            {aiScriptResult && (
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground">{aiScriptResult.titulo}</h4>
+                  <Badge variant="secondary" className="text-xs">{aiScriptResult.categoria}</Badge>
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">{aiScriptResult.script_base || aiScriptResult.conteudo}</p>
+                  {aiScriptResult.tags && (
+                    <div className="flex flex-wrap gap-1">
+                      {aiScriptResult.tags.map((t: string, i: number) => <Badge key={i} variant="outline" className="text-[9px]">{t}</Badge>)}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSaveAIScript} className="gap-1.5"><Plus size={14} /> Salvar Script</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setSFormTitulo(aiScriptResult.titulo || "");
+                      setSFormConteudo(aiScriptResult.script_base || aiScriptResult.conteudo || "");
+                      setSFormCategoria(aiScriptResult.categoria || "");
+                      setSFormTags(aiScriptResult.tags?.join(", ") || "");
+                      setShowAIScriptDialog(false); setShowScriptDialog(true);
+                    }}>
+                      <Pencil size={14} /> Editar antes
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
