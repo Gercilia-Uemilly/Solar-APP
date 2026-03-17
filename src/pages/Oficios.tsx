@@ -1244,7 +1244,11 @@ export default function Oficios() {
                     const savedImgs = await fetchSavedImages(editingOficioId);
                     if (savedImgs.length > 0) formData.imagens = savedImgs;
                   }
-                  await exportToPDF(formData);
+                  try {
+                    await exportToPDF(formData);
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
                 }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
