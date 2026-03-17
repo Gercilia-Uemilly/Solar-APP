@@ -8,42 +8,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Call Lovable AI gateway (Gemini) for audio/video — OpenAI doesn't support these MIME types
-async function callLovableAI(base64: string, mimeType: string, prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+// Call Gemini API directly for audio/video — OpenAI doesn't support these MIME types
+async function callGeminiDirect(base64: string, mimeType: string, prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("GOOGLE_AI_API_KEY");
+  if (!apiKey) throw new Error("GOOGLE_AI_API_KEY não configurada");
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
-            { type: "text", text: prompt },
-          ],
-        },
-      ],
-      max_tokens: 8192,
+      contents: [{
+        parts: [
+          { inlineData: { mimeType, data: base64 } },
+          { text: prompt },
+        ],
+      }],
+      generationConfig: { maxOutputTokens: 8192 },
     }),
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error("Lovable AI error:", response.status, errText);
+    console.error("Gemini API error:", response.status, errText);
     if (response.status === 429) throw Object.assign(new Error("Limite de requisições excedido."), { status: 429 });
-    if (response.status === 402) throw Object.assign(new Error("Sem créditos disponíveis."), { status: 402 });
-    throw Object.assign(new Error(`Erro AI: ${response.status}`), { status: response.status });
+    throw Object.assign(new Error(`Erro Gemini: ${response.status}`), { status: response.status });
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 serve(async (req) => {
