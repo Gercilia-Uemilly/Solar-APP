@@ -14,7 +14,7 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AppLayout = lazy(() => import("./components/AppLayout"));
 const Oficios = lazy(() => import("./pages/Oficios"));
-const ScriptsPage = lazy(() => import("./pages/ScriptsPage"));
+
 const MeusOficios = lazy(() => import("./pages/MeusOficios"));
 const Operadores = lazy(() => import("./pages/Operadores"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
