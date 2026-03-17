@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
-import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
+import assinaturaFabao from "@/assets/assinatura-1.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
 import OficioPreviewEditor from "./OficioPreviewEditor";
