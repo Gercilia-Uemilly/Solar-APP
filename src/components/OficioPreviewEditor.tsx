@@ -14,6 +14,7 @@ import {
   Redo,
   Eraser,
   ImagePlus,
+  Type,
 } from "lucide-react";
 
 interface OficioPreviewEditorProps {
@@ -22,9 +23,19 @@ interface OficioPreviewEditorProps {
   fontFamily?: string;
   fontSize?: number;
   lineSpacing?: number;
+  onIncreaseFontSize?: () => void;
+  onDecreaseFontSize?: () => void;
 }
 
-export default function OficioPreviewEditor({ content, onChange, fontFamily = "Arial", fontSize = 11, lineSpacing = 1.5 }: OficioPreviewEditorProps) {
+export default function OficioPreviewEditor({
+  content,
+  onChange,
+  fontFamily = "Arial",
+  fontSize = 11,
+  lineSpacing = 1.5,
+  onIncreaseFontSize,
+  onDecreaseFontSize,
+}: OficioPreviewEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -75,7 +86,7 @@ export default function OficioPreviewEditor({ content, onChange, fontFamily = "A
         onClick();
       }}
       title={title}
-      className="p-1.5 rounded transition-colors text-muted-foreground hover:bg-muted"
+      className="inline-flex items-center gap-0.5 p-1.5 rounded transition-colors text-muted-foreground hover:bg-muted"
     >
       {children}
     </button>
@@ -126,6 +137,21 @@ export default function OficioPreviewEditor({ content, onChange, fontFamily = "A
         <ToolBtn onClick={() => exec("justifyFull")} title="Justificar">
           <AlignJustify size={14} />
         </ToolBtn>
+
+        {onDecreaseFontSize && onIncreaseFontSize && (
+          <>
+            <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
+            <ToolBtn onClick={onDecreaseFontSize} title="Diminuir tamanho da fonte">
+              <Type size={14} />
+              <span className="text-[11px] font-semibold leading-none">-</span>
+            </ToolBtn>
+            <ToolBtn onClick={onIncreaseFontSize} title="Aumentar tamanho da fonte">
+              <Type size={14} />
+              <span className="text-[11px] font-semibold leading-none">+</span>
+            </ToolBtn>
+            <span className="px-1 text-[11px] text-muted-foreground">{fontSize}pt</span>
+          </>
+        )}
 
         <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
 

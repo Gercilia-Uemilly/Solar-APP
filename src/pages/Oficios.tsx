@@ -1281,7 +1281,35 @@ export default function Oficios() {
               </div>
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
               <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview ref={previewRef} numero={numero} destinatario={destinatario} assunto={assunto} conteudo={editedOficio} cargoDestinatario={cargoDestinatario} operadorNome={profileName || user?.email || undefined} secretaria={secretaria || aiResult?.secretaria_identificada || undefined} dataGeracao={dataGeracao} editable onContentChange={setEditedOficio} onAssuntoChange={(val) => { setAssunto(val); setAssuntoEditedInPreview(true); }} onDestinatarioChange={setDestinatario} onCargoDestinatarioChange={setCargoDestinatario} onNumeroChange={setNumero} onDataChange={(val) => { /* data is display-only from date input */ }} initialConteudo={originalOficio} anexoImageUrls={previewImageUrls} bairro={assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro)} formatOptions={formatOptions} />
+                <OficioPreview
+                  ref={previewRef}
+                  numero={numero}
+                  destinatario={destinatario}
+                  assunto={assunto}
+                  conteudo={editedOficio}
+                  cargoDestinatario={cargoDestinatario}
+                  operadorNome={profileName || user?.email || undefined}
+                  secretaria={secretaria || aiResult?.secretaria_identificada || undefined}
+                  dataGeracao={dataGeracao}
+                  editable
+                  onContentChange={setEditedOficio}
+                  onAssuntoChange={(val) => {
+                    setAssunto(val);
+                    setAssuntoEditedInPreview(true);
+                  }}
+                  onDestinatarioChange={setDestinatario}
+                  onCargoDestinatarioChange={setCargoDestinatario}
+                  onNumeroChange={setNumero}
+                  onDataChange={(val) => {
+                    /* data is display-only from date input */
+                  }}
+                  onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
+                  onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
+                  initialConteudo={originalOficio}
+                  anexoImageUrls={previewImageUrls}
+                  bairro={assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro)}
+                  formatOptions={formatOptions}
+                />
               </div>
             </TabsContent>
 
