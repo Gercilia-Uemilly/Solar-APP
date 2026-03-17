@@ -237,7 +237,8 @@ async function convertWithCloudConvert(
         // 4. Baixar o PDF gerado
         const pdfResp = await fetch(pdfUrl);
         if (!pdfResp.ok) throw new Error("CloudConvert: erro ao baixar PDF");
-        return new Uint8Array(await pdfResp.arrayBuffer());
+        const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
+        return ensurePdfBytes(pdfBytes, "CloudConvert");
       }
 
       if (status?.data?.status === "error") {
