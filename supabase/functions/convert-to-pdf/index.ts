@@ -33,8 +33,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-    const { data: userData, error: userErr } = await _sb.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (userErr || !userData?.user) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await _sb.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -66,18 +67,7 @@ serve(async (req) => {
       "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
     };
 
-    // ── Tentativa 1: Api2PDF (primário — rápido e confiável) ────────────────
-    const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
-    if (API2PDF_KEY) {
-      try {
-        const pdfBytes = await convertWithApi2Pdf(docxBytes, filename, API2PDF_KEY);
-        return new Response(pdfBytes, { headers: pdfHeaders });
-      } catch (e) {
-        console.error("Api2PDF failed, trying next provider:", e);
-      }
-    }
-
-    // ── Tentativa 2: ConvertAPI ──────────────────────────────────────────────
+    // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
     const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
     if (CONVERTAPI_SECRET) {
       try {
@@ -88,7 +78,7 @@ serve(async (req) => {
       }
     }
 
-    // ── Tentativa 3: CloudConvert API ────────────────────────────────────────
+    // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
     const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
     if (CLOUDCONVERT_API_KEY) {
       try {
@@ -96,6 +86,17 @@ serve(async (req) => {
         return new Response(pdfBytes, { headers: pdfHeaders });
       } catch (e) {
         console.error("CloudConvert failed, trying next provider:", e);
+      }
+    }
+
+    // ── Tentativa 3: Api2PDF (LibreOffice) ───────────────────────────────────
+    const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
+    if (API2PDF_KEY) {
+      try {
+        const pdfBytes = await convertWithApi2Pdf(docxBytes, filename, API2PDF_KEY);
+        return new Response(pdfBytes, { headers: pdfHeaders });
+      } catch (e) {
+        console.error("Api2PDF failed, trying next provider:", e);
       }
     }
 
