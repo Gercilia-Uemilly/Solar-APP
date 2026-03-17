@@ -589,7 +589,7 @@ export default function BancoInformacoes() {
                       {categoriaIcon(entry.categoria)}
                       <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{entry.titulo}</h3>
                     </div>
-                    {entry.modelo && <Badge variant="default" className="text-[9px] px-1.5 flex-shrink-0">Modelo</Badge>}
+                    {isAdmin && entry.modelo && <Badge variant="default" className="text-[9px] px-1.5 flex-shrink-0">Modelo</Badge>}
                   </div>
                   {entry.descricao && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{entry.descricao}</p>}
                   <div className="flex flex-wrap items-center gap-1.5 mt-3">
