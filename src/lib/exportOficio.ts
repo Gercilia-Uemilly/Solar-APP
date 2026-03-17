@@ -403,7 +403,23 @@ async function fetchImageBytes(src: string, options?: FetchImageOptions): Promis
     return new Uint8Array(await resp.arrayBuffer());
   }
 }
-...
+
+// ── Get user session token ──────────────────────────────────────────────────
+async function getAuthToken(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+}
+
+// ── Build Word blob programmatically ────────────────────────────────────────
+// cleanNumero imported from oficioUtils
+
+async function buildWordBlob(data: OficioData): Promise<Blob> {
+  const {
+    numero, destinatario, assunto, conteudo,
+    bairro, cargoDestinatario, dataGeracao,
+    operadorNome, operadorEmail,
+  } = data;
+
   const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
     fetchImageBytes(logoCamaraSrc),
     fetchImageBytes(logoFabaoSrc),

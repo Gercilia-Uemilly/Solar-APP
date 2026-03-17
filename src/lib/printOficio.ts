@@ -34,7 +34,38 @@ async function toDataUrl(src: string): Promise<string> {
     img.src = src;
   });
 }
-...
+
+export async function printOficio(data: PrintData) {
+  const hoje = data.dataGeracao ? new Date(data.dataGeracao + "T12:00:00") : new Date();
+  const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
+
+  const numeroCleaned = cleanNumero(data.numero || "");
+  const numeroFormatado = numeroCleaned
+    ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
+    : "___";
+
+  // Use assunto exactly as provided — bairro is already included by the AI or user
+  const assuntoFmt = data.assunto || "___";
+
+  const destinatarioCompleto = data.cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${data.destinatario ? ` ${data.destinatario}` : ""}`;
+
+  const vocativo = buildVocativo(data.cargoDestinatario);
+
+  const isHtml = data.conteudo.startsWith("<");
+  let bodyHtml: string;
+  if (isHtml) {
+    bodyHtml = `<div style="text-align:justify;font-size:11pt;line-height:1.5;">${data.conteudo}</div>`;
+  } else {
+    bodyHtml = data.conteudo
+      .split("\n")
+      .map(p => p.trim())
+      .filter(Boolean)
+      .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
+      .map(p => `<p style="text-indent:1.25cm;margin:0;font-size:11pt;line-height:1.5;text-align:justify;">${p}</p>`)
+      .join("");
+  }
+
   const [logoCamaraB64, logoFabaoB64, assinaturaB64] = await Promise.all([
     toDataUrl(logoCamara),
     toDataUrl(logoFabao),
