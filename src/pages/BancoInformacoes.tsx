@@ -127,6 +127,20 @@ export default function BancoInformacoes() {
   const [audioOriginFilter, setAudioOriginFilter] = useState("Todas");
   const [audioTagFilter, setAudioTagFilter] = useState("Todos");
 
+  // Script tab state
+  const [scriptSearch, setScriptSearch] = useState("");
+  const [scriptCatFilter, setScriptCatFilter] = useState("Todas");
+  const [showScriptDialog, setShowScriptDialog] = useState(false);
+  const [sFormTitulo, setSFormTitulo] = useState("");
+  const [sFormConteudo, setSFormConteudo] = useState("");
+  const [sFormCategoria, setSFormCategoria] = useState("");
+  const [sFormTags, setSFormTags] = useState("");
+  const [sEditingId, setSEditingId] = useState<string | null>(null);
+  const [aiScriptInput, setAiScriptInput] = useState("");
+  const [aiScriptGenerating, setAiScriptGenerating] = useState(false);
+  const [aiScriptResult, setAiScriptResult] = useState<any>(null);
+  const [showAIScriptDialog, setShowAIScriptDialog] = useState(false);
+
   // ─── Derived data ───
   const fontes = useMemo(() => {
     const s = new Set(entries.map(e => e.fonte).filter(Boolean));
