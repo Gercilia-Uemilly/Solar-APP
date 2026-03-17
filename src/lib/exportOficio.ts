@@ -361,9 +361,11 @@ async function fixDocxRelationshipIds(blob: Blob): Promise<Blob> {
   }
 }
 
-// ── Fetch image as Uint8Array (optional border crop) ────────────────────────
-async function fetchImageBytes(src: string, cropPixels = 0): Promise<Uint8Array> {
-  if (cropPixels <= 0) {
+// ── Fetch image as Uint8Array (optional white background flatten) ───────────
+type FetchImageOptions = { flattenWhite?: boolean };
+
+async function fetchImageBytes(src: string, options?: FetchImageOptions): Promise<Uint8Array> {
+  if (!options?.flattenWhite) {
     const resp = await fetch(src);
     return new Uint8Array(await resp.arrayBuffer());
   }
@@ -377,25 +379,16 @@ async function fetchImageBytes(src: string, cropPixels = 0): Promise<Uint8Array>
       el.src = src;
     });
 
-    const maxCrop = Math.floor(Math.min(img.naturalWidth, img.naturalHeight) / 4);
-    const safeCrop = Math.max(0, Math.min(cropPixels, maxCrop));
-
-    if (!safeCrop) {
-      const resp = await fetch(src);
-      return new Uint8Array(await resp.arrayBuffer());
-    }
-
-    const width = img.naturalWidth - safeCrop * 2;
-    const height = img.naturalHeight - safeCrop * 2;
-
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas context indisponível");
 
-    ctx.drawImage(img, safeCrop, safeCrop, width, height, 0, 0, width, height);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((result) => {
@@ -410,27 +403,11 @@ async function fetchImageBytes(src: string, cropPixels = 0): Promise<Uint8Array>
     return new Uint8Array(await resp.arrayBuffer());
   }
 }
-
-// ── Get user session token ──────────────────────────────────────────────────
-async function getAuthToken(): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-}
-
-// ── Build Word blob programmatically ────────────────────────────────────────
-// cleanNumero imported from oficioUtils
-
-async function buildWordBlob(data: OficioData): Promise<Blob> {
-  const {
-    numero, destinatario, assunto, conteudo,
-    bairro, cargoDestinatario, dataGeracao,
-    operadorNome, operadorEmail,
-  } = data;
-
+...
   const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
     fetchImageBytes(logoCamaraSrc),
     fetchImageBytes(logoFabaoSrc),
-    fetchImageBytes(assinaturaClean, 3),
+    fetchImageBytes(assinaturaClean, { flattenWhite: true }),
   ]);
 
   const hoje = new Date();
