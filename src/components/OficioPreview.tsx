@@ -25,6 +25,8 @@ interface Props {
   onCargoDestinatarioChange?: (val: string) => void;
   onNumeroChange?: (val: string) => void;
   onDataChange?: (val: string) => void;
+  onIncreaseFontSize?: () => void;
+  onDecreaseFontSize?: () => void;
   dataGeracao?: string;
   initialConteudo?: string;
   anexoImageUrls?: string[];
@@ -33,7 +35,7 @@ interface Props {
 import { cleanNumero, buildVocativo } from "@/lib/oficioUtils";
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, dataGeracao, initialConteudo, anexoImageUrls }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, onIncreaseFontSize, onDecreaseFontSize, dataGeracao, initialConteudo, anexoImageUrls }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -170,6 +172,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             fontFamily={fmt.fontFamily}
             fontSize={fmt.fontSize}
             lineSpacing={fmt.lineSpacing}
+            onIncreaseFontSize={onIncreaseFontSize}
+            onDecreaseFontSize={onDecreaseFontSize}
           />
         ) : isHtml ? (
           <div
