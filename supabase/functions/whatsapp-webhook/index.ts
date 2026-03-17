@@ -472,27 +472,37 @@ async function handleAIAgent(
     const saudacao = brasiliaHour >= 5 && brasiliaHour < 12 ? "Bom dia" : brasiliaHour < 18 ? "Boa tarde" : "Boa noite";
     const isFirst = history.filter((m: any) => m.direction === "incoming").length <= 1;
 
+    // Detect continuity responses (user answering a previous question)
+    const continuityWords = ["sim", "não", "nao", "ainda não", "ainda nao", "ok", "pode", "quero", "já", "ja", "entendi", "beleza", "blz", "tá", "ta", "uhum", "aham"];
+    const isContinuity = !isFirst && continuityWords.some(w => normalizeText(content).split(" ").length <= 4 && normalizeText(content).includes(w));
+
+    // Get last topic from history for continuity
+    const lastOutgoing = history.filter((m: any) => m.direction === "outgoing").slice(-1)[0];
+    const lastTopic = lastOutgoing?.content || "";
+
     // ── COMPACT SYSTEM PROMPT ──
     const systemPrompt = `Você é assessor do Vereador Fabão de Uberlândia. Atende WhatsApp como humano — empático, natural, mineiro.
 
-REGRAS:
-- NUNCA finalize atendimento. SEMPRE termine com pergunta útil
+REGRAS DE TOM:
 - Máximo 2-3 frases curtas por mensagem
 - Fale como mineiro: "viu?", "tá?", "né?", "deixa eu te falar"
 - Emojis: 😊 🙏 😕 😔. PROIBIDO: 👍
-- NÃO dê solução completa de uma vez — divida em etapas
-- NÃO jogue telefone/contato sem acolher primeiro
 - PROIBIDO: "se precisar é só avisar", "qualquer coisa estou aqui", "posso ajudar em algo mais", "estou à disposição"
 - NÃO use: "compreendo", "certamente", "prezado"
+- NUNCA finalize atendimento. SEMPRE termine com pergunta útil
 
-${isFirst ? "PRIMEIRA MSG: Apenas cumprimente natural. Ex: '" + saudacao + (senderName ? ", " + senderName.split(" ")[0] : "") + ", tudo bem? 😊' — SÓ ISSO. NÃO pergunte 'como posso te ajudar'. Deixe a pessoa falar." : "CONTINUIDADE: NÃO cumprimente de novo. NÃO repita o nome da pessoa. NÃO diga 'oi fulano tudo bem' de novo. Continue direto no assunto. Comece com 'Então...', 'Entendi...', 'Olha só...' — NUNCA com saudação ou nome."}
+${isFirst ? "PRIMEIRA MSG: Apenas cumprimente natural. Ex: '" + saudacao + (senderName ? ", " + senderName.split(" ")[0] : "") + ", tudo bem? 😊' — SÓ ISSO. NÃO pergunte 'como posso te ajudar'. Deixe a pessoa falar." : "NÃO cumprimente de novo. NÃO repita o nome. Continue direto no assunto."}
 
-${selectedScript ? (() => {
-  // Extract links from script content
+${isContinuity ? `⚠️ CONTINUIDADE DETECTADA — o usuário respondeu "${content}" à sua última mensagem.
+Sua última mensagem foi: "${lastTopic.slice(0, 300)}"
+REGRA: Continue o fluxo anterior. NÃO busque novo script. NÃO mude de assunto. Avance para o PRÓXIMO PASSO do atendimento baseado no contexto.
+Se a pessoa disse "sim" ou "já" → avance (envie link, informação, próximo passo)
+Se disse "não" ou "ainda não" → ajude a pessoa a fazer (envie link, explique como)
+SEMPRE termine com pergunta para continuar.` : ""}
+
+${!isContinuity && selectedScript ? (() => {
   const urlRegex = /https?:\/\/[^\s),]+/g;
   const contentLinks = (selectedScript.conteudo || "").match(urlRegex) || [];
-  
-  // Find related link from knowledge base
   const scriptKws = (selectedScript.tags || []).map((t: string) => normalizeText(t));
   const relatedKb = topKnowledge.find((k: any) => {
     if (!k.link) return false;
@@ -502,26 +512,26 @@ ${selectedScript ? (() => {
   if (relatedKb?.link && !contentLinks.includes(relatedKb.link)) contentLinks.push(relatedKb.link);
   
   const linkBlock = contentLinks.length > 0
-    ? `\n\n🔗 LINKS DO SCRIPT (OBRIGATÓRIO incluir na resposta):\n${contentLinks.map((l: string) => `→ ${l}`).join("\n")}\nVocê DEVE enviar o link assim: "Consigo te mandar o link aqui 😊👇\n[link]"\nSe o script tem link e você NÃO incluir = ERRO GRAVE.`
+    ? `\n\n🔗 LINKS (OBRIGATÓRIO incluir na resposta):\n${contentLinks.map((l: string) => `→ ${l}`).join("\n")}\nEnvie assim: "Consigo te mandar o link aqui 😊👇\n[link]"\nNÃO incluir link = ERRO GRAVE.`
     : "";
 
-  return `⚠️ SISTEMA DE DECISÃO — SCRIPT ENCONTRADO (OBRIGATÓRIO USAR)
+  return `⚠️ SCRIPT ENCONTRADO NO BANCO (OBRIGATÓRIO USAR)
 
 SCRIPT: "${selectedScript.titulo}"
-SCRIPT_BASE:
+CONTEÚDO:
 ${selectedScript.conteudo?.slice(0, 600) || ""}
 
-REGRAS DO SCRIPT:
-1. Sua resposta DEVE ser baseada APENAS no script_base acima
-2. NÃO invente outra resposta diferente do script
-3. Adapte para tom mineiro mas MANTENHA a estrutura e pergunta
-4. Se o script tem link → OBRIGATÓRIO incluir o link na resposta
-5. NÃO use conhecimento próprio — USE O SCRIPT${linkBlock}`;
-})() : `Sem script encontrado. Processo:
+REGRAS:
+1. Resposta DEVE ser baseada APENAS neste script
+2. NÃO invente resposta diferente
+3. Se tem link → OBRIGATÓRIO incluir
+4. Adapte tom mineiro mas USE a informação do script
+5. Termine com pergunta${linkBlock}`;
+})() : !isContinuity ? `Sem script encontrado. Processo:
 1. Busque na BASE DE CONHECIMENTO abaixo
-2. Se encontrar info relevante com link → inclua o link
-3. Se não encontrar nada → acolha e pergunte mais detalhes
-4. NUNCA invente informação`}
+2. Se encontrar info com link → inclua o link
+3. Se não encontrar → acolha e pergunte mais
+4. NUNCA invente informação` : ""}
 
 ${selectedAudio ? `ÁUDIO VALIDADO: "${selectedAudio.titulo}"` : "Sem áudio validado."}
 
