@@ -853,6 +853,7 @@ export default function Oficios() {
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
+    formatOptions,
     imagens: getImageFilesFromAnexos(),
   });
 
