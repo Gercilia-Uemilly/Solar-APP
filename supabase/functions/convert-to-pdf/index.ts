@@ -20,6 +20,18 @@ function sanitizeDocxFilename(name?: string): string {
     : `${withFallback}.docx`;
 }
 
+function isPdfBytes(bytes: Uint8Array): boolean {
+  if (!bytes || bytes.length < 5) return false;
+  return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2D; // %PDF-
+}
+
+function ensurePdfBytes(bytes: Uint8Array, provider: string): Uint8Array {
+  if (!isPdfBytes(bytes)) {
+    throw new Error(`${provider}: resposta inválida (não-PDF)`);
+  }
+  return bytes;
+}
+
 // Converte um .docx para PDF usando a API do CloudConvert
 // Alternativa gratuita: usar a API do LibreOffice Online (Collabora) ou CloudConvert
 serve(async (req) => {

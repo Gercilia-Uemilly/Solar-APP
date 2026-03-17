@@ -432,13 +432,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           type: ('imageType' in r ? r.imageType : "png") as "png" | "jpg" | "gif" | "bmp",
         }));
       } else {
-        const runFontSize = r.fontSize ? r.fontSize * 2 : defaultFontSize;
-        const runFontName = r.fontFamily || defaultFontName;
         children.push(new TextRun({
           text: r.text,
           break: r.break,
-          font: runFontName,
-          size: runFontSize,
+          font: defaultFontName,
+          size: defaultFontSize,
           bold: r.bold,
           italics: r.italic,
           underline: r.underline ? {} : undefined,
