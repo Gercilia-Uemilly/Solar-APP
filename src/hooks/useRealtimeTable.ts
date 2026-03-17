@@ -87,6 +87,10 @@ export function useRealtimeTable<T extends Record<string, any>>(
     isMounted.current = true;
     fetchData();
 
+    if (disableRealtime) {
+      return () => { isMounted.current = false; };
+    }
+
     const sub = supabase
       .channel(channel)
       .on(
@@ -101,14 +105,12 @@ export function useRealtimeTable<T extends Record<string, any>>(
               const row = newRow as T;
               if (validate && !validate(row)) return prev;
               if (prev.some((r) => r[idField] === row[idField])) return prev;
-              // Add to beginning if ordered desc, end otherwise
               return orderBy?.ascending === false ? [row, ...prev] : [...prev, row];
             }
 
             if (eventType === "UPDATE") {
               const row = newRow as T;
               if (validate && !validate(row)) {
-                // No longer valid — remove
                 return prev.filter((r) => r[idField] !== row[idField]);
               }
               const exists = prev.some((r) => r[idField] === row[idField]);
@@ -133,7 +135,7 @@ export function useRealtimeTable<T extends Record<string, any>>(
       isMounted.current = false;
       supabase.removeChannel(sub);
     };
-  }, [fetchData, channel, table, idField]);
+  }, [fetchData, channel, table, idField, disableRealtime]);
 
   const optimisticUpdate = useCallback(
     (id: any, fields: Partial<T>) => {
