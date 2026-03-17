@@ -14,7 +14,7 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AppLayout = lazy(() => import("./components/AppLayout"));
 const Oficios = lazy(() => import("./pages/Oficios"));
-const ScriptsPage = lazy(() => import("./pages/ScriptsPage"));
+
 const MeusOficios = lazy(() => import("./pages/MeusOficios"));
 const Operadores = lazy(() => import("./pages/Operadores"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
@@ -84,7 +84,7 @@ const AppRoutes = () => {
         <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
         <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
         <Route path="/respostas" element={<ProtectedRoute><AppLayout><Respostas /></AppLayout></ProtectedRoute>} />
-        <Route path="/scripts" element={<ProtectedRoute><AppLayout><ScriptsPage /></AppLayout></ProtectedRoute>} />
+        
         <Route path="/operadores" element={<AdminRoute><AppLayout><Operadores /></AppLayout></AdminRoute>} />
         <Route path="/relatorios" element={<AdminRoute><AppLayout><Relatorios /></AppLayout></AdminRoute>} />
         <Route path="/banco-informacoes" element={<ProtectedRoute><AppLayout><BancoInformacoes /></AppLayout></ProtectedRoute>} />
