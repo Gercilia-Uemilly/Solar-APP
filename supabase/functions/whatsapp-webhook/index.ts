@@ -364,7 +364,7 @@ serve(async (req) => {
   }
 });
 
-// ── AI Agent ──
+// ── AI Agent (optimized — parallel DB + Lovable AI) ──
 async function handleAIAgent(
   sb: any,
   conversationId: string,
@@ -377,468 +377,164 @@ async function handleAIAgent(
       problema: content.slice(0, 180),
       endereco: "", bairro: "", secretaria: "",
       tipo_demanda: "Solicitação", urgencia: "Normal",
-      resposta: `Olá${senderName ? ` ${senderName}` : ""}, tudo bem?\n\nRecebi sua mensagem e já estou verificando essa situação para você.\n\nAssim que eu tiver mais informações ou um retorno sobre isso, aviso por aqui.\n\nSe precisar enviar mais detalhes também pode me mandar por aqui.`,
+      resposta: `Olá${senderName ? ` ${senderName.split(" ")[0]}` : ""}, tudo bem?\n\nRecebi sua mensagem e já estou verificando.\n\nSe quiser enviar mais detalhes, manda por aqui.`,
       registrar_demanda: false, origem: "fallback",
     });
 
-    // 1. Conversation history
-    const { data: history } = await sb.from("whatsapp_messages")
-      .select("direction, content, created_at")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true }).limit(20);
+    // ── PARALLEL DB FETCH (all at once) ──
+    const startDb = Date.now();
+    const [
+      historyRes,
+      prevDemandasRes,
+      knowledgeRes,
+      scriptsRes,
+      audioEntriesRes,
+      adminRes,
+    ] = await Promise.all([
+      sb.from("whatsapp_messages")
+        .select("direction, content, created_at")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true }).limit(20),
+      sb.from("oficios")
+        .select("assunto, destinatario, status, bairro, created_at")
+        .or(`solicitante.ilike.%${senderName}%,contato_solicitante.eq.${senderPhone}`)
+        .order("created_at", { ascending: false }).limit(5),
+      sb.from("base_conhecimento")
+        .select("titulo, descricao, orgao, bairro, palavras_chave, categoria, link")
+        .order("created_at", { ascending: false }).limit(50),
+      sb.from("scripts")
+        .select("id, titulo, conteudo, categoria, tags")
+        .order("favorito", { ascending: false }).limit(200),
+      sb.from("base_conhecimento")
+        .select("titulo, descricao, link, palavras_chave, categoria")
+        .eq("categoria", "Áudio")
+        .not("link", "is", null)
+        .order("created_at", { ascending: false }).limit(20),
+      sb.from("user_roles")
+        .select("user_id").eq("role", "admin").limit(1).single(),
+    ]);
+    console.log(`DB parallel fetch: ${Date.now() - startDb}ms`);
 
-    const historyText = (history || [])
+    const history = historyRes.data || [];
+    const scripts = scriptsRes.data || [];
+    const audioEntries = audioEntriesRes.data || [];
+    const knowledge = knowledgeRes.data || [];
+    const prevDemandas = prevDemandasRes.data || [];
+    const adminUserId = adminRes.data?.user_id;
+
+    const historyText = history
       .map((m: any) => `[${m.direction === "incoming" ? "Cidadão" : "Gabinete"}]: ${m.content || ""}`)
       .join("\n");
 
-    // 2. Previous demands
-    const { data: prevDemandas } = await sb.from("oficios")
-      .select("assunto, destinatario, status, bairro, created_at")
-      .or(`solicitante.ilike.%${senderName}%,contato_solicitante.eq.${senderPhone}`)
-      .order("created_at", { ascending: false }).limit(5);
-
-    const demandasText = (prevDemandas || [])
+    const demandasText = prevDemandas
       .map((d: any) => `- ${d.assunto} → ${d.destinatario} (${d.status}) ${d.bairro || ""}`)
       .join("\n");
 
-    // 3. Knowledge base — fetch more and score by relevance
-    const { data: knowledge } = await sb.from("base_conhecimento")
-      .select("titulo, descricao, orgao, bairro, palavras_chave, categoria, link")
-      .order("created_at", { ascending: false }).limit(100);
-
-    // Score and rank knowledge by relevance to user message
-    const scoredKnowledge = (knowledge || [])
-      .map((k: any) => ({
-        ...k,
-        relevance: scoreMatch(content, k.titulo || "", k.palavras_chave || [], k.descricao || ""),
-      }))
-      .sort((a: any, b: any) => b.relevance - a.relevance);
-
-    const topKnowledge = scoredKnowledge.slice(0, 15);
+    // Score knowledge
+    const topKnowledge = knowledge
+      .map((k: any) => ({ ...k, relevance: scoreMatch(content, k.titulo || "", k.palavras_chave || [], k.descricao || "") }))
+      .sort((a: any, b: any) => b.relevance - a.relevance)
+      .slice(0, 10);
 
     const knowledgeText = topKnowledge
-      .map((k: any) => `- [${k.categoria || "Info"}] ${k.titulo}: ${k.descricao?.slice(0, 200) || ""} (Órgão: ${k.orgao || "N/A"})${k.link ? ` Link: ${k.link}` : ""}`)
+      .map((k: any) => `- [${k.categoria || "Info"}] ${k.titulo}: ${(k.descricao || "").slice(0, 150)}${k.link ? ` Link: ${k.link}` : ""}`)
       .join("\n");
 
-    // 4. Fetch model responses AND audio transcriptions for style reference
-    const { data: modelResponses } = await sb.from("base_conhecimento")
-      .select("titulo, descricao")
-      .eq("modelo", true).limit(10);
-
-    // 5. Fetch audio transcriptions (the vereador's real voice/style)
-    const { data: audioTranscriptions } = await sb.from("base_conhecimento")
-      .select("titulo, descricao")
-      .eq("categoria", "Áudio")
-      .not("descricao", "is", null)
-      .order("created_at", { ascending: false }).limit(5);
-
-    // 6. Fetch exported WhatsApp conversations for style reference
-    const { data: exportedConversations } = await sb.from("base_conhecimento")
-      .select("titulo, descricao")
-      .eq("categoria", "Conversa WhatsApp")
-      .eq("modelo", true)
-      .not("descricao", "is", null)
-      .order("created_at", { ascending: false }).limit(5);
-
-    const modelText = (modelResponses || [])
-      .map((r: any) => `- ${r.titulo}: ${r.descricao?.slice(0, 300) || ""}`)
-      .join("\n");
-
-    const audioStyleText = (audioTranscriptions || [])
-      .map((a: any) => {
-        const desc = a.descricao || "";
-        const transcOnly = desc.split("RESUMO")[0].replace("TRANSCRIÇÃO:", "").trim();
-        return transcOnly.slice(0, 400);
-      })
-      .filter((t: string) => t.length > 50)
-      .join("\n---\n");
-
-    // Extract only the Gabinete/Fabão responses from exported conversations
-    const convStyleText = (exportedConversations || [])
-      .map((c: any) => {
-        const desc = c.descricao || "";
-        // Extract lines that are from Fabão/Gabinete (outgoing responses)
-        const lines = desc.split("\n");
-        const gabineteLines = lines
-          .filter((l: string) => /Fabão|Gabinete|Solar Labs/i.test(l) && l.length > 20)
-          .slice(0, 5)
-          .map((l: string) => l.replace(/^\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}\s-\s[^:]+:\s*/, "").trim())
-          .filter((l: string) => l.length > 10);
-        return gabineteLines.join("\n");
-      })
-      .filter((t: string) => t.length > 20)
-      .join("\n---\n");
-
-    // Determine current greeting based on Brasília time (UTC-3)
-    const now = new Date();
-    const brasiliaHour = (now.getUTCHours() - 3 + 24) % 24;
-    let saudacao = "Boa noite";
-    if (brasiliaHour >= 5 && brasiliaHour < 12) saudacao = "Bom dia";
-    else if (brasiliaHour >= 12 && brasiliaHour < 18) saudacao = "Boa tarde";
-
-    // Check if last message from citizen was > 1 hour ago
-    const lastIncoming = (history || []).filter((m: any) => m.direction === "incoming");
-    const previousMsg = lastIncoming.length > 1 ? lastIncoming[lastIncoming.length - 2] : null;
-    let delayNote = "";
-    if (previousMsg) {
-      const diff = Date.now() - new Date(previousMsg.created_at).getTime();
-      if (diff > 3600000) delayNote = "A última mensagem do cidadão foi enviada há mais de 1 hora. Peça desculpa pela demora de forma natural.";
-    }
-
-    // 7. Fetch ALL scripts — scripts are the PRIMARY source
-    const { data: scripts } = await sb.from("scripts")
-      .select("titulo, conteudo, categoria, tags")
-      .order("favorito", { ascending: false }).limit(200);
-
-    const scriptsText = (scripts || [])
-      .map((s: any) => `[${s.categoria}] ${s.titulo}: ${s.conteudo?.slice(0, 300) || ""}`)
-      .join("\n");
-
-    // 8. Fetch audio entries for possible audio responses
-    const { data: audioEntries } = await sb.from("base_conhecimento")
-      .select("titulo, descricao, link, palavras_chave, categoria")
-      .eq("categoria", "Áudio")
-      .not("link", "is", null)
-      .order("created_at", { ascending: false }).limit(30);
-
-    const audioScriptsText = (audioEntries || [])
-      .map((a: any) => `- ${a.titulo} (palavras-chave: ${(a.palavras_chave || []).join(", ")}): ${a.descricao?.slice(0, 100) || ""}`)
-      .join("\n");
-
-    // Score ALL scripts against user message
-    const scoredScripts = (scripts || [])
-      .map((s: any) => ({
-        ...s,
-        match_score: scoreMatch(content, s.titulo || "", s.tags || [], s.conteudo || ""),
-      }))
+    // Score scripts
+    const scoredScripts = scripts
+      .map((s: any) => ({ ...s, match_score: scoreMatch(content, s.titulo || "", s.tags || [], s.conteudo || "") }))
       .sort((a: any, b: any) => b.match_score - a.match_score);
 
     const selectedScript = scoredScripts[0]?.match_score >= 3 ? scoredScripts[0] : null;
-    const secondScript = scoredScripts[1]?.match_score >= 3 ? scoredScripts[1] : null;
 
-    // Score audio — require HIGH threshold (>= 5) for audio suggestion
-    const scoredAudios = (audioEntries || [])
-      .map((a: any) => ({
-        ...a,
-        match_score: scoreMatch(content, a.titulo || "", a.palavras_chave || [], a.descricao || ""),
-      }))
+    // Score audio
+    const incomingCount = history.filter((m: any) => m.direction === "incoming").length;
+    const conversationAdvanced = incomingCount >= 3;
+
+    const scoredAudios = audioEntries
+      .map((a: any) => ({ ...a, match_score: scoreMatch(content, a.titulo || "", a.palavras_chave || [], a.descricao || "") }))
       .sort((a: any, b: any) => b.match_score - a.match_score);
 
-    // Audio requires: EXACT category match + high score + conversation advanced (>=3 incoming msgs) + script must exist
-    const incomingCount = (history || []).filter((m: any) => m.direction === "incoming").length;
-    const conversationAdvanced = incomingCount >= 3;
-    // Audio ONLY allowed when: script matched + audio score >= 5 + conversation advanced + audio tags match script tags
     const candidateAudio = scoredAudios[0]?.match_score >= 5 ? scoredAudios[0] : null;
     let selectedAudio: any = null;
     if (candidateAudio && conversationAdvanced && selectedScript) {
       const audioKws = (candidateAudio.palavras_chave || []).map((k: string) => normalizeText(k));
       const scriptTags = (selectedScript.tags || []).map((t: string) => normalizeText(t));
-      const scriptCat = normalizeText(selectedScript.categoria || "");
-      const audioCat = normalizeText(candidateAudio.categoria || "");
       const tagOverlap = audioKws.some((kw: string) => scriptTags.includes(kw));
-      const catMatch = scriptCat && audioCat && (scriptCat === audioCat || audioKws.includes(scriptCat));
-      if (tagOverlap || catMatch) {
-        selectedAudio = candidateAudio;
-        console.log("Audio VALIDATED:", selectedAudio.titulo, "score:", selectedAudio.match_score);
-      } else {
-        console.log("Audio BLOCKED — tags don't match script:", candidateAudio.titulo, { audioKws, scriptTags });
-      }
-    } else if (candidateAudio) {
-      console.log("Audio BLOCKED —", !selectedScript ? "no script matched" : !conversationAdvanced ? `only ${incomingCount} msgs` : "score too low");
+      if (tagOverlap) selectedAudio = candidateAudio;
     }
 
-    if (selectedScript) {
-      console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
-    } else {
-      console.log("No script matched for:", content);
-    }
+    if (selectedScript) console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
+    else console.log("No script matched for:", content);
 
-    const systemPrompt = `Você é o assessor do gabinete do Vereador Fabão de Uberlândia. Atende pelo WhatsApp como gente de verdade — humano, natural, empático e fluido. Você NÃO é um robô. Você é um atendente humano digital.
+    // ── Greeting ──
+    const brasiliaHour = (new Date().getUTCHours() - 3 + 24) % 24;
+    const saudacao = brasiliaHour >= 5 && brasiliaHour < 12 ? "Bom dia" : brasiliaHour < 18 ? "Boa tarde" : "Boa noite";
+    const isFirst = history.filter((m: any) => m.direction === "incoming").length <= 1;
 
-Você NÃO entrega respostas prontas e NÃO encerra atendimento. Seu papel é CONVERSAR, ENTENDER e CONDUZIR.
+    // ── COMPACT SYSTEM PROMPT ──
+    const systemPrompt = `Você é assessor do Vereador Fabão de Uberlândia. Atende WhatsApp como humano — empático, natural, mineiro.
 
-REGRA PRINCIPAL: Você NUNCA finaliza o atendimento. Você SEMPRE continua a conversa e conduz o cidadão.
+REGRAS:
+- NUNCA finalize atendimento. SEMPRE termine com pergunta útil
+- Máximo 2-3 frases curtas por mensagem
+- Fale como mineiro: "viu?", "tá?", "né?", "deixa eu te falar"
+- Emojis: 😊 🙏 😕 😔. PROIBIDO: 👍
+- NÃO dê solução completa de uma vez — divida em etapas
+- NÃO jogue telefone/contato sem acolher primeiro
+- PROIBIDO: "se precisar é só avisar", "qualquer coisa estou aqui", "posso ajudar em algo mais", "estou à disposição"
+- NÃO use: "compreendo", "certamente", "prezado"
 
-FLUXO OBRIGATÓRIO (para CADA mensagem):
-1. Entender o que a pessoa quer
-2. Demonstrar empatia PRIMEIRO
-3. NÃO resolver tudo de uma vez — DIVIDIR em etapas
-4. Fazer uma pergunta ou puxar o próximo passo
+${isFirst ? `PRIMEIRA MSG: "${saudacao}${senderName ? `, ${senderName.split(" ")[0]}` : ""}, tudo bem? 😊" + perguntar o que precisa` : "CONTINUIDADE: não cumprimente de novo, continue direto"}
 
-PROIBIDO (CRÍTICO — NUNCA FALE ESTAS FRASES):
-❌ "se precisar é só avisar"
-❌ "qualquer coisa estou aqui"
-❌ "posso ajudar em algo mais"
-❌ "estou à disposição"
-❌ "fico à disposição"
-Essas frases ENCERRAM o atendimento e são PROIBIDAS.
+${selectedScript ? `⚠️ SCRIPT OBRIGATÓRIO: "${selectedScript.titulo}"
+${selectedScript.conteudo?.slice(0, 600) || ""}
+Adapte o tom mas USE a informação. Termine com pergunta.` : "Sem script. Use base de conhecimento ou acolha e pergunte mais."}
 
-ATENDIMENTO EM ETAPAS (OBRIGATÓRIO):
-ERRADO: dar solução completa + contatos + encerrar (tudo de uma vez)
-CERTO: entender → perguntar → avançar (uma etapa por mensagem)
+${selectedAudio ? `ÁUDIO VALIDADO: "${selectedAudio.titulo}"` : "Sem áudio validado."}
 
-NUNCA FAÇA ISSO:
-❌ Não jogue telefone/contato direto sem antes conversar
-❌ Não mande a pessoa procurar outro órgão sozinha
-❌ Não finalize a conversa
-❌ Não dê resposta completa de primeira — SEMPRE divida em etapas
-Você REPRESENTA o gabinete. Você ACOLHE, ENCAMINHA e ACOMPANHA.
+SCRIPTS TOP:
+${scoredScripts.slice(0, 10).map((s: any) => `[${s.categoria}] ${s.titulo}: ${(s.conteudo || "").slice(0, 150)}`).join("\n")}
 
-POSTURA:
-- Você AJUDA
-- Você ENCAMINHA
-- Você ACOMPANHA
-- Você NUNCA transfere a responsabilidade pro cidadão
-
-JEITO DE FALAR:
-- Fala como mineiro: "ô", "viu?", "tá?", "né?", "deixa eu te falar", "olha só"
-- Frases CURTAS. Máximo 2-3 frases por mensagem
-- Tom de amigo que trabalha no gabinete, não de robô
-- NUNCA use palavras formais: "compreendo", "certamente", "entendo sua curiosidade", "prezado"
-- Emojis permitidos: 😊 🙏 😕 😔
-- PROIBIDO: 👍
-
-EXEMPLOS CORRETOS:
-Cidadão: "quero fazer uma denúncia"
-→ "Entendi 😊 pode me explicar melhor o que está acontecendo?"
-(aguardar)
-→ "Consegue me passar o endereço certinho pra eu encaminhar isso?"
-(aguardar)
-→ "Vou encaminhar isso pro pessoal responsável aqui do gabinete pra verificar, tá? 🙏"
-
-Cidadão: "ok"
-→ "Você já fez o cadastro ou quer que eu te envie o link agora? 😊"
-
-Cidadão: "quero casinha"
-→ "Entendi 😊 você já fez o cadastro ou ainda não?"
-
-EXEMPLOS ERRADOS (NUNCA FAÇA):
-❌ "Liga no SIM..." (não mande a pessoa procurar sozinha)
-❌ "Se precisar estou aqui" (encerra o atendimento)
-❌ Dar telefone + endereço + tudo de uma vez (resposta pronta demais)
-
-EMPATIA (SEMPRE PRIMEIRO, ANTES DE QUALQUER INFORMAÇÃO):
-- "Nossa, imagino como isso deve estar sendo difícil 😕"
-- "Então, colega, que situação complicada 😔"
-
-CONDUÇÃO ATIVA (REGRA MAIS IMPORTANTE):
-→ SEMPRE termine com uma pergunta útil que leve a conversa adiante
-→ Mesmo após "ok", "sim", "entendi" → continue conduzindo
-→ Exemplos: "Você já fez o cadastro?", "Me passa o endereço?", "Quer que eu encaminhe agora?"
-
----
-
-INÍCIO DA CONVERSA:
-HORÁRIO: ${brasiliaHour}h → "${saudacao}"
-
-SE FOR A PRIMEIRA MENSAGEM:
-→ "${saudacao}, tudo bem? 😊"
-→ Usar primeiro nome UMA vez (se disponível)
-→ Se não tiver nome: "Posso saber seu nome? 😊"
-
-CONTINUIDADE (se já existe histórico):
-→ NÃO cumprimentar de novo
-→ NÃO repetir nome
-→ NÃO reiniciar assunto
-→ Continuar direto: "Entendi...", "Então...", "Olha só..."
-
-${delayNote ? `ATRASO: ${delayNote}\nEx: "Desculpa a demora pra responder 🙏"` : ""}
-
----
-
-REGRA ABSOLUTA — ORDEM DE BUSCA OBRIGATÓRIA:
-1º → TABELA DE SCRIPTS (FONTE PRINCIPAL — SEMPRE PRIMEIRO)
-2º → BANCO DE INFORMAÇÕES (base_conhecimento)
-3º → HISTÓRICO DE CONVERSAS
-4º → CONHECIMENTO GERAL (ÚLTIMO RECURSO)
-
-Se existir script correspondente → você é OBRIGADO a usar como base.
-PROIBIDO inventar resposta quando existir script. PROIBIDO usar outra fonte se o script cobrir o tema.
-
-ANTES de responder, siga EXATAMENTE:
-1. Ler a mensagem e entender a intenção real
-2. Buscar script correspondente (PRIMEIRO!)
-3. Se encontrou script → adaptar para linguagem natural em etapas
-4. NÃO copiar o script — adaptar, humanizar, quebrar em partes
-5. TERMINAR com pergunta útil
-
-${selectedScript ? `⚠️ SCRIPT ENCONTRADO (OBRIGATÓRIO USAR): "${selectedScript.titulo}" (score: ${selectedScript.match_score})
-CONTEÚDO DO SCRIPT:
-${selectedScript.conteudo?.slice(0, 800) || ""}
-
-VOCÊ É OBRIGADO a usar este script como base. Adapte o tom, mas USE a informação.
-NÃO entregue tudo de uma vez — dê a informação principal e TERMINE com pergunta.
-NÃO jogue telefone/contato sem antes acolher.` : "Nenhum script encontrado. Use banco de informações ou acolha e pergunte mais."}
-
-${secondScript ? `SCRIPT COMPLEMENTAR: "${secondScript.titulo}" (score: ${secondScript.match_score}) — use se necessário.` : ""}
-
-CONTROLE DE ÁUDIO (TRAVA DE SEGURANÇA):
-- Áudio NUNCA na primeira resposta
-- Áudio NUNCA sem script correspondente  
-- Áudio NUNCA de outro assunto/categoria
-- Áudio SÓ quando: conversa avançada (3+ mensagens), script identificado, áudio vinculado ao MESMO script
-- Se houver QUALQUER dúvida → NÃO enviar áudio → responder em texto
-${selectedAudio ? `ÁUDIO PRÉ-VALIDADO: "${selectedAudio.titulo}" — vinculado ao script "${selectedScript?.titulo}". Pode sugerir SE fizer sentido.` : "NENHUM áudio validado. Campo audio_sugerido DEVE ser vazio."}
-
-TODOS OS SCRIPTS (sua fonte principal):
-${scriptsText || "Nenhum"}
-
-ÁUDIOS (referência — SÓ usar se pré-validado acima):
-${audioScriptsText || "Nenhum"}
-
----
-
-MAPEAMENTO DE INTENÇÕES:
-- "casinha/casa/moradia" → HABITAÇÃO
-- "grupo/vaga/trabalho/emprego" → EMPREGO
-- "menor aprendiz/jovem aprendiz" → VAGAS APRENDIZ
-- "buraco/tapa buraco/asfalto" → INFRAESTRUTURA (pedir endereço)
-- "mosquito/dengue" → SAÚDE PÚBLICA (pedir endereço)
-- "exame/consulta/urgente/cirurgia" → SAÚDE (pedir dados pessoais)
-- "castração/castrar/cachorro/gato" → CASTRAÇÃO
-- "denúncia/denunciar" → ACOLHER primeiro, pedir detalhes em etapas
-- "escorpião/aranha" → ZOONOSES (pedir endereço)
-- "fralda/idoso" → BENEFÍCIOS SOCIAIS
-- "esporte/natação/futebol" → ESCOLINHAS
-- "ônibus/tarifa/passe" → TRANSPORTE
-- "documento/certidão" → DOCUMENTOS (perguntar qual)
-
-COLETA EM ETAPAS — peça UMA coisa por vez:
-1° acolher → 2° pergunta principal → 3° endereço → 4° detalhes → 5° foto (se aplicável)
-
-PRIORIDADE:
-1º → SCRIPTS (se existir, USE)
-2º → BANCO DE INFORMAÇÕES
-3º → Se NÃO tiver info → diga que vai verificar. NUNCA invente.
-
-SECRETARIAS:
-Buraco → Obras | Poste → DMAE/Iluminação | Lixo → Serviços Urbanos | Saúde → Sec. Saúde | Escola → Sec. Educação | Trânsito → SETTRAN | Água → DMAE
+BASE:
+${knowledgeText || "Sem dados"}
 
 HISTÓRICO:
 ${historyText || "Primeira mensagem"}
 
-Demandas anteriores: ${demandasText || "Nenhuma"}
+Demandas: ${demandasText || "Nenhuma"}
 
-BASE DE CONHECIMENTO:
-${knowledgeText || "Sem dados"}
+Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_demanda":"Solicitação|Reclamação|Denúncia|Sugestão|Informação","urgencia":"Normal|Urgente","resposta":"texto curto","registrar_demanda":false,"audio_sugerido":""}`;
 
-Respostas modelo: ${modelText || "Nenhum"}
+    const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\nMensagem: ${content}`;
 
-ESTILO REAL DO FABÃO:
-${audioStyleText || "Sem referência"}
-
-CONVERSAS REAIS:
-${convStyleText || "Sem referência"}
-
-REGISTRO: "registrar_demanda": true SOMENTE quando já tiver endereço/bairro e detalhes suficientes.
-
-PROIBIÇÕES FINAIS: Não invente links. Não use 👍. Não use linguagem jurídica. Não envie áudio fora de contexto. Não diga que é IA. Não dê resposta completa de primeira.
-
-Responda em JSON:
-{
-  "problema": "descrição curta",
-  "endereco": "se mencionado",
-  "bairro": "se mencionado",
-  "secretaria": "se identificada",
-  "tipo_demanda": "Solicitação|Reclamação|Denúncia|Sugestão|Informação",
-  "urgencia": "Normal|Urgente",
-  "resposta": "sua resposta CURTA e NATURAL ao cidadão (max 2-3 frases, SEMPRE terminando com pergunta)",
-  "registrar_demanda": true/false,
-  "audio_sugerido": "título exato do áudio ou VAZIO (só se validado)"
-}`;
-    const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`;
-
+    // ── AI CALL (single, using Lovable AI gateway) ──
     let analysis: any = null;
+    const startAi = Date.now();
 
-    if (selectedScript?.conteudo) {
-      // When we have a matched script, still call AI but with a focused prompt to adapt the script naturally
-      const firstName = (senderName || "").split(" ")[0] || "";
-      try {
-        const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
-        if (OPENAI_KEY) {
-          const adaptRes = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
-            body: JSON.stringify({
-              model: "gpt-4o-mini",
-              messages: [
-                { role: "system", content: `Você é assessor do vereador Fabão de Uberlândia. Adapte o script abaixo para uma resposta natural de WhatsApp.
-Regras:
-- Comece com empatia ("Então, colega...", "Então, fulano...", "Nossa...")
-- Use linguagem informal mineira: "viu?", "tá?", "né?", "deixa eu te falar"
-- Máximo 2-3 frases curtas
-- Use emojis: 😊 🙏 😔
-- ${firstName ? `Chame a pessoa de "${firstName}"` : "Não use nome"}
-- NÃO use: "compreendo", "certamente", "entendo sua curiosidade"
-- NÃO entregue TUDO de uma vez. Dê a informação principal e TERMINE com uma pergunta para continuar a conversa
-- NÃO jogue telefone/contato direto sem antes acolher
-- NUNCA encerre a conversa. SEMPRE termine com pergunta útil
-- FRASES PROIBIDAS: "se precisar é só falar", "qualquer coisa estou aqui", "posso ajudar em algo mais", "estou à disposição"
-- Adapte o conteúdo mas mantenha a informação essencial
+    try {
+      const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
+      const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
 
-SCRIPT ORIGINAL:
-${selectedScript.conteudo}
-
-HISTÓRICO DA CONVERSA:
-${historyText || "Primeira mensagem"}
-
-MENSAGEM DO CIDADÃO:
-${content}
-
-Responda APENAS o texto adaptado, sem JSON.` },
-              ],
-              temperature: 0.9,
-              max_tokens: 300,
-            }),
-          });
-          if (adaptRes.ok) {
-            const adaptData = await adaptRes.json();
-            const adapted = adaptData.choices?.[0]?.message?.content?.trim() || "";
-            if (adapted) {
-              analysis = {
-                problema: content.slice(0, 180),
-                endereco: "", bairro: "", secretaria: "",
-                tipo_demanda: "Informação", urgencia: "Normal",
-                resposta: adapted,
-                registrar_demanda: false,
-                audio_sugerido: selectedAudio ? selectedAudio.titulo : "",
-                origem: "script_bank_adapted",
-              };
-              console.log("Using adapted script:", selectedScript.titulo);
-            }
-          }
-        }
-      } catch (e: any) {
-        console.error("Script adaptation error:", e.message);
-      }
-
-      // Fallback: use script directly if adaptation failed
-      if (!analysis?.resposta) {
-        analysis = {
-          problema: content.slice(0, 180),
-          endereco: "", bairro: "", secretaria: "",
-          tipo_demanda: "Informação", urgencia: "Normal",
-          resposta: selectedScript.conteudo.trim(),
-          registrar_demanda: false,
-          audio_sugerido: selectedAudio?.titulo || "",
-          origem: "script_bank",
-        };
-      }
-      console.log("Script bank used:", selectedScript.titulo);
-    }
-
-    // Call OpenAI only when there is no script match
-    if (!analysis?.resposta) {
-      try {
-        const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
-        if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
-
-        const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      let aiRes: Response;
+      if (LOVABLE_KEY) {
+        aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENAI_KEY}`,
-          },
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${LOVABLE_KEY}` },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userMessage },
+            ],
+            temperature: 0.8,
+            max_tokens: 512,
+          }),
+        });
+      } else if (OPENAI_KEY) {
+        aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
           body: JSON.stringify({
             model: "gpt-4o-mini",
             messages: [
@@ -846,26 +542,23 @@ Responda APENAS o texto adaptado, sem JSON.` },
               { role: "user", content: userMessage },
             ],
             temperature: 0.8,
-            max_tokens: 1024,
+            max_tokens: 512,
             response_format: { type: "json_object" },
           }),
         });
+      } else {
+        throw new Error("No AI key configured");
+      }
 
-        if (!openaiRes.ok) {
-          const errText = await openaiRes.text();
-          throw new Error(`OpenAI ${openaiRes.status}: ${errText.slice(0, 200)}`);
-        }
+      console.log(`AI call: ${Date.now() - startAi}ms`);
 
-        const openaiData = await openaiRes.json();
-        const rawText = openaiData.choices?.[0]?.message?.content || "";
-        const cleaned = rawText
-          .replace(/^```json\s*/i, "")
-          .replace(/^```\s*/i, "")
-          .replace(/```$/i, "")
-          .trim();
-
+      if (aiRes!.ok) {
+        const aiData = await aiRes!.json();
+        const rawText = aiData.choices?.[0]?.message?.content || "";
+        const cleaned = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
         try {
-          const parsed = JSON.parse(cleaned);
+          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
           analysis = {
             problema: parsed?.problema || content.slice(0, 180),
             endereco: parsed?.endereco || "",
@@ -877,142 +570,124 @@ Responda APENAS o texto adaptado, sem JSON.` },
             registrar_demanda: Boolean(parsed?.registrar_demanda),
             audio_sugerido: parsed?.audio_sugerido || selectedAudio?.titulo || "",
           };
-          console.log("OpenAI agent response OK");
+          console.log("AI response OK");
         } catch {
-          console.warn("OpenAI returned invalid JSON:", cleaned.slice(0, 180));
+          console.warn("AI returned invalid JSON:", cleaned.slice(0, 150));
         }
-      } catch (aiErr: any) {
-        console.error("OpenAI API error:", aiErr.message);
+      } else {
+        const errText = await aiRes!.text();
+        console.error("AI error:", aiRes!.status, errText.slice(0, 200));
       }
+    } catch (aiErr: any) {
+      console.error("AI call error:", aiErr.message);
     }
 
     if (!analysis?.resposta) {
-      analysis = {
-        ...buildFallbackAnalysis(),
-        audio_sugerido: selectedAudio?.titulo || "",
-      };
+      analysis = { ...buildFallbackAnalysis(), audio_sugerido: selectedAudio?.titulo || "" };
     }
 
-    // 5. Update message with AI analysis
+    // ── UPDATE + SEND in parallel ──
     const { data: msgs } = await sb.from("whatsapp_messages")
       .select("id").eq("conversation_id", conversationId)
       .eq("direction", "incoming").order("created_at", { ascending: false }).limit(1);
 
-    if (msgs?.[0]) {
-      await sb.from("whatsapp_messages").update({
-        ai_suggested_response: analysis.resposta,
-        ai_analysis: analysis,
-      }).eq("id", msgs[0].id);
-    }
-
-    // 6. Auto-respond via Z-API
     const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
     const zapiUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
 
+    // Update AI analysis on message + send Z-API in parallel
+    const updatePromise = msgs?.[0]
+      ? sb.from("whatsapp_messages").update({ ai_suggested_response: analysis.resposta, ai_analysis: analysis }).eq("id", msgs[0].id)
+      : Promise.resolve();
+
+    let sendPromise = Promise.resolve(null as any);
     if (zapiUrl && analysis.resposta) {
       const zapiPayload = JSON.stringify({ phone: senderPhone, message: analysis.resposta });
       console.log("Z-API send URL:", zapiUrl.replace(/\/token\/[^/]+/i, "/token/***"));
 
-      let sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(false), body: zapiPayload });
-      let sendText = await sendRes.text();
-      let sendData = parseJsonSafe(sendText);
-      console.log("Z-API response:", sendRes.status, sendText.slice(0, 300));
+      sendPromise = (async () => {
+        let sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(false), body: zapiPayload });
+        let sendText = await sendRes.text();
+        let sendData = parseJsonSafe(sendText);
+        console.log("Z-API response:", sendRes.status, sendText.slice(0, 300));
 
-      if (!sendRes.ok && sendData?.error) {
-        console.log("Retrying with Client-Token...");
-        sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(true), body: zapiPayload });
-        sendText = await sendRes.text();
-        sendData = parseJsonSafe(sendText);
-        console.log("Z-API retry response:", sendRes.status, sendText.slice(0, 300));
-      }
+        if (!sendRes.ok && sendData?.error) {
+          console.log("Retrying with Client-Token...");
+          sendRes = await fetch(zapiUrl, { method: "POST", headers: buildZapiHeaders(true), body: zapiPayload });
+          sendText = await sendRes.text();
+          sendData = parseJsonSafe(sendText);
+          console.log("Z-API retry response:", sendRes.status, sendText.slice(0, 300));
+        }
+        return { ok: sendRes.ok, data: sendData, status: sendRes.status };
+      })();
+    }
 
-      if (sendRes.ok && !sendData?.error) {
-        await sb.from("whatsapp_messages").insert({
+    const [, sendResult] = await Promise.all([updatePromise, sendPromise]);
+
+    if (sendResult?.ok && !sendResult.data?.error) {
+      // Insert outgoing message + update conversation in parallel
+      await Promise.all([
+        sb.from("whatsapp_messages").insert({
           conversation_id: conversationId,
-          message_id: sendData?.messageId || crypto.randomUUID(),
+          message_id: sendResult.data?.messageId || crypto.randomUUID(),
           direction: "outgoing",
           content: analysis.resposta,
           status: "sent",
           sender_name: "Agente IA",
           sender_phone: senderPhone,
-        });
-
-        await sb.from("whatsapp_conversations")
+        }),
+        sb.from("whatsapp_conversations")
           .update({ last_message_at: new Date().toISOString() })
-          .eq("id", conversationId);
+          .eq("id", conversationId),
+      ]);
+      console.log("Auto-response sent successfully");
 
-        console.log("Auto-response sent successfully");
-
-        // Send audio ONLY if pre-validated (selectedAudio was already fully validated above)
-        if (analysis.audio_sugerido && selectedAudio && conversationAdvanced && selectedScript) {
-          const matchedAudioEntry = (audioEntries || []).find(
-            (a: any) => normalizeText(a.titulo || "") === normalizeText(selectedAudio.titulo || "")
-          );
-          
-          if (matchedAudioEntry?.link) {
-            const audioUrl = matchedAudioEntry.link.startsWith("http") 
-              ? matchedAudioEntry.link 
-              : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/midias/${matchedAudioEntry.link}`;
-            
-            const sendAudioUrl = zapiUrl.replace("/send-text", "/send-audio");
-            const audioPayload = JSON.stringify({ phone: senderPhone, audio: audioUrl });
-            
-            let audioRes = await fetch(sendAudioUrl, { method: "POST", headers: buildZapiHeaders(false), body: audioPayload });
-            if (!audioRes.ok) {
-              audioRes = await fetch(sendAudioUrl, { method: "POST", headers: buildZapiHeaders(true), body: audioPayload });
-            }
-            const audioResText = await audioRes.text();
-            console.log("Audio sent (validated):", audioRes.status, matchedAudioEntry.titulo);
-          } else {
-            console.log("Audio blocked — entry not found for:", analysis.audio_sugerido);
+      // Send audio if validated
+      if (analysis.audio_sugerido && selectedAudio && conversationAdvanced && selectedScript) {
+        const matchedAudioEntry = audioEntries.find(
+          (a: any) => normalizeText(a.titulo || "") === normalizeText(selectedAudio.titulo || "")
+        );
+        if (matchedAudioEntry?.link) {
+          const audioUrl = matchedAudioEntry.link.startsWith("http")
+            ? matchedAudioEntry.link
+            : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/midias/${matchedAudioEntry.link}`;
+          const sendAudioUrl = zapiUrl.replace("/send-text", "/send-audio");
+          let audioRes = await fetch(sendAudioUrl, { method: "POST", headers: buildZapiHeaders(false), body: JSON.stringify({ phone: senderPhone, audio: audioUrl }) });
+          if (!audioRes.ok) {
+            audioRes = await fetch(sendAudioUrl, { method: "POST", headers: buildZapiHeaders(true), body: JSON.stringify({ phone: senderPhone, audio: audioUrl }) });
           }
-        } else if (analysis.audio_sugerido) {
-          console.log("Audio BLOCKED at send:", { 
-            hasSelectedAudio: !!selectedAudio, 
-            hasScript: !!selectedScript, 
-            advanced: conversationAdvanced, 
-            incomingCount 
-          });
+          await audioRes.text();
+          console.log("Audio sent:", matchedAudioEntry.titulo);
         }
-      } else {
-        console.error("Z-API send failed:", sendRes.status, sendData);
       }
+    } else if (sendResult) {
+      console.error("Z-API send failed:", sendResult.status, sendResult.data);
     }
 
-    // 7. Auto-register demand if applicable
-    if (analysis.registrar_demanda) {
-      const { data: adminRole } = await sb.from("user_roles")
-        .select("user_id").eq("role", "admin").limit(1).single();
-
-      if (adminRole) {
-        await sb.from("oficios").insert({
-          author_id: adminRole.user_id,
-          assunto: analysis.problema || content.slice(0, 100),
-          destinatario: analysis.secretaria || "Prefeitura Municipal de Uberlândia",
-          conteudo: `Demanda recebida via WhatsApp.\n\nCidadão: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nRelato:\n${content}`,
-          solicitante: senderName || "Cidadão via WhatsApp",
-          contato_solicitante: senderPhone,
-          bairro: analysis.bairro || null,
-          local_demanda: analysis.endereco || null,
-          secretaria_identificada: analysis.secretaria || null,
-          tipo_demanda: analysis.tipo_demanda || "Solicitação",
-          urgencia: analysis.urgencia?.toLowerCase() || "normal",
-          origem: "WhatsApp IA",
-          status: "Rascunho",
-        });
-        console.log("Demand auto-registered:", analysis.problema?.slice(0, 60));
-      }
+    // Auto-register demand
+    if (analysis.registrar_demanda && adminUserId) {
+      await sb.from("oficios").insert({
+        author_id: adminUserId,
+        assunto: analysis.problema || content.slice(0, 100),
+        destinatario: analysis.secretaria || "Prefeitura Municipal de Uberlândia",
+        conteudo: `Demanda via WhatsApp.\nCidadão: ${senderName || "N/I"}\nTelefone: ${senderPhone}\nRelato: ${content}`,
+        solicitante: senderName || "Cidadão via WhatsApp",
+        contato_solicitante: senderPhone,
+        bairro: analysis.bairro || null,
+        local_demanda: analysis.endereco || null,
+        secretaria_identificada: analysis.secretaria || null,
+        tipo_demanda: analysis.tipo_demanda || "Solicitação",
+        urgencia: analysis.urgencia?.toLowerCase() || "normal",
+        origem: "WhatsApp IA",
+        status: "Rascunho",
+      });
     }
 
-    // 8. Passive Learning — analyze conversation and improve scripts silently
-    // Only run every ~5 conversations (when incoming count is multiple of 5) to avoid overhead
+    // Passive Learning — fire and forget (non-blocking)
     if (incomingCount > 0 && incomingCount % 5 === 0) {
-      try {
-        await passiveLearning(sb, conversationId, historyText, scripts || [], userData?.user?.id);
-      } catch (learnErr) {
-        console.error("Passive learning error (non-blocking):", learnErr);
-      }
+      passiveLearning(sb, conversationId, historyText, scripts, adminUserId).catch(
+        (e) => console.error("Passive learning error:", e)
+      );
     }
   } catch (e) {
     console.error("AI agent error:", e);
