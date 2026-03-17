@@ -801,7 +801,7 @@ Responda APENAS o texto adaptado, sem JSON.` },
                 tipo_demanda: "Informação", urgencia: "Normal",
                 resposta: adapted,
                 registrar_demanda: false,
-                audio_sugerido: selectedAudio?.titulo || "",
+                audio_sugerido: selectedAudio ? selectedAudio.titulo : "",
                 origem: "script_bank_adapted",
               };
               console.log("Using adapted script:", selectedScript.titulo);
