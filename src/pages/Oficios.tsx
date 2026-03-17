@@ -420,7 +420,8 @@ export default function Oficios() {
     setDestinatario(o.destinatario || "");
     setCargoDestinatario(o.cargo_destinatario || "");
     setLocalDemanda(o.local_demanda || "");
-    setEnderecoCompleto((o as any).endereco_completo || o.bairro || "");
+    setBairro(o.bairro || "");
+    setEnderecoCompleto((o as any).endereco_completo || "");
     setSolicitante(o.solicitante || "");
     setContatoSolicitante(o.contato_solicitante || "");
     setCodigoZ((o as any).codigo_z || "");
@@ -977,9 +978,15 @@ export default function Oficios() {
                 </div>
               )}
 
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Endereço Completo</label>
-                <Input placeholder="Ex: Rua das Flores, 123 – Bairro Luizote IV" value={enderecoCompleto} onChange={e => setEnderecoCompleto(e.target.value)} className="bg-secondary border-border" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Bairro</label>
+                  <Input placeholder="Ex: Luizote de Freitas" value={bairro} onChange={e => setBairro(e.target.value)} className="bg-secondary border-border" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Endereço Completo</label>
+                  <Input placeholder="Ex: Rua das Flores, 123" value={enderecoCompleto} onChange={e => setEnderecoCompleto(e.target.value)} className="bg-secondary border-border" />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
