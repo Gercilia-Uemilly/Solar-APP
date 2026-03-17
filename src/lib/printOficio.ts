@@ -74,7 +74,7 @@ export async function printOficio(data: PrintData) {
   const [logoCamaraB64, logoFabaoB64, assinaturaB64] = await Promise.all([
     toDataUrl(logoCamara),
     toDataUrl(logoFabao),
-    toDataUrl(assinaturaImg),
+    toDataUrl(assinaturaImg, 3),
   ]);
 
   const html = `<!DOCTYPE html>
