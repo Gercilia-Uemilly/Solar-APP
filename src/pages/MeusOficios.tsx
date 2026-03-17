@@ -17,7 +17,7 @@ import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon,
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
-import { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
+import PreviewFormatToolbar, { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
 import { type OficioRow } from "@/lib/oficioUtils";
