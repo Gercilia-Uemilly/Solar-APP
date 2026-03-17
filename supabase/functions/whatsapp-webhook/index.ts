@@ -524,18 +524,33 @@ async function handleAIAgent(
       }))
       .sort((a: any, b: any) => b.match_score - a.match_score);
 
-    // Audio requires EXACT category match AND high score AND conversation must be advanced (>2 messages)
-    const conversationAdvanced = (history || []).filter((m: any) => m.direction === "incoming").length >= 2;
-    const selectedAudio = (scoredAudios[0]?.match_score >= 5 && conversationAdvanced) ? scoredAudios[0] : null;
+    // Audio requires: EXACT category match + high score + conversation advanced (>=3 incoming msgs) + script must exist
+    const incomingCount = (history || []).filter((m: any) => m.direction === "incoming").length;
+    const conversationAdvanced = incomingCount >= 3;
+    // Audio ONLY allowed when: script matched + audio score >= 5 + conversation advanced + audio tags match script tags
+    const candidateAudio = scoredAudios[0]?.match_score >= 5 ? scoredAudios[0] : null;
+    let selectedAudio: any = null;
+    if (candidateAudio && conversationAdvanced && selectedScript) {
+      const audioKws = (candidateAudio.palavras_chave || []).map((k: string) => normalizeText(k));
+      const scriptTags = (selectedScript.tags || []).map((t: string) => normalizeText(t));
+      const scriptCat = normalizeText(selectedScript.categoria || "");
+      const audioCat = normalizeText(candidateAudio.categoria || "");
+      const tagOverlap = audioKws.some((kw: string) => scriptTags.includes(kw));
+      const catMatch = scriptCat && audioCat && (scriptCat === audioCat || audioKws.includes(scriptCat));
+      if (tagOverlap || catMatch) {
+        selectedAudio = candidateAudio;
+        console.log("Audio VALIDATED:", selectedAudio.titulo, "score:", selectedAudio.match_score);
+      } else {
+        console.log("Audio BLOCKED — tags don't match script:", candidateAudio.titulo, { audioKws, scriptTags });
+      }
+    } else if (candidateAudio) {
+      console.log("Audio BLOCKED —", !selectedScript ? "no script matched" : !conversationAdvanced ? `only ${incomingCount} msgs` : "score too low");
+    }
 
     if (selectedScript) {
       console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
     } else {
       console.log("No script matched for:", content);
-    }
-
-    if (selectedAudio) {
-      console.log("Audio matched:", selectedAudio.titulo, "score:", selectedAudio.match_score);
     }
 
     const systemPrompt = `Você é o assessor do gabinete do Vereador Fabão de Uberlândia. Atende pelo WhatsApp como gente de verdade — humano, natural, empático e fluido. Você NÃO é um robô. Você é um atendente humano digital.
@@ -631,65 +646,70 @@ ${delayNote ? `ATRASO: ${delayNote}\nEx: "Desculpa a demora pra responder 🙏"`
 
 ---
 
-REGRA MAIS IMPORTANTE: SCRIPTS SÃO A FONTE PRINCIPAL
+REGRA ABSOLUTA — ORDEM DE BUSCA OBRIGATÓRIA:
+1º → TABELA DE SCRIPTS (FONTE PRINCIPAL — SEMPRE PRIMEIRO)
+2º → BANCO DE INFORMAÇÕES (base_conhecimento)
+3º → HISTÓRICO DE CONVERSAS
+4º → CONHECIMENTO GERAL (ÚLTIMO RECURSO)
 
-ANTES de responder, você DEVE obrigatoriamente:
-1. Identificar a intenção da mensagem
-2. Verificar se existe SCRIPT correspondente (PRIMEIRO!)
-3. Se existir script → USAR o script como BASE da resposta
-4. Adaptar para linguagem natural e dividir em etapas
-5. Só depois verificar se existe áudio correspondente
+Se existir script correspondente → você é OBRIGADO a usar como base.
+PROIBIDO inventar resposta quando existir script. PROIBIDO usar outra fonte se o script cobrir o tema.
 
-${selectedScript ? `⚠️ SCRIPT ENCONTRADO: "${selectedScript.titulo}" (score: ${selectedScript.match_score})
+ANTES de responder, siga EXATAMENTE:
+1. Ler a mensagem e entender a intenção real
+2. Buscar script correspondente (PRIMEIRO!)
+3. Se encontrou script → adaptar para linguagem natural em etapas
+4. NÃO copiar o script — adaptar, humanizar, quebrar em partes
+5. TERMINAR com pergunta útil
+
+${selectedScript ? `⚠️ SCRIPT ENCONTRADO (OBRIGATÓRIO USAR): "${selectedScript.titulo}" (score: ${selectedScript.match_score})
 CONTEÚDO DO SCRIPT:
-${selectedScript.conteudo?.slice(0, 600) || ""}
+${selectedScript.conteudo?.slice(0, 800) || ""}
 
-VOCÊ DEVE usar este script como base. Adapte o tom, mas USE a informação do script.
-MESMO ASSIM, divida em etapas — não entregue tudo de uma vez.
-Dê a informação principal e TERMINE com uma pergunta.` : "Nenhum script encontrado para esta mensagem."}
+VOCÊ É OBRIGADO a usar este script como base. Adapte o tom, mas USE a informação.
+NÃO entregue tudo de uma vez — dê a informação principal e TERMINE com pergunta.
+NÃO jogue telefone/contato sem antes acolher.` : "Nenhum script encontrado. Use banco de informações ou acolha e pergunte mais."}
 
-${secondScript ? `SCRIPT SECUNDÁRIO: "${secondScript.titulo}" (score: ${secondScript.match_score}) — use se complementar.` : ""}
+${secondScript ? `SCRIPT COMPLEMENTAR: "${secondScript.titulo}" (score: ${secondScript.match_score}) — use se necessário.` : ""}
 
-CONTROLE DE ÁUDIO (CRÍTICO):
-- Você NÃO pode sugerir áudio automaticamente
-- ANTES de sugerir áudio, VALIDE: o áudio corresponde EXATAMENTE à intenção? O áudio é da mesma categoria? A conversa já está avançada (não é início)?
-- Se QUALQUER resposta for NÃO → PROIBIDO sugerir áudio
-- Se houver DÚVIDA → NÃO sugira áudio
-- Só sugira áudio quando: existir script correspondente, o áudio estiver vinculado ao mesmo tema, a conversa já tiver pelo menos 2 trocas de mensagem
-${selectedAudio ? `ÁUDIO PRÉ-VALIDADO: "${selectedAudio.titulo}" (score: ${selectedAudio.match_score}) — pode usar se fizer sentido no contexto.` : "NENHUM áudio validado para esta mensagem. NÃO sugira áudio."}
+CONTROLE DE ÁUDIO (TRAVA DE SEGURANÇA):
+- Áudio NUNCA na primeira resposta
+- Áudio NUNCA sem script correspondente  
+- Áudio NUNCA de outro assunto/categoria
+- Áudio SÓ quando: conversa avançada (3+ mensagens), script identificado, áudio vinculado ao MESMO script
+- Se houver QUALQUER dúvida → NÃO enviar áudio → responder em texto
+${selectedAudio ? `ÁUDIO PRÉ-VALIDADO: "${selectedAudio.titulo}" — vinculado ao script "${selectedScript?.titulo}". Pode sugerir SE fizer sentido.` : "NENHUM áudio validado. Campo audio_sugerido DEVE ser vazio."}
 
-TODOS OS SCRIPTS DISPONÍVEIS:
+TODOS OS SCRIPTS (sua fonte principal):
 ${scriptsText || "Nenhum"}
 
-ÁUDIOS DISPONÍVEIS (SÓ USAR COM VALIDAÇÃO):
+ÁUDIOS (referência — SÓ usar se pré-validado acima):
 ${audioScriptsText || "Nenhum"}
 
 ---
 
-INTERPRETAÇÃO INTELIGENTE:
-- "casinha", "casa", "moradia" → PROGRAMA HABITACIONAL
-- "grupo", "vaga", "trabalho" → EMPREGO/GRUPO
-- "menor aprendiz", "jovem aprendiz" → VAGAS APRENDIZ
-- "buraco", "tapa buraco" → INFRAESTRUTURA (pedir endereço)
-- "mosquito", "dengue" → SAÚDE PÚBLICA (pedir endereço)
-- "exame", "consulta", "urgente" → SAÚDE (pedir dados)
-- "castração", "castrar" → PROGRAMA CASTRAÇÃO
-- "denúncia", "denunciar" → ACOLHER e pedir detalhes em etapas
-- "escorpião", "aranha" → ZOONOSES (pedir endereço)
-- "fralda", "idoso" → BENEFÍCIOS SOCIAIS
-- "esporte", "natação", "futebol" → ESCOLINHAS ESPORTIVAS
-- "ônibus", "tarifa" → TRANSPORTE
+MAPEAMENTO DE INTENÇÕES:
+- "casinha/casa/moradia" → HABITAÇÃO
+- "grupo/vaga/trabalho/emprego" → EMPREGO
+- "menor aprendiz/jovem aprendiz" → VAGAS APRENDIZ
+- "buraco/tapa buraco/asfalto" → INFRAESTRUTURA (pedir endereço)
+- "mosquito/dengue" → SAÚDE PÚBLICA (pedir endereço)
+- "exame/consulta/urgente/cirurgia" → SAÚDE (pedir dados pessoais)
+- "castração/castrar/cachorro/gato" → CASTRAÇÃO
+- "denúncia/denunciar" → ACOLHER primeiro, pedir detalhes em etapas
+- "escorpião/aranha" → ZOONOSES (pedir endereço)
+- "fralda/idoso" → BENEFÍCIOS SOCIAIS
+- "esporte/natação/futebol" → ESCOLINHAS
+- "ônibus/tarifa/passe" → TRANSPORTE
+- "documento/certidão" → DOCUMENTOS (perguntar qual)
 
 COLETA EM ETAPAS — peça UMA coisa por vez:
-1° endereço → 2° detalhes → 3° foto (se aplicável)
+1° acolher → 2° pergunta principal → 3° endereço → 4° detalhes → 5° foto (se aplicável)
 
-PRIORIDADE DE INFORMAÇÃO (OBRIGATÓRIO):
-1º → SCRIPTS (SEMPRE PRIMEIRO — se existir, USE como base)
-2º → ÁUDIOS (só com validação completa)
-3º → BASE DE CONHECIMENTO → use dados concretos
-4º → Se NÃO tiver info → diga que vai verificar. NUNCA invente.
-
-PROIBIDO IGNORAR SCRIPT: Se existir script correspondente, você NÃO pode inventar resposta.
+PRIORIDADE:
+1º → SCRIPTS (se existir, USE)
+2º → BANCO DE INFORMAÇÕES
+3º → Se NÃO tiver info → diga que vai verificar. NUNCA invente.
 
 SECRETARIAS:
 Buraco → Obras | Poste → DMAE/Iluminação | Lixo → Serviços Urbanos | Saúde → Sec. Saúde | Escola → Sec. Educação | Trânsito → SETTRAN | Água → DMAE
@@ -781,7 +801,7 @@ Responda APENAS o texto adaptado, sem JSON.` },
                 tipo_demanda: "Informação", urgencia: "Normal",
                 resposta: adapted,
                 registrar_demanda: false,
-                audio_sugerido: selectedAudio?.titulo || "",
+                audio_sugerido: selectedAudio ? selectedAudio.titulo : "",
                 origem: "script_bank_adapted",
               };
               console.log("Using adapted script:", selectedScript.titulo);
@@ -924,19 +944,13 @@ Responda APENAS o texto adaptado, sem JSON.` },
 
         console.log("Auto-response sent successfully");
 
-        // Send audio ONLY if pre-validated (selectedAudio exists AND conversation is advanced)
-        if (analysis.audio_sugerido && selectedAudio && conversationAdvanced) {
+        // Send audio ONLY if pre-validated (selectedAudio was already fully validated above)
+        if (analysis.audio_sugerido && selectedAudio && conversationAdvanced && selectedScript) {
           const matchedAudioEntry = (audioEntries || []).find(
-            (a: any) => a.titulo?.toLowerCase().includes(analysis.audio_sugerido.toLowerCase()) ||
-                         analysis.audio_sugerido.toLowerCase().includes(a.titulo?.toLowerCase() || "")
+            (a: any) => normalizeText(a.titulo || "") === normalizeText(selectedAudio.titulo || "")
           );
-          // Double-check: audio must match the selected script's category
-          const categoryMatch = !selectedScript || 
-            (matchedAudioEntry?.palavras_chave || []).some((kw: string) => 
-              (selectedScript.tags || []).some((t: string) => normalizeText(kw) === normalizeText(t))
-            );
           
-          if (matchedAudioEntry?.link && categoryMatch) {
+          if (matchedAudioEntry?.link) {
             const audioUrl = matchedAudioEntry.link.startsWith("http") 
               ? matchedAudioEntry.link 
               : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/midias/${matchedAudioEntry.link}`;
@@ -949,17 +963,17 @@ Responda APENAS o texto adaptado, sem JSON.` },
               audioRes = await fetch(sendAudioUrl, { method: "POST", headers: buildZapiHeaders(true), body: audioPayload });
             }
             const audioResText = await audioRes.text();
-            console.log("Audio send result (validated):", audioRes.status, audioResText.slice(0, 200));
+            console.log("Audio sent (validated):", audioRes.status, matchedAudioEntry.titulo);
           } else {
-            console.log("Audio blocked — validation failed:", { 
-              suggested: analysis.audio_sugerido, 
-              found: !!matchedAudioEntry, 
-              categoryMatch,
-              conversationAdvanced 
-            });
+            console.log("Audio blocked — entry not found for:", analysis.audio_sugerido);
           }
         } else if (analysis.audio_sugerido) {
-          console.log("Audio blocked — not pre-validated or conversation too early:", analysis.audio_sugerido);
+          console.log("Audio BLOCKED at send:", { 
+            hasSelectedAudio: !!selectedAudio, 
+            hasScript: !!selectedScript, 
+            advanced: conversationAdvanced, 
+            incomingCount 
+          });
         }
       } else {
         console.error("Z-API send failed:", sendRes.status, sendData);
