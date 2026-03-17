@@ -631,18 +631,37 @@ ${delayNote ? `ATRASO: ${delayNote}\nEx: "Desculpa a demora pra responder 🙏"`
 
 ---
 
-PRIORIDADE MÁXIMA: SCRIPTS E ÁUDIOS
+REGRA MAIS IMPORTANTE: SCRIPTS SÃO A FONTE PRINCIPAL
 
-${selectedScript ? `⚠️ SCRIPT ENCONTRADO: "${selectedScript.titulo}"
-VOCÊ DEVE usar o conteúdo deste script como base. Adapte o tom, mas USE o conteúdo. MESMO ASSIM, divida em etapas — não entregue tudo de uma vez.` : "Nenhum script encontrado."}
+ANTES de responder, você DEVE obrigatoriamente:
+1. Identificar a intenção da mensagem
+2. Verificar se existe SCRIPT correspondente (PRIMEIRO!)
+3. Se existir script → USAR o script como BASE da resposta
+4. Adaptar para linguagem natural e dividir em etapas
+5. Só depois verificar se existe áudio correspondente
 
-${selectedAudio ? `⚠️ ÁUDIO ENCONTRADO: "${selectedAudio.titulo}"
-Coloque o título exato no campo "audio_sugerido".` : ""}
+${selectedScript ? `⚠️ SCRIPT ENCONTRADO: "${selectedScript.titulo}" (score: ${selectedScript.match_score})
+CONTEÚDO DO SCRIPT:
+${selectedScript.conteudo?.slice(0, 600) || ""}
 
-TODOS OS SCRIPTS:
+VOCÊ DEVE usar este script como base. Adapte o tom, mas USE a informação do script.
+MESMO ASSIM, divida em etapas — não entregue tudo de uma vez.
+Dê a informação principal e TERMINE com uma pergunta.` : "Nenhum script encontrado para esta mensagem."}
+
+${secondScript ? `SCRIPT SECUNDÁRIO: "${secondScript.titulo}" (score: ${secondScript.match_score}) — use se complementar.` : ""}
+
+CONTROLE DE ÁUDIO (CRÍTICO):
+- Você NÃO pode sugerir áudio automaticamente
+- ANTES de sugerir áudio, VALIDE: o áudio corresponde EXATAMENTE à intenção? O áudio é da mesma categoria? A conversa já está avançada (não é início)?
+- Se QUALQUER resposta for NÃO → PROIBIDO sugerir áudio
+- Se houver DÚVIDA → NÃO sugira áudio
+- Só sugira áudio quando: existir script correspondente, o áudio estiver vinculado ao mesmo tema, a conversa já tiver pelo menos 2 trocas de mensagem
+${selectedAudio ? `ÁUDIO PRÉ-VALIDADO: "${selectedAudio.titulo}" (score: ${selectedAudio.match_score}) — pode usar se fizer sentido no contexto.` : "NENHUM áudio validado para esta mensagem. NÃO sugira áudio."}
+
+TODOS OS SCRIPTS DISPONÍVEIS:
 ${scriptsText || "Nenhum"}
 
-ÁUDIOS DISPONÍVEIS:
+ÁUDIOS DISPONÍVEIS (SÓ USAR COM VALIDAÇÃO):
 ${audioScriptsText || "Nenhum"}
 
 ---
@@ -656,15 +675,21 @@ INTERPRETAÇÃO INTELIGENTE:
 - "exame", "consulta", "urgente" → SAÚDE (pedir dados)
 - "castração", "castrar" → PROGRAMA CASTRAÇÃO
 - "denúncia", "denunciar" → ACOLHER e pedir detalhes em etapas
+- "escorpião", "aranha" → ZOONOSES (pedir endereço)
+- "fralda", "idoso" → BENEFÍCIOS SOCIAIS
+- "esporte", "natação", "futebol" → ESCOLINHAS ESPORTIVAS
+- "ônibus", "tarifa" → TRANSPORTE
 
 COLETA EM ETAPAS — peça UMA coisa por vez:
 1° endereço → 2° detalhes → 3° foto (se aplicável)
 
-PRIORIDADE DE INFO:
-1. SCRIPTS → adapte como base
-2. BASE DE CONHECIMENTO → use dados concretos (datas, links, endereços)
-3. ÁUDIOS → sugira quando relevante
-4. Se NÃO tiver info → diga que vai verificar. NUNCA invente.
+PRIORIDADE DE INFORMAÇÃO (OBRIGATÓRIO):
+1º → SCRIPTS (SEMPRE PRIMEIRO — se existir, USE como base)
+2º → ÁUDIOS (só com validação completa)
+3º → BASE DE CONHECIMENTO → use dados concretos
+4º → Se NÃO tiver info → diga que vai verificar. NUNCA invente.
+
+PROIBIDO IGNORAR SCRIPT: Se existir script correspondente, você NÃO pode inventar resposta.
 
 SECRETARIAS:
 Buraco → Obras | Poste → DMAE/Iluminação | Lixo → Serviços Urbanos | Saúde → Sec. Saúde | Escola → Sec. Educação | Trânsito → SETTRAN | Água → DMAE
@@ -699,7 +724,7 @@ Responda em JSON:
   "urgencia": "Normal|Urgente",
   "resposta": "sua resposta CURTA e NATURAL ao cidadão (max 2-3 frases, SEMPRE terminando com pergunta)",
   "registrar_demanda": true/false,
-  "audio_sugerido": "título exato do áudio ou vazio"
+  "audio_sugerido": "título exato do áudio ou VAZIO (só se validado)"
 }`;
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\n\nMensagem:\n${content}`;
 
