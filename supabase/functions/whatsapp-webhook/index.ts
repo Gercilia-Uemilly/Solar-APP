@@ -117,12 +117,29 @@ const pickUnusedProgressQuestion = (recentOutgoing: string[]) => {
   const candidates = [
     "Quer que eu te passe o contato certinho agora?",
     "Quer que eu te mande o endereço completo também?",
-    "Se você quiser, já te envio o próximo passo certo.",
+    "Quer que eu já te passe o telefone de atendimento?",
   ];
-  const recent = recentOutgoing.map((r) => normalizeText(r));
+  const recentQuestions = recentOutgoing
+    .map((r) => extractQuestionSignature(r))
+    .filter(Boolean);
+
   return (
-    candidates.find((c) => !recent.some((r) => tokenOverlap(r, c) >= 0.65)) ||
-    candidates[0]
+    candidates.find((c) => {
+      const cSig = extractQuestionSignature(c);
+      return !recentQuestions.some((r) => r === cSig || tokenOverlap(r, cSig) >= 0.65);
+    }) || candidates[candidates.length - 1]
+  );
+};
+
+const pickUnusedResponseVariant = (candidates: string[], recentOutgoing: string[]) => {
+  const recent = recentOutgoing.map((r) => normalizeText(r)).filter(Boolean);
+  return (
+    candidates.find((candidate) => {
+      const normalizedCandidate = normalizeText(candidate);
+      return !recent.some(
+        (prev) => prev === normalizedCandidate || tokenOverlap(prev, normalizedCandidate) >= 0.75
+      );
+    }) || candidates[candidates.length - 1]
   );
 };
 
@@ -134,15 +151,35 @@ const buildProgressiveNoLoopReply = (selectedScript: any, recentOutgoing: string
     .filter((l: string) => l.length > 3 && !/^passo\s*\d+/i.test(l))
     .slice(0, 2)
     .join(" ");
-  const nextQuestion = pickUnusedProgressQuestion(recentOutgoing);
+
+  const q1 = pickUnusedProgressQuestion(recentOutgoing);
+  const q2 = "Quer que eu te mande também os documentos que normalmente pedem?";
+  const q3 = "Se preferir, já te explico o próximo passo agora.";
 
   if (links.length) {
-    return limitToTwoShortSentences(`Beleza… pra resolver isso, te mando direto aqui 👇 ${links[0]} ${nextQuestion}`);
+    const variants = [
+      `Beleza… pra resolver isso, te mando direto aqui 👇 ${links[0]} ${q1}`,
+      `Boa… pra ganhar tempo, segue esse link: ${links[0]} ${q2}`,
+      `Então vamos adiantar: usa esse caminho ${links[0]} ${q3}`,
+    ];
+    return limitToTwoShortSentences(pickUnusedResponseVariant(variants, recentOutgoing));
   }
+
   if (compactScript) {
-    return limitToTwoShortSentences(`Beleza… então vamos direto ao ponto: ${compactScript}. ${nextQuestion}`);
+    const variants = [
+      `Beleza… então vamos direto ao ponto: ${compactScript}. ${q1}`,
+      `Boa… o melhor caminho é esse aqui: ${compactScript}. ${q2}`,
+      `Então vamos resolver sem enrolar: ${compactScript}. ${q3}`,
+    ];
+    return limitToTwoShortSentences(pickUnusedResponseVariant(variants, recentOutgoing));
   }
-  return limitToTwoShortSentences(`Beleza… vamos seguir sem repetir. ${nextQuestion}`);
+
+  const genericVariants = [
+    `Beleza… vamos seguir sem repetir. ${q1}`,
+    `Boa… vamos avançar daqui. ${q2}`,
+    `Então fechou, seguimos o próximo passo. ${q3}`,
+  ];
+  return limitToTwoShortSentences(pickUnusedResponseVariant(genericVariants, recentOutgoing));
 };
 
 const enforceNoLoopResponse = (
