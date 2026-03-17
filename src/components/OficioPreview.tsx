@@ -87,9 +87,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           paddingRight: "20mm",
           paddingBottom: "20mm",
           paddingLeft: "30mm",
-          fontFamily: "Arial, Helvetica, sans-serif",
-          fontSize: "11pt",
-          lineHeight: "1.5",
+          fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
+          fontSize: `${fmt.fontSize}pt`,
+          lineHeight: String(fmt.lineSpacing),
           color: "#000",
           backgroundColor: "#fff",
           position: "relative",
@@ -114,7 +114,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           top: "30mm",
           right: "20mm",
           fontSize: "9pt",
-          fontFamily: "Arial, Helvetica, sans-serif",
+          fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
         }}>1</div>
 
         {/* DATA — after: 240 (~16px) */}
@@ -162,11 +162,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           {vocativo}
         </p>
 
-        {/* CORPO — after:0, before:0, line:1.5, justificado, recuo 1.25cm */}
+        {/* CORPO — after:0, before:0, line:fmt, justificado, recuo 1.25cm */}
         {editable && onContentChange ? (
           <OficioPreviewEditor
             content={buildEditorContent(conteudo)}
             onChange={onContentChange}
+            fontFamily={fmt.fontFamily}
+            fontSize={fmt.fontSize}
+            lineSpacing={fmt.lineSpacing}
           />
         ) : isHtml ? (
           <div

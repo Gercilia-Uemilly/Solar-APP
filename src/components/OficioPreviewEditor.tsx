@@ -19,9 +19,12 @@ import {
 interface OficioPreviewEditorProps {
   content: string;
   onChange: (html: string) => void;
+  fontFamily?: string;
+  fontSize?: number;
+  lineSpacing?: number;
 }
 
-export default function OficioPreviewEditor({ content, onChange }: OficioPreviewEditorProps) {
+export default function OficioPreviewEditor({ content, onChange, fontFamily = "Arial", fontSize = 11, lineSpacing = 1.5 }: OficioPreviewEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -154,9 +157,9 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           minHeight: "60px",
           outline: "none",
           textAlign: "justify",
-          fontSize: "11pt",
-          lineHeight: "1.5",
-          fontFamily: "Arial, sans-serif",
+          fontSize: `${fontSize}pt`,
+          lineHeight: String(lineSpacing),
+          fontFamily: `${fontFamily}, Arial, sans-serif`,
           color: "#000",
         }}
       />
@@ -166,8 +169,8 @@ export default function OficioPreviewEditor({ content, onChange }: OficioPreview
           text-indent: 1.25cm;
           margin-bottom: 0;
           margin-top: 0;
-          line-height: 1.5;
-          font-size: 11pt;
+          line-height: ${lineSpacing};
+          font-size: ${fontSize}pt;
         }
         [contenteditable="true"] ul,
         [contenteditable="true"] ol {
