@@ -45,6 +45,12 @@ export default function ScriptsPage() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiResult, setAiResult] = useState<any>(null);
 
+  // Learning from conversations
+  const [showLearnDialog, setShowLearnDialog] = useState(false);
+  const [learning, setLearning] = useState(false);
+  const [learnResults, setLearnResults] = useState<any>(null);
+  const [learnText, setLearnText] = useState("");
+
   const categorias = useMemo(() => {
     const cats = new Set(scripts.map((s) => s.categoria));
     return Array.from(cats).sort();
