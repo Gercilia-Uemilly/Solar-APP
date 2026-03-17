@@ -66,7 +66,18 @@ serve(async (req) => {
       "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
     };
 
-    // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
+    // ── Tentativa 1: Api2PDF (primário — rápido e confiável) ────────────────
+    const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
+    if (API2PDF_KEY) {
+      try {
+        const pdfBytes = await convertWithApi2Pdf(docxBytes, filename, API2PDF_KEY);
+        return new Response(pdfBytes, { headers: pdfHeaders });
+      } catch (e) {
+        console.error("Api2PDF failed, trying next provider:", e);
+      }
+    }
+
+    // ── Tentativa 2: ConvertAPI ──────────────────────────────────────────────
     const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
     if (CONVERTAPI_SECRET) {
       try {
@@ -77,7 +88,7 @@ serve(async (req) => {
       }
     }
 
-    // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
+    // ── Tentativa 3: CloudConvert API ────────────────────────────────────────
     const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
     if (CLOUDCONVERT_API_KEY) {
       try {
@@ -88,17 +99,11 @@ serve(async (req) => {
       }
     }
 
-    // ── Tentativa 3: Gotenberg (self-hosted, se disponível) ──────────────────
+    // ── Tentativa 4: Gotenberg (self-hosted, se disponível) ──────────────────
     const GOTENBERG_URL = Deno.env.get("GOTENBERG_URL");
     if (GOTENBERG_URL) {
       const pdfBytes = await convertWithGotenberg(docxBytes, filename, GOTENBERG_URL);
-      return new Response(pdfBytes, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
-        },
-      });
+      return new Response(pdfBytes, { headers: pdfHeaders });
     }
 
     // ── Fallback: retorna erro informativo ───────────────────────────────────
