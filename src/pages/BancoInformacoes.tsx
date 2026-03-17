@@ -627,6 +627,15 @@ export default function BancoInformacoes() {
             </div>
           </CardContent>
         </Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMainTab("scripts")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-accent"><MessageSquareText size={20} className="text-primary" /></div>
+            <div>
+              <p className="text-2xl font-bold text-foreground leading-none">{stats.scripts}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Scripts</p>
+            </div>
+          </CardContent>
+        </Card>
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMainTab("instagram")}>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-pink-500/10"><InstagramIcon size={20} className="text-pink-500" /></div>
