@@ -20,6 +20,7 @@ const PIE_COLORS = [
 export default function Dashboard() {
   const { user, isAdmin } = useAuth();
   const { oficios } = useOficios();
+  const onlineUsers = useOnlineUsers();
   const [profileName, setProfileName] = useState<string | null>(null);
 
   useEffect(() => {
