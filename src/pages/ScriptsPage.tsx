@@ -341,69 +341,8 @@ export default function ScriptsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog - Learn from Conversations */}
-      <Dialog open={showLearnDialog} onOpenChange={setShowLearnDialog}>
-        <DialogContent className="bg-card border-border max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <BrainCircuit size={20} className="text-primary" /> Aprender com Conversas
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              A IA analisa conversas reais do WhatsApp e cria/atualiza scripts automaticamente no banco.
-            </p>
 
-            <div className="grid grid-cols-1 gap-3">
-              <Button
-                onClick={() => handleLearn("auto")}
-                disabled={learning}
-                variant="outline"
-                className="h-auto py-4 flex flex-col items-start gap-1"
-              >
-                <span className="flex items-center gap-2 font-semibold">
-                  {learning ? <Loader2 size={16} className="animate-spin" /> : <MessageSquareText size={16} />}
-                  Analisar conversas recentes
-                </span>
-                <span className="text-xs text-muted-foreground font-normal">Busca automática nas últimas conversas do WhatsApp</span>
-              </Button>
-            </div>
 
-            <div className="border-t border-border pt-3">
-              <p className="text-xs text-muted-foreground mb-2">Ou cole conversas manualmente:</p>
-              <Textarea
-                placeholder="Cole conversas reais aqui..."
-                value={learnText}
-                onChange={(e) => setLearnText(e.target.value)}
-                className="bg-secondary border-border min-h-[100px]"
-              />
-              <Button
-                onClick={() => handleLearn("text")}
-                disabled={learning || !learnText.trim()}
-                className="w-full mt-2 bg-primary text-primary-foreground"
-              >
-                {learning ? <><Loader2 size={16} className="mr-2 animate-spin" /> Analisando...</> : <><BrainCircuit size={16} className="mr-2" /> Aprender desta conversa</>}
-              </Button>
-            </div>
-
-            {learnResults && (
-              <div className="bg-secondary/50 rounded-xl p-4 space-y-2 border border-border">
-                <p className="text-sm font-semibold text-foreground">
-                  Resultado: {learnResults.suggestions_count || 0} sugestão(ões)
-                </p>
-                {learnResults.results?.map((r: any, i: number) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <span className={`text-xs px-2 py-0.5 rounded ${r.action === "created" ? "bg-green-500/20 text-green-400" : r.action === "updated" ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"}`}>
-                      {r.action === "created" ? "Criado" : r.action === "updated" ? "Atualizado" : "Erro"}
-                    </span>
-                    <span className="text-foreground">{r.titulo}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
