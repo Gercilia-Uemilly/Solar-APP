@@ -806,6 +806,7 @@ export default function Oficios() {
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
+    formatOptions,
   });
 
   // Helper to get image File objects from unified anexos
@@ -852,6 +853,7 @@ export default function Oficios() {
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
+    formatOptions,
     imagens: getImageFilesFromAnexos(),
   });
 
@@ -1242,7 +1244,11 @@ export default function Oficios() {
                     const savedImgs = await fetchSavedImages(editingOficioId);
                     if (savedImgs.length > 0) formData.imagens = savedImgs;
                   }
-                  await exportToPDF(formData);
+                  try {
+                    await exportToPDF(formData);
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
                 }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
@@ -1363,7 +1369,11 @@ export default function Oficios() {
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewingOficio?.conteudo) return;
                   const imgs = await fetchSavedImages(viewingOficio.id);
-                  await exportToPDF({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                  try {
+                    await exportToPDF({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
                 }}><Download size={14} className="mr-1" /> PDF</Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive

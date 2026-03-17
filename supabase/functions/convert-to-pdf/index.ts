@@ -92,11 +92,17 @@ serve(async (req) => {
     // ── Tentativa 3: Api2PDF (LibreOffice) ───────────────────────────────────
     const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
     if (API2PDF_KEY) {
+      let tempUpload: { bucket: string; path: string; publicUrl: string } | null = null;
       try {
-        const pdfBytes = await convertWithApi2Pdf(docxBytes, filename, API2PDF_KEY);
+        tempUpload = await uploadTempDocxAndGetPublicUrl(docxBytes, filename);
+        const pdfBytes = await convertWithApi2Pdf(tempUpload.publicUrl, filename, API2PDF_KEY);
         return new Response(pdfBytes, { headers: pdfHeaders });
       } catch (e) {
         console.error("Api2PDF failed, trying next provider:", e);
+      } finally {
+        if (tempUpload) {
+          await removeTempUpload(tempUpload.bucket, tempUpload.path);
+        }
       }
     }
 
@@ -328,20 +334,53 @@ async function convertWithConvertApi(
   return new Uint8Array(await pdfResp.arrayBuffer());
 }
 
+// ── Api2PDF helpers ──────────────────────────────────────────────────────────
+async function uploadTempDocxAndGetPublicUrl(docxBytes: Uint8Array, filename: string): Promise<{ bucket: string; path: string; publicUrl: string }> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing backend credentials for temporary upload");
+  }
+
+  const admin = createClient(supabaseUrl, serviceRoleKey);
+  const bucket = "midias";
+  const path = `temp/pdf-convert/${crypto.randomUUID()}-${sanitizeDocxFilename(filename)}`;
+
+  const { error } = await admin.storage.from(bucket).upload(path, docxBytes, {
+    contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    upsert: false,
+  });
+
+  if (error) {
+    throw new Error(`Failed to upload temporary DOCX: ${error.message}`);
+  }
+
+  const { data } = admin.storage.from(bucket).getPublicUrl(path);
+  if (!data?.publicUrl) {
+    throw new Error("Failed to generate temporary public URL");
+  }
+
+  return { bucket, path, publicUrl: data.publicUrl };
+}
+
+async function removeTempUpload(bucket: string, path: string): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) return;
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+    await admin.storage.from(bucket).remove([path]);
+  } catch (e) {
+    console.error("Failed to cleanup temporary upload:", e);
+  }
+}
+
 // ── Api2PDF (LibreOffice via API) ────────────────────────────────────────────
 async function convertWithApi2Pdf(
-  docxBytes: Uint8Array,
+  sourceUrl: string,
   filename: string,
   apiKey: string
 ): Promise<Uint8Array> {
-  // Encode to base64 in chunks to avoid stack overflow
-  let binary = "";
-  const chunkSize = 8192;
-  for (let i = 0; i < docxBytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...docxBytes.subarray(i, i + chunkSize));
-  }
-  const base64 = btoa(binary);
-
   const resp = await fetch("https://v2.api2pdf.com/libreoffice/any-to-pdf", {
     method: "POST",
     headers: {
@@ -349,11 +388,9 @@ async function convertWithApi2Pdf(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      url: sourceUrl,
       fileName: filename.replace(".docx", ".pdf"),
-      options: {
-        base64Content: base64,
-        fileName: filename,
-      },
+      inlinePdf: false,
     }),
   });
 
