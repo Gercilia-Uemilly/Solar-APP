@@ -345,7 +345,8 @@ async function convertWithConvertApi(
   const pdfResp = await fetch(pdfFileUrl);
   if (!pdfResp.ok) throw new Error("ConvertAPI: failed to download PDF");
 
-  return new Uint8Array(await pdfResp.arrayBuffer());
+  const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
+  return ensurePdfBytes(pdfBytes, "ConvertAPI");
 }
 
 // ── Api2PDF helpers ──────────────────────────────────────────────────────────
