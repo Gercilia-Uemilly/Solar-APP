@@ -744,7 +744,69 @@ export default function BancoInformacoes() {
           </div>
         </TabsContent>
 
-        {/* ═══════════ TAB: ÁUDIOS ═══════════ */}
+        {/* ═══════════ TAB: SCRIPTS ═══════════ */}
+        <TabsContent value="scripts" className="space-y-4">
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex-1 min-w-[200px] relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Buscar scripts..." value={scriptSearch} onChange={e => setScriptSearch(e.target.value)} className="pl-9" />
+                </div>
+                <Button size="sm" onClick={() => { resetScriptForm(); setShowScriptDialog(true); }} className="gap-1.5">
+                  <Plus size={14} /> Novo Script
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowAIScriptDialog(true)} className="gap-1.5">
+                  <Sparkles size={14} /> Gerar com IA
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button variant={scriptCatFilter === "Todas" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setScriptCatFilter("Todas")}>Todas</Button>
+                <Button variant={scriptCatFilter === "Favoritos" ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1" onClick={() => setScriptCatFilter("Favoritos")}><Star size={12} /> Favoritos</Button>
+                {scriptCategories.map(cat => (
+                  <Button key={cat} variant={scriptCatFilter === cat ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setScriptCatFilter(cat)}>{cat}</Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">{filteredScripts.length} script(s)</p>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {scriptsLoading ? (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                <Loader2 size={32} className="mx-auto mb-3 animate-spin opacity-40" /><p>Carregando...</p>
+              </div>
+            ) : filteredScripts.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                <MessageSquareText size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhum script encontrado</p>
+              </div>
+            ) : filteredScripts.map(s => (
+              <Card key={s.id} className="group hover:shadow-md transition-all">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-foreground leading-tight">{s.titulo}</h3>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 flex-shrink-0">{s.categoria}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-3 whitespace-pre-wrap">{s.conteudo}</p>
+                  {s.tags && s.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {s.tags.slice(0, 3).map((t, i) => <Badge key={i} variant="outline" className="text-[9px] px-1.5 py-0">{t}</Badge>)}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleScriptToggleFav(s)} className={`p-1.5 rounded-md ${s.favorito ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>
+                      {s.favorito ? <Star size={14} /> : <StarOff size={14} />}
+                    </button>
+                    <button onClick={() => handleScriptCopy(s.conteudo)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Copy size={14} /></button>
+                    <button onClick={() => handleScriptEdit(s)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"><Pencil size={14} /></button>
+                    <button onClick={() => handleScriptDelete(s.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto"><Trash2 size={14} /></button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
         <TabsContent value="audios" className="space-y-4">
           {/* Upload area */}
           <Card>
