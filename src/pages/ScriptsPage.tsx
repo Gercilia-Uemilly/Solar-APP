@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Star, Copy, Pencil, Trash2, Loader2, Sparkles, MessageSquareText } from "lucide-react";
+import { Plus, Search, Star, Copy, Pencil, Trash2, Loader2, Sparkles, MessageSquareText, BrainCircuit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
