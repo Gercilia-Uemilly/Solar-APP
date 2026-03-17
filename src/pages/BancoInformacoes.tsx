@@ -72,6 +72,8 @@ export default function BancoInformacoes() {
     table: "base_conhecimento",
     channel: "base-conhecimento-realtime",
     orderBy: { column: "created_at", ascending: false },
+    limit: 500,
+    disableRealtime: true,
   });
   const [importing, setImporting] = useState(false);
   const [scraping, setScraping] = useState(false);

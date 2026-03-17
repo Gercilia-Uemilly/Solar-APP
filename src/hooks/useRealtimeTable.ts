@@ -19,6 +19,10 @@ interface UseRealtimeTableOptions<T> {
   validate?: (row: T) => boolean;
   /** ID field name, defaults to "id" */
   idField?: keyof T;
+  /** Max rows to fetch (default: no limit) */
+  limit?: number;
+  /** Disable realtime subscription for large tables */
+  disableRealtime?: boolean;
 }
 
 /**
@@ -38,6 +42,8 @@ export function useRealtimeTable<T extends Record<string, any>>(
     isNotNull,
     validate,
     idField = "id" as keyof T,
+    limit,
+    disableRealtime = false,
   } = options;
 
   const [data, setData] = useState<T[]>([]);
@@ -66,17 +72,24 @@ export function useRealtimeTable<T extends Record<string, any>>(
     if (orderBy) {
       query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true });
     }
+    if (limit) {
+      query = query.limit(limit);
+    }
 
     const { data: result, error } = await query;
     if (!error && result && isMounted.current) {
       setData(result as unknown as T[]);
     }
     if (isMounted.current) setLoading(false);
-  }, [table, select, JSON.stringify(filters), JSON.stringify(isNull), JSON.stringify(isNotNull), JSON.stringify(orderBy)]);
+  }, [table, select, JSON.stringify(filters), JSON.stringify(isNull), JSON.stringify(isNotNull), JSON.stringify(orderBy), limit]);
 
   useEffect(() => {
     isMounted.current = true;
     fetchData();
+
+    if (disableRealtime) {
+      return () => { isMounted.current = false; };
+    }
 
     const sub = supabase
       .channel(channel)
@@ -92,14 +105,12 @@ export function useRealtimeTable<T extends Record<string, any>>(
               const row = newRow as T;
               if (validate && !validate(row)) return prev;
               if (prev.some((r) => r[idField] === row[idField])) return prev;
-              // Add to beginning if ordered desc, end otherwise
               return orderBy?.ascending === false ? [row, ...prev] : [...prev, row];
             }
 
             if (eventType === "UPDATE") {
               const row = newRow as T;
               if (validate && !validate(row)) {
-                // No longer valid — remove
                 return prev.filter((r) => r[idField] !== row[idField]);
               }
               const exists = prev.some((r) => r[idField] === row[idField]);
@@ -124,7 +135,7 @@ export function useRealtimeTable<T extends Record<string, any>>(
       isMounted.current = false;
       supabase.removeChannel(sub);
     };
-  }, [fetchData, channel, table, idField]);
+  }, [fetchData, channel, table, idField, disableRealtime]);
 
   const optimisticUpdate = useCallback(
     (id: any, fields: Partial<T>) => {
