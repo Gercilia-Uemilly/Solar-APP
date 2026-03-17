@@ -66,6 +66,8 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom"],
   },
   build: {
+    target: "es2020",
+    cssTarget: "chrome80",
     rollupOptions: {
       output: {
         manualChunks: {
