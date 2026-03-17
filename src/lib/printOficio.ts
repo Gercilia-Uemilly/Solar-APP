@@ -18,16 +18,21 @@ interface PrintData {
 
 import { cleanNumero, buildVocativo, formatDateOficio, extrairBairro } from "@/lib/oficioUtils";
 
-async function toDataUrl(src: string): Promise<string> {
+async function toDataUrl(src: string, cropPixels = 0): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
+      const maxCrop = Math.floor(Math.min(img.naturalWidth, img.naturalHeight) / 4);
+      const safeCrop = Math.max(0, Math.min(cropPixels, maxCrop));
+      const width = img.naturalWidth - safeCrop * 2;
+      const height = img.naturalHeight - safeCrop * 2;
+
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, safeCrop, safeCrop, width, height, 0, 0, width, height);
       resolve(canvas.toDataURL("image/png"));
     };
     img.onerror = () => resolve(src);

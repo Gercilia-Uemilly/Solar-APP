@@ -361,10 +361,54 @@ async function fixDocxRelationshipIds(blob: Blob): Promise<Blob> {
   }
 }
 
-// ── Fetch image as Uint8Array ───────────────────────────────────────────────
-async function fetchImageBytes(src: string): Promise<Uint8Array> {
-  const resp = await fetch(src);
-  return new Uint8Array(await resp.arrayBuffer());
+// ── Fetch image as Uint8Array (optional border crop) ────────────────────────
+async function fetchImageBytes(src: string, cropPixels = 0): Promise<Uint8Array> {
+  if (cropPixels <= 0) {
+    const resp = await fetch(src);
+    return new Uint8Array(await resp.arrayBuffer());
+  }
+
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.crossOrigin = "anonymous";
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Falha ao carregar imagem"));
+      el.src = src;
+    });
+
+    const maxCrop = Math.floor(Math.min(img.naturalWidth, img.naturalHeight) / 4);
+    const safeCrop = Math.max(0, Math.min(cropPixels, maxCrop));
+
+    if (!safeCrop) {
+      const resp = await fetch(src);
+      return new Uint8Array(await resp.arrayBuffer());
+    }
+
+    const width = img.naturalWidth - safeCrop * 2;
+    const height = img.naturalHeight - safeCrop * 2;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context indisponível");
+
+    ctx.drawImage(img, safeCrop, safeCrop, width, height, 0, 0, width, height);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((result) => {
+        if (result) resolve(result);
+        else reject(new Error("Falha ao converter imagem"));
+      }, "image/png");
+    });
+
+    return new Uint8Array(await blob.arrayBuffer());
+  } catch {
+    const resp = await fetch(src);
+    return new Uint8Array(await resp.arrayBuffer());
+  }
 }
 
 // ── Get user session token ──────────────────────────────────────────────────
