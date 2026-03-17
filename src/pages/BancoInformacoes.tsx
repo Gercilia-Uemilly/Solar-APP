@@ -197,12 +197,31 @@ export default function BancoInformacoes() {
     return ["Todos", ...Array.from(s)] as string[];
   }, [entries]);
 
+  // Scripts computed
+  const scriptCategories = useMemo(() => {
+    const cats = new Set(scripts.map(s => s.categoria));
+    return Array.from(cats).sort();
+  }, [scripts]);
+
+  const filteredScripts = useMemo(() => {
+    return scripts.filter(s => {
+      if (scriptCatFilter === "Favoritos" && !s.favorito) return false;
+      if (scriptCatFilter !== "Todas" && scriptCatFilter !== "Favoritos" && s.categoria !== scriptCatFilter) return false;
+      if (scriptSearch) {
+        const q = scriptSearch.toLowerCase();
+        return s.titulo.toLowerCase().includes(q) || s.conteudo.toLowerCase().includes(q) || s.tags?.some(t => t.toLowerCase().includes(q));
+      }
+      return true;
+    });
+  }, [scripts, scriptCatFilter, scriptSearch]);
+
   const stats = useMemo(() => ({
     total: entries.length,
+    scripts: scripts.length,
     audios: entries.filter(e => e.categoria === "Áudio").length,
     instagram: entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length,
     modelos: entries.filter(e => e.modelo).length,
-  }), [entries]);
+  }), [entries, scripts]);
 
   // ─── Handlers ───
   const handleImport = async () => {
