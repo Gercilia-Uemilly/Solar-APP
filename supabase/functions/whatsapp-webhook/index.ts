@@ -524,18 +524,33 @@ async function handleAIAgent(
       }))
       .sort((a: any, b: any) => b.match_score - a.match_score);
 
-    // Audio requires EXACT category match AND high score AND conversation must be advanced (>2 messages)
-    const conversationAdvanced = (history || []).filter((m: any) => m.direction === "incoming").length >= 2;
-    const selectedAudio = (scoredAudios[0]?.match_score >= 5 && conversationAdvanced) ? scoredAudios[0] : null;
+    // Audio requires: EXACT category match + high score + conversation advanced (>=3 incoming msgs) + script must exist
+    const incomingCount = (history || []).filter((m: any) => m.direction === "incoming").length;
+    const conversationAdvanced = incomingCount >= 3;
+    // Audio ONLY allowed when: script matched + audio score >= 5 + conversation advanced + audio tags match script tags
+    const candidateAudio = scoredAudios[0]?.match_score >= 5 ? scoredAudios[0] : null;
+    let selectedAudio: any = null;
+    if (candidateAudio && conversationAdvanced && selectedScript) {
+      const audioKws = (candidateAudio.palavras_chave || []).map((k: string) => normalizeText(k));
+      const scriptTags = (selectedScript.tags || []).map((t: string) => normalizeText(t));
+      const scriptCat = normalizeText(selectedScript.categoria || "");
+      const audioCat = normalizeText(candidateAudio.categoria || "");
+      const tagOverlap = audioKws.some((kw: string) => scriptTags.includes(kw));
+      const catMatch = scriptCat && audioCat && (scriptCat === audioCat || audioKws.includes(scriptCat));
+      if (tagOverlap || catMatch) {
+        selectedAudio = candidateAudio;
+        console.log("Audio VALIDATED:", selectedAudio.titulo, "score:", selectedAudio.match_score);
+      } else {
+        console.log("Audio BLOCKED — tags don't match script:", candidateAudio.titulo, { audioKws, scriptTags });
+      }
+    } else if (candidateAudio) {
+      console.log("Audio BLOCKED —", !selectedScript ? "no script matched" : !conversationAdvanced ? `only ${incomingCount} msgs` : "score too low");
+    }
 
     if (selectedScript) {
       console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
     } else {
       console.log("No script matched for:", content);
-    }
-
-    if (selectedAudio) {
-      console.log("Audio matched:", selectedAudio.titulo, "score:", selectedAudio.match_score);
     }
 
     const systemPrompt = `Você é o assessor do gabinete do Vereador Fabão de Uberlândia. Atende pelo WhatsApp como gente de verdade — humano, natural, empático e fluido. Você NÃO é um robô. Você é um atendente humano digital.
