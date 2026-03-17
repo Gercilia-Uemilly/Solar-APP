@@ -944,19 +944,13 @@ Responda APENAS o texto adaptado, sem JSON.` },
 
         console.log("Auto-response sent successfully");
 
-        // Send audio ONLY if pre-validated (selectedAudio exists AND conversation is advanced)
-        if (analysis.audio_sugerido && selectedAudio && conversationAdvanced) {
+        // Send audio ONLY if pre-validated (selectedAudio was already fully validated above)
+        if (analysis.audio_sugerido && selectedAudio && conversationAdvanced && selectedScript) {
           const matchedAudioEntry = (audioEntries || []).find(
-            (a: any) => a.titulo?.toLowerCase().includes(analysis.audio_sugerido.toLowerCase()) ||
-                         analysis.audio_sugerido.toLowerCase().includes(a.titulo?.toLowerCase() || "")
+            (a: any) => normalizeText(a.titulo || "") === normalizeText(selectedAudio.titulo || "")
           );
-          // Double-check: audio must match the selected script's category
-          const categoryMatch = !selectedScript || 
-            (matchedAudioEntry?.palavras_chave || []).some((kw: string) => 
-              (selectedScript.tags || []).some((t: string) => normalizeText(kw) === normalizeText(t))
-            );
           
-          if (matchedAudioEntry?.link && categoryMatch) {
+          if (matchedAudioEntry?.link) {
             const audioUrl = matchedAudioEntry.link.startsWith("http") 
               ? matchedAudioEntry.link 
               : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/midias/${matchedAudioEntry.link}`;
@@ -969,17 +963,17 @@ Responda APENAS o texto adaptado, sem JSON.` },
               audioRes = await fetch(sendAudioUrl, { method: "POST", headers: buildZapiHeaders(true), body: audioPayload });
             }
             const audioResText = await audioRes.text();
-            console.log("Audio send result (validated):", audioRes.status, audioResText.slice(0, 200));
+            console.log("Audio sent (validated):", audioRes.status, matchedAudioEntry.titulo);
           } else {
-            console.log("Audio blocked — validation failed:", { 
-              suggested: analysis.audio_sugerido, 
-              found: !!matchedAudioEntry, 
-              categoryMatch,
-              conversationAdvanced 
-            });
+            console.log("Audio blocked — entry not found for:", analysis.audio_sugerido);
           }
         } else if (analysis.audio_sugerido) {
-          console.log("Audio blocked — not pre-validated or conversation too early:", analysis.audio_sugerido);
+          console.log("Audio BLOCKED at send:", { 
+            hasSelectedAudio: !!selectedAudio, 
+            hasScript: !!selectedScript, 
+            advanced: conversationAdvanced, 
+            incomingCount 
+          });
         }
       } else {
         console.error("Z-API send failed:", sendRes.status, sendData);
