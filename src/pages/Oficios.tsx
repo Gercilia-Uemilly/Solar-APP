@@ -1369,7 +1369,11 @@ export default function Oficios() {
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewingOficio?.conteudo) return;
                   const imgs = await fetchSavedImages(viewingOficio.id);
-                  await exportToPDF({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                  try {
+                    await exportToPDF({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
                 }}><Download size={14} className="mr-1" /> PDF</Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={() => { if (viewingOficio) handleUploadToDrive(viewingOficio); }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive

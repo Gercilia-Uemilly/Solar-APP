@@ -784,7 +784,14 @@ export default function MeusOficios() {
                 <Button size="sm" variant="outline" onClick={() => { if (viewOficio) exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => { if (viewOficio) await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  if (!viewOficio) return;
+                  try {
+                    await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContent });
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
+                }}>
                   <Download size={14} className="mr-1" /> PDF
                 </Button>
                 {viewOficio && canEditOrDelete(viewOficio) && (
