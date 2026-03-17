@@ -42,6 +42,8 @@ export function useRealtimeTable<T extends Record<string, any>>(
     isNotNull,
     validate,
     idField = "id" as keyof T,
+    limit,
+    disableRealtime = false,
   } = options;
 
   const [data, setData] = useState<T[]>([]);
