@@ -33,9 +33,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await _sb.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
+    const { data: userData, error: userErr } = await _sb.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -67,7 +66,18 @@ serve(async (req) => {
       "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
     };
 
-    // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
+    // ── Tentativa 1: Api2PDF (primário — rápido e confiável) ────────────────
+    const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
+    if (API2PDF_KEY) {
+      try {
+        const pdfBytes = await convertWithApi2Pdf(docxBytes, filename, API2PDF_KEY);
+        return new Response(pdfBytes, { headers: pdfHeaders });
+      } catch (e) {
+        console.error("Api2PDF failed, trying next provider:", e);
+      }
+    }
+
+    // ── Tentativa 2: ConvertAPI ──────────────────────────────────────────────
     const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
     if (CONVERTAPI_SECRET) {
       try {
@@ -78,7 +88,7 @@ serve(async (req) => {
       }
     }
 
-    // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
+    // ── Tentativa 3: CloudConvert API ────────────────────────────────────────
     const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
     if (CLOUDCONVERT_API_KEY) {
       try {
@@ -89,17 +99,11 @@ serve(async (req) => {
       }
     }
 
-    // ── Tentativa 3: Gotenberg (self-hosted, se disponível) ──────────────────
+    // ── Tentativa 4: Gotenberg (self-hosted, se disponível) ──────────────────
     const GOTENBERG_URL = Deno.env.get("GOTENBERG_URL");
     if (GOTENBERG_URL) {
       const pdfBytes = await convertWithGotenberg(docxBytes, filename, GOTENBERG_URL);
-      return new Response(pdfBytes, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
-        },
-      });
+      return new Response(pdfBytes, { headers: pdfHeaders });
     }
 
     // ── Fallback: retorna erro informativo ───────────────────────────────────
@@ -319,6 +323,52 @@ async function convertWithConvertApi(
 
   const pdfResp = await fetch(pdfFileUrl);
   if (!pdfResp.ok) throw new Error("ConvertAPI: failed to download PDF");
+
+  return new Uint8Array(await pdfResp.arrayBuffer());
+}
+
+// ── Api2PDF (LibreOffice via API) ────────────────────────────────────────────
+async function convertWithApi2Pdf(
+  docxBytes: Uint8Array,
+  filename: string,
+  apiKey: string
+): Promise<Uint8Array> {
+  // Encode to base64 in chunks to avoid stack overflow
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < docxBytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...docxBytes.subarray(i, i + chunkSize));
+  }
+  const base64 = btoa(binary);
+
+  const resp = await fetch("https://v2.api2pdf.com/libreoffice/any-to-pdf", {
+    method: "POST",
+    headers: {
+      "Authorization": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      fileName: filename.replace(".docx", ".pdf"),
+      options: {
+        base64Content: base64,
+        fileName: filename,
+      },
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Api2PDF error: ${resp.status} ${errText}`);
+  }
+
+  const result = await resp.json();
+
+  if (!result.FileUrl) {
+    throw new Error(`Api2PDF: no FileUrl in response — ${JSON.stringify(result)}`);
+  }
+
+  const pdfResp = await fetch(result.FileUrl);
+  if (!pdfResp.ok) throw new Error("Api2PDF: failed to download PDF");
 
   return new Uint8Array(await pdfResp.arrayBuffer());
 }
