@@ -167,6 +167,31 @@ export default function ScriptsPage() {
     setAiResult(null);
   };
 
+  // Learn from conversations
+  const handleLearn = async (mode: "auto" | "text") => {
+    setLearning(true);
+    setLearnResults(null);
+    try {
+      const body: any = {};
+      if (mode === "text" && learnText.trim()) {
+        body.conversa_text = learnText;
+      }
+      const { data, error } = await supabase.functions.invoke("learn-from-conversations", { body });
+      if (error) throw error;
+      setLearnResults(data);
+      if (data?.results?.length > 0) {
+        await fetchScripts();
+        toast({ title: `Aprendizado concluído!`, description: `${data.results.filter((r: any) => r.action === "created").length} criados, ${data.results.filter((r: any) => r.action === "updated").length} atualizados` });
+      } else {
+        toast({ title: "Nenhum script novo", description: "As conversas não geraram novos padrões" });
+      }
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLearning(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
