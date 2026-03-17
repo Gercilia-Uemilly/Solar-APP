@@ -162,11 +162,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           {vocativo}
         </p>
 
-        {/* CORPO — after:0, before:0, line:1.5, justificado, recuo 1.25cm */}
+        {/* CORPO — after:0, before:0, line:fmt, justificado, recuo 1.25cm */}
         {editable && onContentChange ? (
           <OficioPreviewEditor
             content={buildEditorContent(conteudo)}
             onChange={onContentChange}
+            fontFamily={fmt.fontFamily}
+            fontSize={fmt.fontSize}
+            lineSpacing={fmt.lineSpacing}
           />
         ) : isHtml ? (
           <div
