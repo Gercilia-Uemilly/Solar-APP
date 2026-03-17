@@ -420,7 +420,8 @@ export default function Oficios() {
     setDestinatario(o.destinatario || "");
     setCargoDestinatario(o.cargo_destinatario || "");
     setLocalDemanda(o.local_demanda || "");
-    setEnderecoCompleto((o as any).endereco_completo || o.bairro || "");
+    setBairro(o.bairro || "");
+    setEnderecoCompleto((o as any).endereco_completo || "");
     setSolicitante(o.solicitante || "");
     setContatoSolicitante(o.contato_solicitante || "");
     setCodigoZ((o as any).codigo_z || "");
