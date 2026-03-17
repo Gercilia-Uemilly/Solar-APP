@@ -115,10 +115,10 @@ Retorne um texto descritivo claro e objetivo com todas as informações extraíd
 
     let resultText: string;
 
-    // Audio/video → use Lovable AI (Gemini) which supports multimodal
+    // Audio/video → use Gemini API directly (supports multimodal audio/video)
     // Images/docs → use OpenAI via shared helper
     if (fileType === "audio" || fileType === "video") {
-      resultText = await callLovableAI(base64, mimeType, prompt);
+      resultText = await callGeminiDirect(base64, mimeType, prompt);
     } else {
       const { systemInstruction, messages } = toGeminiMultimodal([
         { inlineData: { mimeType, data: base64 } },
