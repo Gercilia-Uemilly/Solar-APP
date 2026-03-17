@@ -595,17 +595,32 @@ Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_de
 
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\nMensagem: ${content}`;
 
-    // ── AI CALL (single, using Lovable AI gateway) ──
+    // ── AI CALL (cascade: Lovable → Gemini Direct → OpenAI → fallback) ──
     let analysis: any = null;
     const startAi = Date.now();
 
+    const parseAiResponse = (rawText: string) => {
+      const cleaned = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
+      return {
+        problema: parsed?.problema || content.slice(0, 180),
+        endereco: parsed?.endereco || "",
+        bairro: parsed?.bairro || "",
+        secretaria: parsed?.secretaria || "",
+        tipo_demanda: parsed?.tipo_demanda || "Solicitação",
+        urgencia: parsed?.urgencia || "Normal",
+        resposta: parsed?.resposta || "",
+        registrar_demanda: Boolean(parsed?.registrar_demanda),
+        audio_sugerido: parsed?.audio_sugerido || selectedAudio?.titulo || "",
+      };
+    };
+
+    // Attempt 1: Lovable AI Gateway
     try {
       const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
-      const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
-
-      let aiRes: Response;
       if (LOVABLE_KEY) {
-        aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${LOVABLE_KEY}` },
           body: JSON.stringify({
@@ -618,59 +633,81 @@ Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_de
             max_tokens: 512,
           }),
         });
-      } else if (OPENAI_KEY) {
-        aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userMessage },
-            ],
-            temperature: 0.8,
-            max_tokens: 512,
-            response_format: { type: "json_object" },
-          }),
-        });
-      } else {
-        throw new Error("No AI key configured");
-      }
-
-      console.log(`AI call: ${Date.now() - startAi}ms`);
-
-      if (aiRes!.ok) {
-        const aiData = await aiRes!.json();
-        const rawText = aiData.choices?.[0]?.message?.content || "";
-        const cleaned = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
-        try {
-          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
-          analysis = {
-            problema: parsed?.problema || content.slice(0, 180),
-            endereco: parsed?.endereco || "",
-            bairro: parsed?.bairro || "",
-            secretaria: parsed?.secretaria || "",
-            tipo_demanda: parsed?.tipo_demanda || "Solicitação",
-            urgencia: parsed?.urgencia || "Normal",
-            resposta: parsed?.resposta || "",
-            registrar_demanda: Boolean(parsed?.registrar_demanda),
-            audio_sugerido: parsed?.audio_sugerido || selectedAudio?.titulo || "",
-          };
-          console.log("AI response OK");
-        } catch {
-          console.warn("AI returned invalid JSON:", cleaned.slice(0, 150));
+        console.log(`Lovable AI call: ${Date.now() - startAi}ms, status: ${aiRes.status}`);
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          const rawText = aiData.choices?.[0]?.message?.content || "";
+          try { analysis = parseAiResponse(rawText); console.log("AI response OK (Lovable)"); } catch { console.warn("Lovable AI invalid JSON"); }
+        } else {
+          const errText = await aiRes.text();
+          console.error("Lovable AI error:", aiRes.status, errText.slice(0, 200));
         }
-      } else {
-        const errText = await aiRes!.text();
-        console.error("AI error:", aiRes!.status, errText.slice(0, 200));
       }
-    } catch (aiErr: any) {
-      console.error("AI call error:", aiErr.message);
+    } catch (e: any) { console.error("Lovable AI exception:", e.message); }
+
+    // Attempt 2: Gemini Direct API (fallback)
+    if (!analysis?.resposta) {
+      try {
+        const GEMINI_KEY = (Deno.env.get("GEMINI_AGENT_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+        if (GEMINI_KEY) {
+          console.log("Falling back to Gemini Direct API...");
+          const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: systemPrompt + "\n\n---\n\n" + userMessage }] }],
+              generationConfig: { temperature: 0.8, maxOutputTokens: 512 },
+            }),
+          });
+          console.log(`Gemini Direct call: ${Date.now() - startAi}ms, status: ${geminiRes.status}`);
+          if (geminiRes.ok) {
+            const gemData = await geminiRes.json();
+            const rawText = gemData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            try { analysis = parseAiResponse(rawText); console.log("AI response OK (Gemini Direct)"); } catch { console.warn("Gemini invalid JSON"); }
+          } else {
+            const errText = await geminiRes.text();
+            console.error("Gemini Direct error:", geminiRes.status, errText.slice(0, 200));
+          }
+        }
+      } catch (e: any) { console.error("Gemini Direct exception:", e.message); }
+    }
+
+    // Attempt 3: OpenAI (fallback)
+    if (!analysis?.resposta) {
+      try {
+        const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+        if (OPENAI_KEY) {
+          console.log("Falling back to OpenAI...");
+          const oaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userMessage },
+              ],
+              temperature: 0.8,
+              max_tokens: 512,
+              response_format: { type: "json_object" },
+            }),
+          });
+          console.log(`OpenAI call: ${Date.now() - startAi}ms, status: ${oaiRes.status}`);
+          if (oaiRes.ok) {
+            const oaiData = await oaiRes.json();
+            const rawText = oaiData.choices?.[0]?.message?.content || "";
+            try { analysis = parseAiResponse(rawText); console.log("AI response OK (OpenAI)"); } catch { console.warn("OpenAI invalid JSON"); }
+          } else {
+            const errText = await oaiRes.text();
+            console.error("OpenAI error:", oaiRes.status, errText.slice(0, 200));
+          }
+        }
+      } catch (e: any) { console.error("OpenAI exception:", e.message); }
     }
 
     if (!analysis?.resposta) {
       analysis = { ...buildFallbackAnalysis(), audio_sugerido: selectedAudio?.titulo || "" };
+      console.warn("All AI providers failed — using fallback response");
     }
 
     // ── UPDATE + SEND in parallel ──
