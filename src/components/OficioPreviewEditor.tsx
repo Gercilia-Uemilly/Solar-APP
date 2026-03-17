@@ -157,9 +157,9 @@ export default function OficioPreviewEditor({ content, onChange, fontFamily = "A
           minHeight: "60px",
           outline: "none",
           textAlign: "justify",
-          fontSize: "11pt",
-          lineHeight: "1.5",
-          fontFamily: "Arial, sans-serif",
+          fontSize: `${fontSize}pt`,
+          lineHeight: String(lineSpacing),
+          fontFamily: `${fontFamily}, Arial, sans-serif`,
           color: "#000",
         }}
       />
