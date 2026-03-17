@@ -488,21 +488,40 @@ REGRAS:
 ${isFirst ? "PRIMEIRA MSG: Apenas cumprimente natural. Ex: '" + saudacao + (senderName ? ", " + senderName.split(" ")[0] : "") + ", tudo bem? 😊' — SÓ ISSO. NÃO pergunte 'como posso te ajudar'. Deixe a pessoa falar." : "CONTINUIDADE: NÃO cumprimente de novo. NÃO repita o nome da pessoa. NÃO diga 'oi fulano tudo bem' de novo. Continue direto no assunto. Comece com 'Então...', 'Entendi...', 'Olha só...' — NUNCA com saudação ou nome."}
 
 ${selectedScript ? (() => {
+  // Extract links from script content
+  const urlRegex = /https?:\/\/[^\s),]+/g;
+  const contentLinks = (selectedScript.conteudo || "").match(urlRegex) || [];
+  
   // Find related link from knowledge base
   const scriptKws = (selectedScript.tags || []).map((t: string) => normalizeText(t));
-  const relatedLink = topKnowledge.find((k: any) => {
+  const relatedKb = topKnowledge.find((k: any) => {
     if (!k.link) return false;
     const kKws = (k.palavras_chave || []).map((p: string) => normalizeText(p));
     return scriptKws.some((sk: string) => kKws.includes(sk) || normalizeText(k.titulo || "").includes(sk));
   });
-  const linkInfo = relatedLink ? `\nLINK RELACIONADO (INCLUA na resposta de forma natural): ${relatedLink.link}\nEx: "Consigo te mandar o link aqui 😊👇\n${relatedLink.link}"` : "";
-  return `⚠️ SCRIPT OBRIGATÓRIO — USE O script_base COMO BASE DA RESPOSTA: "${selectedScript.titulo}"
-SCRIPT_BASE (use como resposta, adaptando o tom):
+  if (relatedKb?.link && !contentLinks.includes(relatedKb.link)) contentLinks.push(relatedKb.link);
+  
+  const linkBlock = contentLinks.length > 0
+    ? `\n\n🔗 LINKS DO SCRIPT (OBRIGATÓRIO incluir na resposta):\n${contentLinks.map((l: string) => `→ ${l}`).join("\n")}\nVocê DEVE enviar o link assim: "Consigo te mandar o link aqui 😊👇\n[link]"\nSe o script tem link e você NÃO incluir = ERRO GRAVE.`
+    : "";
+
+  return `⚠️ SISTEMA DE DECISÃO — SCRIPT ENCONTRADO (OBRIGATÓRIO USAR)
+
+SCRIPT: "${selectedScript.titulo}"
+SCRIPT_BASE:
 ${selectedScript.conteudo?.slice(0, 600) || ""}
 
-REGRA: Sua resposta DEVE ser baseada no script_base acima. NÃO invente outra resposta. Adapte o tom mineiro mas mantenha a estrutura e pergunta do script.${linkInfo}
-NÃO invente links. Só use links que aparecem aqui.`;
-})() : "Sem script. Use base de conhecimento ou acolha e pergunte mais. Se tiver link relevante na base, inclua naturalmente."}
+REGRAS DO SCRIPT:
+1. Sua resposta DEVE ser baseada APENAS no script_base acima
+2. NÃO invente outra resposta diferente do script
+3. Adapte para tom mineiro mas MANTENHA a estrutura e pergunta
+4. Se o script tem link → OBRIGATÓRIO incluir o link na resposta
+5. NÃO use conhecimento próprio — USE O SCRIPT${linkBlock}`;
+})() : `Sem script encontrado. Processo:
+1. Busque na BASE DE CONHECIMENTO abaixo
+2. Se encontrar info relevante com link → inclua o link
+3. Se não encontrar nada → acolha e pergunte mais detalhes
+4. NUNCA invente informação`}
 
 ${selectedAudio ? `ÁUDIO VALIDADO: "${selectedAudio.titulo}"` : "Sem áudio validado."}
 
