@@ -661,7 +661,11 @@ export default function MeusOficios() {
                       onClick={async () => {
                         if (!o.conteudo) return;
                         const imgs = await fetchSavedImages(o.id);
-                        await exportToPDF({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                        try {
+                          await exportToPDF({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                        } catch (e: any) {
+                          toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                        }
                       }}
                       className="p-2 text-muted-foreground hover:text-foreground"
                       title="Exportar PDF"
