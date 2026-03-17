@@ -8,6 +8,44 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Call Lovable AI gateway (Gemini) for audio/video — OpenAI doesn't support these MIME types
+async function callLovableAI(base64: string, mimeType: string, prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
+            { type: "text", text: prompt },
+          ],
+        },
+      ],
+      max_tokens: 8192,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Lovable AI error:", response.status, errText);
+    if (response.status === 429) throw Object.assign(new Error("Limite de requisições excedido."), { status: 429 });
+    if (response.status === 402) throw Object.assign(new Error("Sem créditos disponíveis."), { status: 402 });
+    throw Object.assign(new Error(`Erro AI: ${response.status}`), { status: response.status });
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -81,15 +119,23 @@ Foque em:
 Retorne um texto descritivo claro e objetivo com todas as informações extraídas.`;
     }
 
-    const { systemInstruction, messages } = toGeminiMultimodal([
-      { inlineData: { mimeType, data: base64 } },
-      { text: prompt },
-    ]);
+    let resultText: string;
 
-    const result = await callGemini({ systemInstruction, messages });
+    // Audio/video → use Lovable AI (Gemini) which supports multimodal
+    // Images/docs → use OpenAI via shared helper
+    if (fileType === "audio" || fileType === "video") {
+      resultText = await callLovableAI(base64, mimeType, prompt);
+    } else {
+      const { systemInstruction, messages } = toGeminiMultimodal([
+        { inlineData: { mimeType, data: base64 } },
+        { text: prompt },
+      ]);
+      const result = await callGemini({ systemInstruction, messages });
+      resultText = result.text;
+    }
 
     return new Response(
-      JSON.stringify({ text: result.text, type: fileType }),
+      JSON.stringify({ text: resultText, type: fileType }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e: any) {
