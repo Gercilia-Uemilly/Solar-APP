@@ -806,6 +806,7 @@ export default function Oficios() {
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
+    formatOptions,
   });
 
   // Helper to get image File objects from unified anexos

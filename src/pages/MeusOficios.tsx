@@ -269,6 +269,7 @@ export default function MeusOficios() {
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
+    formatOptions,
   });
 
   const handleUploadToDrive = async (oficio: OficioRow) => {
