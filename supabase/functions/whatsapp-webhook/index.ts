@@ -489,7 +489,8 @@ ${isFirst ? "PRIMEIRA MSG: Apenas cumprimente natural. Ex: '" + saudacao + (send
 
 ${selectedScript ? `⚠️ SCRIPT OBRIGATÓRIO: "${selectedScript.titulo}"
 ${selectedScript.conteudo?.slice(0, 600) || ""}
-Adapte o tom mas USE a informação. Termine com pergunta.` : "Sem script. Use base de conhecimento ou acolha e pergunte mais."}
+Adapte o tom mas USE a informação. Termine com pergunta.
+Se o script ou a base de conhecimento tiver um LINK relacionado, inclua naturalmente na resposta. Ex: "Consigo te mandar o link aqui 😊👇\n[link]". NÃO invente links.` : "Sem script. Use base de conhecimento ou acolha e pergunte mais. Se tiver link relevante na base, inclua naturalmente."}
 
 ${selectedAudio ? `ÁUDIO VALIDADO: "${selectedAudio.titulo}"` : "Sem áudio validado."}
 
