@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Copy, Share2, Calendar, Tag, Globe, Headphones, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Info, Smartphone, Monitor } from "lucide-react";
+import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Copy, Share2, Calendar, Tag, Globe, Headphones, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Info, Smartphone, Monitor, Plus, Pencil, MessageSquareText } from "lucide-react";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,8 +35,20 @@ interface ExistingScript {
   categoria: string;
 }
 
+interface ScriptRow {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  categoria: string;
+  tags: string[];
+  favorito: boolean;
+  author_id: string;
+  created_at: string;
+}
+
 const TAB_CONFIG = [
   { value: "base", label: "Base", icon: Library, adminOnly: false },
+  { value: "scripts", label: "Scripts", icon: MessageSquareText, adminOnly: false },
   { value: "audios", label: "Áudios", icon: Headphones, adminOnly: false },
   { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: false },
   { value: "instagram", label: "Instagram", icon: InstagramIcon, adminOnly: false },
@@ -75,6 +87,11 @@ export default function BancoInformacoes() {
     limit: 500,
     disableRealtime: true,
   });
+  const { data: scripts, setData: setScriptsData, loading: scriptsLoading, refetch: fetchScripts } = useRealtimeTable<ScriptRow>({
+    table: "scripts",
+    channel: "scripts-banco-realtime",
+    orderBy: { column: "titulo", ascending: true },
+  });
   const [importing, setImporting] = useState(false);
   const [scraping, setScraping] = useState(false);
   const [search, setSearch] = useState("");
@@ -109,6 +126,20 @@ export default function BancoInformacoes() {
   const [audioSearch, setAudioSearch] = useState("");
   const [audioOriginFilter, setAudioOriginFilter] = useState("Todas");
   const [audioTagFilter, setAudioTagFilter] = useState("Todos");
+
+  // Script tab state
+  const [scriptSearch, setScriptSearch] = useState("");
+  const [scriptCatFilter, setScriptCatFilter] = useState("Todas");
+  const [showScriptDialog, setShowScriptDialog] = useState(false);
+  const [sFormTitulo, setSFormTitulo] = useState("");
+  const [sFormConteudo, setSFormConteudo] = useState("");
+  const [sFormCategoria, setSFormCategoria] = useState("");
+  const [sFormTags, setSFormTags] = useState("");
+  const [sEditingId, setSEditingId] = useState<string | null>(null);
+  const [aiScriptInput, setAiScriptInput] = useState("");
+  const [aiScriptGenerating, setAiScriptGenerating] = useState(false);
+  const [aiScriptResult, setAiScriptResult] = useState<any>(null);
+  const [showAIScriptDialog, setShowAIScriptDialog] = useState(false);
 
   // ─── Derived data ───
   const fontes = useMemo(() => {
@@ -166,12 +197,31 @@ export default function BancoInformacoes() {
     return ["Todos", ...Array.from(s)] as string[];
   }, [entries]);
 
+  // Scripts computed
+  const scriptCategories = useMemo(() => {
+    const cats = new Set(scripts.map(s => s.categoria));
+    return Array.from(cats).sort();
+  }, [scripts]);
+
+  const filteredScripts = useMemo(() => {
+    return scripts.filter(s => {
+      if (scriptCatFilter === "Favoritos" && !s.favorito) return false;
+      if (scriptCatFilter !== "Todas" && scriptCatFilter !== "Favoritos" && s.categoria !== scriptCatFilter) return false;
+      if (scriptSearch) {
+        const q = scriptSearch.toLowerCase();
+        return s.titulo.toLowerCase().includes(q) || s.conteudo.toLowerCase().includes(q) || s.tags?.some(t => t.toLowerCase().includes(q));
+      }
+      return true;
+    });
+  }, [scripts, scriptCatFilter, scriptSearch]);
+
   const stats = useMemo(() => ({
     total: entries.length,
+    scripts: scripts.length,
     audios: entries.filter(e => e.categoria === "Áudio").length,
     instagram: entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length,
     modelos: entries.filter(e => e.modelo).length,
-  }), [entries]);
+  }), [entries, scripts]);
 
   // ─── Handlers ───
   const handleImport = async () => {
@@ -437,6 +487,73 @@ export default function BancoInformacoes() {
     setShowDialog(false);
   };
 
+  // ─── Script tab handlers ───
+  const handleScriptCreate = async () => {
+    if (!user) return;
+    if (sEditingId) {
+      await supabase.from("scripts").update({
+        titulo: sFormTitulo, conteudo: sFormConteudo, categoria: sFormCategoria,
+        tags: sFormTags.split(",").map(t => t.trim()).filter(Boolean),
+      }).eq("id", sEditingId);
+      setScriptsData(prev => prev.map(s => s.id === sEditingId ? { ...s, titulo: sFormTitulo, conteudo: sFormConteudo, categoria: sFormCategoria, tags: sFormTags.split(",").map(t => t.trim()).filter(Boolean) } : s));
+      toast({ title: "Script atualizado!" });
+    } else {
+      const { data: newScript, error } = await supabase.from("scripts").insert({
+        titulo: sFormTitulo, conteudo: sFormConteudo, categoria: sFormCategoria || "Geral",
+        tags: sFormTags.split(",").map(t => t.trim()).filter(Boolean), author_id: user.id,
+      }).select().single();
+      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+      if (newScript) setScriptsData(prev => [...prev, newScript as unknown as ScriptRow]);
+      toast({ title: "Script criado!" });
+    }
+    setShowScriptDialog(false); resetScriptForm();
+  };
+
+  const resetScriptForm = () => { setSFormTitulo(""); setSFormConteudo(""); setSFormCategoria(""); setSFormTags(""); setSEditingId(null); };
+
+  const handleScriptEdit = (s: ScriptRow) => {
+    setSFormTitulo(s.titulo); setSFormConteudo(s.conteudo); setSFormCategoria(s.categoria);
+    setSFormTags(s.tags?.join(", ") || ""); setSEditingId(s.id); setShowScriptDialog(true);
+  };
+
+  const handleScriptCopy = (text: string) => { navigator.clipboard.writeText(text); toast({ title: "Copiado!" }); };
+
+  const handleScriptToggleFav = async (s: ScriptRow) => {
+    const newVal = !s.favorito;
+    await supabase.from("scripts").update({ favorito: newVal }).eq("id", s.id);
+    setScriptsData(prev => prev.map(x => x.id === s.id ? { ...x, favorito: newVal } : x));
+  };
+
+  const handleScriptDelete = async (id: string) => {
+    await supabase.from("scripts").delete().eq("id", id);
+    setScriptsData(prev => prev.filter(x => x.id !== id));
+    toast({ title: "Script removido" });
+  };
+
+  const handleGenerateAIScript = async () => {
+    if (!aiScriptInput.trim()) return;
+    setAiScriptGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-script", { body: { conversa: aiScriptInput } });
+      if (error) throw error;
+      setAiScriptResult(data);
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar", description: err.message, variant: "destructive" });
+    } finally { setAiScriptGenerating(false); }
+  };
+
+  const handleSaveAIScript = async () => {
+    if (!user || !aiScriptResult) return;
+    const { error } = await supabase.from("scripts").insert({
+      titulo: aiScriptResult.titulo, conteudo: aiScriptResult.script_base || aiScriptResult.conteudo,
+      categoria: aiScriptResult.categoria || "Geral",
+      tags: aiScriptResult.tags || [], author_id: user.id,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Script salvo!" }); setAiScriptResult(null); setAiScriptInput("");
+    setShowAIScriptDialog(false); await fetchScripts();
+  };
+
   const fonteIcon = (fonte: string | null) => {
     if (fonte === "Instagram") return <InstagramIcon size={12} className="text-pink-500" />;
     if (fonte === "Upload") return <UploadCloud size={12} className="text-primary" />;
@@ -491,7 +608,7 @@ export default function BancoInformacoes() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMainTab("base")}>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10"><Library size={20} className="text-primary" /></div>
@@ -507,6 +624,15 @@ export default function BancoInformacoes() {
             <div>
               <p className="text-2xl font-bold text-foreground leading-none">{stats.audios}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Áudios</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMainTab("scripts")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-accent"><MessageSquareText size={20} className="text-primary" /></div>
+            <div>
+              <p className="text-2xl font-bold text-foreground leading-none">{stats.scripts}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Scripts</p>
             </div>
           </CardContent>
         </Card>
@@ -618,7 +744,69 @@ export default function BancoInformacoes() {
           </div>
         </TabsContent>
 
-        {/* ═══════════ TAB: ÁUDIOS ═══════════ */}
+        {/* ═══════════ TAB: SCRIPTS ═══════════ */}
+        <TabsContent value="scripts" className="space-y-4">
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex-1 min-w-[200px] relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Buscar scripts..." value={scriptSearch} onChange={e => setScriptSearch(e.target.value)} className="pl-9" />
+                </div>
+                <Button size="sm" onClick={() => { resetScriptForm(); setShowScriptDialog(true); }} className="gap-1.5">
+                  <Plus size={14} /> Novo Script
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowAIScriptDialog(true)} className="gap-1.5">
+                  <Sparkles size={14} /> Gerar com IA
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button variant={scriptCatFilter === "Todas" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setScriptCatFilter("Todas")}>Todas</Button>
+                <Button variant={scriptCatFilter === "Favoritos" ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1" onClick={() => setScriptCatFilter("Favoritos")}><Star size={12} /> Favoritos</Button>
+                {scriptCategories.map(cat => (
+                  <Button key={cat} variant={scriptCatFilter === cat ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setScriptCatFilter(cat)}>{cat}</Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">{filteredScripts.length} script(s)</p>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {scriptsLoading ? (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                <Loader2 size={32} className="mx-auto mb-3 animate-spin opacity-40" /><p>Carregando...</p>
+              </div>
+            ) : filteredScripts.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                <MessageSquareText size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhum script encontrado</p>
+              </div>
+            ) : filteredScripts.map(s => (
+              <Card key={s.id} className="group hover:shadow-md transition-all">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-foreground leading-tight">{s.titulo}</h3>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 flex-shrink-0">{s.categoria}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-3 whitespace-pre-wrap">{s.conteudo}</p>
+                  {s.tags && s.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {s.tags.slice(0, 3).map((t, i) => <Badge key={i} variant="outline" className="text-[9px] px-1.5 py-0">{t}</Badge>)}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleScriptToggleFav(s)} className={`p-1.5 rounded-md ${s.favorito ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>
+                      {s.favorito ? <Star size={14} /> : <StarOff size={14} />}
+                    </button>
+                    <button onClick={() => handleScriptCopy(s.conteudo)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Copy size={14} /></button>
+                    <button onClick={() => handleScriptEdit(s)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"><Pencil size={14} /></button>
+                    <button onClick={() => handleScriptDelete(s.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto"><Trash2 size={14} /></button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
         <TabsContent value="audios" className="space-y-4">
           {/* Upload area */}
           <Card>
@@ -987,6 +1175,73 @@ export default function BancoInformacoes() {
               {existingScript && <Button variant="secondary" onClick={() => handleSaveScript(true)} disabled={!scriptContent || generating}>Atualizar Existente</Button>}
               <Button onClick={() => handleSaveScript(false)} disabled={!scriptContent || generating}>{existingScript ? "Criar Novo" : "Salvar"}</Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Script Create/Edit Dialog */}
+      <Dialog open={showScriptDialog} onOpenChange={setShowScriptDialog}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <MessageSquareText size={18} /> {sEditingId ? "Editar Script" : "Novo Script"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Script para atendimento via WhatsApp.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div><label className="text-xs text-muted-foreground mb-1 block">Título</label><Input value={sFormTitulo} onChange={e => setSFormTitulo(e.target.value)} placeholder="Ex: Tarifa Zero Escolar" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Categoria</label><Input value={sFormCategoria} onChange={e => setSFormCategoria(e.target.value)} placeholder="Ex: Saúde, Habitação, Infraestrutura" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Tags (separadas por vírgula)</label><Input value={sFormTags} onChange={e => setSFormTags(e.target.value)} placeholder="escola, transporte, criança" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Conteúdo</label><Textarea value={sFormConteudo} onChange={e => setSFormConteudo(e.target.value)} rows={10} placeholder="Escreva o script aqui..." /></div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowScriptDialog(false)}>Cancelar</Button>
+              <Button onClick={handleScriptCreate} disabled={!sFormTitulo.trim() || !sFormConteudo.trim()}>
+                {sEditingId ? "Salvar" : "Criar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Script Generator Dialog */}
+      <Dialog open={showAIScriptDialog} onOpenChange={setShowAIScriptDialog}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2"><Sparkles size={18} /> Gerar Script com IA</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Cole uma conversa do WhatsApp e a IA cria um script estruturado.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea value={aiScriptInput} onChange={e => setAiScriptInput(e.target.value)} rows={8} placeholder="Cole aqui um trecho de conversa do WhatsApp..." />
+            <Button onClick={handleGenerateAIScript} disabled={aiScriptGenerating || !aiScriptInput.trim()} className="gap-1.5 w-full">
+              {aiScriptGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {aiScriptGenerating ? "Gerando..." : "Gerar Script"}
+            </Button>
+            {aiScriptResult && (
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground">{aiScriptResult.titulo}</h4>
+                  <Badge variant="secondary" className="text-xs">{aiScriptResult.categoria}</Badge>
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">{aiScriptResult.script_base || aiScriptResult.conteudo}</p>
+                  {aiScriptResult.tags && (
+                    <div className="flex flex-wrap gap-1">
+                      {aiScriptResult.tags.map((t: string, i: number) => <Badge key={i} variant="outline" className="text-[9px]">{t}</Badge>)}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSaveAIScript} className="gap-1.5"><Plus size={14} /> Salvar Script</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setSFormTitulo(aiScriptResult.titulo || "");
+                      setSFormConteudo(aiScriptResult.script_base || aiScriptResult.conteudo || "");
+                      setSFormCategoria(aiScriptResult.categoria || "");
+                      setSFormTags(aiScriptResult.tags?.join(", ") || "");
+                      setShowAIScriptDialog(false); setShowScriptDialog(true);
+                    }}>
+                      <Pencil size={14} /> Editar antes
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </DialogContent>
       </Dialog>
