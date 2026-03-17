@@ -199,7 +199,10 @@ export default function ScriptsPage() {
           <h1 className="text-2xl font-bold text-foreground">Scripts de Atendimento</h1>
           <p className="text-sm text-muted-foreground">Respostas prontas para WhatsApp · {scripts.length} script(s)</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => { setLearnText(""); setLearnResults(null); setShowLearnDialog(true); }} variant="outline" className="border-accent text-accent-foreground hover:bg-accent/10">
+            <BrainCircuit size={16} className="mr-1" /> Aprender
+          </Button>
           <Button onClick={() => { setConversaInput(""); setAiResult(null); setShowAIDialog(true); }} variant="outline" className="border-primary text-primary hover:bg-primary/10">
             <Sparkles size={16} className="mr-1" /> Gerar com IA
           </Button>
