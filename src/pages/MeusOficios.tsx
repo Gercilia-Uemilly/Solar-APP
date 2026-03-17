@@ -143,13 +143,17 @@ export default function MeusOficios() {
     if (!viewOficio) return;
     const contentToSave = editedContentRef.current;
     setSaveStatus("saving");
-    const updatePayload: Record<string, any> = { 
+    const validDataGeracao = typeof viewOficio.data_geracao === "string" && /^\d{4}-\d{2}-\d{2}$/.test(viewOficio.data_geracao)
+      ? viewOficio.data_geracao
+      : null;
+
+    const updatePayload: Record<string, any> = {
       conteudo: contentToSave,
       destinatario: viewOficio.destinatario,
       cargo_destinatario: viewOficio.cargo_destinatario,
       assunto: viewOficio.assunto,
       numero: viewOficio.numero,
-      data_geracao: viewOficio.data_geracao,
+      data_geracao: validDataGeracao,
       status: "Salvo",
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
