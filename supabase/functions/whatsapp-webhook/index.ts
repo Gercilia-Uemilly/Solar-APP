@@ -485,10 +485,10 @@ async function handleAIAgent(
       if (diff > 3600000) delayNote = "A última mensagem do cidadão foi enviada há mais de 1 hora. Peça desculpa pela demora de forma natural.";
     }
 
-    // 7. Fetch scripts for priority matching
+    // 7. Fetch ALL scripts — scripts are the PRIMARY source
     const { data: scripts } = await sb.from("scripts")
       .select("titulo, conteudo, categoria, tags")
-      .order("favorito", { ascending: false }).limit(30);
+      .order("favorito", { ascending: false }).limit(200);
 
     const scriptsText = (scripts || [])
       .map((s: any) => `[${s.categoria}] ${s.titulo}: ${s.conteudo?.slice(0, 300) || ""}`)
@@ -496,31 +496,37 @@ async function handleAIAgent(
 
     // 8. Fetch audio entries for possible audio responses
     const { data: audioEntries } = await sb.from("base_conhecimento")
-      .select("titulo, descricao, link, palavras_chave")
+      .select("titulo, descricao, link, palavras_chave, categoria")
       .eq("categoria", "Áudio")
       .not("link", "is", null)
-      .order("created_at", { ascending: false }).limit(20);
+      .order("created_at", { ascending: false }).limit(30);
 
     const audioScriptsText = (audioEntries || [])
       .map((a: any) => `- ${a.titulo} (palavras-chave: ${(a.palavras_chave || []).join(", ")}): ${a.descricao?.slice(0, 100) || ""}`)
       .join("\n");
 
-    const matchedScript = (scripts || [])
+    // Score ALL scripts against user message
+    const scoredScripts = (scripts || [])
       .map((s: any) => ({
         ...s,
         match_score: scoreMatch(content, s.titulo || "", s.tags || [], s.conteudo || ""),
       }))
-      .sort((a: any, b: any) => b.match_score - a.match_score)[0];
+      .sort((a: any, b: any) => b.match_score - a.match_score);
 
-    const matchedAudio = (audioEntries || [])
+    const selectedScript = scoredScripts[0]?.match_score >= 3 ? scoredScripts[0] : null;
+    const secondScript = scoredScripts[1]?.match_score >= 3 ? scoredScripts[1] : null;
+
+    // Score audio — require HIGH threshold (>= 5) for audio suggestion
+    const scoredAudios = (audioEntries || [])
       .map((a: any) => ({
         ...a,
         match_score: scoreMatch(content, a.titulo || "", a.palavras_chave || [], a.descricao || ""),
       }))
-      .sort((a: any, b: any) => b.match_score - a.match_score)[0];
+      .sort((a: any, b: any) => b.match_score - a.match_score);
 
-    const selectedScript = matchedScript?.match_score >= 3 ? matchedScript : null;
-    const selectedAudio = matchedAudio?.match_score >= 3 ? matchedAudio : null;
+    // Audio requires EXACT category match AND high score AND conversation must be advanced (>2 messages)
+    const conversationAdvanced = (history || []).filter((m: any) => m.direction === "incoming").length >= 2;
+    const selectedAudio = (scoredAudios[0]?.match_score >= 5 && conversationAdvanced) ? scoredAudios[0] : null;
 
     if (selectedScript) {
       console.log("Script matched:", selectedScript.titulo, "score:", selectedScript.match_score);
