@@ -687,17 +687,17 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 export async function exportToPDF(data: OficioData): Promise<void> {
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
 
+  let wordBlob = await buildWordBlob(data);
+  if (data.imagens && data.imagens.length > 0) {
+    wordBlob = await addAnexoImages(wordBlob, data.imagens);
+  }
+
   try {
-    let wordBlob = await buildWordBlob(data);
-    if (data.imagens && data.imagens.length > 0) {
-      wordBlob = await addAnexoImages(wordBlob, data.imagens);
-    }
     const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
     saveAs(pdfBlob, `${fileName}.pdf`);
-  } catch (e) {
-    console.warn("PDF conversion via server failed, opening print dialog:", e);
-    const { printOficio } = await import("@/lib/printOficio");
-    await printOficio(data);
+  } catch (e: any) {
+    console.error("PDF conversion failed:", e);
+    throw new Error("Não foi possível gerar o PDF agora. Tente novamente em instantes.");
   }
 }
 
