@@ -189,6 +189,20 @@ img[alt="Assinatura Fabão"] {
   border-radius: 0 !important;
 }
 
+/* Safari/Webkit compatibility */
+.backdrop-blur-sm {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.backdrop-blur-md {
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.backdrop-blur-lg {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
 /* Anexo de imagens - Preview e Print */
 .anexo-imagens {
   display: flex;
