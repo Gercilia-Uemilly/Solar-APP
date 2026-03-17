@@ -595,7 +595,7 @@ Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_de
 
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\nMensagem: ${content}`;
 
-    // ── AI CALL (cascade: Lovable → Gemini Direct → OpenAI → fallback) ──
+    // ── AI CALL (cascade: OpenAI → Gemini Direct → Lovable → fallback) ──
     let analysis: any = null;
     const startAi = Date.now();
 
@@ -616,34 +616,35 @@ Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_de
       };
     };
 
-    // Attempt 1: Lovable AI Gateway
+    // Attempt 1: OpenAI ChatGPT (primário)
     try {
-      const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
-      if (LOVABLE_KEY) {
-        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+      if (OPENAI_KEY) {
+        const oaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${LOVABLE_KEY}` },
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "gpt-4o-mini",
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userMessage },
             ],
             temperature: 0.8,
             max_tokens: 512,
+            response_format: { type: "json_object" },
           }),
         });
-        console.log(`Lovable AI call: ${Date.now() - startAi}ms, status: ${aiRes.status}`);
-        if (aiRes.ok) {
-          const aiData = await aiRes.json();
-          const rawText = aiData.choices?.[0]?.message?.content || "";
-          try { analysis = parseAiResponse(rawText); console.log("AI response OK (Lovable)"); } catch { console.warn("Lovable AI invalid JSON"); }
+        console.log(`OpenAI call: ${Date.now() - startAi}ms, status: ${oaiRes.status}`);
+        if (oaiRes.ok) {
+          const oaiData = await oaiRes.json();
+          const rawText = oaiData.choices?.[0]?.message?.content || "";
+          try { analysis = parseAiResponse(rawText); console.log("AI response OK (OpenAI)"); } catch { console.warn("OpenAI invalid JSON"); }
         } else {
-          const errText = await aiRes.text();
-          console.error("Lovable AI error:", aiRes.status, errText.slice(0, 200));
+          const errText = await oaiRes.text();
+          console.error("OpenAI error:", oaiRes.status, errText.slice(0, 200));
         }
       }
-    } catch (e: any) { console.error("Lovable AI exception:", e.message); }
+    } catch (e: any) { console.error("OpenAI exception:", e.message); }
 
     // Attempt 2: Gemini Direct API (fallback)
     if (!analysis?.resposta) {
@@ -672,37 +673,36 @@ Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_de
       } catch (e: any) { console.error("Gemini Direct exception:", e.message); }
     }
 
-    // Attempt 3: OpenAI (fallback)
+    // Attempt 3: Lovable AI Gateway (último recurso)
     if (!analysis?.resposta) {
       try {
-        const OPENAI_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
-        if (OPENAI_KEY) {
-          console.log("Falling back to OpenAI...");
-          const oaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        const LOVABLE_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
+        if (LOVABLE_KEY) {
+          console.log("Falling back to Lovable AI...");
+          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${LOVABLE_KEY}` },
             body: JSON.stringify({
-              model: "gpt-4o-mini",
+              model: "google/gemini-2.5-flash",
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userMessage },
               ],
               temperature: 0.8,
               max_tokens: 512,
-              response_format: { type: "json_object" },
             }),
           });
-          console.log(`OpenAI call: ${Date.now() - startAi}ms, status: ${oaiRes.status}`);
-          if (oaiRes.ok) {
-            const oaiData = await oaiRes.json();
-            const rawText = oaiData.choices?.[0]?.message?.content || "";
-            try { analysis = parseAiResponse(rawText); console.log("AI response OK (OpenAI)"); } catch { console.warn("OpenAI invalid JSON"); }
+          console.log(`Lovable AI call: ${Date.now() - startAi}ms, status: ${aiRes.status}`);
+          if (aiRes.ok) {
+            const aiData = await aiRes.json();
+            const rawText = aiData.choices?.[0]?.message?.content || "";
+            try { analysis = parseAiResponse(rawText); console.log("AI response OK (Lovable)"); } catch { console.warn("Lovable AI invalid JSON"); }
           } else {
-            const errText = await oaiRes.text();
-            console.error("OpenAI error:", oaiRes.status, errText.slice(0, 200));
+            const errText = await aiRes.text();
+            console.error("Lovable AI error:", aiRes.status, errText.slice(0, 200));
           }
         }
-      } catch (e: any) { console.error("OpenAI exception:", e.message); }
+      } catch (e: any) { console.error("Lovable AI exception:", e.message); }
     }
 
     if (!analysis?.resposta) {
