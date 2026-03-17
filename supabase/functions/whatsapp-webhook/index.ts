@@ -571,8 +571,12 @@ async function handleAIAgent(
     const isFirst = history.filter((m: any) => m.direction === "incoming").length <= 1;
 
     // Detect continuity responses (user answering a previous question)
-    const continuityWords = ["sim", "não", "nao", "ainda não", "ainda nao", "ok", "pode", "quero", "já", "ja", "entendi", "beleza", "blz", "tá", "ta", "uhum", "aham"];
-    const isContinuity = !isFirst && continuityWords.some(w => normalizeText(content).split(" ").length <= 4 && normalizeText(content).includes(w));
+    const continuityWords = [
+      "sim", "não", "nao", "ainda não", "ainda nao", "ok", "pode", "quero", "já", "ja", "entendi", "beleza", "blz", "tá", "ta", "uhum", "aham",
+      "procurando", "trabalhando", "desempregado", "desempregada", "trampo"
+    ];
+    const normalizedIncoming = normalizeText(content);
+    const isContinuity = !isFirst && normalizedIncoming.split(" ").length <= 6 && continuityWords.some((w) => normalizedIncoming.includes(normalizeText(w)));
 
     // Get last topic from history for continuity
     const lastOutgoing = history.filter((m: any) => m.direction === "outgoing").slice(-1)[0];
