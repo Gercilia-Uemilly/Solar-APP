@@ -168,17 +168,32 @@ FORMATAÇÃO:
 - Linguagem formal, clara, objetiva
 - NÃO inclua formatação inline (sem font-family, font-size, style) — apenas <p> e <strong>
 
-GERAÇÃO DO ASSUNTO (REGRAS ATUALIZADAS):
-- O BAIRRO é OBRIGATÓRIO no assunto. Se não houver bairro, deixar o assunto vazio.
-- Formato padrão: "Solicitação de [SERVIÇO] – Bairro [NOME]"
-- Se houver nome de local (escola, UBS, praça): "Solicitação de [SERVIÇO] – [NOME DO LOCAL] (Bairro [NOME])"
-- NUNCA incluir endereço completo (rua, número) no assunto.
-- NUNCA duplicar "Bairro" (ex: "Bairro Bairro Tubalina" é ERRADO).
-- NUNCA duplicar informação no assunto.
-- Exemplos corretos:
-  ✔ "Solicitação de limpeza – Bairro Martins"
-  ✔ "Solicitação de reparos – Escola Municipal José da Costa (Bairro Martins)"
-  ✔ "Solicitação de tapa-buraco – Bairro Planalto"
+GERAÇÃO DO ASSUNTO (EXTREMAMENTE IMPORTANTE):
+O assunto deve ser RESUMIDO e OBJETIVO, baseado no CONTEXTO — NÃO copiar endereço completo.
+
+PRIORIDADE DO ASSUNTO:
+1º → Nome do local (se existir): Escola, UBS, Praça, etc.
+2º → Tipo de ação: limpeza, reparo, tapa-buraco, etc.
+3º → Bairro (APENAS se necessário e NÃO duplicado)
+
+REGRAS:
+- NUNCA incluir endereço completo (rua, número, complemento) no assunto
+- NUNCA duplicar "Bairro" (ex: "Bairro Bairro Tubalina" é ERRADO)
+- NUNCA repetir informação no assunto
+- Se houver nome de local → priorizar o local, bairro entre parênteses se necessário
+- Se NÃO houver local claro → tipo de ação + bairro
+- Se NÃO houver bairro → NÃO inventar, usar apenas tipo de ação + local
+
+Exemplos CORRETOS:
+✔ "Solicitação de limpeza – Escola Municipal José da Costa"
+✔ "Solicitação de reparos – UBS Morumbi"
+✔ "Solicitação de tapa-buraco – Bairro Martins"
+✔ "Solicitação de limpeza urbana – Bairro Martins"
+
+Exemplos ERRADOS:
+❌ "Solicitação de limpeza – Escola Municipal José da Costa, Rua X nº 123 Bairro Martins"
+❌ "Solicitação – Rua X Bairro Martins Bairro Martins"
+❌ "Solicitação de limpeza – Rua João Naves nº 123, Bairro Martins"
 
 IMPORTANTE: O texto final deve refletir fielmente a demanda enviada pelo cidadão, apenas com correção gramatical e organização institucional. NUNCA adicione informações que não existam na descrição original.
 
