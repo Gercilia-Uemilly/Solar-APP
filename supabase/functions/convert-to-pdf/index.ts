@@ -300,7 +300,8 @@ async function convertWithGotenberg(
     throw new Error(`Gotenberg error: ${resp.status} ${await resp.text()}`);
   }
 
-  return new Uint8Array(await resp.arrayBuffer());
+  const pdfBytes = new Uint8Array(await resp.arrayBuffer());
+  return ensurePdfBytes(pdfBytes, "Gotenberg");
 }
 
 // ── ConvertAPI ───────────────────────────────────────────────────────────────
