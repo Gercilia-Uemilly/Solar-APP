@@ -715,7 +715,16 @@ async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob>
     throw new Error(err.error || "Erro ao converter para PDF");
   }
 
-  return resp.blob();
+  const blob = await resp.blob();
+  const contentType = (resp.headers.get("content-type") || "").toLowerCase();
+  const pdfHeader = await blob.slice(0, 5).text();
+  const isPdf = contentType.includes("application/pdf") || pdfHeader.startsWith("%PDF-");
+
+  if (!isPdf) {
+    throw new Error("A conversão não retornou um PDF válido. Tente novamente.");
+  }
+
+  return blob;
 }
 
 // ── Print via Word→PDF conversion ───────────────────────────────────────────

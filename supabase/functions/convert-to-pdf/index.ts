@@ -423,5 +423,6 @@ async function convertWithApi2Pdf(
   const pdfResp = await fetch(result.FileUrl);
   if (!pdfResp.ok) throw new Error("Api2PDF: failed to download PDF");
 
-  return new Uint8Array(await pdfResp.arrayBuffer());
+  const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
+  return ensurePdfBytes(pdfBytes, "Api2PDF");
 }
