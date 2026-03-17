@@ -521,12 +521,13 @@ SCRIPT: "${selectedScript.titulo}"
 CONTEÚDO:
 ${selectedScript.conteudo?.slice(0, 600) || ""}
 
-REGRAS:
-1. Resposta DEVE ser baseada APENAS neste script
-2. NÃO invente resposta diferente
-3. Se tem link → OBRIGATÓRIO incluir
-4. Adapte tom mineiro mas USE a informação do script
-5. Termine com pergunta${linkBlock}`;
+REGRA DE FIDELIDADE (CRÍTICA):
+- Sua resposta DEVE reproduzir o script_base acima com adaptação LEVE de tom
+- NÃO invente nova resposta. NÃO mude o sentido. Apenas adapte levemente para tom mineiro
+- Se tem link → SEMPRE incluir na resposta (ex: "Te mando o link aqui 😊👇\n[link]")
+- NÃO incluir link quando existe = ERRO GRAVE
+- Se não veio script → pedir mais informação ao cidadão
+- Termine com pergunta${linkBlock}`;
 })() : !isContinuity ? `Sem script encontrado. Processo:
 1. Busque na BASE DE CONHECIMENTO abaixo
 2. Se encontrar info com link → inclua o link
