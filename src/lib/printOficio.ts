@@ -1,6 +1,6 @@
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
-import assinaturaImg from "@/assets/assinatura-fabao-clean.png";
+import assinaturaImg from "@/assets/assinatura-1.png";
 
 interface PrintData {
   numero: string;
