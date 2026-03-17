@@ -23,7 +23,7 @@ import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFi
 import { type OficioRow } from "@/lib/oficioUtils";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
-import assinaturaFabao from "@/assets/assinatura-1.png";
+import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 
 const marcadorOptions: { value: string; emoji: string; label: string; className: string }[] = [
   { value: "importante", emoji: "⭐", label: "Importante", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" },
