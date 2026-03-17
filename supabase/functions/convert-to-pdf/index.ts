@@ -334,20 +334,53 @@ async function convertWithConvertApi(
   return new Uint8Array(await pdfResp.arrayBuffer());
 }
 
+// ── Api2PDF helpers ──────────────────────────────────────────────────────────
+async function uploadTempDocxAndGetPublicUrl(docxBytes: Uint8Array, filename: string): Promise<{ bucket: string; path: string; publicUrl: string }> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing backend credentials for temporary upload");
+  }
+
+  const admin = createClient(supabaseUrl, serviceRoleKey);
+  const bucket = "midias";
+  const path = `temp/pdf-convert/${crypto.randomUUID()}-${sanitizeDocxFilename(filename)}`;
+
+  const { error } = await admin.storage.from(bucket).upload(path, docxBytes, {
+    contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    upsert: false,
+  });
+
+  if (error) {
+    throw new Error(`Failed to upload temporary DOCX: ${error.message}`);
+  }
+
+  const { data } = admin.storage.from(bucket).getPublicUrl(path);
+  if (!data?.publicUrl) {
+    throw new Error("Failed to generate temporary public URL");
+  }
+
+  return { bucket, path, publicUrl: data.publicUrl };
+}
+
+async function removeTempUpload(bucket: string, path: string): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) return;
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+    await admin.storage.from(bucket).remove([path]);
+  } catch (e) {
+    console.error("Failed to cleanup temporary upload:", e);
+  }
+}
+
 // ── Api2PDF (LibreOffice via API) ────────────────────────────────────────────
 async function convertWithApi2Pdf(
-  docxBytes: Uint8Array,
+  sourceUrl: string,
   filename: string,
   apiKey: string
 ): Promise<Uint8Array> {
-  // Encode to base64 in chunks to avoid stack overflow
-  let binary = "";
-  const chunkSize = 8192;
-  for (let i = 0; i < docxBytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...docxBytes.subarray(i, i + chunkSize));
-  }
-  const base64 = btoa(binary);
-
   const resp = await fetch("https://v2.api2pdf.com/libreoffice/any-to-pdf", {
     method: "POST",
     headers: {
@@ -355,11 +388,9 @@ async function convertWithApi2Pdf(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      url: sourceUrl,
       fileName: filename.replace(".docx", ".pdf"),
-      options: {
-        base64Content: base64,
-        fileName: filename,
-      },
+      inlinePdf: false,
     }),
   });
 
