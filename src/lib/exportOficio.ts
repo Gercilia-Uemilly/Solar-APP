@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, BorderStyle, Footer, Header, PageNumber } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Footer, Header, PageNumber } from "docx";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
@@ -432,13 +432,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           type: ('imageType' in r ? r.imageType : "png") as "png" | "jpg" | "gif" | "bmp",
         }));
       } else {
-        const runFontSize = r.fontSize ? r.fontSize * 2 : defaultFontSize;
-        const runFontName = r.fontFamily || defaultFontName;
         children.push(new TextRun({
           text: r.text,
           break: r.break,
-          font: runFontName,
-          size: runFontSize,
+          font: defaultFontName,
+          size: defaultFontSize,
           bold: r.bold,
           italics: r.italic,
           underline: r.underline ? {} : undefined,
@@ -583,7 +581,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0 },
           keepNext: true,
           keepLines: true,
-          border: { top: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, left: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, right: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" } },
         }),
 
 
@@ -594,7 +591,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           spacing: { before: 0, after: 0, line: 240 },
           keepNext: true,
           keepLines: true,
-          border: { top: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, left: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, right: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" } },
         }),
 
         // Vereador — centered, simple line spacing (240)
@@ -603,7 +599,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           children: [new TextRun({ text: "Vereador", font: defaultFontName, size: defaultFontSize })],
           spacing: { before: 0, after: 0, line: 240 },
           keepLines: true,
-          border: { top: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, left: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" }, right: { style: BorderStyle.NONE, size: 0, space: 0, color: "FFFFFF" } },
         }),
       ],
     }],
@@ -720,7 +715,16 @@ async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob>
     throw new Error(err.error || "Erro ao converter para PDF");
   }
 
-  return resp.blob();
+  const blob = await resp.blob();
+  const contentType = (resp.headers.get("content-type") || "").toLowerCase();
+  const pdfHeader = await blob.slice(0, 5).text();
+  const isPdf = contentType.includes("application/pdf") || pdfHeader.startsWith("%PDF-");
+
+  if (!isPdf) {
+    throw new Error("A conversão não retornou um PDF válido. Tente novamente.");
+  }
+
+  return blob;
 }
 
 // ── Print via Word→PDF conversion ───────────────────────────────────────────

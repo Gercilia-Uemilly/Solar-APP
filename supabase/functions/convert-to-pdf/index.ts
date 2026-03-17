@@ -20,6 +20,18 @@ function sanitizeDocxFilename(name?: string): string {
     : `${withFallback}.docx`;
 }
 
+function isPdfBytes(bytes: Uint8Array): boolean {
+  if (!bytes || bytes.length < 5) return false;
+  return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2D; // %PDF-
+}
+
+function ensurePdfBytes(bytes: Uint8Array, provider: string): Uint8Array {
+  if (!isPdfBytes(bytes)) {
+    throw new Error(`${provider}: resposta inválida (não-PDF)`);
+  }
+  return bytes;
+}
+
 // Converte um .docx para PDF usando a API do CloudConvert
 // Alternativa gratuita: usar a API do LibreOffice Online (Collabora) ou CloudConvert
 serve(async (req) => {
@@ -225,7 +237,8 @@ async function convertWithCloudConvert(
         // 4. Baixar o PDF gerado
         const pdfResp = await fetch(pdfUrl);
         if (!pdfResp.ok) throw new Error("CloudConvert: erro ao baixar PDF");
-        return new Uint8Array(await pdfResp.arrayBuffer());
+        const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
+        return ensurePdfBytes(pdfBytes, "CloudConvert");
       }
 
       if (status?.data?.status === "error") {
@@ -287,7 +300,8 @@ async function convertWithGotenberg(
     throw new Error(`Gotenberg error: ${resp.status} ${await resp.text()}`);
   }
 
-  return new Uint8Array(await resp.arrayBuffer());
+  const pdfBytes = new Uint8Array(await resp.arrayBuffer());
+  return ensurePdfBytes(pdfBytes, "Gotenberg");
 }
 
 // ── ConvertAPI ───────────────────────────────────────────────────────────────
@@ -331,7 +345,8 @@ async function convertWithConvertApi(
   const pdfResp = await fetch(pdfFileUrl);
   if (!pdfResp.ok) throw new Error("ConvertAPI: failed to download PDF");
 
-  return new Uint8Array(await pdfResp.arrayBuffer());
+  const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
+  return ensurePdfBytes(pdfBytes, "ConvertAPI");
 }
 
 // ── Api2PDF helpers ──────────────────────────────────────────────────────────
@@ -408,5 +423,6 @@ async function convertWithApi2Pdf(
   const pdfResp = await fetch(result.FileUrl);
   if (!pdfResp.ok) throw new Error("Api2PDF: failed to download PDF");
 
-  return new Uint8Array(await pdfResp.arrayBuffer());
+  const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
+  return ensurePdfBytes(pdfBytes, "Api2PDF");
 }
