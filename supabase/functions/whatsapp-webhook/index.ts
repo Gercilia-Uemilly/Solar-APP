@@ -79,6 +79,141 @@ const scoreMatch = (userText: string, title = "", tags: string[] = [], content =
   return score;
 };
 
+const splitSentences = (text: string) =>
+  (text || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const limitToTwoShortSentences = (text: string) => splitSentences(text).slice(0, 2).join(" ").trim();
+
+const extractUrls = (text: string) => (text || "").match(/https?:\/\/[^\s),]+/g) || [];
+
+const extractQuestionSignature = (text: string) => {
+  const q = splitSentences(text).find((s) => s.includes("?")) || "";
+  return normalizeText(q.replace(/[?!.,]/g, " "));
+};
+
+const tokenOverlap = (a: string, b: string) => {
+  const aw = new Set(normalizeText(a).split(" ").filter((w) => w.length >= 3));
+  const bw = new Set(normalizeText(b).split(" ").filter((w) => w.length >= 3));
+  if (!aw.size || !bw.size) return 0;
+  let inter = 0;
+  for (const w of aw) if (bw.has(w)) inter++;
+  return inter / Math.max(aw.size, bw.size);
+};
+
+const hasAnsweredWorkStatus = (answers: string[]) =>
+  answers.some((a) => /(procur|desempreg|sem trabalho|sem trampo|trabalh|empregado)/.test(normalizeText(a)));
+
+const isAskingWorkStatus = (response: string) =>
+  /(ja ta trabalhando|ja esta trabalhando|ta trabalhando|esta trabalhando|procurando agora|trabalhando ou|ta procurando|esta procurando)/.test(
+    normalizeText(response)
+  );
+
+const pickUnusedProgressQuestion = (recentOutgoing: string[]) => {
+  const candidates = [
+    "Quer que eu te passe o contato certinho agora?",
+    "Quer que eu te mande o endereço completo também?",
+    "Quer que eu já te passe o telefone de atendimento?",
+  ];
+  const recentQuestions = recentOutgoing
+    .map((r) => extractQuestionSignature(r))
+    .filter(Boolean);
+
+  return (
+    candidates.find((c) => {
+      const cSig = extractQuestionSignature(c);
+      return !recentQuestions.some((r) => r === cSig || tokenOverlap(r, cSig) >= 0.65);
+    }) || candidates[candidates.length - 1]
+  );
+};
+
+const pickUnusedResponseVariant = (candidates: string[], recentOutgoing: string[]) => {
+  const recent = recentOutgoing.map((r) => normalizeText(r)).filter(Boolean);
+  return (
+    candidates.find((candidate) => {
+      const normalizedCandidate = normalizeText(candidate);
+      return !recent.some(
+        (prev) => prev === normalizedCandidate || tokenOverlap(prev, normalizedCandidate) >= 0.75
+      );
+    }) || candidates[candidates.length - 1]
+  );
+};
+
+const buildProgressiveNoLoopReply = (selectedScript: any, recentOutgoing: string[]) => {
+  const links = extractUrls(selectedScript?.conteudo || "");
+  const compactScript = (selectedScript?.conteudo || "")
+    .split("\n")
+    .map((l: string) => l.trim())
+    .filter((l: string) => l.length > 3 && !/^passo\s*\d+/i.test(l))
+    .slice(0, 2)
+    .join(" ");
+
+  const q1 = pickUnusedProgressQuestion(recentOutgoing);
+  const q2 = "Quer que eu te mande também os documentos que normalmente pedem?";
+  const q3 = "Se preferir, já te explico o próximo passo agora.";
+
+  if (links.length) {
+    const variants = [
+      `Beleza… pra resolver isso, te mando direto aqui 👇 ${links[0]} ${q1}`,
+      `Boa… pra ganhar tempo, segue esse link: ${links[0]} ${q2}`,
+      `Então vamos adiantar: usa esse caminho ${links[0]} ${q3}`,
+    ];
+    return limitToTwoShortSentences(pickUnusedResponseVariant(variants, recentOutgoing));
+  }
+
+  if (compactScript) {
+    const variants = [
+      `Beleza… então vamos direto ao ponto: ${compactScript}. ${q1}`,
+      `Boa… o melhor caminho é esse aqui: ${compactScript}. ${q2}`,
+      `Então vamos resolver sem enrolar: ${compactScript}. ${q3}`,
+    ];
+    return limitToTwoShortSentences(pickUnusedResponseVariant(variants, recentOutgoing));
+  }
+
+  const genericVariants = [
+    `Beleza… vamos seguir sem repetir. ${q1}`,
+    `Boa… vamos avançar daqui. ${q2}`,
+    `Então fechou, seguimos o próximo passo. ${q3}`,
+  ];
+  return limitToTwoShortSentences(pickUnusedResponseVariant(genericVariants, recentOutgoing));
+};
+
+const enforceNoLoopResponse = (
+  rawResponse: string,
+  recentOutgoing: string[],
+  userAnswers: string[],
+  selectedScript: any
+) => {
+  const response = limitToTwoShortSentences(rawResponse || "");
+  if (!response) return buildProgressiveNoLoopReply(selectedScript, recentOutgoing);
+
+  const normalizedResponse = normalizeText(response);
+  const normalizedRecent = recentOutgoing.map((r) => normalizeText(r)).filter(Boolean);
+
+  const directRepeat = normalizedRecent.some(
+    (prev) => prev === normalizedResponse || tokenOverlap(prev, normalizedResponse) >= 0.72
+  );
+
+  const responseQuestionSig = extractQuestionSignature(response);
+  const repeatedQuestion = Boolean(responseQuestionSig) && recentOutgoing.some((prev) => {
+    const prevQuestionSig = extractQuestionSignature(prev);
+    return Boolean(prevQuestionSig) && (prevQuestionSig === responseQuestionSig || tokenOverlap(prevQuestionSig, responseQuestionSig) >= 0.65);
+  });
+
+  const workStatusLoop = hasAnsweredWorkStatus(userAnswers) && isAskingWorkStatus(response);
+
+  if (directRepeat || repeatedQuestion || workStatusLoop) {
+    console.log("No-loop guard activated:", JSON.stringify({ directRepeat, repeatedQuestion, workStatusLoop }));
+    return buildProgressiveNoLoopReply(selectedScript, recentOutgoing);
+  }
+
+  return response;
+};
+
 const resolveZapiSendUrl = (instanceRaw?: string | null, tokenRaw?: string | null) => {
   const inst = (instanceRaw || "").trim();
   const tok = (tokenRaw || "").trim();
@@ -473,8 +608,12 @@ async function handleAIAgent(
     const isFirst = history.filter((m: any) => m.direction === "incoming").length <= 1;
 
     // Detect continuity responses (user answering a previous question)
-    const continuityWords = ["sim", "não", "nao", "ainda não", "ainda nao", "ok", "pode", "quero", "já", "ja", "entendi", "beleza", "blz", "tá", "ta", "uhum", "aham"];
-    const isContinuity = !isFirst && continuityWords.some(w => normalizeText(content).split(" ").length <= 4 && normalizeText(content).includes(w));
+    const continuityWords = [
+      "sim", "não", "nao", "ainda não", "ainda nao", "ok", "pode", "quero", "já", "ja", "entendi", "beleza", "blz", "tá", "ta", "uhum", "aham",
+      "procurando", "trabalhando", "desempregado", "desempregada", "trampo"
+    ];
+    const normalizedIncoming = normalizeText(content);
+    const isContinuity = !isFirst && normalizedIncoming.split(" ").length <= 6 && continuityWords.some((w) => normalizedIncoming.includes(normalizeText(w)));
 
     // Get last topic from history for continuity
     const lastOutgoing = history.filter((m: any) => m.direction === "outgoing").slice(-1)[0];
@@ -534,13 +673,13 @@ Ordem obrigatória:
 Se existir script → PROIBIDO usar conhecimento próprio.
 
 ═══ 🧠 VALIDAÇÃO INTERNA (OBRIGATÓRIO antes de enviar) ═══
-✔ Usei script? ✔ Está curto (máx 2 frases)? ✔ Tem pergunta no final? ✔ Não estou explicando demais? ✔ Não reiniciei conversa? ✔ Não repeti frase anterior? ✔ Não perguntei algo já respondido?
+✔ Usei script? ✔ Está curto (máx 2 frases)? ✔ Avancei o fluxo? ✔ Não estou explicando demais? ✔ Não reiniciei conversa? ✔ Não repeti frase anterior? ✔ Não perguntei algo já respondido?
 Se qualquer resposta for NÃO → REFAZER.
 
 ═══ 💬 FORMATO OBRIGATÓRIO ═══
 1. reconhecer contexto atual
 2. resposta direta
-3. avançar conversa (pergunta nova, nunca repetida)
+3. avançar conversa (com pergunta nova só se fizer sentido, sem repetir)
 
 ═══ CONTEXTO ═══
 ${isFirst ? `PRIMEIRA MSG: Apenas cumprimente natural.
@@ -611,7 +750,7 @@ ${(() => {
 
 Demandas anteriores: ${demandasText || "Nenhuma"}
 
-Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_demanda":"Solicitação|Reclamação|Denúncia|Sugestão|Informação","urgencia":"Normal|Urgente","resposta":"MÁXIMO 2 FRASES CURTAS + pergunta","registrar_demanda":false,"audio_sugerido":""}`;
+Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_demanda":"Solicitação|Reclamação|Denúncia|Sugestão|Informação","urgencia":"Normal|Urgente","resposta":"MÁXIMO 2 FRASES CURTAS","registrar_demanda":false,"audio_sugerido":""}`;
 
     const userMessage = `Nome: ${senderName || "Não informado"}\nTelefone: ${senderPhone}\nMensagem: ${content}`;
 
@@ -729,6 +868,23 @@ Responda JSON: {"problema":"","endereco":"","bairro":"","secretaria":"","tipo_de
       analysis = { ...buildFallbackAnalysis(), audio_sugerido: selectedAudio?.titulo || "" };
       console.warn("All AI providers failed — using fallback response");
     }
+
+    const recentOutgoingForGuard = history
+      .filter((m: any) => m.direction === "outgoing" && m.content)
+      .slice(-5)
+      .map((m: any) => m.content as string);
+
+    const userAnswersForGuard = history
+      .filter((m: any) => m.direction === "incoming" && m.content)
+      .slice(-8)
+      .map((m: any) => m.content as string);
+
+    analysis.resposta = enforceNoLoopResponse(
+      analysis.resposta,
+      recentOutgoingForGuard,
+      userAnswersForGuard,
+      selectedScript
+    );
 
     // ── UPDATE + SEND in parallel ──
     const { data: msgs } = await sb.from("whatsapp_messages")
