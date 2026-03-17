@@ -487,6 +487,73 @@ export default function BancoInformacoes() {
     setShowDialog(false);
   };
 
+  // ─── Script tab handlers ───
+  const handleScriptCreate = async () => {
+    if (!user) return;
+    if (sEditingId) {
+      await supabase.from("scripts").update({
+        titulo: sFormTitulo, conteudo: sFormConteudo, categoria: sFormCategoria,
+        tags: sFormTags.split(",").map(t => t.trim()).filter(Boolean),
+      }).eq("id", sEditingId);
+      setScriptsData(prev => prev.map(s => s.id === sEditingId ? { ...s, titulo: sFormTitulo, conteudo: sFormConteudo, categoria: sFormCategoria, tags: sFormTags.split(",").map(t => t.trim()).filter(Boolean) } : s));
+      toast({ title: "Script atualizado!" });
+    } else {
+      const { data: newScript, error } = await supabase.from("scripts").insert({
+        titulo: sFormTitulo, conteudo: sFormConteudo, categoria: sFormCategoria || "Geral",
+        tags: sFormTags.split(",").map(t => t.trim()).filter(Boolean), author_id: user.id,
+      }).select().single();
+      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+      if (newScript) setScriptsData(prev => [...prev, newScript as unknown as ScriptRow]);
+      toast({ title: "Script criado!" });
+    }
+    setShowScriptDialog(false); resetScriptForm();
+  };
+
+  const resetScriptForm = () => { setSFormTitulo(""); setSFormConteudo(""); setSFormCategoria(""); setSFormTags(""); setSEditingId(null); };
+
+  const handleScriptEdit = (s: ScriptRow) => {
+    setSFormTitulo(s.titulo); setSFormConteudo(s.conteudo); setSFormCategoria(s.categoria);
+    setSFormTags(s.tags?.join(", ") || ""); setSEditingId(s.id); setShowScriptDialog(true);
+  };
+
+  const handleScriptCopy = (text: string) => { navigator.clipboard.writeText(text); toast({ title: "Copiado!" }); };
+
+  const handleScriptToggleFav = async (s: ScriptRow) => {
+    const newVal = !s.favorito;
+    await supabase.from("scripts").update({ favorito: newVal }).eq("id", s.id);
+    setScriptsData(prev => prev.map(x => x.id === s.id ? { ...x, favorito: newVal } : x));
+  };
+
+  const handleScriptDelete = async (id: string) => {
+    await supabase.from("scripts").delete().eq("id", id);
+    setScriptsData(prev => prev.filter(x => x.id !== id));
+    toast({ title: "Script removido" });
+  };
+
+  const handleGenerateAIScript = async () => {
+    if (!aiScriptInput.trim()) return;
+    setAiScriptGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-script", { body: { conversa: aiScriptInput } });
+      if (error) throw error;
+      setAiScriptResult(data);
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar", description: err.message, variant: "destructive" });
+    } finally { setAiScriptGenerating(false); }
+  };
+
+  const handleSaveAIScript = async () => {
+    if (!user || !aiScriptResult) return;
+    const { error } = await supabase.from("scripts").insert({
+      titulo: aiScriptResult.titulo, conteudo: aiScriptResult.script_base || aiScriptResult.conteudo,
+      categoria: aiScriptResult.categoria || "Geral",
+      tags: aiScriptResult.tags || [], author_id: user.id,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Script salvo!" }); setAiScriptResult(null); setAiScriptInput("");
+    setShowAIScriptDialog(false); await fetchScripts();
+  };
+
   const fonteIcon = (fonte: string | null) => {
     if (fonte === "Instagram") return <InstagramIcon size={12} className="text-pink-500" />;
     if (fonte === "Upload") return <UploadCloud size={12} className="text-primary" />;
