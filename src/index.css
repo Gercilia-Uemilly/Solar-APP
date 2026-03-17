@@ -181,6 +181,14 @@
 .tiptap a { color: hsl(var(--primary)); text-decoration: underline; }
 .tiptap img { max-width: 100%; border-radius: 0.5rem; margin: 0.5em 0; }
 
+/* Assinatura — sem bordas nunca */
+img[alt="Assinatura Fabão"] {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
 /* Anexo de imagens - Preview e Print */
 .anexo-imagens {
   display: flex;

@@ -226,11 +226,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               objectFit: "contain",
               marginBottom: "0",
               display: "block",
-              border: "none",
-              outline: "none",
+              border: "0 none transparent",
+              borderWidth: "0",
+              borderStyle: "none",
+              borderColor: "transparent",
+              outline: "0 none transparent",
               boxShadow: "none",
-              borderTop: "none",
-              borderBottom: "none",
+              borderRadius: "0",
+              padding: "0",
             }}
           />
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0", border: "none" }}>FABÃO</p>
