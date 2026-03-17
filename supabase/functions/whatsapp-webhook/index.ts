@@ -675,12 +675,14 @@ CONTINUIDADE ATIVA (OBRIGATÓRIO):
 
 ---
 
-INTERPRETAÇÃO DE CONTEXTO (OBRIGATÓRIO):
+INTERPRETAÇÃO INTELIGENTE (OBRIGATÓRIO):
 O cidadão pode usar palavras simples, gírias ou termos incompletos. Você DEVE interpretar a intenção real:
 - "casinha", "casa", "quero casa", "moradia" → PROGRAMA HABITACIONAL (casas populares da prefeitura)
 - "grupo de emprego", "grupo", "vaga", "trabalho" → ENVIO DE LINK DE GRUPO DE EMPREGOS (buscar na base)
 - "menor aprendiz", "vaga pro meu filho", "jovem aprendiz" → VAGAS DE MENOR APRENDIZ (buscar link na base)
 - "buraco", "tapa buraco", "rua esburacada" → INFRAESTRUTURA (pedir endereço completo)
+- "mosquito", "dengue" → SAÚDE PÚBLICA / PROBLEMA URBANO (pedir endereço)
+- "exame", "consulta", "urgente", "me ajuda com exame" → SAÚDE URGENTE (pedir dados do cidadão)
 - "castração", "castrar", "gato", "cachorro" → PROGRAMA DE CASTRAÇÃO (buscar info na base)
 - "inscrição", "como faço", "onde inscrevo" → BUSCAR PROGRAMA ESPECÍFICO na base de conhecimento
 
