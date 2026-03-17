@@ -78,8 +78,22 @@ export default function MeusOficios() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-  const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
+  const formatStorageKey = "oficio_preview_format_options";
+  const [formatOptions, setFormatOptions] = useState<FormatOptions>(() => {
+    try {
+      const raw = localStorage.getItem(formatStorageKey);
+      if (!raw) return defaultFormatOptions;
+      const parsed = JSON.parse(raw) as Partial<FormatOptions>;
+      return { ...defaultFormatOptions, ...parsed };
+    } catch {
+      return defaultFormatOptions;
+    }
+  });
   const [editorKey, setEditorKey] = useState(0);
+
+  useEffect(() => {
+    localStorage.setItem(formatStorageKey, JSON.stringify(formatOptions));
+  }, [formatOptions]);
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
@@ -129,13 +143,17 @@ export default function MeusOficios() {
     if (!viewOficio) return;
     const contentToSave = editedContentRef.current;
     setSaveStatus("saving");
-    const updatePayload: Record<string, any> = { 
+    const validDataGeracao = typeof viewOficio.data_geracao === "string" && /^\d{4}-\d{2}-\d{2}$/.test(viewOficio.data_geracao)
+      ? viewOficio.data_geracao
+      : null;
+
+    const updatePayload: Record<string, any> = {
       conteudo: contentToSave,
       destinatario: viewOficio.destinatario,
       cargo_destinatario: viewOficio.cargo_destinatario,
       assunto: viewOficio.assunto,
       numero: viewOficio.numero,
-      data_geracao: viewOficio.data_geracao,
+      data_geracao: validDataGeracao,
       status: "Salvo",
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
@@ -793,7 +811,7 @@ export default function MeusOficios() {
                 onNumeroChange={(val) => handleInlineFieldChange("numero", val)}
                 onAssuntoChange={(val) => handleInlineFieldChange("assunto", val)}
                 onCargoDestinatarioChange={(val) => handleInlineFieldChange("cargo_destinatario", val)}
-                onDataChange={(val) => handleInlineFieldChange("data_geracao", val)}
+                onDataChange={undefined}
                 onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
                 onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
                 initialConteudo={originalContent}
