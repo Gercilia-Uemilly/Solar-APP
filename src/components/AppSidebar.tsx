@@ -98,6 +98,11 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
         )}
         {visibleItems.map((item) => {
           const isActive = location.pathname === item.path;
+          const badge = item.path === "/operadores" && pendingCount > 0
+            ? pendingCount
+            : item.path === "/chat" && unreadChat > 0
+            ? unreadChat
+            : 0;
           return (
             <Link
               key={item.path}
@@ -110,7 +115,12 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
               }`}
             >
               <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className="flex-shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+              {badge > 0 && (
+                <span className="ml-auto min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
             </Link>
           );
         })}
