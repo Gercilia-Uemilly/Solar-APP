@@ -702,7 +702,19 @@ export async function fetchSavedImages(oficioId: string): Promise<File[]> {
         const resp = await fetch(urlData.publicUrl);
         if (!resp.ok) continue;
         const blob = await resp.blob();
-        files.push(new File([blob], a.file_name, { type: a.mime_type || blob.type }));
+        const mimeType = a.mime_type || blob.type;
+
+        // If it's a PDF, convert all pages to images
+        if (mimeType === "application/pdf") {
+          try {
+            const pdfImages = await pdfToImageFiles(blob, a.file_name?.replace(/\.pdf$/i, "") || "pdf");
+            files.push(...pdfImages);
+          } catch (e) {
+            console.error("Failed to convert PDF to images:", e);
+          }
+        } else {
+          files.push(new File([blob], a.file_name, { type: mimeType }));
+        }
       } catch { /* skip failed downloads */ }
     }
     return files;
