@@ -18,6 +18,7 @@ import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/
 import { generateOperatorCode, type OficioRow } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone, { type AnexoFile } from "@/components/FileDropzone";
+import { useAnexos } from "@/hooks/useAnexos";
 import type { DemandaAnexo } from "@/types";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
