@@ -368,9 +368,9 @@ export default function Operadores() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                ) : approvedProfiles.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum operador encontrado.</TableCell></TableRow>
+                   <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                 ) : approvedProfiles.length === 0 ? (
+                   <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum operador encontrado.</TableCell></TableRow>
                 ) : approvedProfiles.map(p => {
                   const role = roles[p.id] || "user";
                   const shortId = generateShortId(p.full_name, p.email);

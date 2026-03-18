@@ -94,6 +94,7 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
         <Route path="/aguardando-aprovacao" element={<WaitingRoute><AguardandoAprovacao /></WaitingRoute>} />
+        <Route path="/verificar-sms" element={<VerificarSMS />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/google/callback" element={<GoogleDriveCallback />} />
         <Route path="/privacidade" element={<PoliticaPrivacidade />} />
