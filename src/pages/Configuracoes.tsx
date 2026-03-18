@@ -40,7 +40,7 @@ function AuditLogSection() {
     </div>
   );
 }
-import { Settings, Save, Phone, CheckCircle2, XCircle, Loader2, Link2 } from "lucide-react";
+
 import ThemeToggle from "@/components/ThemeToggle";
 import UserAvatar from "@/components/UserAvatar";
 
