@@ -715,11 +715,15 @@ export default function Oficios() {
     setIsUploading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = session?.access_token
+        || (await supabase.auth.refreshSession()).data.session?.access_token;
+
+      if (!accessToken) {
         toast({ title: "Sessão expirada", description: "Faça login novamente para exportar e enviar ao Drive.", variant: "destructive" });
         return;
       }
-      const authToken = session.access_token;
+
+      const authToken = accessToken;
       const imgs = await fetchSavedImages(oficio.id);
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
