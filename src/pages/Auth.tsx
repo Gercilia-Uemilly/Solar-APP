@@ -12,6 +12,7 @@ import logoSolar from "@/assets/logo-solar.png";
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
