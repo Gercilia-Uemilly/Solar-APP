@@ -1,7 +1,8 @@
 import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-// Use the bundled worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+// Use a local bundled worker to avoid external CDN/network failures.
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 /**
  * Convert a PDF file/blob into an array of image Files (one per page).
@@ -16,12 +17,27 @@ export async function pdfToImageFiles(
   if (pdfSource instanceof File || pdfSource instanceof Blob) {
     data = await pdfSource.arrayBuffer();
   } else if (pdfSource instanceof Uint8Array) {
-    data = pdfSource.buffer as ArrayBuffer;
+    data = pdfSource.buffer.slice(
+      pdfSource.byteOffset,
+      pdfSource.byteOffset + pdfSource.byteLength
+    ) as ArrayBuffer;
   } else {
     data = pdfSource;
   }
 
-  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  const pdfData = new Uint8Array(data);
+
+  const loadPdf = (options: Record<string, unknown>) =>
+    pdfjsLib.getDocument(options as any).promise as Promise<any>;
+
+  let pdf: any;
+  try {
+    pdf = await loadPdf({ data: pdfData });
+  } catch (error) {
+    console.warn("[pdfToImageFiles] Worker do PDF indisponível, tentando fallback:", error);
+    pdf = await loadPdf({ data: pdfData, disableWorker: true });
+  }
+
   const files: File[] = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -30,8 +46,8 @@ export async function pdfToImageFiles(
     const viewport = page.getViewport({ scale });
 
     const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
 
     const ctx = canvas.getContext("2d");
     if (!ctx) continue;
