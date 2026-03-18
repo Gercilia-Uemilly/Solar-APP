@@ -73,6 +73,7 @@ export default function MeusOficios() {
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewAnexoUrls, setPreviewAnexoUrls] = useState<string[]>([]);
+  const [previewAnexoDocs, setPreviewAnexoDocs] = useState<Array<{ nome: string; tipo: string }>>([]);
   const [editedContent, setEditedContent] = useState<string>("");
   const editedContentRef = useRef<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
