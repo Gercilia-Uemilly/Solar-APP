@@ -18,6 +18,7 @@ import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/
 import { generateOperatorCode, type OficioRow } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone, { type AnexoFile } from "@/components/FileDropzone";
+import { useAnexos } from "@/hooks/useAnexos";
 import type { DemandaAnexo } from "@/types";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
@@ -137,7 +138,7 @@ export default function Oficios() {
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
-  const [anexos, setAnexos] = useState<AnexoFile[]>([]);
+  const { anexos, setAnexos, addFile: persistAddFile, removeFile: persistRemoveFile, addLocalFile, uploadLocalFiles, reset: resetAnexos } = useAnexos(editingOficioId);
   const [descricaoAnexos, setDescricaoAnexos] = useState("");
 
   // Version history for undo/redo
@@ -443,28 +444,7 @@ export default function Oficios() {
     // If we have content, go straight to preview; otherwise datos
     setFormTab(content ? "preview" : "dados");
     setShowDialog(true);
-
-    // Load saved attachments from storage
-    const { data: savedAnexos } = await supabase.from("oficio_anexos" as any).select("*").eq("oficio_id", o.id);
-    if (savedAnexos && savedAnexos.length > 0) {
-      const loadedAnexos: AnexoFile[] = (savedAnexos as any[]).map((a: any) => {
-        const { data } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
-        const fileName = a.file_name || "anexo";
-        const normalizedType = normalizeAttachmentMime(fileName, a.mime_type || "");
-        return {
-          id: a.id,
-          nome: fileName,
-          tipo: normalizedType,
-          tamanho: 0,
-          url: data.publicUrl,
-        };
-      });
-      setAnexos(loadedAnexos);
-      // Also set image URLs for preview compatibility
-      const urls = loadedAnexos.filter(a => a.tipo.startsWith("image/")).map(a => a.url!);
-    } else {
-      setAnexos([]);
-    }
+    // Anexos are loaded automatically by useAnexos when editingOficioId changes
   };
 
   // Validation state
@@ -545,24 +525,8 @@ export default function Oficios() {
       }
     }
 
-    // Upload new anexo files to storage and persist references
-    if (oficioId) {
-      const newAnexos = anexos.filter(a => a.file); // Only new files (not already saved)
-      for (const anexo of newAnexos) {
-        if (!anexo.file) continue;
-        const ext = anexo.nome.split('.').pop() || 'bin';
-        const storagePath = `oficios/${oficioId}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, anexo.file, {
-          contentType: (anexo.tipo || "").trim() || undefined,
-        });
-        if (!upErr) {
-          await supabase.from("oficio_anexos" as any).insert({ oficio_id: oficioId, storage_path: storagePath, file_name: anexo.nome, mime_type: anexo.tipo });
-          // Update the anexo with its URL so it's no longer "new"
-          const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath);
-          anexo.url = urlData.publicUrl;
-          anexo.file = undefined; // Mark as saved
-        }
-      }
+      // Upload local-only attachments (for new ofícios)
+      await uploadLocalFiles(oficioId);
     }
 
     await fetchOficios();
@@ -618,16 +582,12 @@ export default function Oficios() {
         results.push({ type: item.type, text, fileName: item.file.name, storageUrl });
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
         if (item.type === "image") {
-          // Add to unified anexos state
-          const newAnexo: AnexoFile = {
-            id: `${Date.now()}-media-${Math.random().toString(36).slice(2, 6)}`,
-            nome: item.file.name,
-            tipo: item.file.type,
-            tamanho: item.file.size,
-            file: item.file,
-          };
-          setAnexos(prev => [...prev, newAnexo]);
-          // image already added to anexos above
+          // Use persistent upload if editing, otherwise local-only
+          if (editingOficioId) {
+            await persistAddFile(item.file);
+          } else {
+            addLocalFile(item.file);
+          }
         }
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
@@ -684,7 +644,7 @@ export default function Oficios() {
     setProcessedResults([]);
     setProcessingQueue([]);
     setValidationErrors({});
-    setAnexos([]);
+    resetAnexos();
     setDescricaoAnexos("");
     setSuggestions([]);
     setKbSuggestions([]);
@@ -883,9 +843,11 @@ export default function Oficios() {
   };
 
   const withSavedAttachments = async (exportData: OficioData): Promise<OficioData> => {
-    if (!editingOficioId) return exportData;
+    // Always fetch FRESH from DB before exporting
+    const oficioId = editingOficioId;
+    if (!oficioId) return exportData;
 
-    const savedFiles = await fetchSavedImages(editingOficioId);
+    const savedFiles = await fetchSavedImages(oficioId);
     const currentFiles = exportData.imagens || [];
     const mergedFiles = mergeAttachmentFiles(savedFiles, currentFiles);
 
@@ -1179,7 +1141,11 @@ export default function Oficios() {
                 </Select>
               </div>
 
-              <FileDropzone anexos={anexos} onChange={setAnexos} />
+              <FileDropzone
+                anexos={anexos}
+                onAddFile={editingOficioId ? persistAddFile : (file) => addLocalFile(file)}
+                onRemoveFile={editingOficioId ? persistRemoveFile : (id) => setAnexos(prev => prev.filter(a => a.id !== id))}
+              />
 
               {anexos.length > 0 && (
                 <div>
