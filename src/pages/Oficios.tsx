@@ -810,9 +810,20 @@ export default function Oficios() {
     formatOptions,
   });
 
-  // Helper to get image File objects from unified anexos
-  const getImageFilesFromAnexos = (): File[] | undefined => {
+  // Helper to get image File objects from unified anexos (converts PDFs to images)
+  const getImageFilesFromAnexos = async (): Promise<File[] | undefined> => {
     const imageFiles = anexos.filter(a => a.tipo.startsWith("image/") && a.file).map(a => a.file!);
+    const pdfFiles = anexos.filter(a => a.tipo === "application/pdf" && a.file);
+    
+    for (const pdfAnexo of pdfFiles) {
+      try {
+        const pdfImages = await pdfToImageFiles(pdfAnexo.file!, pdfAnexo.nome?.replace(/\.pdf$/i, "") || "pdf");
+        imageFiles.push(...pdfImages);
+      } catch (e) {
+        console.error("Failed to convert PDF anexo to images:", e);
+      }
+    }
+    
     return imageFiles.length > 0 ? imageFiles : undefined;
   };
 
