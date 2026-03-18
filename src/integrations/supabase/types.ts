@@ -32,6 +32,39 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          acao: string
+          criado_em: string | null
+          detalhes: Json | null
+          id: string
+          registro_id: string | null
+          tabela: string | null
+          user_id: string
+          user_nome: string | null
+        }
+        Insert: {
+          acao: string
+          criado_em?: string | null
+          detalhes?: Json | null
+          id?: string
+          registro_id?: string | null
+          tabela?: string | null
+          user_id: string
+          user_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          criado_em?: string | null
+          detalhes?: Json | null
+          id?: string
+          registro_id?: string | null
+          tabela?: string | null
+          user_id?: string
+          user_nome?: string | null
+        }
+        Relationships: []
+      }
       base_conhecimento: {
         Row: {
           bairro: string | null
@@ -164,6 +197,45 @@ export type Database = {
         }
         Relationships: []
       }
+      modelos_oficio: {
+        Row: {
+          assunto: string | null
+          conteudo: string | null
+          criado_em: string | null
+          criado_por: string
+          criado_por_nome: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          publico: boolean | null
+          secretaria: string | null
+        }
+        Insert: {
+          assunto?: string | null
+          conteudo?: string | null
+          criado_em?: string | null
+          criado_por: string
+          criado_por_nome?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          publico?: boolean | null
+          secretaria?: string | null
+        }
+        Update: {
+          assunto?: string | null
+          conteudo?: string | null
+          criado_em?: string | null
+          criado_por?: string
+          criado_por_nome?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          publico?: boolean | null
+          secretaria?: string | null
+        }
+        Relationships: []
+      }
       oficio_anexos: {
         Row: {
           created_at: string
@@ -248,6 +320,8 @@ export type Database = {
           author_id: string
           bairro: string | null
           cargo_destinatario: string | null
+          cobrado_em: string | null
+          cobrado_por: string | null
           codigo_z: string | null
           contato_solicitante: string | null
           conteudo: string | null
@@ -269,10 +343,12 @@ export type Database = {
           numero: string | null
           operador_nome: string | null
           origem: string | null
+          prazo_resposta: string | null
           resposta_cidadao: string | null
           secretaria_identificada: string | null
           solicitante: string | null
           status: string
+          status_resposta: string | null
           tipo_demanda: string | null
           updated_at: string
           uploaded_at: string | null
@@ -286,6 +362,8 @@ export type Database = {
           author_id: string
           bairro?: string | null
           cargo_destinatario?: string | null
+          cobrado_em?: string | null
+          cobrado_por?: string | null
           codigo_z?: string | null
           contato_solicitante?: string | null
           conteudo?: string | null
@@ -307,10 +385,12 @@ export type Database = {
           numero?: string | null
           operador_nome?: string | null
           origem?: string | null
+          prazo_resposta?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
           status?: string
+          status_resposta?: string | null
           tipo_demanda?: string | null
           updated_at?: string
           uploaded_at?: string | null
@@ -324,6 +404,8 @@ export type Database = {
           author_id?: string
           bairro?: string | null
           cargo_destinatario?: string | null
+          cobrado_em?: string | null
+          cobrado_por?: string | null
           codigo_z?: string | null
           contato_solicitante?: string | null
           conteudo?: string | null
@@ -345,16 +427,39 @@ export type Database = {
           numero?: string | null
           operador_nome?: string | null
           origem?: string | null
+          prazo_resposta?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
           status?: string
+          status_resposta?: string | null
           tipo_demanda?: string | null
           updated_at?: string
           uploaded_at?: string | null
           uploaded_by_email?: string | null
           uploaded_by_name?: string | null
           urgencia?: string | null
+        }
+        Relationships: []
+      }
+      oficios_backup: {
+        Row: {
+          backup_em: string | null
+          dados: Json
+          id: string
+          oficio_id: string
+        }
+        Insert: {
+          backup_em?: string | null
+          dados: Json
+          id?: string
+          oficio_id: string
+        }
+        Update: {
+          backup_em?: string | null
+          dados?: Json
+          id?: string
+          oficio_id?: string
         }
         Relationships: []
       }
@@ -748,6 +853,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      backup_diario_oficios: { Args: never; Returns: undefined }
       get_email_by_username: { Args: { _username: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_active: { Args: { _user_id: string }; Returns: boolean }
@@ -772,6 +878,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      verificar_prazos: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
