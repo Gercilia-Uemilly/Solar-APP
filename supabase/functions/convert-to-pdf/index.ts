@@ -37,6 +37,201 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
+// ── Google Drive conversion helpers ──────────────────────────────────────────
+async function refreshGoogleToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
+  const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+  const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+  if (!clientId || !clientSecret) {
+    throw new Error("GOOGLE_CLIENT_ID ou GOOGLE_CLIENT_SECRET não configurados.");
+  }
+
+  const resp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Google OAuth refresh error: ${resp.status} ${errText}`);
+  }
+
+  return resp.json();
+}
+
+async function getUserGoogleAccessToken(
+  supabaseAdmin: any,
+  userId: string
+): Promise<{ accessToken: string; googleEmail: string } | null> {
+  const { data: tokenData } = await supabaseAdmin
+    .from("user_drive_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  if (!tokenData) return null;
+
+  let accessToken = tokenData.access_token as string;
+  const tokenExpiry = new Date(tokenData.token_expiry as string);
+
+  // Refresh if expired (with 5 min buffer)
+  if (tokenExpiry.getTime() - Date.now() < 5 * 60 * 1000) {
+    try {
+      const refreshed = await refreshGoogleToken(tokenData.refresh_token as string);
+      accessToken = refreshed.access_token;
+      const newExpiry = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+
+      await supabaseAdmin
+        .from("user_drive_tokens")
+        .update({
+          access_token: accessToken,
+          token_expiry: newExpiry,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+
+      // Token revogado/expirado permanentemente: trata como desconectado
+      if (/invalid_grant|expired or revoked/i.test(message)) {
+        await supabaseAdmin.from("user_drive_tokens").delete().eq("user_id", userId);
+        return null;
+      }
+
+      throw e;
+    }
+  }
+
+  return {
+    accessToken,
+    googleEmail: (tokenData.google_email as string) || "",
+  };
+}
+
+function buildMultipartRelatedBody(
+  metadata: Record<string, unknown>,
+  fileBytes: Uint8Array,
+  fileMimeType: string,
+  boundary: string
+): Uint8Array {
+  const encoder = new TextEncoder();
+  const metadataPart = encoder.encode(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`
+  );
+  const fileHeader = encoder.encode(
+    `--${boundary}\r\nContent-Type: ${fileMimeType}\r\n\r\n`
+  );
+  const footer = encoder.encode(`\r\n--${boundary}--`);
+
+  const totalLength = metadataPart.length + fileHeader.length + fileBytes.length + footer.length;
+  const body = new Uint8Array(totalLength);
+
+  let offset = 0;
+  body.set(metadataPart, offset);
+  offset += metadataPart.length;
+
+  body.set(fileHeader, offset);
+  offset += fileHeader.length;
+
+  body.set(fileBytes, offset);
+  offset += fileBytes.length;
+
+  body.set(footer, offset);
+  return body;
+}
+
+async function uploadDocxAsGoogleDoc(
+  accessToken: string,
+  docxBytes: Uint8Array,
+  filename: string
+): Promise<string> {
+  const boundary = `===BOUNDARY_${crypto.randomUUID()}===`;
+  const metadata = {
+    name: `tmp_convert_${filename.replace(/\.docx$/i, "")}_${Date.now()}`,
+    mimeType: "application/vnd.google-apps.document",
+  };
+
+  const body = buildMultipartRelatedBody(
+    metadata,
+    docxBytes,
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    boundary
+  );
+
+  const resp = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,mimeType",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      body,
+    }
+  );
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`GoogleDrive upload error: ${resp.status} ${errText}`);
+  }
+
+  const data = await resp.json();
+  if (!data?.id) {
+    throw new Error(`GoogleDrive upload sem id: ${JSON.stringify(data)}`);
+  }
+
+  return data.id as string;
+}
+
+async function exportGoogleDocToPdf(accessToken: string, fileId: string): Promise<Uint8Array> {
+  const resp = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=${encodeURIComponent("application/pdf")}`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`GoogleDrive export error: ${resp.status} ${errText}`);
+  }
+
+  const pdfBytes = new Uint8Array(await resp.arrayBuffer());
+  return ensurePdfBytes(pdfBytes, "GoogleDrive");
+}
+
+async function removeGoogleDriveFile(accessToken: string, fileId: string): Promise<void> {
+  try {
+    await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  } catch (e) {
+    console.error("GoogleDrive cleanup failed:", e);
+  }
+}
+
+async function convertWithGoogleDrive(
+  docxBytes: Uint8Array,
+  filename: string,
+  accessToken: string
+): Promise<Uint8Array> {
+  let tempFileId: string | null = null;
+  try {
+    tempFileId = await uploadDocxAsGoogleDoc(accessToken, docxBytes, filename);
+    return await exportGoogleDocToPdf(accessToken, tempFileId);
+  } finally {
+    if (tempFileId) {
+      await removeGoogleDriveFile(accessToken, tempFileId);
+    }
+  }
+}
+
 // Converte um .docx para PDF usando provedores em cascata
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -84,6 +279,32 @@ serve(async (req) => {
 
     const configuredProviders: string[] = [];
     const providerErrors: string[] = [];
+
+    // ── Tentativa 0: Google Drive do usuário (sem crédito pago) ──────────────
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (supabaseUrl && serviceRoleKey) {
+      try {
+        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+        const googleAuth = await getUserGoogleAccessToken(supabaseAdmin, user.id);
+
+        if (googleAuth) {
+          configuredProviders.push("GoogleDrive");
+          try {
+            const pdfBytes = await convertWithGoogleDrive(docxBytes, filename, googleAuth.accessToken);
+            return new Response(pdfBytes, { headers: pdfHeaders });
+          } catch (e) {
+            const msg = getErrorMessage(e);
+            providerErrors.push(`GoogleDrive: ${msg}`);
+            console.error("GoogleDrive failed, trying next provider:", e);
+          }
+        }
+      } catch (e) {
+        const msg = getErrorMessage(e);
+        providerErrors.push(`GoogleDriveAuth: ${msg}`);
+        console.error("GoogleDrive auth/token lookup failed:", e);
+      }
+    }
 
     // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
     const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
@@ -163,7 +384,7 @@ serve(async (req) => {
     // ── Fallback: nenhum provedor configurado ────────────────────────────────
     return new Response(
       JSON.stringify({
-        error: "Nenhum serviço de conversão configurado. Configure ao menos um: CONVERTAPI_SECRET, CLOUDCONVERT_API_KEY, API2PDF_API_KEY ou GOTENBERG_URL.",
+        error: "Nenhum serviço de conversão configurado. Configure ao menos um: Drive conectado do usuário, CONVERTAPI_SECRET, CLOUDCONVERT_API_KEY, API2PDF_API_KEY ou GOTENBERG_URL.",
         fallback: true,
       }),
       { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
