@@ -32,6 +32,7 @@ const WhatsAppMensagens = lazy(() => import("./pages/WhatsAppMensagens"));
 const ChatInterno = lazy(() => import("./pages/ChatInterno"));
 const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
 const Modelos = lazy(() => import("./pages/Modelos"));
+const VerificarSMS = lazy(() => import("./pages/VerificarSMS"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
