@@ -808,15 +808,16 @@ export async function fetchSavedImages(oficioId: string): Promise<File[]> {
     const files: File[] = [];
     for (const a of anexos as any[]) {
       try {
-        const { data: urlData } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
-        console.log(`[fetchSavedImages] Baixando: ${a.file_name} de ${urlData.publicUrl}`);
-        const resp = await fetch(urlData.publicUrl);
-        if (!resp.ok) {
-          console.warn(`[fetchSavedImages] Falha ao baixar ${a.file_name}: HTTP ${resp.status}`);
+        // Use authenticated download instead of public URL fetch
+        const { data: blob, error: dlError } = await supabase.storage
+          .from("midias")
+          .download(a.storage_path);
+
+        if (dlError || !blob) {
+          console.warn(`[fetchSavedImages] Falha ao baixar ${a.file_name}:`, dlError?.message);
           continue;
         }
 
-        const blob = await resp.blob();
         const fileName = a.file_name || "anexo";
         const mimeType = normalizeAttachmentMime(fileName, a.mime_type, blob.type);
 
