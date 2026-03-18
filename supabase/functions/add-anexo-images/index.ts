@@ -208,6 +208,38 @@ function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// Extract image dimensions from binary data (JPEG/PNG headers)
+function getImageDimensions(data: Uint8Array, type: string): { width: number; height: number } | null {
+  try {
+    if (type.includes("png") && data.length > 24) {
+      // PNG: width at bytes 16-19, height at bytes 20-23 (big-endian)
+      const width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+      const height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+      if (width > 0 && height > 0) return { width, height };
+    }
+    
+    if ((type.includes("jpeg") || type.includes("jpg")) && data.length > 2) {
+      // JPEG: scan for SOF markers (0xFFC0-0xFFC3)
+      let i = 2;
+      while (i < data.length - 9) {
+        if (data[i] === 0xFF) {
+          const marker = data[i + 1];
+          if (marker >= 0xC0 && marker <= 0xC3) {
+            const height = (data[i + 5] << 8) | data[i + 6];
+            const width = (data[i + 7] << 8) | data[i + 8];
+            if (width > 0 && height > 0) return { width, height };
+          }
+          const segLen = (data[i + 2] << 8) | data[i + 3];
+          i += 2 + segLen;
+        } else {
+          i++;
+        }
+      }
+    }
+  } catch { /* ignore parse errors */ }
+  return null;
+}
+
 function makeImageXml(rId: string, cx: number, cy: number, idx: number, W: string, WP: string, A_NS: string, PIC_NS: string): string {
   return `
 <w:p xmlns:w="${W}">
