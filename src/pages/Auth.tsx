@@ -46,6 +46,29 @@ export default function Auth() {
         toast({ title: "Acesso bloqueado", description: "Entre em contato com o administrador.", variant: "destructive" });
         return;
       }
+
+      // Check 2FA
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: perfil } = await supabase
+          .from("profiles")
+          .select("celular, celular_verificado, usa_2fa" as any)
+          .eq("id", user.id)
+          .single();
+        const p = perfil as any;
+        if (p?.usa_2fa && p?.celular) {
+          // Send SMS OTP
+          const { error: smsError } = await supabase.auth.signInWithOtp({
+            phone: p.celular,
+          });
+          if (!smsError) {
+            sessionStorage.setItem("2fa_celular", p.celular);
+            navigate("/verificar-sms");
+            toast({ title: `Código enviado para ****${p.celular.slice(-4)}` });
+            return;
+          }
+        }
+      }
     } catch (err: any) {
       toast({ title: "Erro ao entrar", description: err.message, variant: "destructive" });
     } finally {

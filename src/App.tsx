@@ -32,6 +32,7 @@ const WhatsAppMensagens = lazy(() => import("./pages/WhatsAppMensagens"));
 const ChatInterno = lazy(() => import("./pages/ChatInterno"));
 const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
 const Modelos = lazy(() => import("./pages/Modelos"));
+const VerificarSMS = lazy(() => import("./pages/VerificarSMS"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +94,7 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
         <Route path="/aguardando-aprovacao" element={<WaitingRoute><AguardandoAprovacao /></WaitingRoute>} />
+        <Route path="/verificar-sms" element={<VerificarSMS />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/google/callback" element={<GoogleDriveCallback />} />
         <Route path="/privacidade" element={<PoliticaPrivacidade />} />
