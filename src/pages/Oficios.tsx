@@ -841,6 +841,13 @@ export default function Oficios() {
     }).filter(Boolean);
   }, [anexos]);
 
+  const previewDocumentAnexos = useMemo(
+    () => anexos
+      .filter(a => !a.tipo.startsWith("image/"))
+      .map(a => ({ nome: a.nome, tipo: a.tipo })),
+    [anexos]
+  );
+
   // Cleanup object URLs on unmount or when anexos change
   useEffect(() => {
     return () => {
