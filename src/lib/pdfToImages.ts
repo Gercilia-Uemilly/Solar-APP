@@ -1,8 +1,11 @@
 import * as pdfjsLib from "pdfjs-dist";
 
+// Configure worker from CDN for off-main-thread processing (much faster)
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
 /**
  * Convert a PDF file/blob into an array of image Files (one per page).
- * Each page is rendered at 2x scale for good quality in Word/PDF exports.
+ * Uses JPEG at 1.5x scale for fast processing while keeping good quality.
  */
 export async function pdfToImageFiles(
   pdfSource: File | Blob | ArrayBuffer | Uint8Array,
@@ -23,15 +26,20 @@ export async function pdfToImageFiles(
 
   const pdfData = new Uint8Array(data);
 
-  // Força processamento sem worker para evitar falhas de carregamento
-  // (CDN/rede/CORS) durante a exportação de anexos.
-  const pdf = await pdfjsLib.getDocument({ data: pdfData, disableWorker: true } as any).promise;
+  let pdf: pdfjsLib.PDFDocumentProxy;
+  try {
+    // Try with worker first (fast, off main thread)
+    pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+  } catch {
+    // Fallback to no worker if CDN fails
+    pdf = await pdfjsLib.getDocument({ data: pdfData, disableWorker: true } as any).promise;
+  }
 
   const files: File[] = [];
+  const scale = 1.5; // 1.5x — good balance of quality vs speed
 
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
-    const scale = 2; // 2x for high quality
     const viewport = page.getViewport({ scale });
 
     const canvas = document.createElement("canvas");
@@ -43,15 +51,20 @@ export async function pdfToImageFiles(
 
     await page.render({ canvasContext: ctx, viewport }).promise;
 
+    // JPEG is ~5x faster to encode than PNG
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/png")
+      canvas.toBlob(resolve, "image/jpeg", 0.85)
     );
 
     if (blob) {
       files.push(
-        new File([blob], `${baseFileName}_p${i}.png`, { type: "image/png" })
+        new File([blob], `${baseFileName}_p${i}.jpg`, { type: "image/jpeg" })
       );
     }
+
+    // Clean up canvas to free memory
+    canvas.width = 0;
+    canvas.height = 0;
   }
 
   return files;
