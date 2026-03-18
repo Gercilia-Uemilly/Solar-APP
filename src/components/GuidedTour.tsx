@@ -18,6 +18,11 @@ const tourSteps: TourStep[] = [
       "Este é o Sistema de Gerenciamento de Mandato. Vamos fazer um tour completo, passo a passo, mostrando onde clicar e como usar cada funcionalidade. Use as setas ← → ou clique em Próximo.",
   },
   {
+    title: "🚀 Guia Rápido – Como Criar um Ofício",
+    description:
+      "1. ACESSO AO SISTEMA\n   Entre com seu email e senha. Se não tiver conta, clique em \"Criar conta\".\n\n2. CONECTAR GOOGLE DRIVE\n   Conecte sua conta para poder salvar e exportar documentos.\n\n3. CRIAR NOVO OFÍCIO\n   Clique em \"Novo Ofício\".\n\n4. PREENCHER AS INFORMAÇÕES\n   Descreva o problema com clareza. Informe o local e o bairro (obrigatório).\n\n5. GERAR TEXTO COM IA\n   Clique em \"Gerar texto com IA\". O sistema criará automaticamente o corpo do ofício.\n\n6. REVISAR E EDITAR\n   Leia o texto e faça ajustes se necessário.\n\n7. VISUALIZAR\n   Confira o preview antes de salvar.\n\n8. SALVAR OU EXPORTAR\n   Salve como rascunho ou exporte o documento.\n\n9. ORGANIZAÇÃO\n   Classifique como: Rascunho, Protocolado ou Respondido.\n\n💡 Dica: Sempre revise antes de enviar.",
+  },
+  {
     title: "📊 Painel (Dashboard)",
     description:
       "Esta é a tela inicial ao fazer login. Aqui você vê:\n\n• Resumo geral: total de ofícios, pendentes, em andamento e concluídos\n• Gráficos por operador e por bairro\n• Ranking dos bairros com mais demandas\n• Atalhos rápidos para as principais páginas\n\n👉 Clique em \"Painel\" no menu lateral esquerdo para voltar a esta tela a qualquer momento.",
@@ -25,42 +30,27 @@ const tourSteps: TourStep[] = [
   {
     title: "📝 Criar um Novo Ofício (1/3)",
     description:
-      "Para criar um ofício:\n\n1. Clique em \"Novo Ofício\" no menu lateral\n2. Clique no botão azul \"+ Novo Ofício\" no topo da página\n3. Na aba \"Dados\", preencha: tipo de serviço, assunto, destinatário, bairro e solicitante\n4. A secretaria é preenchida automaticamente conforme o tipo de serviço selecionado\n\n💡 Enquanto preenche, sugestões de ofícios similares aparecem automaticamente.",
+      "Para criar um ofício:\n\n1. Clique em \"Novo Ofício\" no menu lateral\n2. Clique no botão azul \"+ Novo Ofício\" no topo da página\n3. Na aba \"Dados\", preencha: secretaria, assunto, destinatário, bairro, solicitante e WhatsApp\n4. A secretaria preenche o destinatário automaticamente\n\n💡 Enquanto preenche, sugestões de ofícios similares aparecem automaticamente.",
   },
   {
-    title: "📝 Texto e Mídias (2/3)",
+    title: "📝 Descrição e Geração com IA (2/3)",
     description:
-      "Na aba \"Texto\" do ofício:\n\n1. Escreva ou cole a descrição da demanda\n2. Ou arraste/clique em \"Anexar Mídias\" para enviar fotos, áudios ou vídeos\n3. A IA transcreve áudios e extrai texto de imagens automaticamente\n4. Clique \"Inserir tudo na descrição\" para adicionar o conteúdo extraído\n5. Clique no botão \"✨ Gerar Ofício com IA\" para criar o texto formal\n\n🎤 Áudios enviados aqui ficam disponíveis para download — use os botões \"Baixar\" e \"WhatsApp\" para encaminhar ao solicitante.",
+      "No campo \"Descrição da demanda\":\n\n1. Escreva uma descrição curta do problema (ex: \"buraco na Rua das Flores, bairro Martins\")\n2. Ou cole uma conversa do WhatsApp com o solicitante — a IA extrai os dados automaticamente\n3. Ou escreva uma narrativa detalhada — a IA formaliza o texto\n4. Clique \"✨ Gerar Texto com IA\" para criar o ofício completo\n\n💡 A IA interpreta prompts curtos, conversas e textos longos de forma inteligente.",
   },
   {
     title: "📝 Visualizar e Exportar (3/3)",
     description:
-      "Na aba \"Visualizar\":\n\n1. Veja a prévia do ofício formatado com cabeçalho oficial\n2. Use a barra de formatação para ajustar tamanho da fonte, margens e espaçamento\n3. Clique \"📥 Word\" para exportar como documento editável\n4. Clique \"📄 PDF\" para gerar o PDF final\n5. Clique \"☁️ Drive\" para enviar direto ao Google Drive\n\nNa aba \"Status\", altere o status do ofício e veja/edite a resposta ao cidadão.",
+      "Na aba \"Visualizar\":\n\n1. Veja a prévia do ofício formatado com cabeçalho oficial\n2. Edite o texto diretamente no preview (clique no conteúdo)\n3. Insira imagens no corpo do texto usando o botão 🖼️ na barra de ferramentas\n4. Use a barra de formatação para ajustar fonte e espaçamento\n5. Botões de ação:\n   • 💾 Salvar — salva sem fechar\n   • ✓ Salvar e Fechar — salva e volta à lista\n   • 📝 Word — exporta como documento editável\n   • 📄 PDF — gera o PDF final\n   • ☁️ Drive — envia direto ao Google Drive",
   },
   {
-    title: "📂 Todos os Ofícios",
+    title: "📂 Meus Ofícios",
     description:
-      "Para consultar ofícios já criados:\n\n1. Clique em \"Todos os Ofícios\" no menu lateral\n2. Use a barra de busca para pesquisar por assunto, destinatário ou número\n3. Filtre por status (Rascunho, Gerado, Enviado, etc.)\n4. Filtre por operador ou período de datas\n5. Clique no ícone 👁️ para visualizar, 📥 para exportar ou 🗑️ para excluir\n\n💡 Administradores podem ver ofícios de todos os operadores.",
+      "Para consultar ofícios já criados:\n\n1. Clique em \"Meus Ofícios\" no menu lateral\n2. Use a barra de busca para pesquisar por assunto, destinatário ou número\n3. Filtre por status, operador ou período de datas\n4. Abas disponíveis:\n   • 📝 Rascunhos — ofícios em andamento\n   • 📬 Finalizados — ofícios protocolados, feitos ou respondidos\n5. Clique no ícone 👁️ para visualizar, 📥 para exportar ou 🗑️ para excluir",
   },
   {
-    title: "💬 Respostas ao Cidadão",
+    title: "📚 Central de Inteligência",
     description:
-      "Para gerar uma resposta empática ao cidadão:\n\n1. Clique em \"Respostas\" no menu lateral\n2. Preencha: nome do solicitante, assunto, descrição da demanda\n3. Selecione secretaria, tipo de demanda e urgência\n4. Anexe fotos ou áudios se necessário\n5. Clique \"✨ Gerar Resposta\" — a IA cria um texto acolhedor e profissional\n6. Use \"📋 Copiar\" ou \"📱 WhatsApp\" para enviar a resposta",
-  },
-  {
-    title: "📋 Scripts de Atendimento",
-    description:
-      "Para gerenciar modelos de texto prontos:\n\n1. Clique em \"Scripts\" no menu lateral\n2. Pesquise por título ou filtre por categoria\n3. Clique no ícone 📋 ao lado de qualquer script para copiar o texto\n4. Use a ⭐ para favoritar os scripts mais usados\n5. Clique \"+ Novo Script\" para criar um novo modelo\n\n💡 Scripts são usados pela IA como referência ao gerar respostas.",
-  },
-  {
-    title: "🎤 Banco de Áudios",
-    description:
-      "Para gerenciar áudios de referência:\n\n1. Clique em \"Banco de Info\" no menu lateral\n2. Acesse a aba \"🎤 Áudios\"\n3. Clique \"Enviar Áudios\" para fazer upload (MP3, WAV, M4A, etc.)\n4. A IA transcreve o áudio automaticamente\n5. Para cada áudio você pode:\n   • ▶️ Ouvir direto no player\n   • 📥 Baixar o arquivo original\n   • 📱 Enviar o link via WhatsApp\n   • 📋 Copiar a transcrição\n   • ✨ Criar script a partir do conteúdo\n\n💡 Os áudios ficam em formato compatível com WhatsApp Web e celular.",
-  },
-  {
-    title: "📚 Banco de Informações",
-    description:
-      "Para alimentar a base de conhecimento da IA:\n\n1. Aba \"Base\": pesquise e filtre todas as entradas cadastradas\n2. Aba \"SOS Uberlândia\" (admin): importe notícias automaticamente\n3. Aba \"Instagram\": importe posts do Instagram por URL\n4. Aba \"Upload\": envie PDF, DOCX, CSV ou imagens para extração de texto\n\n⭐ Marque entradas como \"Modelo\" para priorizar na geração de respostas.\n💡 A IA consulta toda esta base ao gerar ofícios e respostas.",
+      "A Central de Inteligência reúne toda a base de conhecimento e scripts:\n\n• Aba \"Base\": pesquise e filtre entradas cadastradas\n• Aba \"Scripts\": modelos de texto prontos para copiar e usar\n• Aba \"Upload\": envie PDF, DOCX, CSV ou imagens para extração de texto\n• Aba \"SOS Uberlândia\" (admin): importe notícias automaticamente\n• Aba \"Instagram\": importe posts por URL\n\n⭐ Marque entradas como \"Modelo\" para priorizar na geração.\n💡 A IA consulta toda esta base ao gerar ofícios e respostas.",
   },
   {
     title: "👥 Operadores (Admin)",
@@ -80,7 +70,7 @@ const tourSteps: TourStep[] = [
   {
     title: "🎉 Tutorial Completo!",
     description:
-      "Agora você conhece todas as funcionalidades do Solar!\n\nResumo rápido:\n• Painel → visão geral\n• Novo Ofício → criar ofícios com IA\n• Todos os Ofícios → consultar e exportar\n• Respostas → gerar textos para cidadãos\n• Scripts → modelos prontos\n• Áudios → banco de áudios para WhatsApp\n• Banco de Info → alimentar a IA\n\n👉 Clique em \"Tutorial\" no menu lateral sempre que precisar rever.",
+      "Agora você conhece todas as funcionalidades do Solar!\n\nResumo rápido:\n• Painel → visão geral\n• Novo Ofício → criar ofícios com IA (descrição ou conversa WhatsApp)\n• Meus Ofícios → consultar, editar e exportar\n• Central de Inteligência → base de conhecimento + scripts\n• Operadores → gerenciar equipe (admin)\n• Configurações → perfil e preferências\n\n👉 Clique em \"Tutorial\" no menu lateral sempre que precisar rever.",
   },
 ];
 
