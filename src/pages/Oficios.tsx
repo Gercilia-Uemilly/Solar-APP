@@ -1145,7 +1145,7 @@ export default function Oficios() {
                     setFormTab("dados");
                     return;
                   }
-                  const formData = buildFormExportData();
+                  const formData = await buildFormExportData();
                   // If no new images but we have saved URLs, fetch them as Files
                   if (!formData.imagens && editingOficioId) {
                     const savedImgs = await fetchSavedImages(editingOficioId);
