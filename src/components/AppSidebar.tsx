@@ -34,7 +34,36 @@ interface Props {
 
 export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupport }: Props) {
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const [pendingCount, setPendingCount] = useState(0);
+  const [unreadChat, setUnreadChat] = useState(0);
+
+  // Fetch pending users count for admin badge
+  useEffect(() => {
+    if (!isAdmin) return;
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pendente")
+      .then(({ count }) => setPendingCount(count || 0));
+  }, [isAdmin]);
+
+  // Fetch unread chat messages
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("mensagens").select("id", { count: "exact", head: true })
+      .eq("lida", false).or(`para_user_id.eq.${user.id},para_user_id.is.null`)
+      .neq("de_user_id", user.id)
+      .then(({ count }) => setUnreadChat(count || 0));
+
+    const ch = supabase.channel("sidebar-chat-badge")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens" }, () => {
+        supabase.from("mensagens").select("id", { count: "exact", head: true })
+          .eq("lida", false).or(`para_user_id.eq.${user.id},para_user_id.is.null`)
+          .neq("de_user_id", user.id)
+          .then(({ count }) => setUnreadChat(count || 0));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
 
   const visibleItems = menuItems.filter(item => !item.adminOnly || isAdmin);
 
