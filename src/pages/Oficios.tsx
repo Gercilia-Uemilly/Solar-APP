@@ -1006,11 +1006,12 @@ export default function Oficios() {
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição da demanda</label>
                 <Textarea
-                  placeholder="Descreva a demanda do cidadão... Ex: 'Moradores da Rua Oscar Alvim, Bairro Fundinho, reclamam de buracos que causam acidentes.'"
+                  placeholder="Descreva a demanda ou cole a conversa com o solicitante... Ex: 'Moradores da Rua Oscar Alvim, Bairro Fundinho, reclamam de buracos' ou cole um trecho da conversa do WhatsApp"
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
-                  className="bg-secondary border-border min-h-[100px]"
+                  className="bg-secondary border-border min-h-[120px]"
                 />
+                <p className="text-[10px] text-muted-foreground mt-0.5">💡 Aceita descrições curtas, detalhadas ou conversas coladas do WhatsApp — a IA interpreta e gera o ofício completo.</p>
               </div>
 
               {/* Smart Suggestions */}
