@@ -1242,14 +1242,55 @@ export default function Oficios() {
                 </div>
               )}
 
-              <div className="flex gap-2">
+              {/* Duplicate alert */}
+              {mostrarAlertaDuplicata && duplicatasEncontradas.length > 0 && (
+                <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-orange-600 dark:text-orange-400 flex items-center gap-1"><AlertTriangle size={14} /> Possível ofício duplicado</span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setMostrarAlertaDuplicata(false)}><X size={14} /></Button>
+                  </div>
+                  {duplicatasEncontradas.map(d => (
+                    <div key={d.id} className="text-xs text-muted-foreground">
+                      {d.numero || "s/n"} — {d.assunto?.slice(0, 60)} ({d.status}) — {new Date(d.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2 flex-wrap">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
                 </Button>
                 <Button variant="outline" onClick={async () => { await handleCreate(false); setFormTab("preview"); }} className="border-border">
                   Salvar Rascunho
                 </Button>
+                <Button variant="outline" onClick={() => { carregarModelos(); setMostrarModelos(true); }} className="border-border">
+                  <BookOpen size={14} className="mr-1" /> Usar Modelo
+                </Button>
               </div>
+
+              {/* Modelo selector dialog */}
+              <Dialog open={mostrarModelos} onOpenChange={setMostrarModelos}>
+                <DialogContent className="bg-card border-border max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Selecionar Modelo</DialogTitle>
+                    <DialogDescription>Escolha um modelo para preencher os campos automaticamente.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                    {modelos.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum modelo salvo.</p>
+                    ) : modelos.map(m => (
+                      <button key={m.id} type="button" onClick={() => usarModelo(m)} className="w-full text-left p-3 rounded-md bg-secondary hover:bg-accent/50 transition-colors border border-border">
+                        <p className="text-sm font-medium text-foreground">{m.nome}</p>
+                        <div className="flex gap-2 mt-1">
+                          {m.secretaria && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">{m.secretaria}</span>}
+                          <span className="text-[10px] text-muted-foreground">por {m.criado_por_nome || "—"}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* TAB: PREVIEW */}
