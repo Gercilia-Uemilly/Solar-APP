@@ -500,11 +500,11 @@ export default function MeusOficios() {
     setDateTo(undefined);
   };
 
-  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "protocolados">("rascunhos");
+  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados">("rascunhos");
 
-  const protocolados = filtered.filter(o => ["Protocolado", "Feito"].includes(o.status));
-  const rascunhos = filtered.filter(o => !["Protocolado", "Feito"].includes(o.status));
-  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : protocolados;
+  const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido"].includes(o.status));
+  const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido"].includes(o.status));
+  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : finalizados;
 
   return (
     <div className="space-y-6">
@@ -526,10 +526,10 @@ export default function MeusOficios() {
           📝 Rascunhos ({rascunhos.length})
         </button>
         <button
-          onClick={() => setAbaAtiva("protocolados")}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "protocolados" ? "bg-purple-600 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+          onClick={() => setAbaAtiva("finalizados")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "finalizados" ? "bg-purple-600 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
-          📬 Protocolados ({protocolados.length})
+          📬 Finalizados ({finalizados.length})
         </button>
       </div>
 
