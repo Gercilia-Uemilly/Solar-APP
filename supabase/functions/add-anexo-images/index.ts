@@ -187,15 +187,17 @@ function escapeXml(s: string): string {
 
 function makeImageXml(rId: string, cx: number, cy: number, idx: number, W: string, WP: string, A_NS: string, PIC_NS: string): string {
   return `
+<w:p xmlns:w="${W}">
+  <w:r><w:br w:type="page"/></w:r>
+</w:p>
 <w:p xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:pPr>
     <w:jc w:val="center"/>
-    <w:spacing w:before="200" w:after="200"/>
-    <w:keepLines/>
+    <w:spacing w:before="0" w:after="0"/>
   </w:pPr>
   <w:r>
     <w:drawing>
-      <wp:inline distT="0" distB="114300" distL="0" distR="0">
+      <wp:inline distT="0" distB="0" distL="0" distR="0">
         <wp:extent cx="${cx}" cy="${cy}"/>
         <wp:effectExtent l="0" t="0" r="0" b="0"/>
         <wp:docPr id="${idx + 100}" name="Imagem${idx}"/>
