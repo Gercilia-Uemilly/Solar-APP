@@ -51,14 +51,28 @@ async function getUserAccessToken(
   // Refresh if expired (with 5 min buffer)
   if (tokenExpiry.getTime() - Date.now() < 5 * 60 * 1000) {
     console.log("Token expired, refreshing...");
-    const refreshed = await refreshGoogleToken(tokenData.refresh_token);
-    accessToken = refreshed.access_token;
-    const newExpiry = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
 
-    await supabaseAdmin
-      .from("user_drive_tokens")
-      .update({ access_token: accessToken, token_expiry: newExpiry, updated_at: new Date().toISOString() })
-      .eq("user_id", userId);
+    try {
+      const refreshed = await refreshGoogleToken(tokenData.refresh_token);
+      accessToken = refreshed.access_token;
+      const newExpiry = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+
+      await supabaseAdmin
+        .from("user_drive_tokens")
+        .update({ access_token: accessToken, token_expiry: newExpiry, updated_at: new Date().toISOString() })
+        .eq("user_id", userId);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+
+      // Token revogado/expirado permanentemente: trata como desconectado (não erro 500)
+      if (/invalid_grant|expired or revoked/i.test(message)) {
+        console.warn(`Google token inválido para user_id=${userId}. Marcando como desconectado.`);
+        await supabaseAdmin.from("user_drive_tokens").delete().eq("user_id", userId);
+        return null;
+      }
+
+      throw e;
+    }
   }
 
   return {
