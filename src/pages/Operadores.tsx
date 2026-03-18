@@ -52,7 +52,7 @@ function generateShortId(name: string | null, email: string | null): string {
 
 export default function Operadores() {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user: currentUser } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<Record<string, "admin" | "user">>({});
   const [loading, setLoading] = useState(true);
