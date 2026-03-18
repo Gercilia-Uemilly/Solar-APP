@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOficios } from "@/hooks/useOficios";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
+import { registrarAuditoria } from "@/lib/auditLog";
+import { enqueueExport } from "@/lib/exportQueue";
+import { comprimirImagem } from "@/lib/imageCompression";
 
 import { generateOperatorCode, type OficioRow } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";

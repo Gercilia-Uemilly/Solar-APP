@@ -98,4 +98,8 @@ export interface OficioRow {
   uploaded_at?: string | null;
   uploaded_by_name?: string | null;
   uploaded_by_email?: string | null;
+  prazo_resposta?: string | null;
+  status_resposta?: string | null;
+  cobrado_em?: string | null;
+  cobrado_por?: string | null;
 }
