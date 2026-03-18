@@ -760,7 +760,11 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     saveAs(pdfBlob, `${fileName}.pdf`);
   } catch (e: any) {
     console.error("PDF conversion failed:", e);
-    throw new Error("Não foi possível gerar o PDF agora. Tente novamente em instantes.");
+    const message = e?.message || "Não foi possível gerar o PDF agora. Tente novamente em instantes.";
+    if (message.includes("Todos os serviços de conversão falharam")) {
+      throw new Error("Falha na conversão de PDF: serviços externos sem créditos/instáveis no momento. O Word continua disponível.");
+    }
+    throw new Error(message);
   }
 }
 
