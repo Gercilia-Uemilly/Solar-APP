@@ -129,11 +129,23 @@ export default function MeusOficios() {
     setEditorKey(prev => prev + 1);
     setShowPreview(true);
 
-    // Load anexo images
-    fetchSavedImages(o.id).then(imgs => {
-      const urls = imgs.filter(f => f.type.startsWith("image/")).map(f => URL.createObjectURL(f));
-      setPreviewAnexoUrls(urls);
-    }).catch(() => setPreviewAnexoUrls([]));
+    // Load anexos (imagens + documentos)
+    fetchSavedImages(o.id)
+      .then((files) => {
+        const urls = files
+          .filter((f) => f.type.startsWith("image/"))
+          .map((f) => URL.createObjectURL(f));
+        const docs = files
+          .filter((f) => !f.type.startsWith("image/"))
+          .map((f) => ({ nome: f.name, tipo: f.type || "application/octet-stream" }));
+
+        setPreviewAnexoUrls(urls);
+        setPreviewAnexoDocs(docs);
+      })
+      .catch(() => {
+        setPreviewAnexoUrls([]);
+        setPreviewAnexoDocs([]);
+      });
   };
 
   const saveFieldToDb = useCallback(async (fields: Record<string, any>) => {
