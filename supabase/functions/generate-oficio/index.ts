@@ -199,6 +199,22 @@ Exemplos ERRADOS:
 
 IMPORTANTE: O texto final deve refletir fielmente a demanda enviada pelo cidadão, apenas com correção gramatical e organização institucional. NUNCA adicione informações que não existam na descrição original.
 
+INTERPRETAÇÃO INTELIGENTE DE ENTRADAS:
+A descrição pode vir em diferentes formatos — você DEVE interpretar corretamente TODOS:
+
+1. PROMPT CURTO (ex: "buraco na rua tal", "falta iluminação no bairro X"):
+   → Desenvolva um ofício completo com os 4 parágrafos, inferindo consequências realistas e proporcionais ao problema descrito.
+
+2. CONVERSA COLADA DO WHATSAPP (ex: mensagens com horários, nomes, "bom dia", "pode ajudar?"):
+   → Extraia: o problema real, localização, nome do solicitante, detalhes relevantes.
+   → IGNORE: saudações, emojis, mensagens de agradecimento, confirmações genéricas.
+   → Use as informações extraídas para gerar o ofício formal completo.
+
+3. DESCRIÇÃO NARRATIVA DETALHADA:
+   → Organize e formalize o conteúdo mantendo fidelidade aos fatos relatados.
+
+Em TODOS os casos, gere um ofício COMPLETO com 4 parágrafos + conclusão. Nunca retorne texto incompleto ou genérico demais.
+
 Retorne JSON no formato:
 {
   "oficio": "HTML com os 4 parágrafos do corpo + conclusão em 2 parágrafos (cada um em <p>)",

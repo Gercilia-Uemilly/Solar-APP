@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, Mic, ImagePlus, X, FileAudio, Image, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Video, FileUp, Undo2, Redo2, Save } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -1006,11 +1006,12 @@ export default function Oficios() {
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição da demanda</label>
                 <Textarea
-                  placeholder="Descreva a demanda do cidadão... Ex: 'Moradores da Rua Oscar Alvim, Bairro Fundinho, reclamam de buracos que causam acidentes.'"
+                  placeholder="Descreva a demanda ou cole a conversa com o solicitante... Ex: 'Moradores da Rua Oscar Alvim, Bairro Fundinho, reclamam de buracos' ou cole um trecho da conversa do WhatsApp"
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
-                  className="bg-secondary border-border min-h-[100px]"
+                  className="bg-secondary border-border min-h-[120px]"
                 />
+                <p className="text-[10px] text-muted-foreground mt-0.5">💡 Aceita descrições curtas, detalhadas ou conversas coladas do WhatsApp — a IA interpreta e gera o ofício completo.</p>
               </div>
 
               {/* Smart Suggestions */}
@@ -1065,112 +1066,6 @@ export default function Oficios() {
                 </div>
               )}
 
-              {/* Multi-file media upload zone */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
-                  <FileUp size={12} /> Anexar Mídias (imagens, áudios, vídeos)
-                </label>
-                <input ref={mediaInputRef} type="file" accept="image/*,audio/*,video/*" multiple className="hidden" onChange={e => e.target.files && handleMultiFileUpload(e.target.files)} />
-                <div
-                  onClick={() => mediaInputRef.current?.click()}
-                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                  onDrop={e => { e.preventDefault(); e.stopPropagation(); handleMultiFileUpload(e.dataTransfer.files); }}
-                  className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                >
-                  <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                    <ImagePlus size={18} />
-                    <Mic size={18} />
-                    <Video size={18} />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">Arraste ou clique para adicionar fotos, áudios ou vídeos</p>
-                  <p className="text-[10px] text-muted-foreground/60 mt-1">Múltiplos arquivos simultâneos · A IA extrai e combina as informações</p>
-                </div>
-              </div>
-
-              {/* Processing queue */}
-              {processingQueue.length > 0 && (
-                <div className="space-y-2">
-                  {/* Overall progress bar */}
-                  {isProcessingFiles && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Processando arquivos...</span>
-                        <span className="font-medium text-primary">
-                          {Math.round((processingQueue.filter(p => p.status === "done" || p.status === "error").length / processingQueue.length) * 100)}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-                          style={{ width: `${(processingQueue.filter(p => p.status === "done" || p.status === "error").length / processingQueue.length) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {processingQueue.map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-secondary text-sm">
-                      {item.type === "image" ? <Image size={14} /> : item.type === "video" ? <Video size={14} /> : <FileAudio size={14} />}
-                      <span className="flex-1 truncate text-xs text-foreground">{item.file.name}</span>
-                      {item.status === "pending" && <span className="text-[10px] text-muted-foreground">Aguardando...</span>}
-                      {item.status === "processing" && <Loader2 size={14} className="animate-spin text-primary" />}
-                      {item.status === "done" && <CheckCircle2 size={14} className="text-primary" />}
-                      {item.status === "error" && <AlertTriangle size={14} className="text-destructive" />}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Processed results preview */}
-              {processedResults.length > 0 && !isProcessingFiles && (
-                <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-foreground flex items-center gap-1">
-                      <CheckCircle2 size={12} className="text-primary" />
-                      {processedResults.length} arquivo(s) processado(s)
-                    </span>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setProcessedResults([]); setProcessingQueue([]); }}>
-                      <X size={14} />
-                    </Button>
-                  </div>
-                  {processedResults.map((r, i) => (
-                    <div key={i} className="bg-background/50 p-2 rounded border border-border">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-medium text-muted-foreground">
-                          {r.type === "image" ? "📷" : r.type === "video" ? "🎬" : "🎤"} {r.fileName}
-                        </span>
-                        {r.storageUrl && (
-                          <div className="flex items-center gap-1">
-                            <a
-                              href={r.storageUrl}
-                              download={r.fileName}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                            >
-                              <Download size={10} /> Baixar
-                            </a>
-                            <button
-                              onClick={() => {
-                                const waText = encodeURIComponent(r.storageUrl!);
-                                window.open(`https://wa.me/?text=${waText}`, "_blank");
-                              }}
-                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors"
-                            >
-                              <MessageSquare size={10} /> WhatsApp
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div className="max-h-[80px] overflow-y-auto text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
-                        {r.text.slice(0, 300)}{r.text.length > 300 ? "…" : ""}
-                      </div>
-                    </div>
-                  ))}
-                  <Button size="sm" onClick={confirmAllProcessedTexts} className="w-full bg-primary text-primary-foreground">
-                    <CheckCircle2 size={14} className="mr-1" /> Inserir tudo na descrição
-                  </Button>
-                </div>
-              )}
 
               {/* Linha Telefônica */}
               {userPhones.length > 0 && (
