@@ -32,8 +32,12 @@ function ensurePdfBytes(bytes: Uint8Array, provider: string): Uint8Array {
   return bytes;
 }
 
-// Converte um .docx para PDF usando a API do CloudConvert
-// Alternativa gratuita: usar a API do LibreOffice Online (Collabora) ou CloudConvert
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+// Converte um .docx para PDF usando provedores em cascata
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -78,13 +82,19 @@ serve(async (req) => {
       "Content-Disposition": `attachment; filename="${filename.replace(".docx", ".pdf")}"`,
     };
 
+    const configuredProviders: string[] = [];
+    const providerErrors: string[] = [];
+
     // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
     const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
     if (CONVERTAPI_SECRET) {
+      configuredProviders.push("ConvertAPI");
       try {
         const pdfBytes = await convertWithConvertApi(docxBytes, filename, CONVERTAPI_SECRET);
         return new Response(pdfBytes, { headers: pdfHeaders });
       } catch (e) {
+        const msg = getErrorMessage(e);
+        providerErrors.push(`ConvertAPI: ${msg}`);
         console.error("ConvertAPI failed, trying next provider:", e);
       }
     }
@@ -92,10 +102,13 @@ serve(async (req) => {
     // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
     const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
     if (CLOUDCONVERT_API_KEY) {
+      configuredProviders.push("CloudConvert");
       try {
         const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
         return new Response(pdfBytes, { headers: pdfHeaders });
       } catch (e) {
+        const msg = getErrorMessage(e);
+        providerErrors.push(`CloudConvert: ${msg}`);
         console.error("CloudConvert failed, trying next provider:", e);
       }
     }
@@ -103,12 +116,15 @@ serve(async (req) => {
     // ── Tentativa 3: Api2PDF (LibreOffice) ───────────────────────────────────
     const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
     if (API2PDF_KEY) {
+      configuredProviders.push("Api2PDF");
       let tempUpload: { bucket: string; path: string; publicUrl: string } | null = null;
       try {
         tempUpload = await uploadTempDocxAndGetPublicUrl(docxBytes, filename);
         const pdfBytes = await convertWithApi2Pdf(tempUpload.publicUrl, filename, API2PDF_KEY);
         return new Response(pdfBytes, { headers: pdfHeaders });
       } catch (e) {
+        const msg = getErrorMessage(e);
+        providerErrors.push(`Api2PDF: ${msg}`);
         console.error("Api2PDF failed, trying next provider:", e);
       } finally {
         if (tempUpload) {
@@ -120,14 +136,34 @@ serve(async (req) => {
     // ── Tentativa 4: Gotenberg (self-hosted, se disponível) ──────────────────
     const GOTENBERG_URL = Deno.env.get("GOTENBERG_URL");
     if (GOTENBERG_URL) {
-      const pdfBytes = await convertWithGotenberg(docxBytes, filename, GOTENBERG_URL);
-      return new Response(pdfBytes, { headers: pdfHeaders });
+      configuredProviders.push("Gotenberg");
+      try {
+        const pdfBytes = await convertWithGotenberg(docxBytes, filename, GOTENBERG_URL);
+        return new Response(pdfBytes, { headers: pdfHeaders });
+      } catch (e) {
+        const msg = getErrorMessage(e);
+        providerErrors.push(`Gotenberg: ${msg}`);
+        console.error("Gotenberg failed, trying next provider:", e);
+      }
     }
 
-    // ── Fallback: retorna erro informativo ───────────────────────────────────
+    // ── Fallback: serviços configurados, mas todos falharam ──────────────────
+    if (configuredProviders.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: "Todos os serviços de conversão falharam (créditos esgotados, indisponibilidade ou timeout).",
+          fallback: true,
+          configuredProviders,
+          details: providerErrors,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Fallback: nenhum provedor configurado ────────────────────────────────
     return new Response(
       JSON.stringify({
-        error: "Nenhum serviço de conversão configurado. Configure CLOUDCONVERT_API_KEY ou GOTENBERG_URL nas variáveis de ambiente do Supabase.",
+        error: "Nenhum serviço de conversão configurado. Configure ao menos um: CONVERTAPI_SECRET, CLOUDCONVERT_API_KEY, API2PDF_API_KEY ou GOTENBERG_URL.",
         fallback: true,
       }),
       { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
