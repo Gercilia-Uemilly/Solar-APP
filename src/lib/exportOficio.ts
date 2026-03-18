@@ -707,6 +707,7 @@ function normalizeAttachmentMime(fileName: string, ...candidates: Array<string |
 
 // ── Enviar docx + anexos para edge function add-anexo-images ───────────────
 async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
+  console.log(`[addAnexoImages] Processando ${imagens.length} anexo(s)`);
   const formData = new FormData();
   formData.append("docx", docxBlob, "oficio.docx");
 
@@ -714,11 +715,15 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
 
   for (const anexo of imagens) {
     const mimeType = normalizeAttachmentMime(anexo.name, anexo.type);
+    console.log(`[addAnexoImages] Anexo: ${anexo.name}, tipo: ${mimeType}, tamanho: ${anexo.size}`);
 
     if (mimeType === "application/pdf") {
       try {
         const pdfBaseName = (anexo.name || "anexo-pdf").replace(/\.pdf$/i, "");
+        console.log(`[addAnexoImages] Convertendo PDF "${anexo.name}" em imagens...`);
+        const t0 = performance.now();
         const pdfPages = await pdfToImageFiles(anexo, pdfBaseName || "anexo-pdf");
+        console.log(`[addAnexoImages] PDF convertido em ${pdfPages.length} página(s) em ${Math.round(performance.now() - t0)}ms`);
 
         if (pdfPages.length > 0) {
           for (const pageFile of pdfPages) {
