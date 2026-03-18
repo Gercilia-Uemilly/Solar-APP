@@ -95,6 +95,7 @@ export default function Oficios() {
   const [showDialog, setShowDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [viewingOficio, setViewingOficio] = useState<OficioRow | null>(null);
+  const [viewingAnexoUrls, setViewingAnexoUrls] = useState<string[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Form state
