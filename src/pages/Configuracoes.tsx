@@ -5,6 +5,41 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Settings, Save, Phone, CheckCircle2, XCircle, Loader2, Link2, Shield } from "lucide-react";
+
+function AuditLogSection() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  useEffect(() => {
+    (supabase.from("audit_log") as any)
+      .select("*")
+      .order("criado_em", { ascending: false })
+      .limit(50)
+      .then(({ data }: any) => { setLogs(data || []); setLoadingLogs(false); });
+  }, []);
+
+  return (
+    <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+      <h3 className="text-sm font-medium text-foreground flex items-center gap-2"><Shield size={16} /> Log de Auditoria</h3>
+      {loadingLogs ? (
+        <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin" /></div>
+      ) : logs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum registro.</p>
+      ) : (
+        <div className="max-h-64 overflow-y-auto space-y-1">
+          {logs.map((l: any) => (
+            <div key={l.id} className="flex items-center gap-2 text-xs py-1.5 border-b border-border last:border-0">
+              <span className="text-muted-foreground w-28 shrink-0">{new Date(l.criado_em).toLocaleString("pt-BR")}</span>
+              <span className="font-medium text-foreground w-24 shrink-0">{l.user_nome}</span>
+              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary">{l.acao}</span>
+              <span className="text-muted-foreground truncate">{l.detalhes?.numero || l.detalhes?.formato || ""}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 import { Settings, Save, Phone, CheckCircle2, XCircle, Loader2, Link2 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserAvatar from "@/components/UserAvatar";
