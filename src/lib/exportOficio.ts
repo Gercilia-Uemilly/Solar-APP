@@ -857,7 +857,7 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     if (data.imagens && data.imagens.length > 0) {
       const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
       const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
-      const mergedBlob = new Blob([mergedBytes], { type: "application/pdf" });
+      const mergedBlob = new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
       saveAs(mergedBlob, `${fileName}.pdf`);
     } else {
       saveAs(pdfBlob, `${fileName}.pdf`);
