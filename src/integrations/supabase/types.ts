@@ -137,6 +137,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mensagens: {
+        Row: {
+          conteudo: string
+          created_at: string | null
+          de_user_id: string
+          id: string
+          lida: boolean | null
+          para_user_id: string | null
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string | null
+          de_user_id: string
+          id?: string
+          lida?: boolean | null
+          para_user_id?: string | null
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string | null
+          de_user_id?: string
+          id?: string
+          lida?: boolean | null
+          para_user_id?: string | null
+        }
+        Relationships: []
+      }
       oficio_anexos: {
         Row: {
           created_at: string
@@ -334,11 +361,14 @@ export type Database = {
       profiles: {
         Row: {
           active: boolean
+          aprovado_em: string | null
+          aprovado_por: string | null
           avatar_url: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          status: string | null
           telefone1: string | null
           telefone2: string | null
           telefone3: string | null
@@ -346,11 +376,14 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
+          status?: string | null
           telefone1?: string | null
           telefone2?: string | null
           telefone3?: string | null
@@ -358,11 +391,14 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          status?: string | null
           telefone1?: string | null
           telefone2?: string | null
           telefone3?: string | null
@@ -715,6 +751,7 @@ export type Database = {
       get_email_by_username: { Args: { _username: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_active: { Args: { _user_id: string }; Returns: boolean }
+      is_user_approved: { Args: { _user_id: string }; Returns: boolean }
       liberar_numero: {
         Args: { p_ano: number; p_numero: number; p_user_id: string }
         Returns: boolean

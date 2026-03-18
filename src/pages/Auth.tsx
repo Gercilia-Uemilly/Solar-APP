@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import logoSolar from "@/assets/logo-solar.png";
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -30,15 +32,20 @@ export default function Auth() {
     setLoading(true);
     try {
       let email = loginIdentifier;
-      // Check if it's not an email (username)
       if (!loginIdentifier.includes("@")) {
         const { data, error } = await supabase.rpc("get_email_by_username", { _username: loginIdentifier });
-        if (error || !data) {
-          throw new Error("Usuário não encontrado");
-        }
+        if (error || !data) throw new Error("Usuário não encontrado");
         email = data;
       }
-      await signIn(email, loginPassword);
+      const { status } = await signIn(email, loginPassword);
+      if (status === "pendente") {
+        navigate("/aguardando-aprovacao");
+        return;
+      }
+      if (status === "bloqueado") {
+        toast({ title: "Acesso bloqueado", description: "Entre em contato com o administrador.", variant: "destructive" });
+        return;
+      }
     } catch (err: any) {
       toast({ title: "Erro ao entrar", description: err.message, variant: "destructive" });
     } finally {
@@ -51,7 +58,7 @@ export default function Auth() {
     setLoading(true);
     try {
       await signUp(regEmail, regPassword, regName);
-      toast({ title: "Cadastro realizado!", description: "Verifique seu e-mail para confirmar a conta." });
+      toast({ title: "Cadastro realizado!", description: "Seu acesso será liberado após aprovação do administrador." });
     } catch (err: any) {
       toast({ title: "Erro ao cadastrar", description: err.message, variant: "destructive" });
     } finally {

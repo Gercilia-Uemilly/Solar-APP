@@ -9,12 +9,10 @@ import { useGlobalSync } from "@/hooks/useGlobalSync";
 import { ReactNode, lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 
-// Lazy load all pages
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AppLayout = lazy(() => import("./components/AppLayout"));
 const Oficios = lazy(() => import("./pages/Oficios"));
-
 const MeusOficios = lazy(() => import("./pages/MeusOficios"));
 const Operadores = lazy(() => import("./pages/Operadores"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
@@ -30,12 +28,14 @@ const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const Lixeira = lazy(() => import("./pages/Lixeira"));
 const WhatsAppConectar = lazy(() => import("./pages/WhatsAppConectar"));
 const WhatsAppMensagens = lazy(() => import("./pages/WhatsAppMensagens"));
+const ChatInterno = lazy(() => import("./pages/ChatInterno"));
+const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 min
-      gcTime: 1000 * 60 * 30, // 30 min
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
       refetchOnWindowFocus: false,
       retry: 1,
     },
@@ -49,24 +49,35 @@ const PageLoader = () => (
 );
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, profileStatus } = useAuth();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
+  if (profileStatus && profileStatus !== "aprovado") return <Navigate to="/aguardando-aprovacao" replace />;
   return <>{children}</>;
 }
 
 function AdminRoute({ children }: { children: ReactNode }) {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, profileStatus } = useAuth();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
+  if (profileStatus && profileStatus !== "aprovado") return <Navigate to="/aguardando-aprovacao" replace />;
   if (!isAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, profileStatus } = useAuth();
   if (loading) return <PageLoader />;
-  if (user) return <Navigate to="/" replace />;
+  if (user && profileStatus === "aprovado") return <Navigate to="/" replace />;
+  if (user && profileStatus && profileStatus !== "aprovado") return <Navigate to="/aguardando-aprovacao" replace />;
+  return <>{children}</>;
+}
+
+function WaitingRoute({ children }: { children: ReactNode }) {
+  const { user, loading, profileStatus } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (profileStatus === "aprovado") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -77,6 +88,7 @@ const AppRoutes = () => {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+        <Route path="/aguardando-aprovacao" element={<WaitingRoute><AguardandoAprovacao /></WaitingRoute>} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/google/callback" element={<GoogleDriveCallback />} />
         <Route path="/privacidade" element={<PoliticaPrivacidade />} />
@@ -84,7 +96,7 @@ const AppRoutes = () => {
         <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
         <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
         <Route path="/respostas" element={<ProtectedRoute><AppLayout><Respostas /></AppLayout></ProtectedRoute>} />
-        
+        <Route path="/chat" element={<ProtectedRoute><AppLayout><ChatInterno /></AppLayout></ProtectedRoute>} />
         <Route path="/operadores" element={<AdminRoute><AppLayout><Operadores /></AppLayout></AdminRoute>} />
         <Route path="/relatorios" element={<AdminRoute><AppLayout><Relatorios /></AppLayout></AdminRoute>} />
         <Route path="/banco-informacoes" element={<ProtectedRoute><AppLayout><BancoInformacoes /></AppLayout></ProtectedRoute>} />
