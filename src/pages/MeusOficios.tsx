@@ -500,11 +500,11 @@ export default function MeusOficios() {
     setDateTo(undefined);
   };
 
-  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "protocolados">("rascunhos");
+  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados">("rascunhos");
 
-  const protocolados = filtered.filter(o => ["Protocolado", "Feito"].includes(o.status));
-  const rascunhos = filtered.filter(o => !["Protocolado", "Feito"].includes(o.status));
-  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : protocolados;
+  const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido"].includes(o.status));
+  const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido"].includes(o.status));
+  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : finalizados;
 
   return (
     <div className="space-y-6">
