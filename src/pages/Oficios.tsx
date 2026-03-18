@@ -1193,7 +1193,7 @@ export default function Oficios() {
                   secretaria={secretaria || aiResult?.secretaria_identificada || undefined}
                   dataGeracao={dataGeracao}
                   editable
-                  onContentChange={setEditedOficio}
+                  onContentChange={handleOficioChange}
                   onAssuntoChange={(val) => {
                     setAssunto(val);
                     setAssuntoEditedInPreview(true);

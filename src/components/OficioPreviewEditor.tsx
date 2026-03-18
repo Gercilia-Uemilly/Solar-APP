@@ -38,9 +38,15 @@ export default function OficioPreviewEditor({
 }: OficioPreviewEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const isInternalChange = useRef(false);
 
   useEffect(() => {
     if (!editorRef.current) return;
+    // Skip overwrite if the change originated from user input inside the editor
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
     if (editorRef.current.innerHTML !== content) {
       editorRef.current.innerHTML = content || "";
     }
@@ -49,10 +55,12 @@ export default function OficioPreviewEditor({
   const exec = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
+    isInternalChange.current = true;
     onChange(editorRef.current?.innerHTML || "");
   }, [onChange]);
 
   const handleInput = useCallback(() => {
+    isInternalChange.current = true;
     onChange(editorRef.current?.innerHTML || "");
   }, [onChange]);
 
