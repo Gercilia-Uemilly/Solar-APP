@@ -3,6 +3,7 @@ import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
 import { pdfToImageFiles } from "@/lib/pdfToImages";
+import { mergePdfWithAnexos } from "@/lib/mergePdfAnexos";
 
 
 // ── Assets ──────────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ export interface OficioData {
   secretaria?: string;
   codigoZ?: string;
   contatoSolicitante?: string;
+  descricaoAnexos?: string;
   formatOptions?: {
     fontSize?: number;
     lineSpacing?: number;
@@ -607,7 +609,19 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Body paragraphs
         ...bodyParagraphs,
 
-
+        // Parágrafo de descrição dos anexos (antes do Atenciosamente)
+        ...(data.descricaoAnexos && data.imagens && data.imagens.length > 0 ? [
+          new Paragraph({
+            indent: { firstLine: 709 },
+            alignment: AlignmentType.JUSTIFIED,
+            children: [new TextRun({
+              text: `Destaca-se que seguem anexos a este ofício ${data.descricaoAnexos}.`,
+              font: defaultFontName,
+              size: defaultFontSize,
+            })],
+            spacing: { before: 0, after: 0, line: lineSpacing },
+          }),
+        ] : []),
 
         // Atenciosamente — before: 240, after: 480, indent 1.25cm
         new Paragraph({
@@ -833,14 +847,21 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 export async function exportToPDF(data: OficioData): Promise<void> {
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
 
-  let wordBlob = await buildWordBlob(data);
-  if (data.imagens && data.imagens.length > 0) {
-    wordBlob = await addAnexoImages(wordBlob, data.imagens);
-  }
+  // Build Word without anexos embedded (we'll merge PDFs separately)
+  const wordBlob = await buildWordBlob(data);
 
   try {
     const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
-    saveAs(pdfBlob, `${fileName}.pdf`);
+
+    // Merge anexos into the PDF using pdf-lib
+    if (data.imagens && data.imagens.length > 0) {
+      const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
+      const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+      const mergedBlob = new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+      saveAs(mergedBlob, `${fileName}.pdf`);
+    } else {
+      saveAs(pdfBlob, `${fileName}.pdf`);
+    }
   } catch (e: any) {
     console.error("PDF conversion failed:", e);
     const message = e?.message || "Não foi possível gerar o PDF agora. Tente novamente em instantes.";
@@ -882,11 +903,33 @@ async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob>
   return blob;
 }
 
+// ── Build merged PDF blob (for Drive upload) ───────────────────────────────
+export async function buildMergedPdfBlob(data: OficioData): Promise<Blob> {
+  const wordBlob = await buildWordBlob(data);
+  const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
+
+  if (data.imagens && data.imagens.length > 0) {
+    const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
+    const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+    return new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+  }
+
+  return pdfBlob;
+}
+
 // ── Print via Word→PDF conversion ───────────────────────────────────────────
 export async function printOficioViaPdf(data: OficioData): Promise<void> {
-  let wordBlob = await buildWordBlob(data);
+  const wordBlob = await buildWordBlob(data);
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
-  const pdfUrl = URL.createObjectURL(pdfBlob);
+
+  let finalBlob = pdfBlob;
+  if (data.imagens && data.imagens.length > 0) {
+    const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
+    const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+    finalBlob = new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+  }
+
+  const pdfUrl = URL.createObjectURL(finalBlob);
   const printWindow = window.open(pdfUrl, "_blank");
   if (printWindow) {
     printWindow.addEventListener("afterprint", () => URL.revokeObjectURL(pdfUrl));

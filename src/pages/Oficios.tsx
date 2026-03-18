@@ -138,6 +138,7 @@ export default function Oficios() {
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const [anexos, setAnexos] = useState<AnexoFile[]>([]);
+  const [descricaoAnexos, setDescricaoAnexos] = useState("");
 
   // Version history for undo/redo
   const [oficioHistory, setOficioHistory] = useState<string[]>([]);
@@ -684,6 +685,7 @@ export default function Oficios() {
     setProcessingQueue([]);
     setValidationErrors({});
     setAnexos([]);
+    setDescricaoAnexos("");
     setSuggestions([]);
     setKbSuggestions([]);
     setShowSuggestions(false);
@@ -939,6 +941,7 @@ export default function Oficios() {
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
     formatOptions,
+    descricaoAnexos: descricaoAnexos || undefined,
     imagens: await getImageFilesFromAnexos(),
   });
 
@@ -1177,6 +1180,21 @@ export default function Oficios() {
               </div>
 
               <FileDropzone anexos={anexos} onChange={setAnexos} />
+
+              {anexos.length > 0 && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Descrição dos anexos</label>
+                  <Input
+                    value={descricaoAnexos}
+                    onChange={(e) => setDescricaoAnexos(e.target.value)}
+                    placeholder="Ex: cópias de BOs e abaixo-assinado dos moradores"
+                    className="bg-secondary border-border"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ℹ️ Estes arquivos serão incluídos automaticamente no PDF e Drive ao exportar.
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
