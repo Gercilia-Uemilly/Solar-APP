@@ -609,7 +609,19 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Body paragraphs
         ...bodyParagraphs,
 
-
+        // Parágrafo de descrição dos anexos (antes do Atenciosamente)
+        ...(data.descricaoAnexos && data.imagens && data.imagens.length > 0 ? [
+          new Paragraph({
+            indent: { firstLine: 709 },
+            alignment: AlignmentType.JUSTIFIED,
+            children: [new TextRun({
+              text: `Destaca-se que seguem anexos a este ofício ${data.descricaoAnexos}.`,
+              font: defaultFontName,
+              size: defaultFontSize,
+            })],
+            spacing: { before: 0, after: 0, line: lineSpacing },
+          }),
+        ] : []),
 
         // Atenciosamente — before: 240, after: 480, indent 1.25cm
         new Paragraph({
