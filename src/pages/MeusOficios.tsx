@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
 import PreviewFormatToolbar, { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
-import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildMergedPdfBlob, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
 import { type OficioRow } from "@/lib/oficioUtils";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
