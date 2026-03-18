@@ -3,6 +3,7 @@ import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
 import { pdfToImageFiles } from "@/lib/pdfToImages";
+import { mergePdfWithAnexos } from "@/lib/mergePdfAnexos";
 
 
 // ── Assets ──────────────────────────────────────────────────────────────────
