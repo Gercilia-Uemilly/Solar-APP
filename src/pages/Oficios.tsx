@@ -715,7 +715,11 @@ export default function Oficios() {
     setIsUploading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      if (!session?.access_token) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente para exportar e enviar ao Drive.", variant: "destructive" });
+        return;
+      }
+      const authToken = session.access_token;
       const imgs = await fetchSavedImages(oficio.id);
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
