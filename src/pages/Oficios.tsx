@@ -444,28 +444,7 @@ export default function Oficios() {
     // If we have content, go straight to preview; otherwise datos
     setFormTab(content ? "preview" : "dados");
     setShowDialog(true);
-
-    // Load saved attachments from storage
-    const { data: savedAnexos } = await supabase.from("oficio_anexos" as any).select("*").eq("oficio_id", o.id);
-    if (savedAnexos && savedAnexos.length > 0) {
-      const loadedAnexos: AnexoFile[] = (savedAnexos as any[]).map((a: any) => {
-        const { data } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
-        const fileName = a.file_name || "anexo";
-        const normalizedType = normalizeAttachmentMime(fileName, a.mime_type || "");
-        return {
-          id: a.id,
-          nome: fileName,
-          tipo: normalizedType,
-          tamanho: 0,
-          url: data.publicUrl,
-        };
-      });
-      setAnexos(loadedAnexos);
-      // Also set image URLs for preview compatibility
-      const urls = loadedAnexos.filter(a => a.tipo.startsWith("image/")).map(a => a.url!);
-    } else {
-      setAnexos([]);
-    }
+    // Anexos are loaded automatically by useAnexos when editingOficioId changes
   };
 
   // Validation state
