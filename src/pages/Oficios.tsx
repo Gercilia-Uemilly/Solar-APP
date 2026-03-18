@@ -719,7 +719,7 @@ export default function Oficios() {
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
-        imagens: imgs.length > 0 ? imgs : getImageFilesFromAnexos(),
+        imagens: imgs.length > 0 ? imgs : (await getImageFilesFromAnexos()),
       });
       // Build file name: [numero]-[ano] [solicitante_code]
       const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
