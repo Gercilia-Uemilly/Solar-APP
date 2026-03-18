@@ -102,7 +102,18 @@ export default function Dashboard() {
     const porStatus = Object.entries(statusMap)
       .map(([name, value]) => ({ name, value }));
 
-    return { total, totalMes, rascunhos, gerados, enviados, porOperador, porBairro, porStatus, rankingBairros };
+    // Prazo alerts
+    const hoje = new Date();
+    const em3dias = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    const vencidos = oficios.filter(o => (o as any).prazo_resposta && (o as any).status_resposta === "vencido").length;
+    const prestes = oficios.filter(o => {
+      const prazo = (o as any).prazo_resposta;
+      if (!prazo || (o as any).status_resposta !== "aguardando") return false;
+      const d = new Date(prazo);
+      return d >= hoje && d <= em3dias;
+    }).length;
+
+    return { total, totalMes, rascunhos, gerados, enviados, porOperador, porBairro, porStatus, rankingBairros, vencidos, prestes };
   }, [oficios]);
 
   const statCards = [

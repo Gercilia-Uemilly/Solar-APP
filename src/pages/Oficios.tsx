@@ -1302,6 +1302,9 @@ export default function Oficios() {
                 <Button size="sm" variant="default" onClick={() => handleCreate(true)}>
                   <Save size={14} className="mr-1" /> Salvar e Fechar
                 </Button>
+                <Button size="sm" variant="outline" onClick={salvarComoModelo} title="Salvar como modelo reutilizável">
+                  <BookOpen size={14} className="mr-1" /> Salvar Modelo
+                </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!destinatario && !cargoDestinatario || !editedOficio) {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário e gere o texto do ofício antes de exportar.", variant: "destructive" });
