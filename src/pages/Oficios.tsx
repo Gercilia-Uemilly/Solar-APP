@@ -1143,9 +1143,8 @@ export default function Oficios() {
 
               <FileDropzone
                 anexos={anexos}
-                onChange={editingOficioId ? undefined : setAnexos}
-                onAddFile={editingOficioId ? persistAddFile : undefined}
-                onRemoveFile={editingOficioId ? persistRemoveFile : undefined}
+                onAddFile={editingOficioId ? persistAddFile : (file) => addLocalFile(file)}
+                onRemoveFile={editingOficioId ? persistRemoveFile : (id) => setAnexos(prev => prev.filter(a => a.id !== id))}
               />
 
               {anexos.length > 0 && (
