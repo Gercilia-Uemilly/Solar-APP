@@ -7,13 +7,15 @@ import {
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoSolar from "@/assets/logo-solar.png";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
   { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
   { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
   { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
-  
+  { label: "Chat", icon: MessageSquare, path: "/chat", adminOnly: false },
   { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
   { label: "WhatsApp", icon: Smartphone, path: "/whatsapp", adminOnly: false },
   { label: "Mensagens WA", icon: MessagesSquare, path: "/whatsapp-mensagens", adminOnly: false },
