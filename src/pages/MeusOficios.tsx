@@ -135,6 +135,8 @@ export default function MeusOficios() {
     editedContentRef.current = o.conteudo || "";
     setOriginalContent(o.conteudo || "");
     setEditorKey(prev => prev + 1);
+    setPreviewAnexoUrls([]);
+    setPreviewAnexoDocs([]);
     setShowPreview(true);
 
     // Load anexos (imagens + documentos)
