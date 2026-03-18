@@ -448,10 +448,12 @@ export default function Oficios() {
     if (savedAnexos && savedAnexos.length > 0) {
       const loadedAnexos: AnexoFile[] = (savedAnexos as any[]).map((a: any) => {
         const { data } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
+        const fileName = a.file_name || "anexo";
+        const normalizedType = normalizeAttachmentMime(fileName, a.mime_type || "");
         return {
           id: a.id,
-          nome: a.file_name,
-          tipo: a.mime_type || "image/jpeg",
+          nome: fileName,
+          tipo: normalizedType,
           tamanho: 0,
           url: data.publicUrl,
         };
@@ -549,7 +551,9 @@ export default function Oficios() {
         if (!anexo.file) continue;
         const ext = anexo.nome.split('.').pop() || 'bin';
         const storagePath = `oficios/${oficioId}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, anexo.file, { contentType: anexo.tipo });
+        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, anexo.file, {
+          contentType: (anexo.tipo || "").trim() || undefined,
+        });
         if (!upErr) {
           await supabase.from("oficio_anexos" as any).insert({ oficio_id: oficioId, storage_path: storagePath, file_name: anexo.nome, mime_type: anexo.tipo });
           // Update the anexo with its URL so it's no longer "new"
@@ -803,6 +807,42 @@ export default function Oficios() {
     }
   };
 
+  function normalizeAttachmentMime(fileName: string, ...candidates: Array<string | null | undefined>): string {
+    const normalizedCandidates = candidates
+      .map((value) => (value || "").trim().toLowerCase())
+      .filter(Boolean);
+
+    const extension = (fileName.split(".").pop() || "").toLowerCase();
+
+    if (normalizedCandidates.some((value) => value.includes("pdf")) || extension === "pdf") {
+      return "application/pdf";
+    }
+
+    if (normalizedCandidates.some((value) => value.startsWith("image/"))) {
+      return normalizedCandidates.find((value) => value.startsWith("image/"))!;
+    }
+
+    if (["png", "jpg", "jpeg", "webp", "gif", "bmp"].includes(extension)) {
+      return extension === "jpg" ? "image/jpeg" : `image/${extension}`;
+    }
+
+    return normalizedCandidates[0] || "application/octet-stream";
+  }
+
+  function isExportableAttachment(anexo: AnexoFile): boolean {
+    const mime = normalizeAttachmentMime(anexo.nome, anexo.tipo, anexo.file?.type);
+    return mime.startsWith("image/") || mime === "application/pdf";
+  }
+
+  function mergeAttachmentFiles(base: File[], incoming: File[]): File[] {
+    const merged = new Map<string, File>();
+    [...base, ...incoming].forEach((file) => {
+      const key = `${file.name}|${file.size}|${file.lastModified}`;
+      if (!merged.has(key)) merged.set(key, file);
+    });
+    return Array.from(merged.values());
+  }
+
   const buildExportData = (o: OficioRow) => ({
     numero: o.numero || "",
     destinatario: o.destinatario,
@@ -826,9 +866,31 @@ export default function Oficios() {
   // Helper to get image/PDF File objects from unified anexos
   const getImageFilesFromAnexos = async (): Promise<File[] | undefined> => {
     const files = anexos
-      .filter(a => (a.tipo.startsWith("image/") || a.tipo === "application/pdf") && a.file)
-      .map(a => a.file!);
+      .filter((a) => isExportableAttachment(a) && !!a.file)
+      .map((a) => {
+        const source = a.file!;
+        const normalizedType = normalizeAttachmentMime(a.nome, a.tipo, source.type);
+        if (source.type === normalizedType) return source;
+        return new File([source], source.name || a.nome, {
+          type: normalizedType,
+          lastModified: source.lastModified,
+        });
+      });
+
     return files.length > 0 ? files : undefined;
+  };
+
+  const withSavedAttachments = async (exportData: OficioData): Promise<OficioData> => {
+    if (!editingOficioId) return exportData;
+
+    const savedFiles = await fetchSavedImages(editingOficioId);
+    const currentFiles = exportData.imagens || [];
+    const mergedFiles = mergeAttachmentFiles(savedFiles, currentFiles);
+
+    return {
+      ...exportData,
+      imagens: mergedFiles.length > 0 ? mergedFiles : undefined,
+    };
   };
 
   // Derive image URLs for preview from unified anexos — stable with useMemo
@@ -1140,12 +1202,7 @@ export default function Oficios() {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  const formData = await buildFormExportData();
-                  // If no new images but we have saved URLs, fetch them as Files
-                  if (!formData.imagens && editingOficioId) {
-                    const savedImgs = await fetchSavedImages(editingOficioId);
-                    if (savedImgs.length > 0) formData.imagens = savedImgs;
-                  }
+                  const formData = await withSavedAttachments(await buildFormExportData());
                   try {
                     await exportToWord(formData);
                   } catch (e: any) {
@@ -1160,12 +1217,7 @@ export default function Oficios() {
                     setFormTab("dados");
                     return;
                   }
-                  const formData = await buildFormExportData();
-                  // If no new images but we have saved URLs, fetch them as Files
-                  if (!formData.imagens && editingOficioId) {
-                    const savedImgs = await fetchSavedImages(editingOficioId);
-                    if (savedImgs.length > 0) formData.imagens = savedImgs;
-                  }
+                  const formData = await withSavedAttachments(await buildFormExportData());
                   try {
                     await exportToPDF(formData);
                   } catch (e: any) {
