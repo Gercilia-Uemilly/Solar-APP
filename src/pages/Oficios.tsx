@@ -587,7 +587,8 @@ export default function Oficios() {
             await persistAddFile(item.file);
           } else {
             addLocalFile(item.file);
-}
+          }
+        }
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
         toast({ title: `Erro ao processar ${item.file.name}`, description: err.message || "Tente novamente.", variant: "destructive" });
