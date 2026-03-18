@@ -787,33 +787,50 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
 // ── Fetch saved anexos from storage as File[] ───────────────────────────────
 export async function fetchSavedImages(oficioId: string): Promise<File[]> {
   try {
-    const { data: anexos } = await supabase
+    console.log(`[fetchSavedImages] Buscando anexos para ofício ${oficioId}`);
+    const { data: anexos, error: dbError } = await supabase
       .from("oficio_anexos" as any)
       .select("*")
       .eq("oficio_id", oficioId)
       .order("created_at", { ascending: true });
 
-    if (!anexos || anexos.length === 0) return [];
+    if (dbError) {
+      console.error("[fetchSavedImages] Erro ao buscar anexos do banco:", dbError);
+      return [];
+    }
 
+    if (!anexos || anexos.length === 0) {
+      console.log("[fetchSavedImages] Nenhum anexo encontrado no banco.");
+      return [];
+    }
+
+    console.log(`[fetchSavedImages] ${anexos.length} anexo(s) encontrado(s), baixando...`);
     const files: File[] = [];
     for (const a of anexos as any[]) {
       try {
         const { data: urlData } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
+        console.log(`[fetchSavedImages] Baixando: ${a.file_name} de ${urlData.publicUrl}`);
         const resp = await fetch(urlData.publicUrl);
-        if (!resp.ok) continue;
+        if (!resp.ok) {
+          console.warn(`[fetchSavedImages] Falha ao baixar ${a.file_name}: HTTP ${resp.status}`);
+          continue;
+        }
 
         const blob = await resp.blob();
         const fileName = a.file_name || "anexo";
         const mimeType = normalizeAttachmentMime(fileName, a.mime_type, blob.type);
 
         files.push(new File([blob], fileName, { type: mimeType }));
-      } catch {
-        /* skip failed downloads */
+        console.log(`[fetchSavedImages] ✓ ${fileName} (${mimeType}, ${blob.size} bytes)`);
+      } catch (err) {
+        console.error(`[fetchSavedImages] Erro ao baixar anexo ${a.file_name}:`, err);
       }
     }
 
+    console.log(`[fetchSavedImages] ${files.length} arquivo(s) prontos para exportação.`);
     return files;
-  } catch {
+  } catch (err) {
+    console.error("[fetchSavedImages] Erro geral:", err);
     return [];
   }
 }
