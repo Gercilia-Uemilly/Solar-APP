@@ -1143,7 +1143,12 @@ export default function Oficios() {
                 </Select>
               </div>
 
-              <FileDropzone anexos={anexos} onChange={setAnexos} />
+              <FileDropzone
+                anexos={anexos}
+                onChange={editingOficioId ? undefined : setAnexos}
+                onAddFile={editingOficioId ? persistAddFile : undefined}
+                onRemoveFile={editingOficioId ? persistRemoveFile : undefined}
+              />
 
               {anexos.length > 0 && (
                 <div>
