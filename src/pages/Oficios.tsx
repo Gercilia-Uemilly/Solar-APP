@@ -138,7 +138,7 @@ export default function Oficios() {
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
-  const [anexos, setAnexos] = useState<AnexoFile[]>([]);
+  const { anexos, setAnexos, addFile: persistAddFile, removeFile: persistRemoveFile, addLocalFile, uploadLocalFiles, reset: resetAnexos } = useAnexos(editingOficioId);
   const [descricaoAnexos, setDescricaoAnexos] = useState("");
 
   // Version history for undo/redo
