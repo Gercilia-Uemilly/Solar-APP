@@ -890,6 +890,7 @@ export default function MeusOficios() {
                 onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
                 initialConteudo={originalContent}
                 anexoImageUrls={previewAnexoUrls}
+                anexoDocuments={previewAnexoDocs}
               />
             </div>
             </>
