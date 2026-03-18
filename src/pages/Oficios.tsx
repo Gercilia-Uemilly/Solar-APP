@@ -525,24 +525,8 @@ export default function Oficios() {
       }
     }
 
-    // Upload new anexo files to storage and persist references
-    if (oficioId) {
-      const newAnexos = anexos.filter(a => a.file); // Only new files (not already saved)
-      for (const anexo of newAnexos) {
-        if (!anexo.file) continue;
-        const ext = anexo.nome.split('.').pop() || 'bin';
-        const storagePath = `oficios/${oficioId}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, anexo.file, {
-          contentType: (anexo.tipo || "").trim() || undefined,
-        });
-        if (!upErr) {
-          await supabase.from("oficio_anexos" as any).insert({ oficio_id: oficioId, storage_path: storagePath, file_name: anexo.nome, mime_type: anexo.tipo });
-          // Update the anexo with its URL so it's no longer "new"
-          const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath);
-          anexo.url = urlData.publicUrl;
-          anexo.file = undefined; // Mark as saved
-        }
-      }
+      // Upload local-only attachments (for new ofícios)
+      await uploadLocalFiles(oficioId);
     }
 
     await fetchOficios();
