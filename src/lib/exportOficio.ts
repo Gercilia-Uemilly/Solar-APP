@@ -710,24 +710,43 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
   const formData = new FormData();
   formData.append("docx", docxBlob, "oficio.docx");
 
-  imagens.forEach((anexo, i) => {
+  let anexoIndex = 0;
+
+  for (const anexo of imagens) {
     const mimeType = normalizeAttachmentMime(anexo.name, anexo.type);
 
     if (mimeType === "application/pdf") {
-      formData.append(`pdf_${i}`, anexo, anexo.name);
-      return;
+      try {
+        const pdfBaseName = (anexo.name || "anexo-pdf").replace(/\.pdf$/i, "");
+        const pdfPages = await pdfToImageFiles(anexo, pdfBaseName || "anexo-pdf");
+
+        if (pdfPages.length > 0) {
+          for (const pageFile of pdfPages) {
+            formData.append(`imagem_${anexoIndex++}`, pageFile, pageFile.name);
+          }
+          continue;
+        }
+      } catch (error) {
+        console.warn("[addAnexoImages] Falha ao converter PDF em imagens, enviando PDF original:", {
+          nome: anexo.name,
+          erro: String(error),
+        });
+      }
+
+      formData.append(`pdf_${anexoIndex++}`, anexo, anexo.name);
+      continue;
     }
 
     if (mimeType.startsWith("image/")) {
-      formData.append(`imagem_${i}`, anexo, anexo.name);
-      return;
+      formData.append(`imagem_${anexoIndex++}`, anexo, anexo.name);
+      continue;
     }
 
     console.warn("[addAnexoImages] Tipo de anexo não suportado, ignorando:", {
       nome: anexo.name,
       tipo: anexo.type,
     });
-  });
+  }
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const token = await getAuthToken();
