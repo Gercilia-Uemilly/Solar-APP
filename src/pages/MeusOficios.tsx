@@ -448,6 +448,7 @@ export default function MeusOficios() {
       saveAs(wordBlob, `${fileName}.docx`);
 
       // 5. Upload to Drive (PDF or Word)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const driveFormData = new FormData();
       const uploadBlob = pdfBlob || wordBlob;
       const uploadName = pdfBlob ? `${fileName}.pdf` : `${fileName}.docx`;
