@@ -272,6 +272,25 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           </div>
         )}
 
+        {/* ANEXO DE DOCUMENTOS */}
+        {anexoDocuments && anexoDocuments.length > 0 && (
+          <div style={{ marginTop: "20px", pageBreakInside: "avoid" }}>
+            <p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold", lineHeight: "1.4" }}>
+              Documentos anexados
+            </p>
+            <ul style={{ margin: "8px 0 0", paddingLeft: "20px", fontSize: "10pt", lineHeight: "1.5" }}>
+              {anexoDocuments.map((doc, i) => {
+                const label = doc.tipo.includes("pdf") ? "PDF" : "Arquivo";
+                return (
+                  <li key={`${doc.nome}-${i}`}>
+                    {label}: {doc.nome}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {/* RODAPÉ */}
         <div style={{
           marginTop: "80px",
