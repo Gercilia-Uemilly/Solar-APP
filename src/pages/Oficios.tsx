@@ -1129,7 +1129,7 @@ export default function Oficios() {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  const formData = buildFormExportData();
+                  const formData = await buildFormExportData();
                   // If no new images but we have saved URLs, fetch them as Files
                   if (!formData.imagens && editingOficioId) {
                     const savedImgs = await fetchSavedImages(editingOficioId);
