@@ -320,8 +320,6 @@ export type Database = {
           author_id: string
           bairro: string | null
           cargo_destinatario: string | null
-          cobrado_em: string | null
-          cobrado_por: string | null
           codigo_z: string | null
           contato_solicitante: string | null
           conteudo: string | null
@@ -343,12 +341,10 @@ export type Database = {
           numero: string | null
           operador_nome: string | null
           origem: string | null
-          prazo_resposta: string | null
           resposta_cidadao: string | null
           secretaria_identificada: string | null
           solicitante: string | null
           status: string
-          status_resposta: string | null
           tipo_demanda: string | null
           updated_at: string
           uploaded_at: string | null
@@ -362,8 +358,6 @@ export type Database = {
           author_id: string
           bairro?: string | null
           cargo_destinatario?: string | null
-          cobrado_em?: string | null
-          cobrado_por?: string | null
           codigo_z?: string | null
           contato_solicitante?: string | null
           conteudo?: string | null
@@ -385,12 +379,10 @@ export type Database = {
           numero?: string | null
           operador_nome?: string | null
           origem?: string | null
-          prazo_resposta?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
           status?: string
-          status_resposta?: string | null
           tipo_demanda?: string | null
           updated_at?: string
           uploaded_at?: string | null
@@ -404,8 +396,6 @@ export type Database = {
           author_id?: string
           bairro?: string | null
           cargo_destinatario?: string | null
-          cobrado_em?: string | null
-          cobrado_por?: string | null
           codigo_z?: string | null
           contato_solicitante?: string | null
           conteudo?: string | null
@@ -427,12 +417,10 @@ export type Database = {
           numero?: string | null
           operador_nome?: string | null
           origem?: string | null
-          prazo_resposta?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
           status?: string
-          status_resposta?: string | null
           tipo_demanda?: string | null
           updated_at?: string
           uploaded_at?: string | null
@@ -469,6 +457,8 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           avatar_url: string | null
+          celular: string | null
+          celular_verificado: boolean | null
           created_at: string
           email: string | null
           full_name: string | null
@@ -477,6 +467,7 @@ export type Database = {
           telefone1: string | null
           telefone2: string | null
           telefone3: string | null
+          usa_2fa: boolean | null
           username: string | null
         }
         Insert: {
@@ -484,6 +475,8 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           avatar_url?: string | null
+          celular?: string | null
+          celular_verificado?: boolean | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -492,6 +485,7 @@ export type Database = {
           telefone1?: string | null
           telefone2?: string | null
           telefone3?: string | null
+          usa_2fa?: boolean | null
           username?: string | null
         }
         Update: {
@@ -499,6 +493,8 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           avatar_url?: string | null
+          celular?: string | null
+          celular_verificado?: boolean | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -507,6 +503,7 @@ export type Database = {
           telefone1?: string | null
           telefone2?: string | null
           telefone3?: string | null
+          usa_2fa?: boolean | null
           username?: string | null
         }
         Relationships: []
@@ -878,7 +875,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      verificar_prazos: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
