@@ -332,6 +332,8 @@ export default function Configuracoes() {
       </div>
 
 
+      {/* Audit Log (Admin only) */}
+      {isAdmin && <AuditLogSection />}
 
       {/* Theme */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
