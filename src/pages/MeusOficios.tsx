@@ -105,6 +105,14 @@ export default function MeusOficios() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      previewAnexoUrls.forEach((url) => {
+        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+      });
+    };
+  }, [previewAnexoUrls]);
+
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
     const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at, cargo_destinatario, destinatario, assunto, numero, bairro, data_geracao").eq("id", o.id).single();
