@@ -1179,6 +1179,21 @@ export default function Oficios() {
 
               <FileDropzone anexos={anexos} onChange={setAnexos} />
 
+              {anexos.length > 0 && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Descrição dos anexos</label>
+                  <Input
+                    value={descricaoAnexos}
+                    onChange={(e) => setDescricaoAnexos(e.target.value)}
+                    placeholder="Ex: cópias de BOs e abaixo-assinado dos moradores"
+                    className="bg-secondary border-border"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ℹ️ Estes arquivos serão incluídos automaticamente no PDF e Drive ao exportar.
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
