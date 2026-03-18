@@ -615,6 +615,7 @@ export default function Oficios() {
     }
 
     toast({ title: editingOficioId ? "✓ Ofício atualizado!" : "✓ Ofício salvo!" });
+    void registrarAuditoria(editingOficioId ? "editar" : "criar", { tabela: "oficios", id: oficioId || "", numero: fullNumero || "" });
 
     if (closeAfterSave) {
       resetForm();
