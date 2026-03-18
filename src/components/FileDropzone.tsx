@@ -18,6 +18,25 @@ interface FileDropzoneProps {
 
 const ACCEPTED = ".jpg,.jpeg,.png,.webp,.pdf,.docx,.doc,.xlsx,.xls";
 
+function inferMimeType(file: File): string {
+  const explicit = (file.type || "").trim().toLowerCase();
+  if (explicit) return explicit;
+
+  const extension = (file.name.split(".").pop() || "").toLowerCase();
+  if (["jpg", "jpeg"].includes(extension)) return "image/jpeg";
+  if (extension === "png") return "image/png";
+  if (extension === "webp") return "image/webp";
+  if (extension === "gif") return "image/gif";
+  if (extension === "bmp") return "image/bmp";
+  if (extension === "pdf") return "application/pdf";
+  if (extension === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (extension === "doc") return "application/msword";
+  if (extension === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (extension === "xls") return "application/vnd.ms-excel";
+
+  return "application/octet-stream";
+}
+
 function iconForType(tipo: string) {
   if (tipo.startsWith("image/")) return <ImageIcon size={16} className="text-blue-400" />;
   if (tipo.includes("pdf")) return <FileText size={16} className="text-orange-400" />;
