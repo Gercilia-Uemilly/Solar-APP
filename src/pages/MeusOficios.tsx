@@ -807,7 +807,14 @@ export default function MeusOficios() {
                     ↺ Restaurar original
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={() => { if (viewOficio) exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  if (!viewOficio) return;
+                  try {
+                    await exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent });
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
+                }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
