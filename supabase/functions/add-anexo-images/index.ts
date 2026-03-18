@@ -126,9 +126,9 @@ async function addAnexoToDocx(
     newRels += `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/anexo_img_${i + 1}.${ext}"/>`;
     nextRid++;
 
-    const maxCx = 2340000;
-    const cx = maxCx;
-    const cy = Math.round(maxCx * 0.75);
+    // Full content-width for page-sized attachments (A4 portrait ratio)
+    const cx = 5400000; // ~15 cm
+    const cy = Math.round(cx * 1.414); // A4 portrait ratio
 
     annexParagraphs.push(makeImageXml(rId, cx, cy, i + 1, W, WP, A_NS, PIC_NS));
   }
