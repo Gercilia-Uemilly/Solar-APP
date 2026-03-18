@@ -164,6 +164,22 @@ export default function Dashboard() {
         )}
       </motion.div>
 
+      {/* Prazo Alerts */}
+      {(stats.vencidos > 0 || stats.prestes > 0) && (
+        <div className="flex gap-3 flex-wrap">
+          {stats.vencidos > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border border-destructive/20 rounded-xl text-sm">
+              <span className="text-destructive font-medium">🔴 {stats.vencidos} ofício(s) sem resposta (vencidos)</span>
+            </div>
+          )}
+          {stats.prestes > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-sm">
+              <span className="text-yellow-600 dark:text-yellow-400 font-medium">🟡 {stats.prestes} vencem nos próximos 3 dias</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
