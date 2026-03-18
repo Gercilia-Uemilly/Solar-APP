@@ -525,7 +525,8 @@ export default function Oficios() {
       }
     }
 
-      // Upload local-only attachments (for new ofícios)
+    // Upload local-only attachments (for new ofícios)
+    if (oficioId) {
       await uploadLocalFiles(oficioId);
     }
 
