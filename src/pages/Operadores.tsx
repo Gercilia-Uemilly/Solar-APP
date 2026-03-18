@@ -23,6 +23,7 @@ interface Profile {
   telefone3: string | null;
   active: boolean;
   created_at: string;
+  status: string | null;
 }
 
 interface UserRole {
