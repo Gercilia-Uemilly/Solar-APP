@@ -305,57 +305,107 @@ export default function Operadores() {
         )}
       </div>
 
-      <div className="bg-card rounded-xl border border-border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Papel</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-            ) : profiles.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum operador encontrado.</TableCell></TableRow>
-            ) : profiles.map(p => {
-              const role = roles[p.id] || "user";
-              const shortId = generateShortId(p.full_name, p.email);
-              return (
-                <TableRow key={p.id} className={`cursor-pointer hover:bg-muted/50 ${!p.active ? "opacity-50" : ""}`} onClick={() => openView(p)}>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{shortId}</TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <UserAvatar userId={p.id} fullName={p.full_name} avatarUrl={p.avatar_url} size="sm" />
-                      {p.full_name || "—"}
+      <Tabs defaultValue={pendingProfiles.length > 0 ? "pendentes" : "aprovados"}>
+        <TabsList className="bg-secondary">
+          <TabsTrigger value="aprovados">Operadores ({approvedProfiles.length})</TabsTrigger>
+          <TabsTrigger value="pendentes" className="relative">
+            Aguardando Aprovação
+            {pendingProfiles.length > 0 && (
+              <span className="ml-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                {pendingProfiles.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pendentes">
+          {pendingProfiles.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <CheckCircle size={32} className="mx-auto mb-2 text-green-500" />
+              <p className="text-sm">Nenhum usuário aguardando aprovação.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingProfiles.map(p => (
+                <div key={p.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar userId={p.id} fullName={p.full_name} avatarUrl={p.avatar_url} size="md" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{p.full_name || "Sem nome"}</p>
+                      <p className="text-xs text-muted-foreground">{p.email}</p>
+                      <p className="text-2xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Clock size={10} /> Cadastrou {formatDate(p.created_at)}
+                      </p>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{p.email || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={role === "admin" ? "default" : "secondary"} className="text-xs">
-                      {role === "admin" ? "Admin" : "Usuário"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={p.active ? "default" : "destructive"} className="text-xs">
-                      {p.active ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <button onClick={(e) => { e.stopPropagation(); openView(p); }} className="p-2 text-muted-foreground hover:text-foreground" title="Ver perfil">
-                      <Eye size={16} />
-                    </button>
-                  </TableCell>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleApproveUser(p.id)} className="bg-green-600 hover:bg-green-700 text-white">
+                      <CheckCircle size={14} className="mr-1" /> Aprovar
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleBlockUser(p.id)}>
+                      <XCircle size={14} className="mr-1" /> Bloquear
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="aprovados">
+          <div className="bg-card rounded-xl border border-border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>E-mail</TableHead>
+                  <TableHead>Papel</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                ) : approvedProfiles.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum operador encontrado.</TableCell></TableRow>
+                ) : approvedProfiles.map(p => {
+                  const role = roles[p.id] || "user";
+                  const shortId = generateShortId(p.full_name, p.email);
+                  return (
+                    <TableRow key={p.id} className={`cursor-pointer hover:bg-muted/50 ${!p.active ? "opacity-50" : ""}`} onClick={() => openView(p)}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{shortId}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <UserAvatar userId={p.id} fullName={p.full_name} avatarUrl={p.avatar_url} size="sm" />
+                          {p.full_name || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{p.email || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={role === "admin" ? "default" : "secondary"} className="text-xs">
+                          {role === "admin" ? "Admin" : "Usuário"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={p.active ? "default" : "destructive"} className="text-xs">
+                          {p.active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button onClick={(e) => { e.stopPropagation(); openView(p); }} className="p-2 text-muted-foreground hover:text-foreground" title="Ver perfil">
+                          <Eye size={16} />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* View/Edit Profile Dialog */}
       <Dialog open={showView} onOpenChange={setShowView}>
