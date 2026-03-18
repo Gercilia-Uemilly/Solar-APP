@@ -336,31 +336,27 @@ export default function MeusOficios() {
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
-      const wordBlob = await exportToWord({
+      
+      // Build merged PDF (ofício + anexos) for Drive upload
+      const exportData = {
         ...data,
         conteudo: editedContent || oficio.conteudo,
         imagens: imgs.length > 0 ? imgs : undefined,
-      });
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-      const convertFormData = new FormData();
-      convertFormData.append("file", wordBlob, `${baseFileName}.docx`);
-      const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
-        body: convertFormData,
-      });
-
+      };
+      
       let uploadBlob: Blob;
       let uploadFileName: string;
-
-      if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
-        uploadBlob = await convertResp.blob();
+      
+      try {
+        uploadBlob = await buildMergedPdfBlob(exportData);
         uploadFileName = `${baseFileName}.pdf`;
-      } else {
-        uploadBlob = wordBlob;
+      } catch {
+        // Fallback to Word if PDF conversion fails
+        uploadBlob = await buildWordBlobForExport(exportData);
         uploadFileName = `${baseFileName}.docx`;
       }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const driveFormData = new FormData();
       driveFormData.append("file", uploadBlob, uploadFileName);
