@@ -566,6 +566,7 @@ export default function Oficios() {
       solicitante: solicitante || null,
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
+      prazo_resposta: editingOficioId ? undefined : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       last_edited_by: user.id,
       last_edited_by_name: profileName || user.user_metadata?.full_name || user.email || null,
       last_edited_at: new Date().toISOString(),
