@@ -848,7 +848,7 @@ export default function Oficios() {
     };
   }, [previewImageUrls]);
 
-  const buildFormExportData = (): OficioData => ({
+  const buildFormExportData = async (): Promise<OficioData> => ({
     numero,
     destinatario,
     assunto,
@@ -866,7 +866,7 @@ export default function Oficios() {
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
     formatOptions,
-    imagens: getImageFilesFromAnexos(),
+    imagens: await getImageFilesFromAnexos(),
   });
 
   return (
