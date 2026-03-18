@@ -1271,7 +1271,11 @@ export default function Oficios() {
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewingOficio?.conteudo) return;
                   const imgs = await fetchSavedImages(viewingOficio.id);
-                  exportToWord({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                  try {
+                    await exportToWord({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
                 }}><FileText size={14} className="mr-1" /> Word</Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewingOficio?.conteudo) return;
