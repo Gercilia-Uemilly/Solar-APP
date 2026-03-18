@@ -37,6 +37,132 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
+function toBase64Url(input: string | Uint8Array): string {
+  const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function decodeBase64(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/").trim();
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
+}
+
+type GoogleServiceAccountKey = {
+  client_email: string;
+  private_key: string;
+  token_uri?: string;
+};
+
+function parseServiceAccountKey(raw: string): GoogleServiceAccountKey {
+  const candidates = [raw.trim()];
+
+  try {
+    const decoded = new TextDecoder().decode(decodeBase64(raw.trim()));
+    candidates.push(decoded);
+  } catch {
+    // Not base64, continue with raw JSON candidate
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as GoogleServiceAccountKey;
+      if (parsed?.client_email && parsed?.private_key) {
+        return parsed;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+
+  throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY inválida: informe o JSON da chave de serviço.");
+}
+
+function pemPrivateKeyToArrayBuffer(privateKeyPem: string): ArrayBuffer {
+  const normalizedPem = privateKeyPem.replace(/\\n/g, "\n");
+  const base64 = normalizedPem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\s+/g, "");
+
+  const bytes = decodeBase64(base64);
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+}
+
+async function getServiceAccountAccessToken(): Promise<string | null> {
+  const rawServiceAccountKey = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+  if (!rawServiceAccountKey) return null;
+
+  const serviceAccount = parseServiceAccountKey(rawServiceAccountKey);
+  const tokenUri = serviceAccount.token_uri || "https://oauth2.googleapis.com/token";
+  const now = Math.floor(Date.now() / 1000);
+
+  const jwtHeader = { alg: "RS256", typ: "JWT" };
+  const jwtPayload = {
+    iss: serviceAccount.client_email,
+    scope: "https://www.googleapis.com/auth/drive.file",
+    aud: tokenUri,
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const unsignedToken = `${toBase64Url(JSON.stringify(jwtHeader))}.${toBase64Url(JSON.stringify(jwtPayload))}`;
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    pemPrivateKeyToArrayBuffer(serviceAccount.private_key),
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      hash: "SHA-256",
+    },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    cryptoKey,
+    new TextEncoder().encode(unsignedToken)
+  );
+
+  const assertion = `${unsignedToken}.${toBase64Url(new Uint8Array(signature))}`;
+
+  const resp = await fetch(tokenUri, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Google service account token error: ${resp.status} ${errText}`);
+  }
+
+  const data = await resp.json();
+  if (!data?.access_token) {
+    throw new Error(`Google service account token sem access_token: ${JSON.stringify(data)}`);
+  }
+
+  return data.access_token as string;
+}
+
 // ── Google Drive conversion helpers ──────────────────────────────────────────
 async function refreshGoogleToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
   const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
@@ -280,9 +406,10 @@ serve(async (req) => {
     const configuredProviders: string[] = [];
     const providerErrors: string[] = [];
 
-    // ── Tentativa 0: Google Drive do usuário (sem crédito pago) ──────────────
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    // ── Tentativa 0: Google Drive do usuário (sem crédito pago) ──────────────
     if (supabaseUrl && serviceRoleKey) {
       try {
         const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
@@ -304,6 +431,26 @@ serve(async (req) => {
         providerErrors.push(`GoogleDriveAuth: ${msg}`);
         console.error("GoogleDrive auth/token lookup failed:", e);
       }
+    }
+
+    // ── Tentativa 0.5: Google Service Account (rápido e sem créditos) ───────
+    try {
+      const serviceAccessToken = await getServiceAccountAccessToken();
+      if (serviceAccessToken) {
+        configuredProviders.push("GoogleServiceAccount");
+        try {
+          const pdfBytes = await convertWithGoogleDrive(docxBytes, filename, serviceAccessToken);
+          return new Response(pdfBytes, { headers: pdfHeaders });
+        } catch (e) {
+          const msg = getErrorMessage(e);
+          providerErrors.push(`GoogleServiceAccount: ${msg}`);
+          console.error("GoogleServiceAccount failed, trying next provider:", e);
+        }
+      }
+    } catch (e) {
+      const msg = getErrorMessage(e);
+      providerErrors.push(`GoogleServiceAccountAuth: ${msg}`);
+      console.error("GoogleServiceAccount token failed:", e);
     }
 
     // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
@@ -384,7 +531,7 @@ serve(async (req) => {
     // ── Fallback: nenhum provedor configurado ────────────────────────────────
     return new Response(
       JSON.stringify({
-        error: "Nenhum serviço de conversão configurado. Configure ao menos um: Drive conectado do usuário, CONVERTAPI_SECRET, CLOUDCONVERT_API_KEY, API2PDF_API_KEY ou GOTENBERG_URL.",
+        error: "Nenhum serviço de conversão configurado. Configure ao menos um: Drive conectado do usuário, GOOGLE_SERVICE_ACCOUNT_KEY, CONVERTAPI_SECRET, CLOUDCONVERT_API_KEY, API2PDF_API_KEY ou GOTENBERG_URL.",
         fallback: true,
       }),
       { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
