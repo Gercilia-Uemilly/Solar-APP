@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import UserAvatar from "@/components/UserAvatar";
 import GuidedTour from "@/components/GuidedTour";
 import SupportDrawer from "@/components/SupportDrawer";
+import AiSupportChat from "@/components/AiSupportChat";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
