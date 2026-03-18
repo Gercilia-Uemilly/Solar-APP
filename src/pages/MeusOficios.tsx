@@ -127,6 +127,12 @@ export default function MeusOficios() {
     setOriginalContent(o.conteudo || "");
     setEditorKey(prev => prev + 1);
     setShowPreview(true);
+
+    // Load anexo images
+    fetchSavedImages(o.id).then(imgs => {
+      const urls = imgs.filter(f => f.type.startsWith("image/")).map(f => URL.createObjectURL(f));
+      setPreviewAnexoUrls(urls);
+    }).catch(() => setPreviewAnexoUrls([]));
   };
 
   const saveFieldToDb = useCallback(async (fields: Record<string, any>) => {
