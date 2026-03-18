@@ -12,8 +12,12 @@ export interface AnexoFile {
 
 interface FileDropzoneProps {
   anexos: AnexoFile[];
-  onChange: (anexos: AnexoFile[]) => void;
+  onChange?: (anexos: AnexoFile[]) => void;
   onFileAdded?: (file: File) => void;
+  /** Persistent mode: called for each file added (immediate upload) */
+  onAddFile?: (file: File) => void;
+  /** Persistent mode: called when a file is removed (immediate delete) */
+  onRemoveFile?: (id: string) => void;
 }
 
 const ACCEPTED = ".jpg,.jpeg,.png,.webp,.pdf,.docx,.doc,.xlsx,.xls";
