@@ -70,10 +70,11 @@ export default function FileDropzone({ anexos, onChange, onFileAdded }: FileDrop
       // Deduplicate by name+size
       const isDupe = anexos.some(a => a.nome === f.name && a.tamanho === f.size);
       if (isDupe) continue;
+      const normalizedType = inferMimeType(f);
       const anexo: AnexoFile = {
         id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
         nome: f.name,
-        tipo: f.type,
+        tipo: normalizedType,
         tamanho: f.size,
         file: f,
       };
