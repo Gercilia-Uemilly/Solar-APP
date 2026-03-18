@@ -742,6 +742,7 @@ export default function Oficios() {
       deleted_by_name: profileName || user?.user_metadata?.full_name || user?.email || null,
     } as any).eq("id", id);
     setOficios(prev => prev.filter(o => o.id !== id));
+    void registrarAuditoria("deletar", { tabela: "oficios", id, numero: numLabel });
     toast({ title: "Ofício movido para a lixeira" });
   };
 
