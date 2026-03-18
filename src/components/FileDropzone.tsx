@@ -62,16 +62,30 @@ function getFileCategory(tipo: string): string {
   return "outro";
 }
 
-export default function FileDropzone({ anexos, onChange, onFileAdded }: FileDropzoneProps) {
+export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile, onRemoveFile }: FileDropzoneProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((files: FileList | null) => {
     if (!files) return;
+
+    // Persistent mode: delegate to hook callbacks
+    if (onAddFile) {
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const isDupe = anexos.some(a => a.nome === f.name && a.tamanho === f.size);
+        if (!isDupe) {
+          onAddFile(f);
+          onFileAdded?.(f);
+        }
+      }
+      return;
+    }
+
+    // Legacy mode: local-only state
     const newAnexos: AnexoFile[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      // Deduplicate by name+size
       const isDupe = anexos.some(a => a.nome === f.name && a.tamanho === f.size);
       if (isDupe) continue;
       const normalizedType = inferMimeType(f);
@@ -86,11 +100,17 @@ export default function FileDropzone({ anexos, onChange, onFileAdded }: FileDrop
       onFileAdded?.(f);
     }
     if (newAnexos.length > 0) {
-      onChange([...anexos, ...newAnexos]);
+      onChange?.([...anexos, ...newAnexos]);
     }
-  }, [anexos, onChange, onFileAdded]);
+  }, [anexos, onChange, onFileAdded, onAddFile]);
 
-  const remove = (id: string) => onChange(anexos.filter((a) => a.id !== id));
+  const remove = (id: string) => {
+    if (onRemoveFile) {
+      onRemoveFile(id);
+    } else {
+      onChange?.(anexos.filter((a) => a.id !== id));
+    }
+  };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
