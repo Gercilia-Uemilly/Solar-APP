@@ -63,6 +63,7 @@ export interface OficioData {
   secretaria?: string;
   codigoZ?: string;
   contatoSolicitante?: string;
+  descricaoAnexos?: string;
   formatOptions?: {
     fontSize?: number;
     lineSpacing?: number;
