@@ -847,14 +847,21 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 export async function exportToPDF(data: OficioData): Promise<void> {
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
 
-  let wordBlob = await buildWordBlob(data);
-  if (data.imagens && data.imagens.length > 0) {
-    wordBlob = await addAnexoImages(wordBlob, data.imagens);
-  }
+  // Build Word without anexos embedded (we'll merge PDFs separately)
+  const wordBlob = await buildWordBlob(data);
 
   try {
     const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
-    saveAs(pdfBlob, `${fileName}.pdf`);
+
+    // Merge anexos into the PDF using pdf-lib
+    if (data.imagens && data.imagens.length > 0) {
+      const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
+      const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+      const mergedBlob = new Blob([mergedBytes], { type: "application/pdf" });
+      saveAs(mergedBlob, `${fileName}.pdf`);
+    } else {
+      saveAs(pdfBlob, `${fileName}.pdf`);
+    }
   } catch (e: any) {
     console.error("PDF conversion failed:", e);
     const message = e?.message || "Não foi possível gerar o PDF agora. Tente novamente em instantes.";
