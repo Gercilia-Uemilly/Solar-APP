@@ -669,7 +669,8 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
   const formData = new FormData();
   formData.append("docx", docxBlob, "oficio.docx");
   imagens.forEach((img, i) => {
-    formData.append(`imagem_${i}`, img, img.name);
+    const prefix = img.type === "application/pdf" ? "pdf_" : "imagem_";
+    formData.append(`${prefix}${i}`, img, img.name);
   });
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
