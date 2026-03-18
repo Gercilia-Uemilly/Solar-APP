@@ -940,6 +940,7 @@ export default function Oficios() {
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
     formatOptions,
+    descricaoAnexos: descricaoAnexos || undefined,
     imagens: await getImageFilesFromAnexos(),
   });
 
