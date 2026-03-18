@@ -126,9 +126,32 @@ async function addAnexoToDocx(
     newRels += `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/anexo_img_${i + 1}.${ext}"/>`;
     nextRid++;
 
-    // Full content-width for page-sized attachments (A4 portrait ratio)
-    const cx = 5400000; // ~15 cm
-    const cy = Math.round(cx * 1.414); // A4 portrait ratio
+    // Fit image within content area preserving aspect ratio
+    const maxCx = 5400000; // ~15 cm max width
+    const maxCy = 7600000; // ~21 cm max height (A4 minus margins)
+    
+    // Try to get actual image dimensions
+    const dims = getImageDimensions(img.data, img.type);
+    let cx: number, cy: number;
+    
+    if (dims) {
+      const ratio = dims.width / dims.height;
+      if (ratio >= 1) {
+        // Landscape or square
+        cx = maxCx;
+        cy = Math.round(maxCx / ratio);
+        if (cy > maxCy) { cy = maxCy; cx = Math.round(maxCy * ratio); }
+      } else {
+        // Portrait
+        cy = maxCy;
+        cx = Math.round(maxCy * ratio);
+        if (cx > maxCx) { cx = maxCx; cy = Math.round(maxCx / ratio); }
+      }
+    } else {
+      // Fallback: use max width, A4 ratio
+      cx = maxCx;
+      cy = Math.round(maxCx * 1.414);
+    }
 
     annexParagraphs.push(makeImageXml(rId, cx, cy, i + 1, W, WP, A_NS, PIC_NS));
   }
@@ -183,6 +206,38 @@ async function addAnexoToDocx(
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// Extract image dimensions from binary data (JPEG/PNG headers)
+function getImageDimensions(data: Uint8Array, type: string): { width: number; height: number } | null {
+  try {
+    if (type.includes("png") && data.length > 24) {
+      // PNG: width at bytes 16-19, height at bytes 20-23 (big-endian)
+      const width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+      const height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+      if (width > 0 && height > 0) return { width, height };
+    }
+    
+    if ((type.includes("jpeg") || type.includes("jpg")) && data.length > 2) {
+      // JPEG: scan for SOF markers (0xFFC0-0xFFC3)
+      let i = 2;
+      while (i < data.length - 9) {
+        if (data[i] === 0xFF) {
+          const marker = data[i + 1];
+          if (marker >= 0xC0 && marker <= 0xC3) {
+            const height = (data[i + 5] << 8) | data[i + 6];
+            const width = (data[i + 7] << 8) | data[i + 8];
+            if (width > 0 && height > 0) return { width, height };
+          }
+          const segLen = (data[i + 2] << 8) | data[i + 3];
+          i += 2 + segLen;
+        } else {
+          i++;
+        }
+      }
+    }
+  } catch { /* ignore parse errors */ }
+  return null;
 }
 
 function makeImageXml(rId: string, cx: number, cy: number, idx: number, W: string, WP: string, A_NS: string, PIC_NS: string): string {
