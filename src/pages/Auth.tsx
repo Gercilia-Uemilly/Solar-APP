@@ -58,7 +58,7 @@ export default function Auth() {
     setLoading(true);
     try {
       await signUp(regEmail, regPassword, regName);
-      toast({ title: "Cadastro realizado!", description: "Verifique seu e-mail para confirmar a conta." });
+      toast({ title: "Cadastro realizado!", description: "Seu acesso será liberado após aprovação do administrador." });
     } catch (err: any) {
       toast({ title: "Erro ao cadastrar", description: err.message, variant: "destructive" });
     } finally {
