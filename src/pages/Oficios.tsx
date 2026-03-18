@@ -95,6 +95,7 @@ export default function Oficios() {
   const [showDialog, setShowDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [viewingOficio, setViewingOficio] = useState<OficioRow | null>(null);
+  const [viewingAnexoUrls, setViewingAnexoUrls] = useState<string[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Form state
@@ -1283,7 +1284,18 @@ export default function Oficios() {
           {viewingOficio && (
             <div className="flex justify-center">
               <div id="oficio-view-preview" className="shadow-lg">
-                <OficioPreview numero={viewingOficio.numero || ""} destinatario={viewingOficio.destinatario} assunto={viewingOficio.assunto} conteudo={viewingOficio.conteudo || ""} />
+                <OficioPreview
+                  numero={viewingOficio.numero || ""}
+                  destinatario={viewingOficio.destinatario}
+                  assunto={viewingOficio.assunto}
+                  conteudo={viewingOficio.conteudo || ""}
+                  bairro={viewingOficio.bairro || undefined}
+                  cargoDestinatario={viewingOficio.cargo_destinatario || undefined}
+                  operadorNome={viewingOficio.operador_nome || undefined}
+                  dataGeracao={viewingOficio.data_geracao || undefined}
+                  formatOptions={formatOptions}
+                  anexoImageUrls={viewingAnexoUrls}
+                />
               </div>
             </div>
           )}

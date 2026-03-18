@@ -72,6 +72,7 @@ export default function MeusOficios() {
   // View
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewAnexoUrls, setPreviewAnexoUrls] = useState<string[]>([]);
   const [editedContent, setEditedContent] = useState<string>("");
   const editedContentRef = useRef<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
@@ -126,6 +127,12 @@ export default function MeusOficios() {
     setOriginalContent(o.conteudo || "");
     setEditorKey(prev => prev + 1);
     setShowPreview(true);
+
+    // Load anexo images
+    fetchSavedImages(o.id).then(imgs => {
+      const urls = imgs.filter(f => f.type.startsWith("image/")).map(f => URL.createObjectURL(f));
+      setPreviewAnexoUrls(urls);
+    }).catch(() => setPreviewAnexoUrls([]));
   };
 
   const saveFieldToDb = useCallback(async (fields: Record<string, any>) => {
@@ -842,6 +849,7 @@ export default function MeusOficios() {
                 onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
                 onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
                 initialConteudo={originalContent}
+                anexoImageUrls={previewAnexoUrls}
               />
             </div>
             </>
