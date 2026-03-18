@@ -448,10 +448,12 @@ export default function Oficios() {
     if (savedAnexos && savedAnexos.length > 0) {
       const loadedAnexos: AnexoFile[] = (savedAnexos as any[]).map((a: any) => {
         const { data } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
+        const fileName = a.file_name || "anexo";
+        const normalizedType = normalizeAttachmentMime(fileName, a.mime_type || "");
         return {
           id: a.id,
-          nome: a.file_name,
-          tipo: a.mime_type || "image/jpeg",
+          nome: fileName,
+          tipo: normalizedType,
           tamanho: 0,
           url: data.publicUrl,
         };
