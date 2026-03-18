@@ -126,9 +126,32 @@ async function addAnexoToDocx(
     newRels += `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/anexo_img_${i + 1}.${ext}"/>`;
     nextRid++;
 
-    // Full content-width for page-sized attachments (A4 portrait ratio)
-    const cx = 5400000; // ~15 cm
-    const cy = Math.round(cx * 1.414); // A4 portrait ratio
+    // Fit image within content area preserving aspect ratio
+    const maxCx = 5400000; // ~15 cm max width
+    const maxCy = 7600000; // ~21 cm max height (A4 minus margins)
+    
+    // Try to get actual image dimensions
+    const dims = getImageDimensions(img.data, img.type);
+    let cx: number, cy: number;
+    
+    if (dims) {
+      const ratio = dims.width / dims.height;
+      if (ratio >= 1) {
+        // Landscape or square
+        cx = maxCx;
+        cy = Math.round(maxCx / ratio);
+        if (cy > maxCy) { cy = maxCy; cx = Math.round(maxCy * ratio); }
+      } else {
+        // Portrait
+        cy = maxCy;
+        cx = Math.round(maxCy * ratio);
+        if (cx > maxCx) { cx = maxCx; cy = Math.round(maxCx / ratio); }
+      }
+    } else {
+      // Fallback: use max width, A4 ratio
+      cx = maxCx;
+      cy = Math.round(maxCx * 1.414);
+    }
 
     annexParagraphs.push(makeImageXml(rId, cx, cy, i + 1, W, WP, A_NS, PIC_NS));
   }
