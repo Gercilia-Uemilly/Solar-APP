@@ -427,23 +427,16 @@ export default function MeusOficios() {
       
       toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
 
-      // 1. Build Word blob
+      // 1. Build Word blob (without anexos embedded for PDF merging)
       const { saveAs } = await import("file-saver");
       const wordBlob = await buildWordBlobForExport(data);
       
-      // 2. Convert to PDF
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const convertFormData = new FormData();
-      convertFormData.append("file", wordBlob, `${fileName}.docx`);
-      const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
-        body: convertFormData,
-      });
-
+      // 2. Build merged PDF (ofício + anexos in one file)
       let pdfBlob: Blob | null = null;
-      if (convertResp.ok && (convertResp.headers.get("content-type") || "").includes("application/pdf")) {
-        pdfBlob = await convertResp.blob();
+      try {
+        pdfBlob = await buildMergedPdfBlob(data);
+      } catch (e) {
+        console.error("PDF merge failed, trying without merge:", e);
       }
 
       // 3. Download PDF
