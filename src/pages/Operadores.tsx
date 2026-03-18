@@ -390,6 +390,9 @@ export default function Operadores() {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        <span className="text-xs">{(p as any).usa_2fa ? "✅" : "⚫"}</span>
+                      </TableCell>
+                      <TableCell>
                         <Badge variant={p.active ? "default" : "destructive"} className="text-xs">
                           {p.active ? "Ativo" : "Inativo"}
                         </Badge>
