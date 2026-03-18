@@ -582,16 +582,12 @@ export default function Oficios() {
         results.push({ type: item.type, text, fileName: item.file.name, storageUrl });
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
         if (item.type === "image") {
-          // Add to unified anexos state
-          const newAnexo: AnexoFile = {
-            id: `${Date.now()}-media-${Math.random().toString(36).slice(2, 6)}`,
-            nome: item.file.name,
-            tipo: item.file.type,
-            tamanho: item.file.size,
-            file: item.file,
-          };
-          setAnexos(prev => [...prev, newAnexo]);
-          // image already added to anexos above
+          // Use persistent upload if editing, otherwise local-only
+          if (editingOficioId) {
+            await persistAddFile(item.file);
+          } else {
+            addLocalFile(item.file);
+          }
         }
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
