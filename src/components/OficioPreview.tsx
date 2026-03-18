@@ -6,6 +6,11 @@ import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
 import OficioPreviewEditor from "./OficioPreviewEditor";
 
+type AnexoDocumento = {
+  nome: string;
+  tipo: string;
+};
+
 interface Props {
   numero: string;
   destinatario: string;
@@ -30,12 +35,13 @@ interface Props {
   dataGeracao?: string;
   initialConteudo?: string;
   anexoImageUrls?: string[];
+  anexoDocuments?: AnexoDocumento[];
 }
 
 import { cleanNumero, buildVocativo } from "@/lib/oficioUtils";
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, onIncreaseFontSize, onDecreaseFontSize, dataGeracao, initialConteudo, anexoImageUrls }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, onIncreaseFontSize, onDecreaseFontSize, dataGeracao, initialConteudo, anexoImageUrls, anexoDocuments }, ref) => {
     const fmt = formatOptions || defaultFormatOptions;
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
