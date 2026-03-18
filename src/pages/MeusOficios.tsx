@@ -302,11 +302,14 @@ export default function MeusOficios() {
     setIsUploading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const accessToken = session?.access_token
+        || (await supabase.auth.refreshSession()).data.session?.access_token;
+
+      if (!accessToken) {
         toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive" });
         return;
       }
-      const authToken = session.access_token;
+      const authToken = accessToken;
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
@@ -386,11 +389,14 @@ export default function MeusOficios() {
     setIsExportingAll(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const accessToken = session?.access_token
+        || (await supabase.auth.refreshSession()).data.session?.access_token;
+
+      if (!accessToken) {
         toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive" });
         return;
       }
-      const authToken = session.access_token;
+      const authToken = accessToken;
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       if (imgs.length > 0) (data as any).imagens = imgs;
@@ -672,7 +678,11 @@ export default function MeusOficios() {
                       onClick={async () => {
                         if (!o.conteudo) return;
                         const imgs = await fetchSavedImages(o.id);
-                        exportToWord({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                        try {
+                          await exportToWord({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                        } catch (e: any) {
+                          toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                        }
                       }}
                       className="p-2 text-muted-foreground hover:text-foreground"
                       title="Exportar Word"
@@ -803,7 +813,14 @@ export default function MeusOficios() {
                     ↺ Restaurar original
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={() => { if (viewOficio) exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent }); }}>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  if (!viewOficio) return;
+                  try {
+                    await exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent });
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
+                }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {

@@ -715,7 +715,15 @@ export default function Oficios() {
     setIsUploading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const accessToken = session?.access_token
+        || (await supabase.auth.refreshSession()).data.session?.access_token;
+
+      if (!accessToken) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente para exportar e enviar ao Drive.", variant: "destructive" });
+        return;
+      }
+
+      const authToken = accessToken;
       const imgs = await fetchSavedImages(oficio.id);
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
@@ -1127,7 +1135,11 @@ export default function Oficios() {
                     const savedImgs = await fetchSavedImages(editingOficioId);
                     if (savedImgs.length > 0) formData.imagens = savedImgs;
                   }
-                  exportToWord(formData);
+                  try {
+                    await exportToWord(formData);
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
@@ -1263,7 +1275,11 @@ export default function Oficios() {
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewingOficio?.conteudo) return;
                   const imgs = await fetchSavedImages(viewingOficio.id);
-                  exportToWord({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                  try {
+                    await exportToWord({ ...buildExportData(viewingOficio), imagens: imgs.length > 0 ? imgs : undefined });
+                  } catch (e: any) {
+                    toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  }
                 }}><FileText size={14} className="mr-1" /> Word</Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewingOficio?.conteudo) return;

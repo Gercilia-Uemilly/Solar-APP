@@ -407,8 +407,17 @@ async function fetchImageBytes(src: string, options?: FetchImageOptions): Promis
 
 // ── Get user session token ──────────────────────────────────────────────────
 async function getAuthToken(): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (!error && session?.access_token) {
+    return session.access_token;
+  }
+
+  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError || !refreshed.session?.access_token) {
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
+
+  return refreshed.session.access_token;
 }
 
 // ── Build Word blob programmatically ────────────────────────────────────────
