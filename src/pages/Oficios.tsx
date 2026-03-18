@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOficios } from "@/hooks/useOficios";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
+import { pdfToImageFiles } from "@/lib/pdfToImages";
 import { generateOperatorCode, type OficioRow } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone, { type AnexoFile } from "@/components/FileDropzone";
@@ -718,7 +719,7 @@ export default function Oficios() {
       const wordBlob = await exportToWord({
         ...buildExportData(oficio),
         conteudo: oficio.conteudo || "",
-        imagens: imgs.length > 0 ? imgs : getImageFilesFromAnexos(),
+        imagens: imgs.length > 0 ? imgs : (await getImageFilesFromAnexos()),
       });
       // Build file name: [numero]-[ano] [solicitante_code]
       const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
@@ -809,9 +810,20 @@ export default function Oficios() {
     formatOptions,
   });
 
-  // Helper to get image File objects from unified anexos
-  const getImageFilesFromAnexos = (): File[] | undefined => {
+  // Helper to get image File objects from unified anexos (converts PDFs to images)
+  const getImageFilesFromAnexos = async (): Promise<File[] | undefined> => {
     const imageFiles = anexos.filter(a => a.tipo.startsWith("image/") && a.file).map(a => a.file!);
+    const pdfFiles = anexos.filter(a => a.tipo === "application/pdf" && a.file);
+    
+    for (const pdfAnexo of pdfFiles) {
+      try {
+        const pdfImages = await pdfToImageFiles(pdfAnexo.file!, pdfAnexo.nome?.replace(/\.pdf$/i, "") || "pdf");
+        imageFiles.push(...pdfImages);
+      } catch (e) {
+        console.error("Failed to convert PDF anexo to images:", e);
+      }
+    }
+    
     return imageFiles.length > 0 ? imageFiles : undefined;
   };
 
@@ -836,7 +848,7 @@ export default function Oficios() {
     };
   }, [previewImageUrls]);
 
-  const buildFormExportData = (): OficioData => ({
+  const buildFormExportData = async (): Promise<OficioData> => ({
     numero,
     destinatario,
     assunto,
@@ -854,7 +866,7 @@ export default function Oficios() {
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
     formatOptions,
-    imagens: getImageFilesFromAnexos(),
+    imagens: await getImageFilesFromAnexos(),
   });
 
   return (
@@ -1117,7 +1129,7 @@ export default function Oficios() {
                     toast({ title: "Campos obrigatórios", description: "Preencha o destinatário e gere o texto do ofício antes de exportar.", variant: "destructive" });
                     return;
                   }
-                  const formData = buildFormExportData();
+                  const formData = await buildFormExportData();
                   // If no new images but we have saved URLs, fetch them as Files
                   if (!formData.imagens && editingOficioId) {
                     const savedImgs = await fetchSavedImages(editingOficioId);
@@ -1133,7 +1145,7 @@ export default function Oficios() {
                     setFormTab("dados");
                     return;
                   }
-                  const formData = buildFormExportData();
+                  const formData = await buildFormExportData();
                   // If no new images but we have saved URLs, fetch them as Files
                   if (!formData.imagens && editingOficioId) {
                     const savedImgs = await fetchSavedImages(editingOficioId);
