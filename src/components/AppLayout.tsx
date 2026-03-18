@@ -123,6 +123,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
       <SupportDrawer open={supportOpen} onClose={() => setSupportOpen(false)} />
+      <AiSupportChat />
     </div>
   );
 }

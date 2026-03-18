@@ -32,15 +32,20 @@ export default function Auth() {
     setLoading(true);
     try {
       let email = loginIdentifier;
-      // Check if it's not an email (username)
       if (!loginIdentifier.includes("@")) {
         const { data, error } = await supabase.rpc("get_email_by_username", { _username: loginIdentifier });
-        if (error || !data) {
-          throw new Error("Usuário não encontrado");
-        }
+        if (error || !data) throw new Error("Usuário não encontrado");
         email = data;
       }
-      await signIn(email, loginPassword);
+      const { status } = await signIn(email, loginPassword);
+      if (status === "pendente") {
+        navigate("/aguardando-aprovacao");
+        return;
+      }
+      if (status === "bloqueado") {
+        toast({ title: "Acesso bloqueado", description: "Entre em contato com o administrador.", variant: "destructive" });
+        return;
+      }
     } catch (err: any) {
       toast({ title: "Erro ao entrar", description: err.message, variant: "destructive" });
     } finally {
