@@ -778,6 +778,10 @@ export default function Oficios() {
       });
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
+        if (err.needsAuth) {
+          toast({ title: "⚠️ Conta Google não conectada", description: "Conecte sua conta Google em Configurações para salvar no Drive.", variant: "destructive" });
+          return;
+        }
         throw new Error(err.error || "Erro ao enviar para o Drive");
       }
       const driveResult = await driveResp.json();
