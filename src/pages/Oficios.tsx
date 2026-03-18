@@ -1235,6 +1235,7 @@ export default function Oficios() {
                   onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
                   initialConteudo={originalOficio}
                   anexoImageUrls={previewImageUrls}
+                  anexoDocuments={previewDocumentAnexos}
                   bairro={assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro)}
                   formatOptions={formatOptions}
                 />
