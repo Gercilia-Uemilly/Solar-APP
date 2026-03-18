@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
   Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
-  Smartphone, MessagesSquare
+  Smartphone, MessagesSquare, BookOpen
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,7 @@ const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
   { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
   { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
+  { label: "Modelos", icon: BookOpen, path: "/modelos", adminOnly: false },
   { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
   { label: "Chat", icon: MessageSquare, path: "/chat", adminOnly: false },
   { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },

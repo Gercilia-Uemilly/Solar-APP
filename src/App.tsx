@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useGlobalSync } from "@/hooks/useGlobalSync";
+import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { ReactNode, lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -30,6 +31,7 @@ const WhatsAppConectar = lazy(() => import("./pages/WhatsAppConectar"));
 const WhatsAppMensagens = lazy(() => import("./pages/WhatsAppMensagens"));
 const ChatInterno = lazy(() => import("./pages/ChatInterno"));
 const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
+const Modelos = lazy(() => import("./pages/Modelos"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,7 +84,9 @@ function WaitingRoute({ children }: { children: ReactNode }) {
 }
 
 const AppRoutes = () => {
+  const { user } = useAuth();
   useGlobalSync();
+  useSessionTimeout(!!user);
 
   return (
     <Suspense fallback={<PageLoader />}>
@@ -95,6 +99,7 @@ const AppRoutes = () => {
         <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
         <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
         <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
+        <Route path="/modelos" element={<ProtectedRoute><AppLayout><Modelos /></AppLayout></ProtectedRoute>} />
         <Route path="/respostas" element={<ProtectedRoute><AppLayout><Respostas /></AppLayout></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><AppLayout><ChatInterno /></AppLayout></ProtectedRoute>} />
         <Route path="/operadores" element={<AdminRoute><AppLayout><Operadores /></AppLayout></AdminRoute>} />

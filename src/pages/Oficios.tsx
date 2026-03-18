@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOficios } from "@/hooks/useOficios";
 import OficioPreview from "@/components/OficioPreview";
 import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
+import { registrarAuditoria } from "@/lib/auditLog";
+import { enqueueExport } from "@/lib/exportQueue";
+import { comprimirImagem } from "@/lib/imageCompression";
 
 import { generateOperatorCode, type OficioRow } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -154,6 +157,80 @@ export default function Oficios() {
 
   // Knowledge base suggestions
   const [kbSuggestions, setKbSuggestions] = useState<{ id: string; titulo: string; descricao: string | null; orgao: string | null; bairro: string | null; fonte: string | null; modelo: boolean }[]>([]);
+
+  // Duplicate detection state
+  const [duplicatasEncontradas, setDuplicatasEncontradas] = useState<OficioRow[]>([]);
+  const [mostrarAlertaDuplicata, setMostrarAlertaDuplicata] = useState(false);
+
+  // Modelos state
+  const [modelos, setModelos] = useState<any[]>([]);
+  const [mostrarModelos, setMostrarModelos] = useState(false);
+
+  // Duplicate detection
+  const verificarDuplicata = useCallback(async (endereco: string, sec: string) => {
+    if (!endereco || endereco.length < 5) return;
+    const { data } = await supabase
+      .from("oficios")
+      .select("id, numero, assunto, created_at, status")
+      .ilike("endereco_completo", `%${endereco}%`)
+      .ilike("secretaria_identificada", `%${sec}%`)
+      .is("deleted_at", null)
+      .gte("created_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+      .limit(3);
+    if (data && data.length > 0) {
+      setDuplicatasEncontradas(data as OficioRow[]);
+      setMostrarAlertaDuplicata(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (enderecoCompleto && enderecoCompleto.length >= 5 && secretaria) {
+        verificarDuplicata(enderecoCompleto, secretaria);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [enderecoCompleto, secretaria, verificarDuplicata]);
+
+  // Load modelos
+  const carregarModelos = useCallback(async () => {
+    const { data } = await (supabase.from("modelos_oficio") as any)
+      .select("*")
+      .order("criado_em", { ascending: false });
+    setModelos(data || []);
+  }, []);
+
+  const usarModelo = (modelo: any) => {
+    if (modelo.secretaria) setSecretaria(modelo.secretaria);
+    if (modelo.assunto) setAssunto(modelo.assunto);
+    if (modelo.conteudo) {
+      setEditedOficio(modelo.conteudo);
+      setOriginalOficio(modelo.conteudo);
+      setOficioHistory([modelo.conteudo]);
+      setHistoryIndex(0);
+    }
+    setMostrarModelos(false);
+    toast({ title: `Modelo "${modelo.nome}" aplicado!` });
+  };
+
+  const salvarComoModelo = async () => {
+    const nome = prompt("Nome do modelo:");
+    if (!nome || !user) return;
+    const { error } = await (supabase.from("modelos_oficio") as any).insert({
+      nome,
+      secretaria: secretaria || null,
+      assunto: assunto || null,
+      conteudo: editedOficio || null,
+      criado_por: user.id,
+      criado_por_nome: profileName || user.user_metadata?.full_name || null,
+      publico: true,
+    });
+    if (!error) {
+      toast({ title: `Modelo "${nome}" salvo!` });
+    } else {
+      toast({ title: "Erro ao salvar modelo", description: error.message, variant: "destructive" });
+    }
+  };
 
   const searchSimilarOficios = useCallback(async (query: string) => {
     if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
@@ -489,6 +566,7 @@ export default function Oficios() {
       solicitante: solicitante || null,
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
+      prazo_resposta: editingOficioId ? undefined : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       last_edited_by: user.id,
       last_edited_by_name: profileName || user.user_metadata?.full_name || user.email || null,
       last_edited_at: new Date().toISOString(),
@@ -538,6 +616,7 @@ export default function Oficios() {
     }
 
     toast({ title: editingOficioId ? "✓ Ofício atualizado!" : "✓ Ofício salvo!" });
+    void registrarAuditoria(editingOficioId ? "editar" : "criar", { tabela: "oficios", id: oficioId || "", numero: fullNumero || "" });
 
     if (closeAfterSave) {
       resetForm();
@@ -664,6 +743,7 @@ export default function Oficios() {
       deleted_by_name: profileName || user?.user_metadata?.full_name || user?.email || null,
     } as any).eq("id", id);
     setOficios(prev => prev.filter(o => o.id !== id));
+    void registrarAuditoria("deletar", { tabela: "oficios", id, numero: numLabel });
     toast({ title: "Ofício movido para a lixeira" });
   };
 
@@ -1163,14 +1243,55 @@ export default function Oficios() {
                 </div>
               )}
 
-              <div className="flex gap-2">
+              {/* Duplicate alert */}
+              {mostrarAlertaDuplicata && duplicatasEncontradas.length > 0 && (
+                <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-orange-600 dark:text-orange-400 flex items-center gap-1"><AlertTriangle size={14} /> Possível ofício duplicado</span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setMostrarAlertaDuplicata(false)}><X size={14} /></Button>
+                  </div>
+                  {duplicatasEncontradas.map(d => (
+                    <div key={d.id} className="text-xs text-muted-foreground">
+                      {d.numero || "s/n"} — {d.assunto?.slice(0, 60)} ({d.status}) — {new Date(d.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2 flex-wrap">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
                 </Button>
                 <Button variant="outline" onClick={async () => { await handleCreate(false); setFormTab("preview"); }} className="border-border">
                   Salvar Rascunho
                 </Button>
+                <Button variant="outline" onClick={() => { carregarModelos(); setMostrarModelos(true); }} className="border-border">
+                  <BookOpen size={14} className="mr-1" /> Usar Modelo
+                </Button>
               </div>
+
+              {/* Modelo selector dialog */}
+              <Dialog open={mostrarModelos} onOpenChange={setMostrarModelos}>
+                <DialogContent className="bg-card border-border max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Selecionar Modelo</DialogTitle>
+                    <DialogDescription>Escolha um modelo para preencher os campos automaticamente.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                    {modelos.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum modelo salvo.</p>
+                    ) : modelos.map(m => (
+                      <button key={m.id} type="button" onClick={() => usarModelo(m)} className="w-full text-left p-3 rounded-md bg-secondary hover:bg-accent/50 transition-colors border border-border">
+                        <p className="text-sm font-medium text-foreground">{m.nome}</p>
+                        <div className="flex gap-2 mt-1">
+                          {m.secretaria && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">{m.secretaria}</span>}
+                          <span className="text-[10px] text-muted-foreground">por {m.criado_por_nome || "—"}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* TAB: PREVIEW */}
@@ -1181,6 +1302,9 @@ export default function Oficios() {
                 </Button>
                 <Button size="sm" variant="default" onClick={() => handleCreate(true)}>
                   <Save size={14} className="mr-1" /> Salvar e Fechar
+                </Button>
+                <Button size="sm" variant="outline" onClick={salvarComoModelo} title="Salvar como modelo reutilizável">
+                  <BookOpen size={14} className="mr-1" /> Salvar Modelo
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!destinatario && !cargoDestinatario || !editedOficio) {
