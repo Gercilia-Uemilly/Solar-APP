@@ -673,13 +673,59 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   return await fixDocxRelationshipIds(rawBlob);
 }
 
-// ── Enviar docx + imagens para edge function add-anexo-images ───────────────
+// ── Helpers de anexos ───────────────────────────────────────────────────────
+const PDF_EXTENSIONS = new Set(["pdf"]);
+const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "gif", "bmp"]);
+
+function getFileExtension(fileName: string): string {
+  const parts = fileName.toLowerCase().split(".");
+  return parts.length > 1 ? parts[parts.length - 1] : "";
+}
+
+function normalizeAttachmentMime(fileName: string, ...candidates: Array<string | null | undefined>): string {
+  const normalizedCandidates = candidates
+    .map((value) => (value || "").trim().toLowerCase())
+    .filter(Boolean);
+
+  const extension = getFileExtension(fileName);
+
+  if (normalizedCandidates.some((value) => value.includes("pdf")) || PDF_EXTENSIONS.has(extension)) {
+    return "application/pdf";
+  }
+
+  const imageCandidate = normalizedCandidates.find((value) => value.startsWith("image/"));
+  if (imageCandidate) return imageCandidate;
+
+  if (IMAGE_EXTENSIONS.has(extension)) {
+    const ext = extension === "jpg" ? "jpeg" : extension;
+    return `image/${ext}`;
+  }
+
+  return normalizedCandidates[0] || "application/octet-stream";
+}
+
+// ── Enviar docx + anexos para edge function add-anexo-images ───────────────
 async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
   const formData = new FormData();
   formData.append("docx", docxBlob, "oficio.docx");
-  imagens.forEach((img, i) => {
-    const prefix = img.type === "application/pdf" ? "pdf_" : "imagem_";
-    formData.append(`${prefix}${i}`, img, img.name);
+
+  imagens.forEach((anexo, i) => {
+    const mimeType = normalizeAttachmentMime(anexo.name, anexo.type);
+
+    if (mimeType === "application/pdf") {
+      formData.append(`pdf_${i}`, anexo, anexo.name);
+      return;
+    }
+
+    if (mimeType.startsWith("image/")) {
+      formData.append(`imagem_${i}`, anexo, anexo.name);
+      return;
+    }
+
+    console.warn("[addAnexoImages] Tipo de anexo não suportado, ignorando:", {
+      nome: anexo.name,
+      tipo: anexo.type,
+    });
   });
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -699,10 +745,15 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
   return resp.blob();
 }
 
-// ── Fetch saved images from storage as File[] ──────────────────────────────
+// ── Fetch saved anexos from storage as File[] ───────────────────────────────
 export async function fetchSavedImages(oficioId: string): Promise<File[]> {
   try {
-    const { data: anexos } = await supabase.from("oficio_anexos" as any).select("*").eq("oficio_id", oficioId);
+    const { data: anexos } = await supabase
+      .from("oficio_anexos" as any)
+      .select("*")
+      .eq("oficio_id", oficioId)
+      .order("created_at", { ascending: true });
+
     if (!anexos || anexos.length === 0) return [];
 
     const files: File[] = [];
@@ -711,14 +762,21 @@ export async function fetchSavedImages(oficioId: string): Promise<File[]> {
         const { data: urlData } = supabase.storage.from("midias").getPublicUrl(a.storage_path);
         const resp = await fetch(urlData.publicUrl);
         if (!resp.ok) continue;
-        const blob = await resp.blob();
-        const mimeType = a.mime_type || blob.type;
 
-        files.push(new File([blob], a.file_name, { type: mimeType }));
-      } catch { /* skip failed downloads */ }
+        const blob = await resp.blob();
+        const fileName = a.file_name || "anexo";
+        const mimeType = normalizeAttachmentMime(fileName, a.mime_type, blob.type);
+
+        files.push(new File([blob], fileName, { type: mimeType }));
+      } catch {
+        /* skip failed downloads */
+      }
     }
+
     return files;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 // ── Build Word blob without saving (for external use) ───────────────────────

@@ -73,6 +73,7 @@ export default function MeusOficios() {
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewAnexoUrls, setPreviewAnexoUrls] = useState<string[]>([]);
+  const [previewAnexoDocs, setPreviewAnexoDocs] = useState<Array<{ nome: string; tipo: string }>>([]);
   const [editedContent, setEditedContent] = useState<string>("");
   const editedContentRef = useRef<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
@@ -104,6 +105,14 @@ export default function MeusOficios() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      previewAnexoUrls.forEach((url) => {
+        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+      });
+    };
+  }, [previewAnexoUrls]);
+
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
     const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at, cargo_destinatario, destinatario, assunto, numero, bairro, data_geracao").eq("id", o.id).single();
@@ -126,13 +135,27 @@ export default function MeusOficios() {
     editedContentRef.current = o.conteudo || "";
     setOriginalContent(o.conteudo || "");
     setEditorKey(prev => prev + 1);
+    setPreviewAnexoUrls([]);
+    setPreviewAnexoDocs([]);
     setShowPreview(true);
 
-    // Load anexo images
-    fetchSavedImages(o.id).then(imgs => {
-      const urls = imgs.filter(f => f.type.startsWith("image/")).map(f => URL.createObjectURL(f));
-      setPreviewAnexoUrls(urls);
-    }).catch(() => setPreviewAnexoUrls([]));
+    // Load anexos (imagens + documentos)
+    fetchSavedImages(o.id)
+      .then((files) => {
+        const urls = files
+          .filter((f) => f.type.startsWith("image/"))
+          .map((f) => URL.createObjectURL(f));
+        const docs = files
+          .filter((f) => !f.type.startsWith("image/"))
+          .map((f) => ({ nome: f.name, tipo: f.type || "application/octet-stream" }));
+
+        setPreviewAnexoUrls(urls);
+        setPreviewAnexoDocs(docs);
+      })
+      .catch(() => {
+        setPreviewAnexoUrls([]);
+        setPreviewAnexoDocs([]);
+      });
   };
 
   const saveFieldToDb = useCallback(async (fields: Record<string, any>) => {
@@ -869,6 +892,7 @@ export default function MeusOficios() {
                 onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
                 initialConteudo={originalContent}
                 anexoImageUrls={previewAnexoUrls}
+                anexoDocuments={previewAnexoDocs}
               />
             </div>
             </>
