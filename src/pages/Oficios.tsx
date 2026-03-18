@@ -158,6 +158,80 @@ export default function Oficios() {
   // Knowledge base suggestions
   const [kbSuggestions, setKbSuggestions] = useState<{ id: string; titulo: string; descricao: string | null; orgao: string | null; bairro: string | null; fonte: string | null; modelo: boolean }[]>([]);
 
+  // Duplicate detection state
+  const [duplicatasEncontradas, setDuplicatasEncontradas] = useState<OficioRow[]>([]);
+  const [mostrarAlertaDuplicata, setMostrarAlertaDuplicata] = useState(false);
+
+  // Modelos state
+  const [modelos, setModelos] = useState<any[]>([]);
+  const [mostrarModelos, setMostrarModelos] = useState(false);
+
+  // Duplicate detection
+  const verificarDuplicata = useCallback(async (endereco: string, sec: string) => {
+    if (!endereco || endereco.length < 5) return;
+    const { data } = await supabase
+      .from("oficios")
+      .select("id, numero, assunto, created_at, status")
+      .ilike("endereco_completo", `%${endereco}%`)
+      .ilike("secretaria_identificada", `%${sec}%`)
+      .is("deleted_at", null)
+      .gte("created_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+      .limit(3);
+    if (data && data.length > 0) {
+      setDuplicatasEncontradas(data as OficioRow[]);
+      setMostrarAlertaDuplicata(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (enderecoCompleto && enderecoCompleto.length >= 5 && secretaria) {
+        verificarDuplicata(enderecoCompleto, secretaria);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [enderecoCompleto, secretaria, verificarDuplicata]);
+
+  // Load modelos
+  const carregarModelos = useCallback(async () => {
+    const { data } = await (supabase.from("modelos_oficio") as any)
+      .select("*")
+      .order("criado_em", { ascending: false });
+    setModelos(data || []);
+  }, []);
+
+  const usarModelo = (modelo: any) => {
+    if (modelo.secretaria) setSecretaria(modelo.secretaria);
+    if (modelo.assunto) setAssunto(modelo.assunto);
+    if (modelo.conteudo) {
+      setEditedOficio(modelo.conteudo);
+      setOriginalOficio(modelo.conteudo);
+      setOficioHistory([modelo.conteudo]);
+      setHistoryIndex(0);
+    }
+    setMostrarModelos(false);
+    toast({ title: `Modelo "${modelo.nome}" aplicado!` });
+  };
+
+  const salvarComoModelo = async () => {
+    const nome = prompt("Nome do modelo:");
+    if (!nome || !user) return;
+    const { error } = await (supabase.from("modelos_oficio") as any).insert({
+      nome,
+      secretaria: secretaria || null,
+      assunto: assunto || null,
+      conteudo: editedOficio || null,
+      criado_por: user.id,
+      criado_por_nome: profileName || user.user_metadata?.full_name || null,
+      publico: true,
+    });
+    if (!error) {
+      toast({ title: `Modelo "${nome}" salvo!` });
+    } else {
+      toast({ title: "Erro ao salvar modelo", description: error.message, variant: "destructive" });
+    }
+  };
+
   const searchSimilarOficios = useCallback(async (query: string) => {
     if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
     if (!query || query.length < 3) {
