@@ -1,8 +1,4 @@
 import * as pdfjsLib from "pdfjs-dist";
-import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-
-// Use a local bundled worker to avoid external CDN/network failures.
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 /**
  * Convert a PDF file/blob into an array of image Files (one per page).
@@ -27,16 +23,9 @@ export async function pdfToImageFiles(
 
   const pdfData = new Uint8Array(data);
 
-  const loadPdf = (options: Record<string, unknown>) =>
-    pdfjsLib.getDocument(options as any).promise as Promise<any>;
-
-  let pdf: any;
-  try {
-    pdf = await loadPdf({ data: pdfData });
-  } catch (error) {
-    console.warn("[pdfToImageFiles] Worker do PDF indisponível, tentando fallback:", error);
-    pdf = await loadPdf({ data: pdfData, disableWorker: true });
-  }
+  // Força processamento sem worker para evitar falhas de carregamento
+  // (CDN/rede/CORS) durante a exportação de anexos.
+  const pdf = await pdfjsLib.getDocument({ data: pdfData, disableWorker: true } as any).promise;
 
   const files: File[] = [];
 
