@@ -843,9 +843,11 @@ export default function Oficios() {
   };
 
   const withSavedAttachments = async (exportData: OficioData): Promise<OficioData> => {
-    if (!editingOficioId) return exportData;
+    // Always fetch FRESH from DB before exporting
+    const oficioId = editingOficioId;
+    if (!oficioId) return exportData;
 
-    const savedFiles = await fetchSavedImages(editingOficioId);
+    const savedFiles = await fetchSavedImages(oficioId);
     const currentFiles = exportData.imagens || [];
     const mergedFiles = mergeAttachmentFiles(savedFiles, currentFiles);
 
