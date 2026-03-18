@@ -815,8 +815,9 @@ export default function MeusOficios() {
                 )}
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewOficio) return;
+                  const imgs = await fetchSavedImages(viewOficio.id);
                   try {
-                    await exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent });
+                    await exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent, imagens: imgs.length > 0 ? imgs : undefined });
                   } catch (e: any) {
                     toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                   }
@@ -825,8 +826,9 @@ export default function MeusOficios() {
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewOficio) return;
+                  const imgs = await fetchSavedImages(viewOficio.id);
                   try {
-                    await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContent });
+                    await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContent, imagens: imgs.length > 0 ? imgs : undefined });
                   } catch (e: any) {
                     toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                   }
