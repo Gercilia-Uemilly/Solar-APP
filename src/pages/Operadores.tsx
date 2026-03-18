@@ -261,6 +261,33 @@ export default function Operadores() {
     });
   };
 
+  const handleApproveUser = async (userId: string) => {
+    const { error } = await supabase.from("profiles").update({
+      status: "aprovado",
+      aprovado_por: currentUser?.id,
+      aprovado_em: new Date().toISOString(),
+    }).eq("id", userId);
+    if (error) {
+      toast({ title: "Erro ao aprovar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Usuário aprovado!" });
+      fetchProfiles();
+    }
+  };
+
+  const handleBlockUser = async (userId: string) => {
+    const { error } = await supabase.from("profiles").update({ status: "bloqueado" }).eq("id", userId);
+    if (error) {
+      toast({ title: "Erro ao bloquear", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Usuário bloqueado." });
+      fetchProfiles();
+    }
+  };
+
+  const pendingProfiles = profiles.filter(p => p.status === "pendente");
+  const approvedProfiles = profiles.filter(p => p.status !== "pendente");
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
