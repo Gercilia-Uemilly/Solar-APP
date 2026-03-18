@@ -903,11 +903,33 @@ async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob>
   return blob;
 }
 
+// ── Build merged PDF blob (for Drive upload) ───────────────────────────────
+export async function buildMergedPdfBlob(data: OficioData): Promise<Blob> {
+  const wordBlob = await buildWordBlob(data);
+  const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
+
+  if (data.imagens && data.imagens.length > 0) {
+    const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
+    const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+    return new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+  }
+
+  return pdfBlob;
+}
+
 // ── Print via Word→PDF conversion ───────────────────────────────────────────
 export async function printOficioViaPdf(data: OficioData): Promise<void> {
-  let wordBlob = await buildWordBlob(data);
+  const wordBlob = await buildWordBlob(data);
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
-  const pdfUrl = URL.createObjectURL(pdfBlob);
+
+  let finalBlob = pdfBlob;
+  if (data.imagens && data.imagens.length > 0) {
+    const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
+    const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+    finalBlob = new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+  }
+
+  const pdfUrl = URL.createObjectURL(finalBlob);
   const printWindow = window.open(pdfUrl, "_blank");
   if (printWindow) {
     printWindow.addEventListener("afterprint", () => URL.revokeObjectURL(pdfUrl));
