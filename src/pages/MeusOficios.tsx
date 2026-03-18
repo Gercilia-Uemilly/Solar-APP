@@ -302,11 +302,14 @@ export default function MeusOficios() {
     setIsUploading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const accessToken = session?.access_token
+        || (await supabase.auth.refreshSession()).data.session?.access_token;
+
+      if (!accessToken) {
         toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive" });
         return;
       }
-      const authToken = session.access_token;
+      const authToken = accessToken;
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
