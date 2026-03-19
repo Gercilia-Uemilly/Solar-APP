@@ -493,6 +493,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         }));
       }
     }
+
+    // Keep last paragraph chained to "Atenciosamente" + signature block
+    const isLast = idx === styledParagraphs.length - 1;
     
     bodyParagraphs.push(new Paragraph({
       indent: isImageOnly ? undefined : { firstLine: 709 },
@@ -501,7 +504,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       spacing: isImageOnly 
         ? { before: 400, after: 400, line: lineSpacing }
         : { before: 0, after: 0, line: lineSpacing },
-      keepNext: isLastTwo,
+      keepNext: isLast,
+      keepLines: isLast,
     }));
   });
 
