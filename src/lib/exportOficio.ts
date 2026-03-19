@@ -471,10 +471,10 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Body paragraphs — handle both text runs and inline images
   const bodyParagraphs: Paragraph[] = [];
   styledParagraphs.forEach((runs, idx) => {
-    const isLastTwo = idx >= styledParagraphs.length - 2;
+    const shouldChainToClosing = idx >= Math.max(0, styledParagraphs.length - 2);
     const isImageOnly = runs.length > 0 && runs.every(r => 'image' in r);
     const children: (TextRun | ImageRun)[] = [];
-    
+
     for (const r of runs) {
       if ('image' in r) {
         children.push(new ImageRun({
@@ -495,18 +495,15 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       }
     }
 
-    // Keep last paragraph chained to "Atenciosamente" + signature block
-    const isLast = idx === styledParagraphs.length - 1;
-    
     bodyParagraphs.push(new Paragraph({
       indent: isImageOnly ? undefined : { firstLine: 709 },
       alignment: isImageOnly ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
       children,
-      spacing: isImageOnly 
+      spacing: isImageOnly
         ? { before: 400, after: 400, line: lineSpacing }
         : { before: 0, after: 0, line: lineSpacing },
-      keepNext: isLast,
-      keepLines: isLast,
+      keepNext: shouldChainToClosing,
+      keepLines: shouldChainToClosing,
     }));
   });
 
