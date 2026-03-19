@@ -620,6 +620,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               size: defaultFontSize,
             })],
             spacing: { before: 0, after: 0, line: lineSpacing },
+            keepNext: true,
+            keepLines: true,
           }),
         ] : []),
 
