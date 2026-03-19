@@ -869,6 +869,16 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
   return blob;
 }
 
+// ── Auto-update oficio status after export ──────────────────────────────────
+async function autoUpdateStatus(oficioId?: string, newStatus = "Exportado") {
+  if (!oficioId) return;
+  try {
+    await supabase.from("oficios").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", oficioId);
+  } catch (e) {
+    console.warn("[autoUpdateStatus] Falha ao atualizar status:", e);
+  }
+}
+
 // ── Export PDF ───────────────────────────────────────────────────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
@@ -888,6 +898,9 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     } else {
       saveAs(pdfBlob, `${fileName}.pdf`);
     }
+
+    // Auto-update status
+    await autoUpdateStatus((data as any).oficioId, "Exportado");
   } catch (e: any) {
     console.error("PDF conversion failed:", e);
     const message = e?.message || "Não foi possível gerar o PDF agora. Tente novamente em instantes.";
