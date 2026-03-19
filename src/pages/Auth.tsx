@@ -57,17 +57,16 @@ export default function Auth() {
           .single();
         const p = perfil as any;
         if (p?.usa_2fa) {
-          // Sign out current session first, then send email OTP
+          // Sign out current session, then send email OTP
           await supabase.auth.signOut();
           const { error: otpError } = await supabase.auth.signInWithOtp({
-            email: loginIdentifier.includes("@") ? loginIdentifier : (await supabase.rpc("get_email_by_username", { _username: loginIdentifier })).data || loginIdentifier,
+            email,
             options: { shouldCreateUser: false },
           });
           if (!otpError) {
-            const emailUsado = loginIdentifier.includes("@") ? loginIdentifier : (await supabase.rpc("get_email_by_username", { _username: loginIdentifier })).data || loginIdentifier;
-            sessionStorage.setItem("2fa_email", emailUsado);
+            sessionStorage.setItem("2fa_email", email);
             navigate("/verificar-sms");
-            const [local, domain] = emailUsado.split("@");
+            const [local, domain] = email.split("@");
             const masked = local.length > 2 ? local.slice(0, 2) + "***" : local + "***";
             toast({ title: `Código enviado para ${masked}@${domain}` });
             return;
