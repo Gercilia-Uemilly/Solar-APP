@@ -628,6 +628,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Atenciosamente,", font: defaultFontName, size: defaultFontSize })],
           spacing: { before: 240, after: 480, line: lineSpacing },
+          keepNext: true,
+          keepLines: true,
         }),
 
         // Signature image — NO borders
