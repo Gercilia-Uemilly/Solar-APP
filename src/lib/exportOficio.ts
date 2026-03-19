@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Footer, Header, PageNumber, BorderStyle } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Footer, Header, PageNumber } from "docx";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
@@ -471,10 +471,10 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Body paragraphs — handle both text runs and inline images
   const bodyParagraphs: Paragraph[] = [];
   styledParagraphs.forEach((runs, idx) => {
-    const isLastTwo = idx >= styledParagraphs.length - 2;
+    const shouldChainToClosing = idx >= Math.max(0, styledParagraphs.length - 2);
     const isImageOnly = runs.length > 0 && runs.every(r => 'image' in r);
     const children: (TextRun | ImageRun)[] = [];
-    
+
     for (const r of runs) {
       if ('image' in r) {
         children.push(new ImageRun({
@@ -495,18 +495,15 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       }
     }
 
-    // Keep last paragraph chained to "Atenciosamente" + signature block
-    const isLast = idx === styledParagraphs.length - 1;
-    
     bodyParagraphs.push(new Paragraph({
       indent: isImageOnly ? undefined : { firstLine: 709 },
       alignment: isImageOnly ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
       children,
-      spacing: isImageOnly 
+      spacing: isImageOnly
         ? { before: 400, after: 400, line: lineSpacing }
         : { before: 0, after: 0, line: lineSpacing },
-      keepNext: isLast,
-      keepLines: isLast,
+      keepNext: shouldChainToClosing,
+      keepLines: shouldChainToClosing,
     }));
   });
 
@@ -630,16 +627,15 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           }),
         ] : []),
 
-        // Atenciosamente — before: 240, after: 480, indent 1.25cm
+        // Atenciosamente + assinatura sempre juntos
         new Paragraph({
           indent: { firstLine: 709 },
           children: [new TextRun({ text: "Atenciosamente,", font: defaultFontName, size: defaultFontSize })],
-          spacing: { before: 240, after: 480, line: lineSpacing },
+          spacing: { before: 180, after: 180, line: lineSpacing },
           keepNext: true,
           keepLines: true,
         }),
 
-        // Signature image — NO borders
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
@@ -648,46 +644,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               transformation: { width: ASSINATURA_LARGURA, height: ASSINATURA_ALTURA },
               type: "png",
             }),
+            new TextRun({ text: "FABÃO", font: defaultFontName, size: defaultFontSize, bold: true, break: 1 }),
+            new TextRun({ text: "Vereador", font: defaultFontName, size: defaultFontSize, break: 1 }),
           ],
-          spacing: { before: 0, after: 0 },
-          keepNext: true,
-          keepLines: true,
-          border: {
-            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-          },
-        }),
-
-
-        // FABÃO — bold, centered, simple line spacing (240), NO borders
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: "FABÃO", font: defaultFontName, size: defaultFontSize, bold: true })],
-          spacing: { before: 0, after: 0, line: 240 },
-          keepNext: true,
-          keepLines: true,
-          border: {
-            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-          },
-        }),
-
-        // Vereador — centered, simple line spacing (240), NO borders
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: "Vereador", font: defaultFontName, size: defaultFontSize })],
           spacing: { before: 0, after: 0, line: 240 },
           keepLines: true,
-          border: {
-            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-          },
         }),
       ],
     }],
