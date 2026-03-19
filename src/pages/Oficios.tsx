@@ -443,7 +443,7 @@ export default function Oficios() {
       setOficioHistory([oficioText]);
       setHistoryIndex(0);
       setEditedResposta(data.resposta_cidadao || "");
-      if (data.assunto_sugerido && !assunto) setAssunto(data.assunto_sugerido);
+      if (data.assunto_sugerido) setAssunto(data.assunto_sugerido);
       if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
       if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
       setFormTab("preview");
