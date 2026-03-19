@@ -987,17 +987,66 @@ export default function Oficios() {
     imagens: await getImageFilesFromAnexos(),
   });
 
+  // Auto-open form on page load
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!autoOpenedRef.current && !showDialog && !editingOficioId && !(location.state as any)?.editOficio) {
+      autoOpenedRef.current = true;
+      setShowDialog(true);
+    }
+  }, []);
+
+  // Auto-save draft every 15 seconds when form has content
+  const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!showDialog || !user) return;
+    if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+    // Only auto-save if there's meaningful content
+    const hasContent = editedOficio.trim() || assunto.trim() || descricao.trim() || enderecoCompleto.trim();
+    if (!hasContent) return;
+    autoSaveRef.current = setTimeout(async () => {
+      // Need numero to save — auto-generate if missing
+      const saveNumero = numero || generateNextNumero();
+      if (!numero) setNumero(saveNumero);
+      const payload: Record<string, any> = {
+        numero: saveNumero || null,
+        assunto: assunto || "Sem assunto",
+        destinatario: destinatario || "",
+        status: "Rascunho",
+        conteudo: editedOficio || null,
+        resposta_cidadao: null,
+        secretaria_identificada: secretaria || null,
+        tipo_demanda: secretaria || null,
+        urgencia: prioridade === "Urgente" ? "urgente" : "normal",
+        linha_telefonica: linhaTelefonica || null,
+        codigo_z: origemOficio === "Zap Emprego" ? (codigoZ || null) : null,
+        origem: origemOficio || "WhatsApp Gabinete",
+        cargo_destinatario: cargoDestinatario || null,
+        local_demanda: localDemanda || null,
+        bairro: enderecoCompleto || bairro || null,
+        endereco_completo: enderecoCompleto || null,
+        solicitante: solicitante || null,
+        contato_solicitante: contatoSolicitante || null,
+        data_geracao: dataGeracao || null,
+        last_edited_by: user.id,
+        last_edited_by_name: profileName || user.user_metadata?.full_name || user.email || null,
+        last_edited_at: new Date().toISOString(),
+      };
+      if (editingOficioId) {
+        await supabase.from("oficios").update(payload).eq("id", editingOficioId);
+      } else {
+        const { data: insertData } = await supabase.from("oficios").insert({ ...payload, operador_nome: profileName || user.user_metadata?.full_name || user.email || null, author_id: user.id }).select("id").single();
+        if (insertData) {
+          setEditingOficioId(insertData.id);
+          if (insertData.id) await uploadLocalFiles(insertData.id);
+        }
+      }
+    }, 15000);
+    return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
+  }, [showDialog, editedOficio, assunto, descricao, enderecoCompleto, secretaria, destinatario, numero, solicitante, contatoSolicitante, bairro, cargoDestinatario, localDemanda, dataGeracao, prioridade, linhaTelefonica, codigoZ, origemOficio, editingOficioId, user]);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Novo Ofício</h1>
-          <p className="text-sm text-muted-foreground">Crie um novo ofício</p>
-        </div>
-        <Button onClick={() => { setNumero(generateNextNumero()); setShowDialog(true); }} className="bg-primary text-primary-foreground">
-          <Plus size={16} className="mr-1" /> Novo Ofício
-        </Button>
-      </div>
 
       {/* Create Dialog with Tabs */}
       <Dialog open={showDialog} onOpenChange={open => { if (!open) resetForm(); else setShowDialog(true); }}>
