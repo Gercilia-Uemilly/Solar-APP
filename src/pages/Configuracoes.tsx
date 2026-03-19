@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings, Save, Phone, CheckCircle2, XCircle, Loader2, Link2, Shield, ShieldCheck, ShieldOff } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 function AuditLogSection() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -45,91 +44,34 @@ function AuditLogSection() {
 function TwoFactorSection() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [celular, setCelular] = useState("");
   const [usa2fa, setUsa2fa] = useState(false);
-  const [celularVerificado, setCelularVerificado] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [aguardandoVerificacao, setAguardandoVerificacao] = useState(false);
-  const [codigo, setCodigo] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("celular, celular_verificado, usa_2fa" as any)
+      .select("usa_2fa" as any)
       .eq("id", user.id)
       .single()
       .then(({ data }: any) => {
         if (data) {
-          setCelular(data.celular || "");
           setUsa2fa(data.usa_2fa || false);
-          setCelularVerificado(data.celular_verificado || false);
         }
         setLoading(false);
       });
   }, [user]);
 
-  const formatarCelular = (raw: string) => {
-    const digits = raw.replace(/\D/g, "");
-    if (digits.startsWith("55")) return "+" + digits;
-    return "+55" + digits;
-  };
-
-  const ativar2FA = async () => {
-    if (!celular || celular.replace(/\D/g, "").length < 10) {
-      toast({ title: "Cadastre seu celular primeiro", variant: "destructive" });
-      return;
-    }
-    setSaving(true);
-    const celularFormatado = formatarCelular(celular);
-    const { error } = await supabase.auth.signInWithOtp({ phone: celularFormatado });
-    if (error) {
-      toast({ title: "Erro ao enviar SMS", description: error.message, variant: "destructive" });
-      setSaving(false);
-      return;
-    }
-    setAguardandoVerificacao(true);
-    toast({ title: "Código enviado! Digite para confirmar." });
-    setSaving(false);
-  };
-
-  const confirmarAtivacao = async () => {
-    if (codigo.length !== 6 || !user) return;
-    setSaving(true);
-    const celularFormatado = formatarCelular(celular);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: celularFormatado,
-      token: codigo,
-      type: "sms",
-    });
-    if (error) {
-      toast({ title: "Código inválido", description: error.message, variant: "destructive" });
-      setSaving(false);
-      return;
-    }
-    await supabase.from("profiles").update({
-      celular: celularFormatado,
-      celular_verificado: true,
-      usa_2fa: true,
-    } as any).eq("id", user.id);
-    setUsa2fa(true);
-    setCelularVerificado(true);
-    setAguardandoVerificacao(false);
-    setCodigo("");
-    toast({ title: "✅ 2FA ativado com sucesso!" });
-    setSaving(false);
-  };
-
-  const desativar2FA = async () => {
+  const toggle2FA = async () => {
     if (!user) return;
     setSaving(true);
+    const novoValor = !usa2fa;
     await supabase.from("profiles").update({
-      usa_2fa: false,
+      usa_2fa: novoValor,
     } as any).eq("id", user.id);
-    setUsa2fa(false);
-    setAguardandoVerificacao(false);
-    toast({ title: "2FA desativado" });
+    setUsa2fa(novoValor);
+    toast({ title: novoValor ? "✅ 2FA ativado! Você receberá um código por email ao fazer login." : "2FA desativado" });
     setSaving(false);
   };
 
@@ -141,20 +83,8 @@ function TwoFactorSection() {
         <ShieldCheck size={16} className="text-primary" /> Verificação em Duas Etapas (2FA)
       </h3>
       <p className="text-xs text-muted-foreground">
-        Ative para receber um código SMS ao fazer login. Mais segurança para sua conta.
+        Ative para receber um código de verificação por e-mail ao fazer login. Mais segurança para sua conta — 100% gratuito.
       </p>
-
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">Celular (com DDD)</label>
-        <Input
-          value={celular}
-          onChange={(e) => setCelular(e.target.value)}
-          placeholder="(34) 99999-9999"
-          className="bg-secondary border-border"
-          disabled={usa2fa && celularVerificado}
-        />
-        <p className="text-[10px] text-muted-foreground mt-1">Formato: (DDD) + número — será salvo como +5534999999999</p>
-      </div>
 
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Status:</span>
@@ -169,39 +99,18 @@ function TwoFactorSection() {
         )}
       </div>
 
-      {aguardandoVerificacao ? (
-        <div className="space-y-3 p-4 bg-secondary rounded-lg border border-border">
-          <p className="text-xs text-foreground font-medium">Digite o código recebido por SMS:</p>
-          <div className="flex justify-center">
-            <InputOTP maxLength={6} value={codigo} onChange={setCodigo}>
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-          <Button onClick={confirmarAtivacao} disabled={saving || codigo.length !== 6} className="w-full bg-primary text-primary-foreground">
-            {saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : null} Confirmar e Ativar
+      <div className="flex gap-2">
+        {usa2fa ? (
+          <Button variant="outline" onClick={toggle2FA} disabled={saving} className="border-border text-destructive hover:text-destructive">
+            <ShieldOff size={14} className="mr-1" /> Desativar 2FA
           </Button>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          {usa2fa ? (
-            <Button variant="outline" onClick={desativar2FA} disabled={saving} className="border-border text-destructive hover:text-destructive">
-              <ShieldOff size={14} className="mr-1" /> Desativar 2FA
-            </Button>
-          ) : (
-            <Button onClick={ativar2FA} disabled={saving} className="bg-primary text-primary-foreground">
-              {saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <ShieldCheck size={14} className="mr-1" />}
-              Ativar 2FA
-            </Button>
-          )}
-        </div>
-      )}
+        ) : (
+          <Button onClick={toggle2FA} disabled={saving} className="bg-primary text-primary-foreground">
+            {saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <ShieldCheck size={14} className="mr-1" />}
+            Ativar 2FA por Email
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

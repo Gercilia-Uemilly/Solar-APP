@@ -5,28 +5,34 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck, Mail } from "lucide-react";
 import logoSolar from "@/assets/logo-solar.png";
 
-export default function VerificarSMS() {
+export default function VerificarEmail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(60);
-  const [celularMasked, setCelularMasked] = useState("");
-  const [celular, setCelular] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailMasked, setEmailMasked] = useState("");
+  const [tentativas, setTentativas] = useState(0);
+  const [bloqueadoAte, setBloqueadoAte] = useState<Date | null>(null);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    // Get phone from sessionStorage (set during login)
-    const phone = sessionStorage.getItem("2fa_celular");
-    if (!phone) {
+    const pendingEmail = sessionStorage.getItem("2fa_email");
+    if (!pendingEmail) {
       navigate("/login");
       return;
     }
-    setCelular(phone);
-    setCelularMasked("****" + phone.slice(-4));
+    setEmail(pendingEmail);
+    // Mask email: ge***@gmail.com
+    const [local, domain] = pendingEmail.split("@");
+    const masked = local.length > 2
+      ? local.slice(0, 2) + "***"
+      : local + "***";
+    setEmailMasked(`${masked}@${domain}`);
 
     // Start cooldown
     cooldownRef.current = setInterval(() => {
@@ -48,17 +54,31 @@ export default function VerificarSMS() {
     if (code.length !== 6) return;
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone: celular,
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
         token: code,
-        type: "sms",
+        type: "email",
       });
       if (error) {
         toast({ title: "Código inválido ou expirado", description: error.message, variant: "destructive" });
         setLoading(false);
         return;
       }
-      sessionStorage.removeItem("2fa_celular");
+
+      // Check profile approval
+      if (data.user) {
+        const { data: perfil } = await supabase
+          .from("profiles")
+          .select("status")
+          .eq("id", data.user.id)
+          .single();
+        if (perfil?.status !== "aprovado") {
+          navigate("/aguardando-aprovacao");
+          return;
+        }
+      }
+
+      sessionStorage.removeItem("2fa_email");
       toast({ title: "✅ Acesso liberado!" });
       navigate("/");
     } catch (err: any) {
@@ -70,8 +90,32 @@ export default function VerificarSMS() {
 
   const reenviarCodigo = async () => {
     if (cooldown > 0) return;
+
+    // Rate limit: 3 attempts, then block 15 min
+    if (tentativas >= 3 && bloqueadoAte) {
+      const agora = new Date();
+      if (agora < bloqueadoAte) {
+        const minutos = Math.ceil((bloqueadoAte.getTime() - agora.getTime()) / 60000);
+        toast({ title: `Aguarde ${minutos} min para reenviar`, variant: "destructive" });
+        return;
+      }
+      // Reset after block expires
+      setTentativas(0);
+      setBloqueadoAte(null);
+    }
+
     try {
-      await supabase.auth.signInWithOtp({ phone: celular });
+      await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+
+      const novasTentativas = tentativas + 1;
+      setTentativas(novasTentativas);
+      if (novasTentativas >= 3) {
+        setBloqueadoAte(new Date(Date.now() + 15 * 60 * 1000));
+      }
+
       toast({ title: "Novo código enviado!" });
       setCooldown(60);
       cooldownRef.current = setInterval(() => {
@@ -94,9 +138,10 @@ export default function VerificarSMS() {
         <CardHeader className="text-center">
           <img src={logoSolar} alt="Solar" className="h-16 mx-auto mb-2" />
           <ShieldCheck size={32} className="mx-auto text-primary mb-2" />
-          <CardTitle className="text-foreground">Verificação em duas etapas</CardTitle>
+          <CardTitle className="text-foreground">Verificação de Segurança</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Digite o código enviado por SMS para o número {celularMasked}
+            <Mail size={14} className="inline mr-1" />
+            Enviamos um código para: <strong>{emailMasked}</strong>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -122,8 +167,9 @@ export default function VerificarSMS() {
             ✅ Verificar
           </Button>
 
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Não recebeu o código?</p>
+          <div className="text-center space-y-1">
+            <p className="text-xs text-muted-foreground">Válido por 10 minutos</p>
+            <p className="text-xs text-muted-foreground">Não recebeu o código?</p>
             <button
               onClick={reenviarCodigo}
               disabled={cooldown > 0}
