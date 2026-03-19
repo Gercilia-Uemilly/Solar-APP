@@ -33,6 +33,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     });
   }, [user]);
 
+  // Auto-show tutorial on first login
+  useEffect(() => {
+    if (!user) return;
+    const key = `tutorial_visto_${user.id}`;
+    if (!localStorage.getItem(key)) {
+      setTourOpen(true);
+      localStorage.setItem(key, "true");
+    }
+  }, [user]);
+
   useEffect(() => {
     if (isMobile) setMobileOpen(false);
   }, [children]);

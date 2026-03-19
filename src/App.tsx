@@ -33,6 +33,7 @@ const ChatInterno = lazy(() => import("./pages/ChatInterno"));
 const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
 const Modelos = lazy(() => import("./pages/Modelos"));
 const VerificarSMS = lazy(() => import("./pages/VerificarSMS"));
+const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -110,8 +111,9 @@ const AppRoutes = () => {
         <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>} />
         <Route path="/clipping" element={<ProtectedRoute><AppLayout><Clipping /></AppLayout></ProtectedRoute>} />
         <Route path="/sobre" element={<ProtectedRoute><AppLayout><Sobre /></AppLayout></ProtectedRoute>} />
-        <Route path="/whatsapp" element={<ProtectedRoute><AppLayout><WhatsAppConectar /></AppLayout></ProtectedRoute>} />
-        <Route path="/whatsapp-mensagens" element={<ProtectedRoute><AppLayout><WhatsAppMensagens /></AppLayout></ProtectedRoute>} />
+        <Route path="/numeracao" element={<ProtectedRoute><AppLayout><PainelNumeracao /></AppLayout></ProtectedRoute>} />
+        <Route path="/whatsapp" element={<AdminRoute><AppLayout><WhatsAppConectar /></AppLayout></AdminRoute>} />
+        <Route path="/whatsapp-mensagens" element={<AdminRoute><AppLayout><WhatsAppMensagens /></AppLayout></AdminRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

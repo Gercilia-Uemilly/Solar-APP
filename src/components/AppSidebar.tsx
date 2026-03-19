@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
   Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
-  Smartphone, MessagesSquare, BookOpen
+  Smartphone, MessagesSquare, BookOpen, Hash
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,17 +15,17 @@ const menuItems = [
   { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
   { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
   { label: "Modelos", icon: BookOpen, path: "/modelos", adminOnly: false },
+  { label: "Numeração", icon: Hash, path: "/numeracao", adminOnly: false },
   { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
   { label: "Chat", icon: MessageSquare, path: "/chat", adminOnly: false },
   { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
-  { label: "WhatsApp", icon: Smartphone, path: "/whatsapp", adminOnly: false },
-  { label: "Mensagens WA", icon: MessagesSquare, path: "/whatsapp-mensagens", adminOnly: false },
+  { label: "WhatsApp", icon: Smartphone, path: "/whatsapp", adminOnly: true },
+  { label: "Mensagens WA", icon: MessagesSquare, path: "/whatsapp-mensagens", adminOnly: true },
   { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
   { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
   { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
   { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },
 ];
-
 interface Props {
   collapsed: boolean;
   onToggle: () => void;
