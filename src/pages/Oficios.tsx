@@ -530,7 +530,6 @@ export default function Oficios() {
   const validateForm = () => {
     const errors: Record<string, boolean> = {};
     if (!numero.trim()) errors.numero = true;
-    if (!contatoSolicitante.trim()) errors.contatoSolicitante = true;
     return errors;
   };
 
