@@ -144,7 +144,13 @@ export default function Operadores() {
         body: { userId: viewProfile.id, newEmail: editEmail },
       });
       if (emailError) {
-        toast({ title: "Erro ao atualizar e-mail", description: emailError.message, variant: "destructive" });
+        let errorMessage = emailError.message;
+        const errorContext = (emailError as { context?: Response }).context;
+        if (errorContext?.json) {
+          const parsed = await errorContext.json().catch(() => null);
+          if (parsed?.error) errorMessage = parsed.error;
+        }
+        toast({ title: "Erro ao atualizar e-mail", description: errorMessage, variant: "destructive" });
         setSaving(false);
         return;
       }
