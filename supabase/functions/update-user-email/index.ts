@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     if (!userId || !newEmail) throw new Error("userId e newEmail são obrigatórios");
 
     // Update email in auth
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUser(userId, { email: newEmail, email_confirm: true });
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, { email: newEmail, email_confirm: true });
     if (authError) throw authError;
 
     // Update email in profiles table
