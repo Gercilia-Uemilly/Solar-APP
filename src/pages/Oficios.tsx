@@ -886,6 +886,7 @@ export default function Oficios() {
   }
 
   const buildExportData = (o: OficioRow) => ({
+    oficioId: o.id,
     numero: o.numero || "",
     destinatario: o.destinatario,
     assunto: o.assunto,
@@ -966,6 +967,7 @@ export default function Oficios() {
   }, [previewImageUrls]);
 
   const buildFormExportData = async (): Promise<OficioData> => ({
+    oficioId: editingOficioId || undefined,
     numero,
     destinatario,
     assunto,

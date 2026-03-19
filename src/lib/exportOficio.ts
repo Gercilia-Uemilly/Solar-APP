@@ -64,6 +64,7 @@ export interface OficioData {
   codigoZ?: string;
   contatoSolicitante?: string;
   descricaoAnexos?: string;
+  oficioId?: string;
   formatOptions?: {
     fontSize?: number;
     lineSpacing?: number;
@@ -493,6 +494,9 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         }));
       }
     }
+
+    // Keep last paragraph chained to "Atenciosamente" + signature block
+    const isLast = idx === styledParagraphs.length - 1;
     
     bodyParagraphs.push(new Paragraph({
       indent: isImageOnly ? undefined : { firstLine: 709 },
@@ -501,7 +505,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       spacing: isImageOnly 
         ? { before: 400, after: 400, line: lineSpacing }
         : { before: 0, after: 0, line: lineSpacing },
-      keepNext: isLastTwo,
+      keepNext: isLast,
+      keepLines: isLast,
     }));
   });
 
@@ -620,6 +625,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
               size: defaultFontSize,
             })],
             spacing: { before: 0, after: 0, line: lineSpacing },
+            keepNext: true,
+            keepLines: true,
           }),
         ] : []),
 
@@ -860,7 +867,21 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
   saveAs(blob, `${fileName}.docx`);
+
+  // Auto-update status
+  await autoUpdateStatus(data.oficioId, "Exportado");
+
   return blob;
+}
+
+// ── Auto-update oficio status after export ──────────────────────────────────
+async function autoUpdateStatus(oficioId?: string, newStatus = "Exportado") {
+  if (!oficioId) return;
+  try {
+    await supabase.from("oficios").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", oficioId);
+  } catch (e) {
+    console.warn("[autoUpdateStatus] Falha ao atualizar status:", e);
+  }
 }
 
 // ── Export PDF ───────────────────────────────────────────────────────────────
@@ -882,6 +903,9 @@ export async function exportToPDF(data: OficioData): Promise<void> {
     } else {
       saveAs(pdfBlob, `${fileName}.pdf`);
     }
+
+    // Auto-update status
+    await autoUpdateStatus((data as any).oficioId, "Exportado");
   } catch (e: any) {
     console.error("PDF conversion failed:", e);
     const message = e?.message || "Não foi possível gerar o PDF agora. Tente novamente em instantes.";

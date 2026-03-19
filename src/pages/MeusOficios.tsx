@@ -298,6 +298,7 @@ export default function MeusOficios() {
   };
 
   const buildExportData = (o: OficioRow) => ({
+    oficioId: o.id,
     numero: o.numero || "",
     destinatario: o.destinatario,
     assunto: o.assunto,
