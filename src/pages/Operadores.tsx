@@ -140,11 +140,16 @@ export default function Operadores() {
     
     // Update email if changed and is admin
     if (isAdmin && editEmail !== viewProfile.email && editEmail) {
-      const { error: emailError } = await supabase.functions.invoke("update-user-email", {
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke("update-user-email", {
         body: { userId: viewProfile.id, newEmail: editEmail },
       });
       if (emailError) {
         toast({ title: "Erro ao atualizar e-mail", description: emailError.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      if (emailResult?.error) {
+        toast({ title: "Erro ao atualizar e-mail", description: emailResult.error, variant: "destructive" });
         setSaving(false);
         return;
       }
