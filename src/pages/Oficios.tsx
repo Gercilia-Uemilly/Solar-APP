@@ -967,6 +967,7 @@ export default function Oficios() {
   }, [previewImageUrls]);
 
   const buildFormExportData = async (): Promise<OficioData> => ({
+    oficioId: editingOficioId || undefined,
     numero,
     destinatario,
     assunto,
