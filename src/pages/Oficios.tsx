@@ -539,7 +539,7 @@ export default function Oficios() {
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setFormTab("dados");
-      toast({ title: "Campos obrigatórios", description: "Preencha o número do ofício e o WhatsApp do solicitante.", variant: "destructive" });
+      toast({ title: "Campos obrigatórios", description: "Preencha o número do ofício.", variant: "destructive" });
       return;
     }
     setValidationErrors({});
