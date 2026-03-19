@@ -14,7 +14,8 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     // Verify caller is admin
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Não autenticado");
     const token = authHeader.replace("Bearer ", "");
     const { data: { user: caller } } = await supabaseAdmin.auth.getUser(token);
     if (!caller) throw new Error("Não autenticado");
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
     if (!userId || !newEmail) throw new Error("userId e newEmail são obrigatórios");
 
     // Update email in auth
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUser(userId, { email: newEmail, email_confirm: true });
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, { email: newEmail, email_confirm: true });
     if (authError) throw authError;
 
     // Update email in profiles table
@@ -40,7 +41,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    console.error("update-user-email error:", e);
+    return new Response(JSON.stringify({ error: e?.message || "Erro interno" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
