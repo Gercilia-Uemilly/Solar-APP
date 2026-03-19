@@ -47,24 +47,29 @@ export default function Auth() {
         return;
       }
 
-      // Check 2FA
+      // Check 2FA via Email OTP
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: perfil } = await supabase
           .from("profiles")
-          .select("celular, celular_verificado, usa_2fa" as any)
+          .select("usa_2fa" as any)
           .eq("id", user.id)
           .single();
         const p = perfil as any;
-        if (p?.usa_2fa && p?.celular) {
-          // Send SMS OTP
-          const { error: smsError } = await supabase.auth.signInWithOtp({
-            phone: p.celular,
+        if (p?.usa_2fa) {
+          // Sign out current session first, then send email OTP
+          await supabase.auth.signOut();
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email: loginIdentifier.includes("@") ? loginIdentifier : (await supabase.rpc("get_email_by_username", { _username: loginIdentifier })).data || loginIdentifier,
+            options: { shouldCreateUser: false },
           });
-          if (!smsError) {
-            sessionStorage.setItem("2fa_celular", p.celular);
+          if (!otpError) {
+            const emailUsado = loginIdentifier.includes("@") ? loginIdentifier : (await supabase.rpc("get_email_by_username", { _username: loginIdentifier })).data || loginIdentifier;
+            sessionStorage.setItem("2fa_email", emailUsado);
             navigate("/verificar-sms");
-            toast({ title: `Código enviado para ****${p.celular.slice(-4)}` });
+            const [local, domain] = emailUsado.split("@");
+            const masked = local.length > 2 ? local.slice(0, 2) + "***" : local + "***";
+            toast({ title: `Código enviado para ${masked}@${domain}` });
             return;
           }
         }
