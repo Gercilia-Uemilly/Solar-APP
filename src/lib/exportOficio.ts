@@ -867,6 +867,10 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
 
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
   saveAs(blob, `${fileName}.docx`);
+
+  // Auto-update status
+  await autoUpdateStatus(data.oficioId, "Exportado");
+
   return blob;
 }
 
