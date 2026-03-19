@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings, Save, Phone, CheckCircle2, XCircle, Loader2, Link2, Shield, ShieldCheck, ShieldOff } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 function AuditLogSection() {
   const [logs, setLogs] = useState<any[]>([]);
