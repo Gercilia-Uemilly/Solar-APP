@@ -17,7 +17,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "OPENAI_API_KEY não configurada" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      ):
     }
 
     const { oficio } = await req.json();
