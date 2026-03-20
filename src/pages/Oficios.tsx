@@ -1093,7 +1093,7 @@ export default function Oficios() {
                 <Select value={secretaria} onValueChange={setSecretaria}>
                   <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione a secretaria..." /></SelectTrigger>
                   <SelectContent>
-                    {secretariaOptions.map(s => <SelectItem key={s.label} value={s.label}>{s.label}</SelectItem>)}
+                    {LISTA_SECRETARIAS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
