@@ -265,6 +265,9 @@ Retorne JSON no formato:
   "sugestoes_melhoria": []
 }`;
     const userPrompt = `SECRETARIA/ÓRGÃO: ${secretariaDetectada}
+SECRETARIA/ÓRGÃO: ${secretariaDetectada}
+VOCATIVO OBRIGATÓRIO: ${vocativo}
+NOME DO ÓRGÃO NA CONCLUSÃO: ${nomeOrgao}
 DESTINATÁRIO: ${destinatario || "A identificar automaticamente"}
 DESCRIÇÃO DO PROBLEMA: ${descricao || "Não informado"}
 SOLICITANTE: ${solicitante || "moradores da região"}
