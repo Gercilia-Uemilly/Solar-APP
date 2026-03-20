@@ -9,55 +9,98 @@ const corsHeaders = {
 
 // Mapeamento completo de secretarias com palavras-chave para classificação automática
 const SECRETARIA_MAP: Record<string, string[]> = {
-  "Secretaria Municipal de Serviços Urbanos": [
+  "Serviços Urbanos": [
     "capina", "roçagem", "limpeza", "poda", "árvore", "galho", "mato", "iluminação",
     "poste", "lâmpada", "luz", "coleta", "lixo", "entulho", "bueiro", "boca de lobo",
     "calçada", "passeio", "pista de caminhada", "praça", "parque", "jardim"
   ],
-  "Secretaria Municipal de Obras e Infraestrutura": [
+  "Infraestrutura": [
     "buraco", "buracos", "asfalto", "pavimentação", "tapa-buraco", "tapa-buracos",
     "recapeamento", "erosão", "cratera", "obra", "infraestrutura", "ponte", "viaduto",
     "via", "rua danificada", "estrada"
   ],
-  "Secretaria Municipal de Saúde": [
+  "Saúde": [
     "saúde", "UBS", "hospital", "posto de saúde", "médico", "dengue", "fumacê",
     "epidemia", "vacina", "ambulância", "SAMU", "UPA"
   ],
-  "Secretaria Municipal de Trânsito e Transportes (SETTRAN)": [
+  "Trânsito e Transportes (SETTRAN)": [
     "trânsito", "semáforo", "sinalização", "faixa de pedestre", "lombada",
     "estacionamento", "ônibus", "transporte", "radar", "velocidade", "placa"
   ],
-  "Secretaria Municipal de Meio Ambiente e Sustentabilidade": [
+  "Gestão Ambiental e Sustentabilidade": [
     "meio ambiente", "ambiental", "desmatamento", "queimada", "poluição",
     "córrego", "nascente", "APP", "fauna", "flora", "animal"
   ],
-  "Secretaria Municipal de Educação": [
+  "Educação": [
     "escola", "educação", "creche", "EMEI", "EMEF", "professor", "ensino",
     "merenda", "transporte escolar"
   ],
-  "Secretaria Municipal de Assistência Social": [
+  "Desenvolvimento Social": [
     "assistência social", "CRAS", "CREAS", "vulnerabilidade", "moradia",
     "população de rua", "abrigo"
   ],
-  "Secretaria Municipal de Agronegócio": [
+  "Agronegócio": [
     "agronegócio", "rural", "agricultura", "fazenda", "zona rural",
     "estrada rural", "produtor"
   ],
-  "DMAE — Departamento Municipal de Água e Esgoto": [
+  "DMAE": [
     "água", "esgoto", "saneamento", "vazamento", "falta de água", "DMAE",
     "rede de esgoto", "tratamento", "abastecimento"
   ],
-  "Secretaria Municipal de Habitação": [
+  "Habitação": [
     "habitação", "moradia", "conjunto habitacional", "regularização fundiária",
     "terreno", "lote", "invasão"
   ],
-  "Secretaria Municipal de Cultura e Turismo": [
+  "Cultura e Turismo": [
     "cultura", "turismo", "evento", "teatro", "museu", "patrimônio histórico"
   ],
-  "Secretaria Municipal de Esportes e Lazer": [
-    "esporte", "lazer", "quadra", "campo", "ginásio", "piscina", "academia ao ar livre"
+  "Juventude": [
+    "esporte", "lazer", "quadra", "campo", "ginásio", "piscina", "academia ao ar livre", "juventude"
   ],
 };
+
+// Vocativos por secretaria/órgão (espelha oficioUtils.ts)
+const VOCATIVO_MAP: Record<string, string> = {
+  'ARESAN': 'Excelentíssimo(a) Senhor(a) Diretor(a) Presidente,',
+  'DMAE': 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,',
+  'FUTEL': 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,',
+  'IPREMU': 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,',
+  'EMAM': 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,',
+  'FERUB': 'Excelentíssimo(a) Senhor(a) Diretor(a),',
+  'PRODAUB': 'Excelentíssimo(a) Senhor(a) Diretor(a),',
+  'DETRAN-MG': 'Excelentíssimo(a) Senhor(a) Diretor(a),',
+  'PROCON': 'Excelentíssimo(a) Senhor(a) Superintendente,',
+  'HC/UFU': 'Prezados(as) Senhores(as),',
+  'DER-MG': 'Prezado(a) Senhor(a) Coordenador(a),',
+  'DNIT': 'Prezado(a) Senhor(a),',
+  'Polícia Militar (PMMG)': 'Senhor(a) Comandante,',
+  'Superintendência Regional de Saúde': 'Prezado(a) Senhor(a),',
+  'CEMIG': 'Prezado(a) Senhor(a),',
+  'Superintendência Regional de Ensino': 'Senhor(a) Diretor(a),',
+  'Ministério Público de Minas Gerais': 'Excelentíssimo(a) Senhor(a) Promotor(a) de Justiça,',
+};
+
+function getVocativoForSecretaria(secretaria: string): string {
+  return VOCATIVO_MAP[secretaria] || 'Excelentíssimo(a) Senhor(a) Secretário(a),';
+}
+
+function getNomeOrgaoForSecretaria(secretaria: string): string {
+  // Órgãos especiais
+  const orgaoMap: Record<string, string> = {
+    'DMAE': 'Departamento Municipal de Água e Esgoto',
+    'ARESAN': 'Agência de Regulação dos Serviços de Saneamento Básico de Uberlândia',
+    'FUTEL': 'Fundação Uberlandense do Turismo',
+    'IPREMU': 'Instituto de Previdência dos Servidores Públicos do Município de Uberlândia',
+    'EMAM': 'Empresa Municipal de Apoio e Manutenção',
+    'FERUB': 'Fundação de Excelência Rural de Uberlândia',
+  };
+  if (orgaoMap[secretaria]) return orgaoMap[secretaria];
+  // Secretarias municipais
+  if (!secretaria.includes('(') && !secretaria.includes('–')) {
+    return `Secretaria Municipal de ${secretaria}`;
+  }
+  return secretaria;
+}
 
 function detectSecretaria(text: string): string | null {
   const lower = text.toLowerCase();
