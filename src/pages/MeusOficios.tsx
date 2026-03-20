@@ -816,6 +816,20 @@ export default function MeusOficios() {
                   {saveStatus === "saved" && "✓ Salvo"}
                   {saveStatus === "error" && "✗ Erro ao salvar"}
                 </span>
+                <Button size="sm" variant="outline" className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10" disabled={revisaoLoading} onClick={() => {
+                  if (!viewOficio) return;
+                  revisarOficio({
+                    numero: viewOficio.numero || "",
+                    secretaria: (viewOficio as any).secretaria_identificada || "",
+                    destinatario: viewOficio.destinatario || "",
+                    assunto: viewOficio.assunto || "",
+                    endereco_completo: (viewOficio as any).endereco_completo || viewOficio.bairro || "",
+                    vocativo: getVocativo((viewOficio as any).secretaria_identificada || ""),
+                    conteudo: editedContent || viewOficio.conteudo || "",
+                  });
+                }}>
+                  {revisaoLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <SearchCheck size={14} className="mr-1" />} Revisar
+                </Button>
                 <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
                   <Save size={14} className="mr-1" /> Salvar
                 </Button>
