@@ -13,14 +13,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown, Package } from "lucide-react";
+import { Eye, Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown, Package, SearchCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
 import PreviewFormatToolbar, { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildMergedPdfBlob, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
-import { type OficioRow } from "@/lib/oficioUtils";
+import { type OficioRow, getVocativo } from "@/lib/oficioUtils";
+import RevisaoOficioModal from "@/components/RevisaoOficioModal";
+import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -61,6 +63,8 @@ export default function MeusOficios() {
   const [isExportingAll, setIsExportingAll] = useState(false);
   const TIPOS_ESPECIAIS = ["Requerimento", "Outro", "Zap"];
   const isEspecial = (o: OficioRow) => TIPOS_ESPECIAIS.some(t => (o.assunto || "").toLowerCase().includes(t.toLowerCase()) || ((o as any).tipo_demanda || "").toLowerCase().includes(t.toLowerCase()));
+  const { revisaoResult, revisaoLoading, revisaoOpen, setRevisaoOpen, revisarOficio, resetRevisao } = useRevisaoOficio();
+  const [pendingExportAction, setPendingExportAction] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -812,6 +816,20 @@ export default function MeusOficios() {
                   {saveStatus === "saved" && "✓ Salvo"}
                   {saveStatus === "error" && "✗ Erro ao salvar"}
                 </span>
+                <Button size="sm" variant="outline" className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10" disabled={revisaoLoading} onClick={() => {
+                  if (!viewOficio) return;
+                  revisarOficio({
+                    numero: viewOficio.numero || "",
+                    secretaria: (viewOficio as any).secretaria_identificada || "",
+                    destinatario: viewOficio.destinatario || "",
+                    assunto: viewOficio.assunto || "",
+                    endereco_completo: (viewOficio as any).endereco_completo || viewOficio.bairro || "",
+                    vocativo: getVocativo((viewOficio as any).secretaria_identificada || ""),
+                    conteudo: editedContent || viewOficio.conteudo || "",
+                  });
+                }}>
+                  {revisaoLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <SearchCheck size={14} className="mr-1" />} Revisar
+                </Button>
                 <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
                   <Save size={14} className="mr-1" /> Salvar
                 </Button>
@@ -890,6 +908,41 @@ export default function MeusOficios() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Revisão Modal */}
+      <RevisaoOficioModal
+        open={revisaoOpen}
+        onOpenChange={setRevisaoOpen}
+        resultado={revisaoResult}
+        loading={revisaoLoading}
+        onCorrigirCampo={(campo, correcao) => {
+          if (!viewOficio) return;
+          if (campo === "assunto") {
+            handleInlineFieldChange("assunto", correcao);
+          } else if (campo === "destinatario") {
+            handleInlineFieldChange("destinatario", correcao);
+          } else if (campo === "vocativo" || campo === "cargo_destinatario") {
+            handleInlineFieldChange("cargo_destinatario", correcao);
+          }
+        }}
+        onCorrigirTudo={() => {
+          if (!viewOficio || !revisaoResult?.erros) return;
+          for (const erro of revisaoResult.erros) {
+            if (!erro.correcao) continue;
+            if (erro.campo === "assunto") handleInlineFieldChange("assunto", erro.correcao);
+            else if (erro.campo === "destinatario") handleInlineFieldChange("destinatario", erro.correcao);
+            else if (erro.campo === "vocativo") handleInlineFieldChange("cargo_destinatario", erro.correcao);
+          }
+          toast({ title: "✅ Correções aplicadas!" });
+        }}
+        onExportarMesmoAssim={() => {
+          setRevisaoOpen(false);
+          if (pendingExportAction) {
+            pendingExportAction();
+            setPendingExportAction(null);
+          }
+        }}
+      />
     </div>
   );
 }

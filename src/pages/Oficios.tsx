@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen, SearchCheck } from "lucide-react";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,8 @@ import type { DemandaAnexo } from "@/types";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
+import RevisaoOficioModal from "@/components/RevisaoOficioModal";
+import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
@@ -99,6 +101,7 @@ export default function Oficios() {
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const { anexos, setAnexos, addFile: persistAddFile, removeFile: persistRemoveFile, addLocalFile, uploadLocalFiles, reset: resetAnexos } = useAnexos(editingOficioId);
   const [descricaoAnexos, setDescricaoAnexos] = useState("");
+  const { revisaoResult, revisaoLoading, revisaoOpen, setRevisaoOpen, revisarOficio } = useRevisaoOficio();
 
   // Version history for undo/redo
   const [oficioHistory, setOficioHistory] = useState<string[]>([]);
@@ -1301,6 +1304,19 @@ export default function Oficios() {
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
               <div className="flex gap-2 justify-end flex-wrap">
+                <Button size="sm" variant="outline" className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10" disabled={revisaoLoading} onClick={() => {
+                  revisarOficio({
+                    numero: numero || "",
+                    secretaria: secretaria || "",
+                    destinatario: destinatario || "",
+                    assunto: assunto || "",
+                    endereco_completo: enderecoCompleto || bairro || "",
+                    vocativo: getVocativo(secretaria || ""),
+                    conteudo: editedOficio || "",
+                  });
+                }}>
+                  {revisaoLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <SearchCheck size={14} className="mr-1" />} Revisar
+                </Button>
                 <Button size="sm" variant="default" onClick={() => handleCreate(false)}>
                   <Save size={14} className="mr-1" /> Salvar
                 </Button>
@@ -1494,6 +1510,29 @@ export default function Oficios() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Revisão Modal */}
+      <RevisaoOficioModal
+        open={revisaoOpen}
+        onOpenChange={setRevisaoOpen}
+        resultado={revisaoResult}
+        loading={revisaoLoading}
+        onCorrigirCampo={(campo, correcao) => {
+          if (campo === "assunto") setAssunto(correcao);
+          else if (campo === "destinatario") setDestinatario(correcao);
+          else if (campo === "vocativo") setCargoDestinatario(correcao);
+        }}
+        onCorrigirTudo={() => {
+          if (!revisaoResult?.erros) return;
+          for (const erro of revisaoResult.erros) {
+            if (!erro.correcao) continue;
+            if (erro.campo === "assunto") setAssunto(erro.correcao);
+            else if (erro.campo === "destinatario") setDestinatario(erro.correcao);
+            else if (erro.campo === "vocativo") setCargoDestinatario(erro.correcao);
+          }
+        }}
+        onExportarMesmoAssim={() => setRevisaoOpen(false)}
+      />
     </div>
   );
 }
