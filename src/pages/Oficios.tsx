@@ -355,12 +355,11 @@ export default function Oficios() {
     fetchProfile();
   }, [user]);
 
-  // When secretaria changes, auto-fill destinatario and cargo
+  // When secretaria changes, auto-fill destinatario and cargo from centralized config
   useEffect(() => {
-    const found = secretariaOptions.find(s => s.label === secretaria);
-    if (found && found.destinatario) {
-      setCargoDestinatario(found.destinatario);
-      setDestinatario("");
+    if (secretaria) {
+      setCargoDestinatario(getDestinatario(secretaria));
+      setDestinatario(getDestinatario(secretaria));
     }
   }, [secretaria]);
 
