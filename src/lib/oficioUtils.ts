@@ -3,12 +3,216 @@
  * Used by: exportOficio.ts, printOficio.ts, OficioPreview.tsx, Oficios.tsx, MeusOficios.tsx
  */
 
+// ═══════════════════════════════════════════════════════════
+// MAPEAMENTO OFICIAL DE SECRETARIAS, DESTINATÁRIOS E VOCATIVOS
+// ═══════════════════════════════════════════════════════════
+
+export interface SecretariaConfig {
+  destinatario: string;
+  vocativo: string;
+}
+
+export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
+  // ═══ SECRETARIAS MUNICIPAIS ═══
+  'Administração': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Administração',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Agronegócio': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Agronegócio',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Comunicação': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Comunicação',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Controladoria-Geral do Município': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Controladoria-Geral do Município',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Cultura e Turismo': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Cultura e Turismo',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Desenvolvimento Econômico e Inovação': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Desenvolvimento Econômico e Inovação',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Desenvolvimento Social': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Desenvolvimento Social',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Educação': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Educação',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Finanças': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Finanças',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Gestão Ambiental e Sustentabilidade': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Gestão Ambiental e Sustentabilidade',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Gestão Estratégica': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Gestão Estratégica',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Governo': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Governo',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Habitação': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Habitação',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Infraestrutura': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Infraestrutura',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Juventude': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Juventude',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Planejamento Urbano': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Planejamento Urbano',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Procuradoria-Geral do Município': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Procuradoria-Geral do Município',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Saúde': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Saúde',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Segurança Integrada': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Segurança Integrada',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Serviços Urbanos': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Serviços Urbanos',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+  'Trânsito e Transportes (SETTRAN)': {
+    destinatario: 'Ilmo(a). Sr(a). Secretário(a) Municipal de Trânsito e Transportes',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
+  },
+
+  // ═══ ÓRGÃOS PÚBLICOS ═══
+  'ARESAN': {
+    destinatario: 'Sr(a). Diretor(a) Presidente da Agência de Regulação dos Serviços de Saneamento Básico de Uberlândia (ARESAN)',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a) Presidente,'
+  },
+  'DMAE': {
+    destinatario: 'Ilmo(a). Sr(a). Diretor(a) Geral do Departamento Municipal de Água e Esgoto (DMAE)',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,'
+  },
+  'FUTEL': {
+    destinatario: 'Sr(a). Diretor(a) Geral da Fundação Uberlandense do Turismo (FUTEL)',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,'
+  },
+  'IPREMU': {
+    destinatario: 'Sr(a). Diretor(a) Geral do Instituto de Previdência dos Servidores Públicos do Município de Uberlândia (IPREMU)',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,'
+  },
+  'EMAM': {
+    destinatario: 'Sr(a). Diretor(a) Geral da Empresa Municipal de Apoio e Manutenção (EMAM)',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,'
+  },
+  'FERUB': {
+    destinatario: 'Sr(a). Diretor(a) da Fundação de Excelência Rural de Uberlândia (FERUB)',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a),'
+  },
+  'PRODAUB': {
+    destinatario: 'Sr(a). Diretor(a) da PRODAUB',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a),'
+  },
+  'DETRAN-MG': {
+    destinatario: 'Sr(a). Diretor(a) do Departamento Estadual de Trânsito de Minas Gerais (DETRAN-MG)',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a),'
+  },
+  'PROCON': {
+    destinatario: 'Sr(a). Superintendente do PROCON',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Superintendente,'
+  },
+  'HC/UFU': {
+    destinatario: 'Ilmo(a). Sr(a). Diretor(a) e Superintendente do Hospital de Clínicas da Universidade Federal de Uberlândia (HC/UFU)',
+    vocativo: 'Prezados(as) Senhores(as),'
+  },
+  'DER-MG': {
+    destinatario: 'Sr(a). Coordenador(a) do Departamento de Estradas de Rodagem de Minas Gerais (DER-MG) – 11ª Unidade Regional – Uberlândia',
+    vocativo: 'Prezado(a) Senhor(a) Coordenador(a),'
+  },
+  'DNIT': {
+    destinatario: 'Sr(a). Chefe de Serviço do Departamento Nacional de Infraestrutura de Transportes (DNIT) – Unidade Local de Uberlândia',
+    vocativo: 'Prezado(a) Senhor(a),'
+  },
+  'Polícia Militar (PMMG)': {
+    destinatario: 'Senhor(a) Comandante do Batalhão da Polícia Militar de Minas Gerais (PMMG)',
+    vocativo: 'Senhor(a) Comandante,'
+  },
+  'Superintendência Regional de Saúde': {
+    destinatario: 'Responsável legal da Superintendência Regional de Saúde',
+    vocativo: 'Prezado(a) Senhor(a),'
+  },
+  'CEMIG': {
+    destinatario: 'Responsável legal da CEMIG em Uberlândia',
+    vocativo: 'Prezado(a) Senhor(a),'
+  },
+  'Superintendência Regional de Ensino': {
+    destinatario: 'Senhor(a) Diretor(a) da Superintendência Regional de Ensino',
+    vocativo: 'Senhor(a) Diretor(a),'
+  },
+  'Ministério Público de Minas Gerais': {
+    destinatario: 'Exmo(a) Sr(a) Promotor(a) de Justiça do Ministério Público de Minas Gerais',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Promotor(a) de Justiça,'
+  },
+  // ═══ OUTROS ═══
+  'Prefeitura Municipal (Gabinete do Prefeito)': {
+    destinatario: 'Excelentíssimo(a) Senhor(a) Prefeito(a) Municipal',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Prefeito(a),'
+  },
+  'Câmara Municipal de Uberlândia': {
+    destinatario: 'Excelentíssimo(a) Senhor(a) Presidente da Câmara Municipal',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Presidente,'
+  },
+};
+
+/** Ordered list of all secretaria keys for select dropdowns */
+export const LISTA_SECRETARIAS = Object.keys(SECRETARIAS_CONFIG);
+
+/** Get destinatario string for a secretaria key */
+export const getDestinatario = (secretaria: string): string => {
+  return SECRETARIAS_CONFIG[secretaria]?.destinatario ||
+    `Ilmo(a). Sr(a). Secretário(a) Municipal de ${secretaria}`;
+};
+
+/** Get vocativo string for a secretaria key */
+export const getVocativo = (secretaria: string): string => {
+  return SECRETARIAS_CONFIG[secretaria]?.vocativo ||
+    'Excelentíssimo(a) Senhor(a) Secretário(a),';
+};
+
+/** Extract the organ name from a secretaria key (for AI conclusion text) */
+export const getNomeOrgao = (secretaria: string): string => {
+  const dest = SECRETARIAS_CONFIG[secretaria]?.destinatario || '';
+  if (dest.includes('Municipal de ')) {
+    return 'Secretaria Municipal de ' + dest.split('Municipal de ')[1];
+  }
+  return secretaria;
+};
+
+// ═══════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
 /** Strip any "Ofício GVF n° " prefix already in the numero string */
 export function cleanNumero(raw: string): string {
   return raw.replace(/^(Ofício GVF n°\s*)+/i, "").trim();
 }
 
-/** Build vocativo based on cargo/role */
+/** Build vocativo based on cargo/role — DEPRECATED: prefer getVocativo(secretaria) */
 export function buildVocativo(cargo?: string): string {
   if (!cargo) return "Excelentíssimo(a) Senhor(a) Secretário(a),";
   const lower = cargo.toLowerCase();
