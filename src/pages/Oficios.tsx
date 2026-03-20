@@ -29,6 +29,7 @@ import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 
+  const { revisaoResult, revisaoLoading, revisaoOpen, setRevisaoOpen, revisarOficio } = useRevisaoOficio();
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
 
