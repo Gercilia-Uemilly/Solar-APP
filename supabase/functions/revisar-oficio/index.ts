@@ -12,7 +12,7 @@ serve(async (req) => {
 
   try {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    
+
     if (!OPENAI_API_KEY) {
       return new Response(
         JSON.stringify({ error: "OPENAI_API_KEY não configurada" }),
@@ -22,26 +22,34 @@ serve(async (req) => {
 
     const { oficio } = await req.json();
 
-    const systemPrompt = `Você é revisor de ofícios parlamentares
-do gabinete do Vereador Fabão em Uberlândia-MG.
+    if (!oficio) {
+      return new Response(
+        JSON.stringify({ error: "Dados do ofício não informados" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-Analise o ofício e retorne APENAS JSON válido sem markdown.
+    const systemPrompt = `Você é revisor de ofícios parlamentares do gabinete do Vereador Fabão em Uberlândia-MG.
+
+Analise o ofício e retorne APENAS JSON válido sem markdown nem texto adicional.
 
 Verificar:
-1. ASSUNTO: formato "Solicitação de X – Local Y", máximo 80 caracteres
+1. ASSUNTO: formato "Solicitação de X – Local Y", máximo 80 caracteres, sem endereço completo
 2. DESTINATÁRIO: bate com a secretaria selecionada?
 3. VOCATIVO: correto para o destinatário?
-   Secretarias → "Excelentíssimo(a) Senhor(a) Secretário(a),"
-   DMAE → "Excelentíssimo(a) Senhor(a) Diretor(a),"
+   - Secretarias municipais → "Excelentíssimo(a) Senhor(a) Secretário(a),"
+   - DMAE/FUTEL/IPREMU/EMAM → "Excelentíssimo(a) Senhor(a) Diretor(a) Geral,"
+   - Ministério Público → "Excelentíssimo(a) Senhor(a) Promotor(a) de Justiça,"
+   - Polícia Militar → "Senhor(a) Comandante,"
 4. ENDEREÇO: mencionado no primeiro parágrafo?
 5. TEXTO: palavras repetidas ou frases duplicadas?
-6. ERROS GRAMATICAIS: erros óbvios de português
-7. CAMPOS VAZIOS: assunto, secretaria ou endereço em branco?
+6. GRAMÁTICA: erros óbvios de português
+7. CAMPOS VAZIOS: assunto, secretaria ou endereço em branco ou "não informado"?
 8. NÚMERO: formato correto "XXX/2026"?
-9. CONCLUSÃO: termina com a frase padrão do gabinete?
+9. CONCLUSÃO: termina com frase padrão do gabinete?
 10. NOME DO ÓRGÃO: nome na conclusão bate com a secretaria?
 
-Retornar JSON exatamente neste formato:
+Retornar APENAS este JSON sem nenhum texto fora dele:
 {
   "aprovado": true,
   "pontuacao": 85,
@@ -57,7 +65,8 @@ Retornar JSON exatamente neste formato:
   "resumo": "texto curto dizendo se está ok ou não"
 }
 
-gravidade pode ser: "erro" | "aviso" | "sugestao"`;
+gravidade: "erro" | "aviso" | "sugestao"
+Se não houver erros, retornar erros como array vazio [].`;
 
     const userPrompt = `Revise este ofício:
 
@@ -93,17 +102,29 @@ ${oficio.conteudo || "vazio"}`;
 
     if (!response.ok) {
       const erro = await response.text();
-      console.error("OpenAI error:", erro);
+      console.error("OpenAI error:", response.status, erro);
       return new Response(
-        JSON.stringify({ error: "Erro ao revisar ofício" }),
+        JSON.stringify({ error: "Erro ao chamar OpenAI: " + response.status }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    const texto = data.choices[0].message.content;
-    const cleaned = texto.replace(/```json/g, "").replace(/```/g, "").trim();
-    const resultado = JSON.parse(cleaned);
+    const texto = data.choices?.[0]?.message?.content || "";
+    const cleaned = texto.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+
+    let resultado;
+    try {
+      resultado = JSON.parse(cleaned);
+    } catch (e) {
+      console.error("Erro ao parsear resposta:", cleaned);
+      resultado = {
+        aprovado: true,
+        pontuacao: 70,
+        erros: [],
+        resumo: "Não foi possível analisar. Verifique manualmente.",
+      };
+    }
 
     return new Response(JSON.stringify(resultado), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -116,9 +137,9 @@ ${oficio.conteudo || "vazio"}`;
         aprovado: true,
         pontuacao: 0,
         erros: [],
-        resumo: "Erro ao processar revisão: " + error.message,
+        resumo: "Erro interno: " + (error?.message || "desconhecido"),
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
