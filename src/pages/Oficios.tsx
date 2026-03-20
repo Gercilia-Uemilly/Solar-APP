@@ -1510,6 +1510,29 @@ export default function Oficios() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Revisão Modal */}
+      <RevisaoOficioModal
+        open={revisaoOpen}
+        onOpenChange={setRevisaoOpen}
+        resultado={revisaoResult}
+        loading={revisaoLoading}
+        onCorrigirCampo={(campo, correcao) => {
+          if (campo === "assunto") setAssunto(correcao);
+          else if (campo === "destinatario") setDestinatario(correcao);
+          else if (campo === "vocativo") setCargoDestinatario(correcao);
+        }}
+        onCorrigirTudo={() => {
+          if (!revisaoResult?.erros) return;
+          for (const erro of revisaoResult.erros) {
+            if (!erro.correcao) continue;
+            if (erro.campo === "assunto") setAssunto(erro.correcao);
+            else if (erro.campo === "destinatario") setDestinatario(erro.correcao);
+            else if (erro.campo === "vocativo") setCargoDestinatario(erro.correcao);
+          }
+        }}
+        onExportarMesmoAssim={() => setRevisaoOpen(false)}
+      />
     </div>
   );
 }
