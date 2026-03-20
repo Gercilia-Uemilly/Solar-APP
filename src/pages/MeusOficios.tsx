@@ -908,6 +908,41 @@ export default function MeusOficios() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Revisão Modal */}
+      <RevisaoOficioModal
+        open={revisaoOpen}
+        onOpenChange={setRevisaoOpen}
+        resultado={revisaoResult}
+        loading={revisaoLoading}
+        onCorrigirCampo={(campo, correcao) => {
+          if (!viewOficio) return;
+          if (campo === "assunto") {
+            handleInlineFieldChange("assunto", correcao);
+          } else if (campo === "destinatario") {
+            handleInlineFieldChange("destinatario", correcao);
+          } else if (campo === "vocativo" || campo === "cargo_destinatario") {
+            handleInlineFieldChange("cargo_destinatario", correcao);
+          }
+        }}
+        onCorrigirTudo={() => {
+          if (!viewOficio || !revisaoResult?.erros) return;
+          for (const erro of revisaoResult.erros) {
+            if (!erro.correcao) continue;
+            if (erro.campo === "assunto") handleInlineFieldChange("assunto", erro.correcao);
+            else if (erro.campo === "destinatario") handleInlineFieldChange("destinatario", erro.correcao);
+            else if (erro.campo === "vocativo") handleInlineFieldChange("cargo_destinatario", erro.correcao);
+          }
+          toast({ title: "✅ Correções aplicadas!" });
+        }}
+        onExportarMesmoAssim={() => {
+          setRevisaoOpen(false);
+          if (pendingExportAction) {
+            pendingExportAction();
+            setPendingExportAction(null);
+          }
+        }}
+      />
     </div>
   );
 }
