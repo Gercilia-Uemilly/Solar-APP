@@ -1304,6 +1304,19 @@ export default function Oficios() {
             {/* TAB: PREVIEW */}
             <TabsContent value="preview" className="space-y-3 mt-4">
               <div className="flex gap-2 justify-end flex-wrap">
+                <Button size="sm" variant="outline" className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10" disabled={revisaoLoading} onClick={() => {
+                  revisarOficio({
+                    numero: numero || "",
+                    secretaria: secretaria || "",
+                    destinatario: destinatario || "",
+                    assunto: assunto || "",
+                    endereco_completo: enderecoCompleto || bairro || "",
+                    vocativo: getVocativo(secretaria || ""),
+                    conteudo: editedOficio || "",
+                  });
+                }}>
+                  {revisaoLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <SearchCheck size={14} className="mr-1" />} Revisar
+                </Button>
                 <Button size="sm" variant="default" onClick={() => handleCreate(false)}>
                   <Save size={14} className="mr-1" /> Salvar
                 </Button>
