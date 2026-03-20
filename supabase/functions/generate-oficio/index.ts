@@ -131,17 +131,14 @@ serve(async (req) => {
 
     // Detectar secretaria automaticamente se não informada
     const textoCompleto = `${descricao || ""} ${assunto || ""} ${bairro || ""} ${local || ""}`;
-    const secretariaDetectada = tipo || detectSecretaria(textoCompleto) || "Secretaria Municipal de Serviços Urbanos";
+    const secretariaDetectada = tipo || detectSecretaria(textoCompleto) || "Serviços Urbanos";
 
-    const nomeOrgao = {
-      'DMAE': 'Departamento Municipal de Água e Esgoto',
-      'DMAE — Departamento Municipal de Água e Esgoto': 'Departamento Municipal de Água e Esgoto',
-      'UFU — Universidade Federal de Uberlândia': 'Universidade Federal de Uberlândia',
-      'Secretaria Municipal de Trânsito e Transportes (SETTRAN)': 'Secretaria Municipal de Trânsito e Transportes',
-    }[secretariaDetectada] || secretariaDetectada || 'órgão competente';
+    const nomeOrgao = getNomeOrgaoForSecretaria(secretariaDetectada);
+    const vocativo = getVocativoForSecretaria(secretariaDetectada);
 
     // Conclusão adaptada ao órgão - seguindo exatamente o modelo de referência
-    const conclusao = `Espero que ${nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Universidade') ? 'o' : 'a'} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
+    const artigo = nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Instituto') || nomeOrgao.startsWith('Hospital') ? 'o' : 'a';
+    const conclusao = `Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
 
     const SYSTEM_PROMPT = `Você é redator parlamentar do gabinete do Vereador Fabão em Uberlândia-MG.
 
