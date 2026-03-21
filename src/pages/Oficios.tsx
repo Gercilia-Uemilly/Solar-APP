@@ -1014,6 +1014,20 @@ export default function Oficios() {
   return (
     <div className="space-y-6">
 
+      {/* Header with New button */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-foreground">Ofícios</h1>
+        <Button
+          onClick={() => {
+            resetForm();
+            setShowDialog(true);
+          }}
+          className="gap-1.5"
+        >
+          <Plus size={16} /> Novo Ofício
+        </Button>
+      </div>
+
       {/* Create Dialog with Tabs */}
       <Dialog open={showDialog} onOpenChange={open => { if (!open) resetForm(); else setShowDialog(true); }}>
         <DialogContent className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-3 sm:p-6">
