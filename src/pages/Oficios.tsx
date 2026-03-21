@@ -687,6 +687,13 @@ export default function Oficios() {
     setKbSuggestions([]);
     setShowSuggestions(false);
     setAppliedSuggestionId(null);
+
+    // Force release focus and body scroll
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    document.body.style.overflow = 'auto';
+    document.body.style.pointerEvents = 'auto';
   };
 
   const handleDelete = async (id: string) => {
@@ -947,13 +954,12 @@ export default function Oficios() {
     imagens: await getImageFilesFromAnexos(),
   });
 
-  // Auto-open form on page load
-  const autoOpenedRef = useRef(false);
+  // Cleanup body styles on unmount
   useEffect(() => {
-    if (!autoOpenedRef.current && !showDialog && !editingOficioId && !(location.state as any)?.editOficio) {
-      autoOpenedRef.current = true;
-      setShowDialog(true);
-    }
+    return () => {
+      document.body.style.overflow = 'auto';
+      document.body.style.pointerEvents = 'auto';
+    };
   }, []);
 
   // Auto-save draft every 15 seconds when form has content

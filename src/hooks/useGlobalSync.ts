@@ -11,33 +11,48 @@ export function useGlobalSync() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const channels = [
-      supabase
-        .channel("global-profiles")
-        .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-          queryClient.invalidateQueries({ queryKey: ["profiles"] });
-        })
-        .subscribe(),
+    const channel = supabase
+      .channel("solar-sync-global-v2")
 
-      supabase
-        .channel("global-app-settings")
-        .on("postgres_changes", { event: "*", schema: "public", table: "app_settings" }, () => {
-          queryClient.invalidateQueries({ queryKey: ["app_settings"] });
-          queryClient.invalidateQueries({ queryKey: ["configuracoes"] });
-        })
-        .subscribe(),
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["profiles"] });
+        queryClient.invalidateQueries({ queryKey: ["operadores"] });
+      })
 
-      supabase
-        .channel("global-user-roles")
-        .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, () => {
-          queryClient.invalidateQueries({ queryKey: ["user_roles"] });
-          queryClient.invalidateQueries({ queryKey: ["profiles"] });
-        })
-        .subscribe(),
-    ];
+      .on("postgres_changes", { event: "*", schema: "public", table: "app_settings" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["app_settings"] });
+        queryClient.invalidateQueries({ queryKey: ["configuracoes"] });
+      })
+
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["user_roles"] });
+        queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      })
+
+      .on("postgres_changes", { event: "*", schema: "public", table: "oficios" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["oficios"] });
+      })
+
+      .on("postgres_changes", { event: "*", schema: "public", table: "oficio_numeracao" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["numeracao"] });
+      })
+
+      .on("postgres_changes", { event: "*", schema: "public", table: "mensagens" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["mensagens"] });
+      })
+
+      .on("postgres_changes", { event: "*", schema: "public", table: "scripts" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["scripts"] });
+      })
+
+      .on("postgres_changes", { event: "*", schema: "public", table: "base_conhecimento" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["base_conhecimento"] });
+      })
+
+      .subscribe();
 
     return () => {
-      channels.forEach((ch) => supabase.removeChannel(ch));
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 }
