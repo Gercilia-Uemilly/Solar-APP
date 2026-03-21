@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import AppSidebar from "./AppSidebar";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +10,8 @@ import GuidedTour from "@/components/GuidedTour";
 import SupportDrawer from "@/components/SupportDrawer";
 import AiSupportChat from "@/components/AiSupportChat";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useLocation } from "react-router-dom";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -21,6 +23,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profileTel, setProfileTel] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     if (!user) return;
@@ -33,7 +36,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     });
   }, [user]);
 
-  // Auto-show tutorial on first login
+  // Auto-show tutorial only on first login ever
   useEffect(() => {
     if (!user) return;
     const key = `tutorial_visto_${user.id}`;
@@ -46,6 +49,67 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isMobile) setMobileOpen(false);
   }, [children]);
+
+  // Chat notifications via realtime
+  const chatNotifSetupRef = useRef(false);
+  useEffect(() => {
+    if (!user || chatNotifSetupRef.current) return;
+    chatNotifSetupRef.current = true;
+
+    const playBeep = () => {
+      try {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.value = 0.15;
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } catch {}
+    };
+
+    // Direct messages to this user
+    const chDM = supabase
+      .channel(`chat-notif-dm-${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'mensagens',
+        filter: `para_user_id=eq.${user.id}`
+      }, (payload) => {
+        const msg = payload.new as any;
+        if (msg.de_user_id === user.id) return;
+        if (location.pathname === '/chat') return;
+        toast(`💬 Nova mensagem: ${(msg.conteudo || "").substring(0, 60)}`, { duration: 5000 });
+        playBeep();
+      })
+      .subscribe();
+
+    // General channel messages (para_user_id is null)
+    const chGeral = supabase
+      .channel(`chat-notif-geral-${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'mensagens',
+        filter: 'para_user_id=is.null'
+      }, (payload) => {
+        const msg = payload.new as any;
+        if (msg.de_user_id === user.id) return;
+        if (location.pathname === '/chat') return;
+        toast(`📢 Chat geral: ${(msg.conteudo || "").substring(0, 60)}`, { duration: 4000 });
+        playBeep();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(chDM);
+      supabase.removeChannel(chGeral);
+      chatNotifSetupRef.current = false;
+    };
+  }, [user, location.pathname]);
 
   const sidebarWidth = isMobile ? 0 : (collapsed ? 56 : 220);
 
