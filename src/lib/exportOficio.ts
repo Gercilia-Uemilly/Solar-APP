@@ -832,7 +832,7 @@ export async function exportToWord(data: OficioData): Promise<Blob> {
     blob = await addAnexoImages(blob, data.imagens);
   }
 
-  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
   saveAs(blob, `${fileName}.docx`);
 
   // Auto-update status
@@ -853,7 +853,7 @@ async function autoUpdateStatus(oficioId?: string, newStatus = "Exportado") {
 
 // ── Export PDF ───────────────────────────────────────────────────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
-  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+  const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
 
   // Build Word without anexos embedded (we'll merge PDFs separately)
   const wordBlob = await buildWordBlob(data);
