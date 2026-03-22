@@ -316,6 +316,7 @@ export default function MeusOficios() {
     codigoZ: (o as any).codigo_z || undefined,
     contatoSolicitante: o.contato_solicitante || undefined,
     secretaria: (o as any).secretaria_identificada || undefined,
+    origem: (o as any).origem || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
