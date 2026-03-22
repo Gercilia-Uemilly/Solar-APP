@@ -946,6 +946,7 @@ export default function Oficios() {
     secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
     codigoZ: origemOficio === "Zap" ? (codigoZ || undefined) : undefined,
     contatoSolicitante: contatoSolicitante || undefined,
+    origem: origemOficio || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
