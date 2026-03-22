@@ -54,9 +54,25 @@ serve(async (req) => {
     if (!response.ok) {
       const erro = await response.text();
       console.error("OpenAI error:", response.status, erro);
+
+      if (response.status === 402 || response.status === 429) {
+        return new Response(
+          JSON.stringify({
+            aprovado: true,
+            erros: [],
+            resumo: "Créditos de IA esgotados. Você pode exportar normalmente.",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: "Erro OpenAI: " + response.status }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          aprovado: true,
+          erros: [],
+          resumo: "Revisão indisponível no momento. Você pode exportar normalmente.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
