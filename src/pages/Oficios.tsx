@@ -513,8 +513,8 @@ export default function Oficios() {
       tipo_demanda: secretaria || aiResult?.tipo_demanda || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      codigo_z: origemOficio === "Zap Emprego" ? (codigoZ || null) : null,
-      origem: origemOficio || "WhatsApp Gabinete",
+      codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
+      origem: origemOficio || "Outros",
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: cargoDestinatario || null,
       local_demanda: localDemanda || null,
@@ -669,7 +669,7 @@ export default function Oficios() {
     setDescricao("");
     setPrioridade("Normal");
     setCodigoZ("");
-    setOrigemOficio("WhatsApp Gabinete");
+    setOrigemOficio("Requerimento");
     setLinhaTelefonica("");
     setFormTab("dados");
     setAiResult(null);
@@ -944,7 +944,7 @@ export default function Oficios() {
     telefone: linhaTelefonica || undefined,
     solicitante: solicitante || undefined,
     secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
-    codigoZ: origemOficio === "Zap Emprego" ? (codigoZ || undefined) : undefined,
+    codigoZ: origemOficio === "Zap" ? (codigoZ || undefined) : undefined,
     contatoSolicitante: contatoSolicitante || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
@@ -996,8 +996,8 @@ export default function Oficios() {
         tipo_demanda: secretaria || null,
         urgencia: prioridade === "Urgente" ? "urgente" : "normal",
         linha_telefonica: linhaTelefonica || null,
-        codigo_z: origemOficio === "Zap Emprego" ? (codigoZ || null) : null,
-        origem: origemOficio || "WhatsApp Gabinete",
+        codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
+        origem: origemOficio || "Outros",
         cargo_destinatario: cargoDestinatario || null,
         local_demanda: localDemanda || null,
         bairro: enderecoCompleto || bairro || null,
@@ -1092,7 +1092,7 @@ export default function Oficios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Origem da Demanda</label>
-                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap Emprego") setCodigoZ(""); }}>
+                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap") setCodigoZ(""); }}>
                     <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Requerimento">Requerimento</SelectItem>
@@ -1368,8 +1368,8 @@ export default function Oficios() {
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (origemOficio === "Zap Emprego" && !codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap Emprego.", variant: "destructive" });
+                  if (origemOficio === "Zap" && !codigoZ) {
+                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap.", variant: "destructive" });
                     setFormTab("dados");
                     return;
                   }
