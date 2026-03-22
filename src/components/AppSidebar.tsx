@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
   Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const menuItems = [
   { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
-  { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false },
+  { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false, action: "openNew" },
   { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
   { label: "Modelos", icon: BookOpen, path: "/modelos", adminOnly: false },
   { label: "Numeração", icon: Hash, path: "/numeracao", adminOnly: false },
@@ -35,6 +35,7 @@ interface Props {
 
 export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupport }: Props) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadChat, setUnreadChat] = useState(0);
@@ -104,10 +105,21 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
             : item.path === "/chat" && unreadChat > 0
             ? unreadChat
             : 0;
+          const handleClick = (e: React.MouseEvent) => {
+            if ((item as any).action === "openNew") {
+              e.preventDefault();
+              document.body.style.overflow = 'auto';
+              document.body.style.pointerEvents = 'auto';
+              if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+              navigate(item.path, { state: { openNew: true, ts: Date.now() } });
+            }
+          };
           return (
             <Link
-              key={item.path}
+              key={item.path + ((item as any).action || "")}
               to={item.path}
+              state={(item as any).action === "openNew" ? { openNew: true, ts: Date.now() } : undefined}
+              onClick={handleClick}
               title={collapsed ? item.label : undefined}
               className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] transition-all duration-150 ${
                 isActive

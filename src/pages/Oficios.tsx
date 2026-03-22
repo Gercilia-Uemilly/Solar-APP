@@ -513,8 +513,8 @@ export default function Oficios() {
       tipo_demanda: secretaria || aiResult?.tipo_demanda || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      codigo_z: origemOficio === "Zap Emprego" ? (codigoZ || null) : null,
-      origem: origemOficio || "WhatsApp Gabinete",
+      codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
+      origem: origemOficio || "Outros",
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: cargoDestinatario || null,
       local_demanda: localDemanda || null,
@@ -669,7 +669,7 @@ export default function Oficios() {
     setDescricao("");
     setPrioridade("Normal");
     setCodigoZ("");
-    setOrigemOficio("WhatsApp Gabinete");
+    setOrigemOficio("Requerimento");
     setLinhaTelefonica("");
     setFormTab("dados");
     setAiResult(null);
@@ -944,8 +944,9 @@ export default function Oficios() {
     telefone: linhaTelefonica || undefined,
     solicitante: solicitante || undefined,
     secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
-    codigoZ: origemOficio === "Zap Emprego" ? (codigoZ || undefined) : undefined,
+    codigoZ: origemOficio === "Zap" ? (codigoZ || undefined) : undefined,
     contatoSolicitante: contatoSolicitante || undefined,
+    origem: origemOficio || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -961,6 +962,17 @@ export default function Oficios() {
       document.body.style.pointerEvents = 'auto';
     };
   }, []);
+
+  // Auto-open dialog when navigated with openNew state from sidebar
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.openNew) {
+      resetForm();
+      setShowDialog(true);
+      // Clear the state so it doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Auto-save draft every 15 seconds when form has content
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -985,8 +997,8 @@ export default function Oficios() {
         tipo_demanda: secretaria || null,
         urgencia: prioridade === "Urgente" ? "urgente" : "normal",
         linha_telefonica: linhaTelefonica || null,
-        codigo_z: origemOficio === "Zap Emprego" ? (codigoZ || null) : null,
-        origem: origemOficio || "WhatsApp Gabinete",
+        codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
+        origem: origemOficio || "Outros",
         cargo_destinatario: cargoDestinatario || null,
         local_demanda: localDemanda || null,
         bairro: enderecoCompleto || bairro || null,
@@ -1081,16 +1093,12 @@ export default function Oficios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Origem da Demanda</label>
-                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap Emprego") setCodigoZ(""); }}>
+                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap") setCodigoZ(""); }}>
                     <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="WhatsApp Gabinete">WhatsApp Gabinete</SelectItem>
-                      <SelectItem value="WhatsApp Vereador">WhatsApp Vereador</SelectItem>
-                      <SelectItem value="Zap Emprego">Zap Emprego</SelectItem>
                       <SelectItem value="Requerimento">Requerimento</SelectItem>
-                      <SelectItem value="E-mail">E-mail</SelectItem>
-                      <SelectItem value="Atendimento presencial">Atendimento presencial</SelectItem>
-                      <SelectItem value="Outro">Outro</SelectItem>
+                      <SelectItem value="Zap">Zap</SelectItem>
+                      <SelectItem value="Outros">Outros</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1104,8 +1112,14 @@ export default function Oficios() {
                   <span>Nome do arquivo: <strong className="text-foreground">
                     {(() => {
                       const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
+                      const base = cleanedNum || 'rascunho';
+                      if (origemOficio === "Zap" && codigoZ) {
+                        const cel = contatoSolicitante.replace(/\D/g, '').slice(-4);
+                        const nome = solicitante.trim().split(/\s+/)[0] || "";
+                        return [base, `Z${codigoZ}`, cel, nome].filter(Boolean).join(' ') + '.pdf';
+                      }
                       const solCode = solicitante.trim().split(/\s+/)[0] || "";
-                      return `${cleanedNum || 'rascunho'}${solCode ? ` ${solCode}` : ''}.pdf`;
+                      return `${base}${solCode ? ` ${solCode}` : ''}.pdf`;
                     })()}
                   </strong></span>
                 </div>
@@ -1361,8 +1375,8 @@ export default function Oficios() {
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (origemOficio === "Zap Emprego" && !codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap Emprego.", variant: "destructive" });
+                  if (origemOficio === "Zap" && !codigoZ) {
+                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap.", variant: "destructive" });
                     setFormTab("dados");
                     return;
                   }

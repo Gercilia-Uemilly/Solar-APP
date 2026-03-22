@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Loader2, CheckCircle2, AlertTriangle, XCircle, Lightbulb, Wand2 } from "lucide-react";
 
 export interface RevisaoErro {
@@ -23,6 +22,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   resultado: RevisaoResult | null;
   loading: boolean;
+  error?: boolean;
   onCorrigirCampo?: (campo: string, correcao: string) => void;
   onCorrigirTudo?: () => void;
   onExportarMesmoAssim?: () => void;
@@ -46,6 +46,7 @@ export default function RevisaoOficioModal({
   onOpenChange,
   resultado,
   loading,
+  error,
   onCorrigirCampo,
   onCorrigirTudo,
   onExportarMesmoAssim,
@@ -71,7 +72,7 @@ export default function RevisaoOficioModal({
   };
 
   const camposComErro = new Set(resultado?.erros?.map(e => e.campo) || []);
-  const temErrosGraves = resultado?.erros?.some(e => e.gravidade === "erro") || false;
+  const temErros = resultado?.erros && resultado.erros.length > 0;
 
   const handleApplyFix = (erro: RevisaoErro, index: number) => {
     onCorrigirCampo?.(erro.campo, erro.correcao);
@@ -92,7 +93,7 @@ export default function RevisaoOficioModal({
             🔍 Revisão do Ofício
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Análise automática antes da exportação
+            Análise antes da exportação
           </DialogDescription>
         </DialogHeader>
 
@@ -103,20 +104,29 @@ export default function RevisaoOficioModal({
           </div>
         )}
 
+        {/* Error state — review unavailable */}
+        {!loading && (error || (!resultado && !loading)) && open && !loading && (
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Revisão indisponível no momento.<br />
+              Você pode exportar normalmente.
+            </p>
+            <div className="flex justify-center gap-2">
+              {onExportarMesmoAssim && (
+                <Button size="sm" onClick={onExportarMesmoAssim}>
+                  📄 Exportar
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
+
         {!loading && resultado && (
           <div className="space-y-4">
-            {/* Score */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-foreground">Pontuação</span>
-                <span className={`font-bold ${resultado.pontuacao >= 80 ? "text-green-600" : resultado.pontuacao >= 50 ? "text-amber-500" : "text-destructive"}`}>
-                  {resultado.pontuacao}/100
-                </span>
-              </div>
-              <Progress value={resultado.pontuacao} className="h-2" />
-            </div>
-
-            {/* Checklist */}
+            {/* Checklist — no score */}
             <div className="space-y-1.5">
               {CAMPOS_CHECK.map(campo => {
                 const hasError = camposComErro.has(campo);
@@ -176,16 +186,16 @@ export default function RevisaoOficioModal({
               </div>
             )}
 
-            {/* Actions */}
+            {/* Actions — export always available */}
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-              {resultado.erros && resultado.erros.length > 0 && resultado.erros.some(e => e.correcao) && onCorrigirTudo && (
+              {temErros && resultado.erros.some(e => e.correcao) && onCorrigirTudo && (
                 <Button size="sm" onClick={handleApplyAll} className="bg-primary">
                   <Wand2 size={14} className="mr-1" /> Corrigir tudo automaticamente
                 </Button>
               )}
               {onExportarMesmoAssim && (
-                <Button size="sm" variant={temErrosGraves ? "outline" : "default"} onClick={onExportarMesmoAssim}>
-                  📄 {temErrosGraves ? "Exportar mesmo assim" : "Exportar"}
+                <Button size="sm" variant={temErros ? "outline" : "default"} onClick={onExportarMesmoAssim}>
+                  📄 {temErros ? "Exportar mesmo assim" : "Exportar"}
                 </Button>
               )}
               <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}>

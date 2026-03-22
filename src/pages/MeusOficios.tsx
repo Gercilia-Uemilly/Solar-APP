@@ -316,6 +316,7 @@ export default function MeusOficios() {
     codigoZ: (o as any).codigo_z || undefined,
     contatoSolicitante: o.contato_solicitante || undefined,
     secretaria: (o as any).secretaria_identificada || undefined,
+    origem: (o as any).origem || undefined,
     logoCamaraUrl: logoCamara,
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
@@ -340,7 +341,7 @@ export default function MeusOficios() {
       const authToken = accessToken;
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
-      const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+      const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
       
       // Build merged PDF (ofício + anexos) for Drive upload
       const exportData = {
@@ -424,7 +425,7 @@ export default function MeusOficios() {
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       if (imgs.length > 0) (data as any).imagens = imgs;
-      const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+      const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
       
       toast({ title: "⏳ Exportando PDF, Word e Drive...", description: fileName });
 
@@ -766,7 +767,7 @@ export default function MeusOficios() {
           </DialogHeader>
           {exportConfirmOficio && (() => {
             const data = buildExportData(exportConfirmOficio);
-            const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante);
+            const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
             return (
               <div className="space-y-3 text-sm">
                 <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
