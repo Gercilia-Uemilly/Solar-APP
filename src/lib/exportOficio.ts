@@ -18,22 +18,27 @@ const ASSINATURA_ALTURA = 113;  // ~3cm proportional
 import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, buildVocativo, extrairBairro } from "@/lib/oficioUtils";
 export { generateOperatorCode };
 
-function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string): string {
+function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string, origem?: string): string {
   const cleanedNumero = cleanNumero(numero || "");
   const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9a-zA-Z\-\s]/g, '').trim() || 'rascunho';
   
-  // If codigoZ is provided (Zap Emprego), format as "2026 - Z 4567"
+  const isZap = origem === "Zap" || origem === "Zap Emprego";
+  
   if (codigoZ) {
     const digits = (contatoSolicitante || "").replace(/\D/g, '');
     const last4 = digits.length >= 4 ? digits.slice(-4) : digits;
-    // numPart already has the year part, append Z + last4
-    const zPart = last4 ? `${codigoZ} ${last4}` : codigoZ;
+    const zPart = last4 ? `Z${codigoZ} ${last4}` : `Z${codigoZ}`;
+    
+    // Only Zap type includes solicitante first name
+    if (isZap && solicitante) {
+      const firstName = solicitante.trim().split(/\s+/)[0] || "";
+      if (firstName) return `${numPart} ${zPart} ${firstName}`;
+    }
     return `${numPart} ${zPart}`;
   }
   
-  // Extract the solicitante code (first word, e.g. "R12649" from "R12649 Maria")
+  // Non-Zap: standard format
   const solicitanteCode = (solicitante || "").trim().split(/\s+/)[0] || "";
-  
   if (solicitanteCode) {
     return `${numPart} ${solicitanteCode}`;
   }
@@ -63,6 +68,7 @@ export interface OficioData {
   secretaria?: string;
   codigoZ?: string;
   contatoSolicitante?: string;
+  origem?: string;
   descricaoAnexos?: string;
   oficioId?: string;
   formatOptions?: {
