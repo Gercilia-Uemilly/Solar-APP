@@ -1112,8 +1112,14 @@ export default function Oficios() {
                   <span>Nome do arquivo: <strong className="text-foreground">
                     {(() => {
                       const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
+                      const base = cleanedNum || 'rascunho';
+                      if (origemOficio === "Zap" && codigoZ) {
+                        const cel = contatoSolicitante.replace(/\D/g, '').slice(-4);
+                        const nome = solicitante.trim().split(/\s+/)[0] || "";
+                        return [base, `Z${codigoZ}`, cel, nome].filter(Boolean).join(' ') + '.pdf';
+                      }
                       const solCode = solicitante.trim().split(/\s+/)[0] || "";
-                      return `${cleanedNum || 'rascunho'}${solCode ? ` ${solCode}` : ''}.pdf`;
+                      return `${base}${solCode ? ` ${solCode}` : ''}.pdf`;
                     })()}
                   </strong></span>
                 </div>
