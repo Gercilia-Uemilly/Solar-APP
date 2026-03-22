@@ -962,6 +962,17 @@ export default function Oficios() {
     };
   }, []);
 
+  // Auto-open dialog when navigated with openNew state from sidebar
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.openNew) {
+      resetForm();
+      setShowDialog(true);
+      // Clear the state so it doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Auto-save draft every 15 seconds when form has content
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -1084,13 +1095,9 @@ export default function Oficios() {
                   <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap Emprego") setCodigoZ(""); }}>
                     <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="WhatsApp Gabinete">WhatsApp Gabinete</SelectItem>
-                      <SelectItem value="WhatsApp Vereador">WhatsApp Vereador</SelectItem>
-                      <SelectItem value="Zap Emprego">Zap Emprego</SelectItem>
                       <SelectItem value="Requerimento">Requerimento</SelectItem>
-                      <SelectItem value="E-mail">E-mail</SelectItem>
-                      <SelectItem value="Atendimento presencial">Atendimento presencial</SelectItem>
-                      <SelectItem value="Outro">Outro</SelectItem>
+                      <SelectItem value="Zap">Zap</SelectItem>
+                      <SelectItem value="Outros">Outros</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
