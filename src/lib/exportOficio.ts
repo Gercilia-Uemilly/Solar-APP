@@ -477,7 +477,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Body paragraphs — handle both text runs and inline images
   const bodyParagraphs: Paragraph[] = [];
   styledParagraphs.forEach((runs, idx) => {
-    const shouldChainToClosing = idx >= Math.max(0, styledParagraphs.length - 2);
+    const _idx = idx; // unused — keepNext removed from body to prevent blank pages
     const isImageOnly = runs.length > 0 && runs.every(r => 'image' in r);
     const children: (TextRun | ImageRun)[] = [];
 
@@ -508,8 +508,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       spacing: isImageOnly
         ? { before: 400, after: 400, line: lineSpacing }
         : { before: 0, after: 0, line: lineSpacing },
-      keepNext: shouldChainToClosing,
-      keepLines: shouldChainToClosing,
     }));
   });
 
