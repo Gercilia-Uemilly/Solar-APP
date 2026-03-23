@@ -508,8 +508,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       spacing: isImageOnly
         ? { before: 400, after: 400, line: lineSpacing }
         : { before: 0, after: 0, line: lineSpacing },
-      keepNext: shouldChainToClosing,
-      keepLines: shouldChainToClosing,
     }));
   });
 
