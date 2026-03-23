@@ -247,30 +247,66 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* ANEXO DE IMAGENS */}
-        {anexoImageUrls && anexoImageUrls.length > 0 && (
-          <div style={{ marginTop: "20px" }}>
-            <div className="anexo-imagens" style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "20px",
-              marginTop: "20px",
-            }}>
-              {anexoImageUrls.map((url, i) => (
-                <div key={i} className="imagem-item" style={{
-                  width: "45%",
-                  pageBreakInside: "avoid",
-                }}>
-                  <img
-                    src={url}
-                    alt={`Anexo ${i + 1}`}
-                    style={{ width: "100%", height: "auto", display: "block" }}
-                    loading="eager"
-                  />
+        {anexoImageUrls && anexoImageUrls.length > 0 && (() => {
+          const count = anexoImageUrls.length;
+          const gridClass = count === 1 ? "grid-1" : count === 2 ? "grid-2" : count === 3 ? "grid-3" : "grid-4";
+
+          // For 3 images: 1 big on top, 2 side-by-side below
+          if (count === 3) {
+            return (
+              <div style={{ marginTop: "20px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+                <div className="anexo-imagens grid-1">
+                  <div className="imagem-item">
+                    <img src={anexoImageUrls[0]} alt="Anexo 1" style={{ width: "100%", height: "auto", display: "block" }} loading="eager" />
+                  </div>
                 </div>
-              ))}
+                <div className="anexo-imagens grid-3-bottom" style={{ marginTop: "10px" }}>
+                  {anexoImageUrls.slice(1).map((url, i) => (
+                    <div key={i} className="imagem-item">
+                      <img src={url} alt={`Anexo ${i + 2}`} style={{ width: "100%", height: "auto", display: "block" }} loading="eager" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          // For 5+ images: groups of 4 per "page block"
+          if (count > 4) {
+            const chunks: string[][] = [];
+            for (let i = 0; i < count; i += 4) {
+              chunks.push(anexoImageUrls.slice(i, i + 4));
+            }
+            return (
+              <div style={{ marginTop: "20px" }}>
+                {chunks.map((chunk, ci) => {
+                  const chunkGrid = chunk.length === 1 ? "grid-1" : chunk.length === 2 ? "grid-2" : chunk.length === 3 ? "grid-3" : "grid-4";
+                  return (
+                    <div key={ci} className={`anexo-imagens ${chunkGrid}`} style={{ marginTop: ci > 0 ? "10px" : "0", pageBreakInside: "avoid", breakInside: "avoid" }}>
+                      {chunk.map((url, i) => (
+                        <div key={i} className="imagem-item">
+                          <img src={url} alt={`Anexo ${ci * 4 + i + 1}`} style={{ width: "100%", height: "auto", display: "block" }} loading="eager" />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ marginTop: "20px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <div className={`anexo-imagens ${gridClass}`}>
+                {anexoImageUrls.map((url, i) => (
+                  <div key={i} className="imagem-item">
+                    <img src={url} alt={`Anexo ${i + 1}`} style={{ width: "100%", height: "auto", display: "block" }} loading="eager" />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ANEXO DE DOCUMENTOS */}
         {anexoDocuments && anexoDocuments.length > 0 && (

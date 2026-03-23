@@ -205,36 +205,51 @@ img[alt="Assinatura Fabão"] {
 
 /* Anexo de imagens - Preview e Print */
 .anexo-imagens {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+  display: grid;
+  gap: 10px;
   margin-top: 20px;
+  width: 100%;
+}
+.anexo-imagens.grid-1 {
+  grid-template-columns: 1fr;
+}
+.anexo-imagens.grid-2 {
+  grid-template-columns: 1fr;
+}
+.anexo-imagens.grid-3 {
+  grid-template-columns: 1fr;
+}
+.anexo-imagens.grid-3 .imagem-item:first-child {
+  grid-column: 1 / -1;
+}
+.anexo-imagens.grid-3-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.anexo-imagens.grid-4 {
+  grid-template-columns: 1fr 1fr;
 }
 .imagem-item {
-  width: 45%;
   page-break-inside: avoid;
   break-inside: avoid;
+  overflow: hidden;
+  border-radius: 4px;
 }
 .imagem-item img {
   width: 100%;
   height: auto;
   display: block;
+  object-fit: cover;
 }
 
 @media print {
   .anexo-imagens {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-top: 20px;
+    page-break-before: auto;
+    page-break-after: auto;
   }
   .imagem-item {
-    width: 45%;
     page-break-inside: avoid;
     break-inside: avoid;
-  }
-  .imagem-item img {
-    width: 100%;
-    height: auto;
   }
 }
