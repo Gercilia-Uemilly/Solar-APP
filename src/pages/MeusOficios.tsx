@@ -118,6 +118,30 @@ export default function MeusOficios() {
     };
   }, [previewAnexoUrls]);
 
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el || !showPreview) return;
+
+    const updatePages = () => {
+      const rect = el.getBoundingClientRect();
+      if (!rect.width) return;
+      const pxPerMm = rect.width / 210;
+      const pageHeightPx = 297 * pxPerMm;
+      const total = Math.max(1, Math.ceil(el.scrollHeight / pageHeightPx));
+      setPreviewPageCount(total);
+    };
+
+    const observer = new ResizeObserver(updatePages);
+    observer.observe(el);
+    updatePages();
+    const timer = window.setTimeout(updatePages, 120);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, [showPreview, editedContent, formatOptions.fontFamily, formatOptions.fontSize, formatOptions.lineSpacing, previewAnexoUrls.length, previewAnexoDocs.length]);
+
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
     const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at, cargo_destinatario, destinatario, assunto, numero, bairro, data_geracao").eq("id", o.id).single();
