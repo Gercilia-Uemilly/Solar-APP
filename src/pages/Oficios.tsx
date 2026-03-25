@@ -372,7 +372,38 @@ export default function Oficios() {
     searchSimilarOficios(query);
   }, [assunto, descricao, searchSimilarOficios]);
 
-  const filtered = oficios.filter(o => {
+  // Auto-save description after 2 seconds of inactivity
+  useEffect(() => {
+    if (!descricao.trim() || !editingOficioId || !showDialog) return;
+    setDescSaveStatus("● Editando...");
+    const timer = setTimeout(async () => {
+      try {
+        // Build template from description if no AI content yet
+        const vocativo = getVocativo(secretaria || "");
+        const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
+        const artigo = nomeOrgao.startsWith("Departamento") || nomeOrgao.startsWith("Instituto") ? "o" : "a";
+        const conteudoFormatado = `<p>${descricao.split("\n").filter((l: string) => l.trim()).join("</p><p>")}</p><p>Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
+
+        // Only auto-update conteudo if no AI-generated content exists
+        const updatePayload: Record<string, any> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (!editedOficio) {
+          updatePayload.conteudo = conteudoFormatado;
+          setEditedOficio(conteudoFormatado);
+          setOriginalOficio(conteudoFormatado);
+        }
+
+        await supabase.from("oficios").update(updatePayload).eq("id", editingOficioId);
+        setDescSaveStatus("✓ Salvo automaticamente");
+      } catch {
+        setDescSaveStatus("✗ Erro ao salvar");
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [descricao, editingOficioId, showDialog, secretaria]);
+
+
     // Show only user's own oficios
     if (user && o.author_id !== user.id) return false;
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
