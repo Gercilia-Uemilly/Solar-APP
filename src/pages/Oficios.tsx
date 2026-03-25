@@ -1506,37 +1506,50 @@ export default function Oficios() {
                 </Button>
               </div>
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
+              {previewPageCount > 1 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Pré-visualização paginada: {previewPageCount} páginas
+                </p>
+              )}
               <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                <OficioPreview
-                  ref={previewRef}
-                  numero={numero}
-                  destinatario={destinatario}
-                  assunto={assunto}
-                  conteudo={editedOficio}
-                  cargoDestinatario={cargoDestinatario}
-                  operadorNome={profileName || user?.email || undefined}
-                  secretaria={secretaria || aiResult?.secretaria_identificada || undefined}
-                  dataGeracao={dataGeracao}
-                  editable
-                  onContentChange={handleOficioChange}
-                  onAssuntoChange={(val) => {
-                    setAssunto(val);
-                    setAssuntoEditedInPreview(true);
-                  }}
-                  onDestinatarioChange={setDestinatario}
-                  onCargoDestinatarioChange={setCargoDestinatario}
-                  onNumeroChange={setNumero}
-                  onDataChange={(val) => {
-                    /* data is display-only from date input */
-                  }}
-                  onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
-                  onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
-                  initialConteudo={originalOficio}
-                  anexoImageUrls={previewImageUrls}
-                  anexoDocuments={previewDocumentAnexos}
-                  bairro={assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro)}
-                  formatOptions={formatOptions}
-                />
+                <div className="relative w-fit mx-auto">
+                  <OficioPreview
+                    ref={previewRef}
+                    numero={numero}
+                    destinatario={destinatario}
+                    assunto={assunto}
+                    conteudo={editedOficio}
+                    cargoDestinatario={cargoDestinatario}
+                    operadorNome={profileName || user?.email || undefined}
+                    secretaria={secretaria || aiResult?.secretaria_identificada || undefined}
+                    dataGeracao={dataGeracao}
+                    editable
+                    onContentChange={handleOficioChange}
+                    onAssuntoChange={(val) => {
+                      setAssunto(val);
+                      setAssuntoEditedInPreview(true);
+                    }}
+                    onDestinatarioChange={setDestinatario}
+                    onCargoDestinatarioChange={setCargoDestinatario}
+                    onNumeroChange={setNumero}
+                    onDataChange={() => {
+                      /* data is display-only from date input */
+                    }}
+                    initialConteudo={originalOficio}
+                    anexoImageUrls={previewImageUrls}
+                    anexoDocuments={previewDocumentAnexos}
+                    bairro={assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro)}
+                    formatOptions={formatOptions}
+                  />
+
+                  {Array.from({ length: Math.max(0, previewPageCount - 1) }).map((_, idx) => (
+                    <div
+                      key={`page-break-${idx}`}
+                      className="absolute left-0 right-0 border-t border-dashed border-border pointer-events-none"
+                      style={{ top: `${(idx + 1) * 297}mm` }}
+                    />
+                  ))}
+                </div>
               </div>
             </TabsContent>
 
