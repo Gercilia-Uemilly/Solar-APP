@@ -404,7 +404,7 @@ export default function Oficios() {
   }, [descricao, editingOficioId, showDialog, secretaria]);
 
 
-    // Show only user's own oficios
+    const filtered = oficios.filter(o => {
     if (user && o.author_id !== user.id) return false;
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
     if (search) {
