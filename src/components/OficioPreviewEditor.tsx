@@ -175,7 +175,7 @@ export default function OficioPreviewEditor({
           <UnderlineIcon size={14} />
         </ToolBtn>
 
-        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
+        <div className="w-px h-4 bg-border mx-0.5" />
 
         <ToolBtn onClick={() => exec("insertUnorderedList")} title="Lista com marcadores">
           <List size={14} />
@@ -184,7 +184,7 @@ export default function OficioPreviewEditor({
           <ListOrdered size={14} />
         </ToolBtn>
 
-        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
+        <div className="w-px h-4 bg-border mx-0.5" />
 
         <ToolBtn onClick={() => exec("justifyLeft")} title="Alinhar à esquerda">
           <AlignLeft size={14} />
@@ -199,7 +199,7 @@ export default function OficioPreviewEditor({
           <AlignJustify size={14} />
         </ToolBtn>
 
-        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
+        <div className="w-px h-4 bg-border mx-0.5" />
         <ToolBtn onClick={() => applyFontSizeToSelection(-1)} title="Diminuir tamanho da seleção">
           <Type size={14} />
           <span className="text-[11px] font-semibold leading-none">-</span>
@@ -210,13 +210,13 @@ export default function OficioPreviewEditor({
         </ToolBtn>
         <span className="px-1 text-[11px] text-muted-foreground">seleção 8–12pt</span>
 
-        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
+        <div className="w-px h-4 bg-border mx-0.5" />
 
         <ToolBtn onClick={() => exec("removeFormat")} title="Limpar formatação">
           <Eraser size={14} />
         </ToolBtn>
 
-        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
+        <div className="w-px h-4 bg-border mx-0.5" />
 
         <ToolBtn onClick={() => imageInputRef.current?.click()} title="Inserir imagem">
           <ImagePlus size={14} />
