@@ -202,14 +202,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             content={buildEditorContent(conteudo)}
             onChange={onContentChange}
             fontFamily={fmt.fontFamily}
-            fontSize={fmt.fontSize}
-            lineSpacing={fmt.lineSpacing}
+            fontSize={effectiveFontSize}
+            lineSpacing={effectiveLineSpacing}
             onIncreaseFontSize={onIncreaseFontSize}
             onDecreaseFontSize={onDecreaseFontSize}
           />
         ) : isHtml ? (
           <div
-            style={{ textAlign: "justify", fontSize: "11pt", lineHeight: "1.5" }}
+            style={{ textAlign: "justify", fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing) }}
             dangerouslySetInnerHTML={{ __html: conteudo }}
           />
         ) : (
