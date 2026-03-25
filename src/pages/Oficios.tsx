@@ -965,6 +965,31 @@ export default function Oficios() {
     };
   }, [previewImageUrls]);
 
+  // Paginação visual do preview para refletir exportação
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+
+    const updatePages = () => {
+      const rect = el.getBoundingClientRect();
+      if (!rect.width) return;
+      const pxPerMm = rect.width / 210;
+      const pageHeightPx = 297 * pxPerMm;
+      const total = Math.max(1, Math.ceil(el.scrollHeight / pageHeightPx));
+      setPreviewPageCount(total);
+    };
+
+    const observer = new ResizeObserver(updatePages);
+    observer.observe(el);
+    updatePages();
+    const timer = window.setTimeout(updatePages, 120);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, [editedOficio, formatOptions.fontFamily, formatOptions.fontSize, formatOptions.lineSpacing, previewImageUrls.length, previewDocumentAnexos.length, formTab, showDialog]);
+
   const buildFormExportData = async (): Promise<OficioData> => ({
     oficioId: editingOficioId || undefined,
     numero,
