@@ -465,19 +465,19 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
-  // Auto-adjust font size and line spacing based on content length
+  // Auto-adjust font size (MAX 12pt) and line spacing based on content length
   const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
-  const autoFontSizePt = contentLength < 500 ? 13
-    : contentLength < 800 ? 12
+  const autoFontSizePt = contentLength < 400 ? 12
+    : contentLength < 700 ? 12
     : contentLength < 1200 ? 11
     : contentLength < 1800 ? 10
     : 9;
-  const autoLineSpacing = contentLength < 500 ? 2.0
-    : contentLength < 800 ? 1.75
+  const autoLineSpacing = contentLength < 400 ? 2.0
+    : contentLength < 700 ? 1.75
     : contentLength < 1200 ? 1.5
     : 1.33;
 
-  const defaultFontSizePt = data.formatOptions?.fontSize || autoFontSizePt;
+  const defaultFontSizePt = Math.min(data.formatOptions?.fontSize || autoFontSizePt, 12);
   const defaultFontSize = defaultFontSizePt * 2; // half-points
   const defaultFontName = data.formatOptions?.fontFamily || "Arial";
 
