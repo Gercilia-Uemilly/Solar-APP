@@ -30,7 +30,7 @@ import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 
 
-const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
+const statusOptions = ["Rascunho", "Salvo", "Exportado", "Enviado", "Respondido", "Arquivado"];
 
 // Secretaria options now come from centralized config
 // imported via oficioUtils: LISTA_SECRETARIAS, getDestinatario, getVocativo
