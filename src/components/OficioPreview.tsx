@@ -65,8 +65,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return 1.33;
     }, [contentLength]);
 
-    const effectiveFontSize = Math.min(autoFontSize, 12);
-    const effectiveLineSpacing = autoLineSpacing;
+    const effectiveFontSize = Math.min(fmt.fontSize || autoFontSize, 12);
+    const effectiveLineSpacing = fmt.lineSpacing || autoLineSpacing;
 
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -204,6 +204,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             fontFamily={fmt.fontFamily}
             fontSize={effectiveFontSize}
             lineSpacing={effectiveLineSpacing}
+            onIncreaseFontSize={onIncreaseFontSize}
+            onDecreaseFontSize={onDecreaseFontSize}
           />
         ) : isHtml ? (
           <div

@@ -477,12 +477,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     : contentLength < 1200 ? 1.5
     : 1.33;
 
-  // Always use auto-scale base for export to avoid blank final space
-  const defaultFontSizePt = autoFontSizePt;
+  const defaultFontSizePt = Math.min(data.formatOptions?.fontSize || autoFontSizePt, 12);
   const defaultFontSize = defaultFontSizePt * 2; // half-points
   const defaultFontName = data.formatOptions?.fontFamily || "Arial";
 
-  const lineSpacingMultiplier = autoLineSpacing;
+  const lineSpacingMultiplier = data.formatOptions?.lineSpacing || autoLineSpacing;
   const lineSpacing = Math.round(lineSpacingMultiplier * 240); // 240 twips per line
 
   // operadorMarca removed — operator name no longer appears in document
@@ -502,13 +501,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
           type: ('imageType' in r ? r.imageType : "png") as "png" | "jpg" | "gif" | "bmp",
         }));
       } else {
-        const runFontSizePt = Math.min(r.fontSize || defaultFontSizePt, 12);
-        const runFontName = r.fontFamily || defaultFontName;
         children.push(new TextRun({
           text: r.text,
           break: r.break,
-          font: runFontName,
-          size: runFontSizePt * 2,
+          font: defaultFontName,
+          size: defaultFontSize,
           bold: r.bold,
           italics: r.italic,
           underline: r.underline ? {} : undefined,
