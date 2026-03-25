@@ -204,8 +204,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             fontFamily={fmt.fontFamily}
             fontSize={effectiveFontSize}
             lineSpacing={effectiveLineSpacing}
-            onIncreaseFontSize={onIncreaseFontSize}
-            onDecreaseFontSize={onDecreaseFontSize}
           />
         ) : isHtml ? (
           <div
