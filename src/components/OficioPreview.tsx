@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useMemo } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -42,7 +42,32 @@ import { cleanNumero, buildVocativo } from "@/lib/oficioUtils";
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, onIncreaseFontSize, onDecreaseFontSize, dataGeracao, initialConteudo, anexoImageUrls, anexoDocuments }, ref) => {
-    const fmt = formatOptions || defaultFormatOptions;
+    const rawFmt = formatOptions || defaultFormatOptions;
+    // Cap font size at 12pt max
+    const fmt = useMemo(() => ({
+      ...rawFmt,
+      fontSize: Math.min(rawFmt.fontSize, 12),
+    }), [rawFmt]);
+
+    // Auto-adjust font and spacing to fill page (max 12pt)
+    const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
+    const autoFontSize = useMemo(() => {
+      if (contentLength < 400) return 12;
+      if (contentLength < 700) return 12;
+      if (contentLength < 1200) return 11;
+      if (contentLength < 1800) return 10;
+      return 9;
+    }, [contentLength]);
+    const autoLineSpacing = useMemo(() => {
+      if (contentLength < 400) return 2.0;
+      if (contentLength < 700) return 1.75;
+      if (contentLength < 1200) return 1.5;
+      return 1.33;
+    }, [contentLength]);
+
+    const effectiveFontSize = Math.min(fmt.fontSize || autoFontSize, 12);
+    const effectiveLineSpacing = fmt.lineSpacing || autoLineSpacing;
+
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
     const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
