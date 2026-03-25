@@ -59,6 +59,7 @@ export default function Oficios() {
   const [viewingOficio, setViewingOficio] = useState<OficioRow | null>(null);
   const [viewingAnexoUrls, setViewingAnexoUrls] = useState<string[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [previewPageCount, setPreviewPageCount] = useState(1);
 
   // Form state
   const [numero, setNumero] = useState("");
