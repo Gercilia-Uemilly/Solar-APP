@@ -719,6 +719,7 @@ export default function Oficios() {
     setKbSuggestions([]);
     setShowSuggestions(false);
     setAppliedSuggestionId(null);
+    setDescSaveStatus("");
 
     // Force release focus and body scroll
     if (document.activeElement instanceof HTMLElement) {
