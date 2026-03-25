@@ -85,6 +85,7 @@ export default function MeusOficios() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inlineFieldSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [previewPageCount, setPreviewPageCount] = useState(1);
   const formatStorageKey = "oficio_preview_format_options";
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(() => {
     try {
@@ -116,6 +117,30 @@ export default function MeusOficios() {
       });
     };
   }, [previewAnexoUrls]);
+
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el || !showPreview) return;
+
+    const updatePages = () => {
+      const rect = el.getBoundingClientRect();
+      if (!rect.width) return;
+      const pxPerMm = rect.width / 210;
+      const pageHeightPx = 297 * pxPerMm;
+      const total = Math.max(1, Math.ceil(el.scrollHeight / pageHeightPx));
+      setPreviewPageCount(total);
+    };
+
+    const observer = new ResizeObserver(updatePages);
+    observer.observe(el);
+    updatePages();
+    const timer = window.setTimeout(updatePages, 120);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, [showPreview, editedContent, formatOptions.fontFamily, formatOptions.fontSize, formatOptions.lineSpacing, previewAnexoUrls.length, previewAnexoDocs.length]);
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
@@ -879,31 +904,44 @@ export default function MeusOficios() {
           {viewOficio && (
             <>
             <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
+            {previewPageCount > 1 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Pré-visualização paginada: {previewPageCount} páginas
+              </p>
+            )}
             <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-              <OficioPreview
-                key={editorKey}
-                ref={previewRef}
-                numero={viewOficio.numero || ""}
-                destinatario={viewOficio.destinatario}
-                assunto={viewOficio.assunto}
-                conteudo={editedContent}
-                bairro={viewOficio.bairro || undefined}
-                cargoDestinatario={viewOficio.cargo_destinatario || undefined}
-                operadorNome={viewOficio.operador_nome || undefined}
-                dataGeracao={viewOficio.data_geracao || undefined}
-                formatOptions={formatOptions}
-                editable
-                onContentChange={handleContentChange}
-                onNumeroChange={(val) => handleInlineFieldChange("numero", val)}
-                onAssuntoChange={(val) => handleInlineFieldChange("assunto", val)}
-                onCargoDestinatarioChange={(val) => handleInlineFieldChange("cargo_destinatario", val)}
-                onDataChange={undefined}
-                onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
-                onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
-                initialConteudo={originalContent}
-                anexoImageUrls={previewAnexoUrls}
-                anexoDocuments={previewAnexoDocs}
-              />
+              <div className="relative w-fit mx-auto">
+                <OficioPreview
+                  key={editorKey}
+                  ref={previewRef}
+                  numero={viewOficio.numero || ""}
+                  destinatario={viewOficio.destinatario}
+                  assunto={viewOficio.assunto}
+                  conteudo={editedContent}
+                  bairro={viewOficio.bairro || undefined}
+                  cargoDestinatario={viewOficio.cargo_destinatario || undefined}
+                  operadorNome={viewOficio.operador_nome || undefined}
+                  dataGeracao={viewOficio.data_geracao || undefined}
+                  formatOptions={formatOptions}
+                  editable
+                  onContentChange={handleContentChange}
+                  onNumeroChange={(val) => handleInlineFieldChange("numero", val)}
+                  onAssuntoChange={(val) => handleInlineFieldChange("assunto", val)}
+                  onCargoDestinatarioChange={(val) => handleInlineFieldChange("cargo_destinatario", val)}
+                  onDataChange={undefined}
+                  initialConteudo={originalContent}
+                  anexoImageUrls={previewAnexoUrls}
+                  anexoDocuments={previewAnexoDocs}
+                />
+
+                {Array.from({ length: Math.max(0, previewPageCount - 1) }).map((_, idx) => (
+                  <div
+                    key={`page-break-${idx}`}
+                    className="absolute left-0 right-0 border-t border-dashed border-border pointer-events-none"
+                    style={{ top: `${(idx + 1) * 297}mm` }}
+                  />
+                ))}
+              </div>
             </div>
             </>
           )}
