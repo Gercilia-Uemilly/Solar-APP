@@ -465,11 +465,23 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
-  const defaultFontSizePt = data.formatOptions?.fontSize || 11;
+  // Auto-adjust font size and line spacing based on content length
+  const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
+  const autoFontSizePt = contentLength < 500 ? 13
+    : contentLength < 800 ? 12
+    : contentLength < 1200 ? 11
+    : contentLength < 1800 ? 10
+    : 9;
+  const autoLineSpacing = contentLength < 500 ? 2.0
+    : contentLength < 800 ? 1.75
+    : contentLength < 1200 ? 1.5
+    : 1.33;
+
+  const defaultFontSizePt = data.formatOptions?.fontSize || autoFontSizePt;
   const defaultFontSize = defaultFontSizePt * 2; // half-points
   const defaultFontName = data.formatOptions?.fontFamily || "Arial";
 
-  const lineSpacingMultiplier = data.formatOptions?.lineSpacing || 1.5;
+  const lineSpacingMultiplier = data.formatOptions?.lineSpacing || autoLineSpacing;
   const lineSpacing = Math.round(lineSpacingMultiplier * 240); // 240 twips per line
 
   // operadorMarca removed — operator name no longer appears in document

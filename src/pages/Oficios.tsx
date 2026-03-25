@@ -30,7 +30,7 @@ import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 
 
-const statusOptions = ["Rascunho", "Salvo", "Exportado", "Salvo no Drive", "Enviado", "Respondido", "Arquivado"];
+const statusOptions = ["Rascunho", "Salvo", "Exportado", "Enviado", "Respondido", "Arquivado"];
 
 // Secretaria options now come from centralized config
 // imported via oficioUtils: LISTA_SECRETARIAS, getDestinatario, getVocativo
@@ -89,6 +89,7 @@ export default function Oficios() {
   const [editedOficio, setEditedOficio] = useState("");
   const [originalOficio, setOriginalOficio] = useState("");
   const [editedResposta, setEditedResposta] = useState("");
+  const [descSaveStatus, setDescSaveStatus] = useState<string>("");
 
   // Multi-file processing state
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
@@ -371,8 +372,39 @@ export default function Oficios() {
     searchSimilarOficios(query);
   }, [assunto, descricao, searchSimilarOficios]);
 
-  const filtered = oficios.filter(o => {
-    // Show only user's own oficios
+  // Auto-save description after 2 seconds of inactivity
+  useEffect(() => {
+    if (!descricao.trim() || !editingOficioId || !showDialog) return;
+    setDescSaveStatus("● Editando...");
+    const timer = setTimeout(async () => {
+      try {
+        // Build template from description if no AI content yet
+        const vocativo = getVocativo(secretaria || "");
+        const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
+        const artigo = nomeOrgao.startsWith("Departamento") || nomeOrgao.startsWith("Instituto") ? "o" : "a";
+        const conteudoFormatado = `<p>${descricao.split("\n").filter((l: string) => l.trim()).join("</p><p>")}</p><p>Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
+
+        // Only auto-update conteudo if no AI-generated content exists
+        const updatePayload: Record<string, any> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (!editedOficio) {
+          updatePayload.conteudo = conteudoFormatado;
+          setEditedOficio(conteudoFormatado);
+          setOriginalOficio(conteudoFormatado);
+        }
+
+        await supabase.from("oficios").update(updatePayload).eq("id", editingOficioId);
+        setDescSaveStatus("✓ Salvo automaticamente");
+      } catch {
+        setDescSaveStatus("✗ Erro ao salvar");
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [descricao, editingOficioId, showDialog, secretaria]);
+
+
+    const filtered = oficios.filter(o => {
     if (user && o.author_id !== user.id) return false;
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
     if (search) {
@@ -687,6 +719,7 @@ export default function Oficios() {
     setKbSuggestions([]);
     setShowSuggestions(false);
     setAppliedSuggestionId(null);
+    setDescSaveStatus("");
 
     // Force release focus and body scroll
     if (document.activeElement instanceof HTMLElement) {
@@ -799,7 +832,7 @@ export default function Oficios() {
       if (driveResult.driveLink) {
         await supabase.from("oficios").update({
           link_pdf_drive: driveResult.driveLink,
-          status: "Salvo no Drive",
+          status: "Exportado",
           uploaded_by_name: profileName || user?.email || null,
           uploaded_by_email: user?.email || null,
           uploaded_at: new Date().toISOString(),
@@ -1299,12 +1332,34 @@ export default function Oficios() {
                 </div>
               )}
 
+              {/* Save status indicator */}
+              {descSaveStatus && (
+                <p className={`text-xs ${descSaveStatus.includes("Erro") ? "text-destructive" : descSaveStatus.includes("Salvo") ? "text-primary" : "text-muted-foreground"}`}>
+                  {descSaveStatus}
+                </p>
+              )}
+
               <div className="flex gap-2 flex-wrap">
                 <Button onClick={handleGenerateAI} disabled={isGenerating} className="flex-1 bg-primary text-primary-foreground">
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
                 </Button>
-                <Button variant="outline" onClick={async () => { await handleCreate(false); setFormTab("preview"); }} className="border-border">
-                  Salvar Rascunho
+                <Button variant="outline" onClick={async () => {
+                  // Save description directly as template content (no AI)
+                  if (descricao.trim() && !editedOficio) {
+                    const vocativo = getVocativo(secretaria || "");
+                    const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
+                    const artigo = nomeOrgao.startsWith("Departamento") || nomeOrgao.startsWith("Instituto") ? "o" : "a";
+                    const template = `<p>${descricao.split("\n").filter(l => l.trim()).join("</p><p>")}</p><p>Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
+                    setEditedOficio(template);
+                    setOriginalOficio(template);
+                    setOficioHistory([template]);
+                    setHistoryIndex(0);
+                    toast({ title: "✅ Descrição aplicada ao template!" });
+                  }
+                  await handleCreate(false);
+                  setFormTab("preview");
+                }} className="border-border">
+                  <Save size={14} className="mr-1" /> Salvar Descrição
                 </Button>
                 <Button variant="outline" onClick={() => { carregarModelos(); setMostrarModelos(true); }} className="border-border">
                   <BookOpen size={14} className="mr-1" /> Usar Modelo
@@ -1361,9 +1416,11 @@ export default function Oficios() {
                   <BookOpen size={14} className="mr-1" /> Salvar Modelo
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (!destinatario && !cargoDestinatario || !editedOficio) {
-                    toast({ title: "Campos obrigatórios", description: "Preencha o destinatário e gere o texto do ofício antes de exportar.", variant: "destructive" });
-                    return;
+                  if (!editedOficio) {
+                    toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de exportar." });
+                  }
+                  if (!destinatario && !cargoDestinatario) {
+                    toast({ title: "⚠️ Destinatário não preenchido" });
                   }
                   const formData = await withSavedAttachments(await buildFormExportData());
                   try {
@@ -1375,10 +1432,11 @@ export default function Oficios() {
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
+                  if (!editedOficio) {
+                    toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de exportar." });
+                  }
                   if (origemOficio === "Zap" && !codigoZ) {
-                    toast({ title: "Código Z obrigatório", description: "Preencha o Código Z para ofícios do Zap.", variant: "destructive" });
-                    setFormTab("dados");
-                    return;
+                    toast({ title: "⚠️ Código Z não preenchido" });
                   }
                   const formData = await withSavedAttachments(await buildFormExportData());
                   try {
@@ -1391,8 +1449,7 @@ export default function Oficios() {
                 </Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={async () => {
                   if (!editedOficio) {
-                    toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de enviar ao Drive.", variant: "destructive" });
-                    return;
+                    toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de enviar ao Drive." });
                   }
                   // Build a temporary OficioRow-like object for handleUploadToDrive
                   const tempOficio: OficioRow = {

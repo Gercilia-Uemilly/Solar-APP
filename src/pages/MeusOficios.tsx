@@ -391,7 +391,7 @@ export default function MeusOficios() {
       if (driveResult.driveLink) {
         await supabase.from("oficios").update({
           link_pdf_drive: driveResult.driveLink,
-          status: "Salvo no Drive",
+           status: "Exportado",
           uploaded_by_name: profileName || user?.email || null,
           uploaded_by_email: user?.email || null,
           uploaded_at: new Date().toISOString(),
@@ -482,7 +482,7 @@ export default function MeusOficios() {
       if (driveResult.driveLink) {
         await supabase.from("oficios").update({
           link_pdf_drive: driveResult.driveLink,
-          status: "Salvo no Drive",
+          status: "Exportado",
           uploaded_by_name: profileName || user?.email || null,
           uploaded_by_email: user?.email || null,
           uploaded_at: new Date().toISOString(),
@@ -683,7 +683,7 @@ export default function MeusOficios() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    {o.status === "Salvo no Drive" && (o as any).uploaded_by_name && (
+                    {(o.status === "Exportado") && (o as any).uploaded_by_name && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">por {(o as any).uploaded_by_name}</p>
                     )}
                   </div>
