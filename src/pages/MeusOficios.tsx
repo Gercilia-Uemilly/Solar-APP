@@ -85,6 +85,7 @@ export default function MeusOficios() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inlineFieldSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [previewPageCount, setPreviewPageCount] = useState(1);
   const formatStorageKey = "oficio_preview_format_options";
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(() => {
     try {
