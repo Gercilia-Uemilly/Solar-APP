@@ -155,7 +155,7 @@ export default function OficioPreviewEditor({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-1 p-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg mb-2 sticky top-0 z-10">
+      <div className="flex flex-wrap items-center gap-1 p-1.5 bg-muted/50 border border-border rounded-lg mb-2 sticky top-0 z-10">
         <ToolBtn onClick={() => exec("undo")} title="Desfazer (Ctrl+Z)">
           <Undo size={14} />
         </ToolBtn>
@@ -163,7 +163,7 @@ export default function OficioPreviewEditor({
           <Redo size={14} />
         </ToolBtn>
 
-        <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
+        <div className="w-px h-4 bg-border mx-0.5" />
 
         <ToolBtn onClick={() => exec("bold")} title="Negrito (Ctrl+B)">
           <Bold size={14} />
