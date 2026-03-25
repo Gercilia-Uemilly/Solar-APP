@@ -116,13 +116,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         ref={ref}
         style={{
           width: "210mm",
+          minHeight: "297mm",
           paddingTop: "30mm",
           paddingRight: "20mm",
           paddingBottom: "20mm",
           paddingLeft: "30mm",
           fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-          fontSize: `${fmt.fontSize}pt`,
-          lineHeight: String(fmt.lineSpacing),
+          fontSize: `${effectiveFontSize}pt`,
+          lineHeight: String(effectiveLineSpacing),
           color: "#000",
           backgroundColor: "#fff",
           position: "relative",
