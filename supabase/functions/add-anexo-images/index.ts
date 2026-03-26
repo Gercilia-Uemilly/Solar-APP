@@ -115,8 +115,8 @@ async function addAnexoToDocx(
   let nextRid = 20;
   const annexParagraphs: string[] = [];
 
-  // ── Add images in groups of up to 4 per page ────────────────────────
-  const imageRids: { rId: string; idx: number }[] = [];
+  // ── Add images with dynamic 3/4-per-page layout (no stretching) ───────────
+  const imageEntries: { rId: string; idx: number; width: number; height: number }[] = [];
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
     const ext = img.type.includes("png") ? "png" : "jpeg";
@@ -126,37 +126,36 @@ async function addAnexoToDocx(
     const rId = `rIdAnexo${nextRid}`;
     newRels += `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/anexo_img_${i + 1}.${ext}"/>`;
     nextRid++;
-    imageRids.push({ rId, idx: i + 1 });
+
+    const dims = getImageDimensions(img.data, img.type);
+    imageEntries.push({
+      rId,
+      idx: i + 1,
+      width: dims?.width ?? 1600,
+      height: dims?.height ?? 1200,
+    });
   }
 
-  // Group images: up to 4 per page
-  for (let g = 0; g < imageRids.length; g += 4) {
-    const group = imageRids.slice(g, g + 4);
-    const count = group.length;
+  // Build pages: 4 by default, 3 when images are very panoramic/vertical
+  let cursor = 0;
+  while (cursor < imageEntries.length) {
+    const remaining = imageEntries.length - cursor;
+    let perPage = Math.min(4, remaining);
 
-    // Page break before each group
-    annexParagraphs.push(`<w:p xmlns:w="${W}"><w:r><w:br w:type="page"/></w:r></w:p>`);
-
-    // Size each image to fit in a grid: 2 columns, 2 rows max
-    // Content area: ~15cm wide x ~21cm tall
-    // 1 image: full width, half height
-    // 2 images: full width each, stacked
-    // 3-4 images: 2x2 grid
-    for (let i = 0; i < count; i++) {
-      const { rId, idx } = group[i];
-      let cx: number, cy: number;
-
-      if (count === 1) {
-        cx = 5400000; cy = 7200000; // full width, large
-      } else if (count === 2) {
-        cx = 5400000; cy = 3500000; // full width, half height
-      } else {
-        // 3 or 4: 2-column grid
-        cx = 2600000; cy = 3400000; // half width, half height
-      }
-
-      annexParagraphs.push(makeImageXml(rId, cx, cy, idx, W, WP, A_NS, PIC_NS, count <= 2));
+    if (perPage === 4) {
+      const probe = imageEntries.slice(cursor, cursor + 4);
+      const hasExtremeAspect = probe.some((img) => {
+        const ratio = img.width / Math.max(1, img.height);
+        return ratio > 1.75 || ratio < 0.6;
+      });
+      if (hasExtremeAspect) perPage = 3;
     }
+
+    const pageGroup = imageEntries.slice(cursor, cursor + perPage);
+    cursor += perPage;
+
+    annexParagraphs.push(`<w:p xmlns:w="${W}"><w:r><w:br w:type="page"/></w:r></w:p>`);
+    annexParagraphs.push(...buildImagePageXml(pageGroup, W, WP, A_NS, PIC_NS));
   }
 
   // ── Add PDFs as altChunk (embedded sub-documents) ─────────────────────
@@ -243,42 +242,108 @@ function getImageDimensions(data: Uint8Array, type: string): { width: number; he
   return null;
 }
 
-function makeImageXml(rId: string, cx: number, cy: number, idx: number, W: string, WP: string, A_NS: string, PIC_NS: string, centered = true): string {
+function fitImageToBox(widthPx: number, heightPx: number, maxCx: number, maxCy: number): { cx: number; cy: number } {
+  const pxToEmu = 9525;
+  const rawCx = Math.max(1, widthPx) * pxToEmu;
+  const rawCy = Math.max(1, heightPx) * pxToEmu;
+  const scale = Math.min(maxCx / rawCx, maxCy / rawCy, 1);
+  return {
+    cx: Math.max(700000, Math.round(rawCx * scale)),
+    cy: Math.max(700000, Math.round(rawCy * scale)),
+  };
+}
+
+function buildImagePageXml(
+  images: { rId: string; idx: number; width: number; height: number }[],
+  W: string,
+  WP: string,
+  A_NS: string,
+  PIC_NS: string,
+): string[] {
+  const rows: string[] = [];
+
+  if (images.length === 1) {
+    const fit = fitImageToBox(images[0].width, images[0].height, 5200000, 6800000);
+    rows.push(makeImageRowXml([makeImageRunXml(images[0].rId, fit.cx, fit.cy, images[0].idx, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
+    return rows;
+  }
+
+  if (images.length === 2) {
+    const runs = images.map((img) => {
+      const fit = fitImageToBox(img.width, img.height, 2500000, 3200000);
+      return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
+    });
+    rows.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
+    return rows;
+  }
+
+  if (images.length === 3) {
+    const firstRowRuns = images.slice(0, 2).map((img) => {
+      const fit = fitImageToBox(img.width, img.height, 2450000, 2950000);
+      return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
+    });
+    rows.push(makeImageRowXml(firstRowRuns, W, WP, A_NS, PIC_NS));
+
+    const third = images[2];
+    const fitThird = fitImageToBox(third.width, third.height, 4200000, 3000000);
+    rows.push(makeImageRowXml([makeImageRunXml(third.rId, fitThird.cx, fitThird.cy, third.idx, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
+    return rows;
+  }
+
+  for (let i = 0; i < images.length; i += 2) {
+    const pair = images.slice(i, i + 2);
+    const runs = pair.map((img) => {
+      const fit = fitImageToBox(img.width, img.height, 2400000, 2900000);
+      return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
+    });
+    rows.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
+  }
+
+  return rows;
+}
+
+function makeImageRowXml(runs: string[], W: string, WP: string, A_NS: string, PIC_NS: string): string {
+  const spacer = '<w:r><w:t xml:space="preserve">   </w:t></w:r>';
   return `
 <w:p xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:pPr>
-    <w:jc w:val="${centered ? "center" : "left"}"/>
-    <w:spacing w:before="60" w:after="60"/>
+    <w:jc w:val="center"/>
+    <w:spacing w:before="100" w:after="140"/>
   </w:pPr>
-  <w:r>
-    <w:drawing>
-      <wp:inline distT="0" distB="0" distL="0" distR="0">
-        <wp:extent cx="${cx}" cy="${cy}"/>
-        <wp:effectExtent l="0" t="0" r="0" b="0"/>
-        <wp:docPr id="${idx + 100}" name="Imagem${idx}"/>
-        <wp:cNvGraphicFramePr>
-          <a:graphicFrameLocks xmlns:a="${A_NS}" noChangeAspect="1"/>
-        </wp:cNvGraphicFramePr>
-        <a:graphic xmlns:a="${A_NS}">
-          <a:graphicData uri="${PIC_NS}">
-            <pic:pic xmlns:pic="${PIC_NS}">
-              <pic:nvPicPr>
-                <pic:cNvPr id="${idx + 100}" name="Imagem${idx}"/>
-                <pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr>
-              </pic:nvPicPr>
-              <pic:blipFill>
-                <a:blip r:embed="${rId}"/>
-                <a:stretch><a:fillRect/></a:stretch>
-              </pic:blipFill>
-              <pic:spPr>
-                <a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>
-                <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-              </pic:spPr>
-            </pic:pic>
-          </a:graphicData>
-        </a:graphic>
-      </wp:inline>
-    </w:drawing>
-  </w:r>
+  ${runs.join(spacer)}
 </w:p>`;
+}
+
+function makeImageRunXml(rId: string, cx: number, cy: number, idx: number, A_NS: string, PIC_NS: string): string {
+  return `
+<w:r>
+  <w:drawing>
+    <wp:inline distT="0" distB="0" distL="0" distR="0">
+      <wp:extent cx="${cx}" cy="${cy}"/>
+      <wp:effectExtent l="0" t="0" r="0" b="0"/>
+      <wp:docPr id="${idx + 100}" name="Imagem${idx}"/>
+      <wp:cNvGraphicFramePr>
+        <a:graphicFrameLocks xmlns:a="${A_NS}" noChangeAspect="1"/>
+      </wp:cNvGraphicFramePr>
+      <a:graphic xmlns:a="${A_NS}">
+        <a:graphicData uri="${PIC_NS}">
+          <pic:pic xmlns:pic="${PIC_NS}">
+            <pic:nvPicPr>
+              <pic:cNvPr id="${idx + 100}" name="Imagem${idx}"/>
+              <pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr>
+            </pic:nvPicPr>
+            <pic:blipFill>
+              <a:blip r:embed="${rId}"/>
+              <a:stretch><a:fillRect/></a:stretch>
+            </pic:blipFill>
+            <pic:spPr>
+              <a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>
+              <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+            </pic:spPr>
+          </pic:pic>
+        </a:graphicData>
+      </a:graphic>
+    </wp:inline>
+  </w:drawing>
+</w:r>`;
 }
