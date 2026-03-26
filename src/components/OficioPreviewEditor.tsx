@@ -149,11 +149,44 @@ export default function OficioPreviewEditor({
         {onDecreaseFontSize && onIncreaseFontSize && (
           <>
             <div className="w-px h-4 bg-blue-200 dark:bg-blue-700 mx-0.5" />
-            <ToolBtn onClick={onDecreaseFontSize} title="Diminuir tamanho da fonte">
+    <ToolBtn onClick={() => {
+              const sel = window.getSelection();
+              if (!sel || sel.isCollapsed) {
+                // No selection — apply globally via parent callback
+                onDecreaseFontSize?.();
+                return;
+              }
+              // Apply to selection only via execCommand
+              const currentSize = fontSize > 10 ? fontSize - 1 : fontSize;
+              document.execCommand("fontSize", false, "1");
+              // Override the font size via inline style on the generated font tag
+              const fontEls = editorRef.current?.querySelectorAll('font[size="1"]');
+              fontEls?.forEach(el => {
+                (el as HTMLElement).removeAttribute("size");
+                (el as HTMLElement).style.fontSize = `${currentSize}pt`;
+              });
+              isInternalChange.current = true;
+              onChange(editorRef.current?.innerHTML || "");
+            }} title="Diminuir tamanho da fonte (selecione texto primeiro)">
               <Type size={14} />
               <span className="text-[11px] font-semibold leading-none">-</span>
             </ToolBtn>
-            <ToolBtn onClick={onIncreaseFontSize} title="Aumentar tamanho da fonte">
+            <ToolBtn onClick={() => {
+              const sel = window.getSelection();
+              if (!sel || sel.isCollapsed) {
+                onIncreaseFontSize?.();
+                return;
+              }
+              const newSize = Math.min(fontSize + 1, 12);
+              document.execCommand("fontSize", false, "7");
+              const fontEls = editorRef.current?.querySelectorAll('font[size="7"]');
+              fontEls?.forEach(el => {
+                (el as HTMLElement).removeAttribute("size");
+                (el as HTMLElement).style.fontSize = `${newSize}pt`;
+              });
+              isInternalChange.current = true;
+              onChange(editorRef.current?.innerHTML || "");
+            }} title="Aumentar tamanho da fonte (selecione texto primeiro, máx 12pt)">
               <Type size={14} />
               <span className="text-[11px] font-semibold leading-none">+</span>
             </ToolBtn>

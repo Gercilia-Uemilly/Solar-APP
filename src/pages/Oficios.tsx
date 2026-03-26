@@ -1503,8 +1503,13 @@ export default function Oficios() {
                   onDataChange={(val) => {
                     /* data is display-only from date input */
                   }}
-                  onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
-                  onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
+                  onIncreaseFontSize={() => {
+                    // Font size buttons only work on selection — handled by OficioPreviewEditor
+                    setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(12, prev.fontSize + 1) }));
+                  }}
+                  onDecreaseFontSize={() => {
+                    setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }));
+                  }}
                   initialConteudo={originalOficio}
                   anexoImageUrls={previewImageUrls}
                   anexoDocuments={previewDocumentAnexos}
@@ -1612,6 +1617,24 @@ export default function Oficios() {
           if (campo === "assunto") setAssunto(correcao);
           else if (campo === "destinatario") setDestinatario(correcao);
           else if (campo === "vocativo") setCargoDestinatario(correcao);
+          else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
+            // Apply text correction to the editor content
+            if (editedOficio) {
+              const updated = editedOficio;
+              setEditedOficio(updated.includes(correcao) ? updated : updated + correcao);
+            }
+          }
+          // Persist correction to database
+          if (editingOficioId) {
+            const dbField = campo === "assunto" ? "assunto"
+              : campo === "destinatario" ? "destinatario"
+              : campo === "vocativo" ? "cargo_destinatario"
+              : null;
+            if (dbField) {
+              supabase.from("oficios").update({ [dbField]: correcao }).eq("id", editingOficioId).then(() => {});
+            }
+          }
+          toast({ title: "✅ Correção aplicada!" });
         }}
         onCorrigirTudo={() => {
           if (!revisaoResult?.erros) return;
@@ -1621,6 +1644,20 @@ export default function Oficios() {
             else if (erro.campo === "destinatario") setDestinatario(erro.correcao);
             else if (erro.campo === "vocativo") setCargoDestinatario(erro.correcao);
           }
+          // Persist all corrections
+          if (editingOficioId && revisaoResult.erros) {
+            const updates: Record<string, string> = {};
+            for (const erro of revisaoResult.erros) {
+              if (!erro.correcao) continue;
+              if (erro.campo === "assunto") updates.assunto = erro.correcao;
+              else if (erro.campo === "destinatario") updates.destinatario = erro.correcao;
+              else if (erro.campo === "vocativo") updates.cargo_destinatario = erro.correcao;
+            }
+            if (Object.keys(updates).length > 0) {
+              supabase.from("oficios").update(updates).eq("id", editingOficioId).then(() => {});
+            }
+          }
+          toast({ title: "✅ Todas as correções aplicadas!" });
         }}
         onExportarMesmoAssim={() => setRevisaoOpen(false)}
       />

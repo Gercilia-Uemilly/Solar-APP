@@ -49,24 +49,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       fontSize: Math.min(rawFmt.fontSize, 12),
     }), [rawFmt]);
 
-    // Auto-adjust font and spacing to fill page (max 12pt)
+    // Auto-adjust font and spacing to fill page — match export logic exactly
     const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
-    const autoFontSize = useMemo(() => {
-      if (contentLength < 400) return 12;
-      if (contentLength < 700) return 12;
-      if (contentLength < 1200) return 11;
-      if (contentLength < 1800) return 10;
-      return 9;
-    }, [contentLength]);
-    const autoLineSpacing = useMemo(() => {
-      if (contentLength < 400) return 2.0;
-      if (contentLength < 700) return 1.75;
-      if (contentLength < 1200) return 1.5;
-      return 1.33;
+    const autoCalc = useMemo(() => {
+      if (contentLength < 400) return { fontSize: 13, lineSpacing: 2.0 };
+      if (contentLength < 600) return { fontSize: 12, lineSpacing: 1.83 };
+      if (contentLength < 900) return { fontSize: 11.5, lineSpacing: 1.67 };
+      if (contentLength < 1200) return { fontSize: 11, lineSpacing: 1.5 };
+      if (contentLength < 1800) return { fontSize: 10.5, lineSpacing: 1.42 };
+      return { fontSize: 10, lineSpacing: 1.33 };
     }, [contentLength]);
 
-    const effectiveFontSize = Math.min(fmt.fontSize || autoFontSize, 12);
-    const effectiveLineSpacing = fmt.lineSpacing || autoLineSpacing;
+    const effectiveFontSize = fmt.fontSize && fmt.fontSize !== 11 ? Math.min(fmt.fontSize, 12) : autoCalc.fontSize;
+    const effectiveLineSpacing = fmt.lineSpacing && fmt.lineSpacing !== 1.5 ? fmt.lineSpacing : autoCalc.lineSpacing;
 
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
