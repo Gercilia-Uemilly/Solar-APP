@@ -491,18 +491,25 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   // Body paragraphs — handle both text runs and inline images
   const bodyParagraphs: Paragraph[] = [];
-  styledParagraphs.forEach((runs, idx) => {
-    const _idx = idx; // unused — keepNext removed from body to prevent blank pages
+  
+  // Collect all inline images separately for grid layout
+  const inlineImages: ParsedImageRun[] = [];
+  
+  styledParagraphs.forEach((runs) => {
     const isImageOnly = runs.length > 0 && runs.every(r => 'image' in r);
+    
+    if (isImageOnly) {
+      // Collect images for batched grid layout
+      for (const r of runs) {
+        if ('image' in r) inlineImages.push(r as ParsedImageRun);
+      }
+      return;
+    }
+    
     const children: (TextRun | ImageRun)[] = [];
-
     for (const r of runs) {
       if ('image' in r) {
-        children.push(new ImageRun({
-          data: r.image,
-          transformation: { width: r.width, height: r.height },
-          type: ('imageType' in r ? r.imageType : "png") as "png" | "jpg" | "gif" | "bmp",
-        }));
+        inlineImages.push(r as ParsedImageRun);
       } else {
         children.push(new TextRun({
           text: r.text,
@@ -516,13 +523,38 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       }
     }
 
-    bodyParagraphs.push(new Paragraph({
-      indent: isImageOnly ? undefined : { firstLine: 709 },
-      alignment: isImageOnly ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
-      children,
-      spacing: isImageOnly
-        ? { before: 400, after: 400, line: lineSpacing }
-        : { before: 0, after: 0, line: lineSpacing },
+    if (children.length > 0) {
+      bodyParagraphs.push(new Paragraph({
+        indent: { firstLine: 709 },
+        alignment: AlignmentType.JUSTIFIED,
+        children,
+        spacing: { before: 0, after: 0, line: lineSpacing },
+      }));
+    }
+  });
+  
+  // Group inline images: up to 4 per row for grid layout
+  if (inlineImages.length > 0) {
+    for (let i = 0; i < inlineImages.length; i += 4) {
+      const group = inlineImages.slice(i, i + 4);
+      const count = group.length;
+      // Calculate dimensions: 1→480px, 2→220px, 3→145px, 4→108px
+      const imgWidth = count === 1 ? 480 : count === 2 ? 220 : count === 3 ? 145 : 108;
+      const imgHeight = Math.round(imgWidth * 0.75);
+      
+      const imageRuns: ImageRun[] = group.map(r => new ImageRun({
+        data: r.image,
+        transformation: { width: imgWidth, height: imgHeight },
+        type: ('imageType' in r ? r.imageType : "png") as "png" | "jpg" | "gif" | "bmp",
+      }));
+      
+      bodyParagraphs.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: imageRuns,
+        spacing: { before: 100, after: 200, line: lineSpacing },
+      }));
+    }
+  }
     }));
   });
 
