@@ -168,11 +168,48 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             <p style={{ fontSize: "11pt", fontWeight: "bold", lineHeight: "1.0" }}>FABÃO</p>
             <p style={{ fontSize: "11pt", lineHeight: "1.0" }}>Vereador</p>
           </div>
-          {anexoImageUrls && anexoImageUrls.length > 0 && (
-            <div style={{ marginTop: "20px" }}>
-              {anexoImageUrls.map((url, i) => <img key={i} src={url} alt="" style={{ width: "48%", height: "auto", margin: "4px" }} />)}
-            </div>
-          )}
+          {anexoImageUrls && anexoImageUrls.length > 0 && (() => {
+            const urls = anexoImageUrls;
+            const chunks: string[][] = [];
+            for (let i = 0; i < urls.length; i += 4) {
+              chunks.push(urls.slice(i, i + 4));
+            }
+            return (
+              <div style={{ marginTop: "20px" }}>
+                {chunks.map((chunk, ci) => {
+                  const count = chunk.length;
+                  if (count === 1) {
+                    return (
+                      <div key={ci} style={{ marginTop: ci > 0 ? "10px" : "0" }}>
+                        <img src={chunk[0]} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
+                      </div>
+                    );
+                  }
+                  if (count === 3) {
+                    return (
+                      <div key={ci} style={{ marginTop: ci > 0 ? "10px" : "0" }}>
+                        <div style={{ marginBottom: "6px" }}>
+                          <img src={chunk[0]} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                          <img src={chunk[1]} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
+                          <img src={chunk[2]} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
+                        </div>
+                      </div>
+                    );
+                  }
+                  // 2 or 4 images: 2-column grid
+                  return (
+                    <div key={ci} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: ci > 0 ? "10px" : "0" }}>
+                      {chunk.map((url, i) => (
+                        <img key={i} src={url} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
           <div style={{ marginTop: "80px", fontSize: "9pt", textAlign: "center" }}>Rodapé</div>
         </div>
 
