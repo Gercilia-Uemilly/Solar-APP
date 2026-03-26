@@ -555,8 +555,6 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
       }));
     }
   }
-    }));
-  });
 
   const doc = new Document({
     sections: [{
