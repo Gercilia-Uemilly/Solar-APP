@@ -115,7 +115,8 @@ async function addAnexoToDocx(
   let nextRid = 20;
   const annexParagraphs: string[] = [];
 
-  // ── Add images ────────────────────────────────────────────────────────
+  // ── Add images in groups of up to 4 per page ────────────────────────
+  const imageRids: { rId: string; idx: number }[] = [];
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
     const ext = img.type.includes("png") ? "png" : "jpeg";
@@ -125,35 +126,37 @@ async function addAnexoToDocx(
     const rId = `rIdAnexo${nextRid}`;
     newRels += `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/anexo_img_${i + 1}.${ext}"/>`;
     nextRid++;
+    imageRids.push({ rId, idx: i + 1 });
+  }
 
-    // Fit image within content area preserving aspect ratio
-    const maxCx = 5400000; // ~15 cm max width
-    const maxCy = 7600000; // ~21 cm max height (A4 minus margins)
-    
-    // Try to get actual image dimensions
-    const dims = getImageDimensions(img.data, img.type);
-    let cx: number, cy: number;
-    
-    if (dims) {
-      const ratio = dims.width / dims.height;
-      if (ratio >= 1) {
-        // Landscape or square
-        cx = maxCx;
-        cy = Math.round(maxCx / ratio);
-        if (cy > maxCy) { cy = maxCy; cx = Math.round(maxCy * ratio); }
+  // Group images: up to 4 per page
+  for (let g = 0; g < imageRids.length; g += 4) {
+    const group = imageRids.slice(g, g + 4);
+    const count = group.length;
+
+    // Page break before each group
+    annexParagraphs.push(`<w:p xmlns:w="${W}"><w:r><w:br w:type="page"/></w:r></w:p>`);
+
+    // Size each image to fit in a grid: 2 columns, 2 rows max
+    // Content area: ~15cm wide x ~21cm tall
+    // 1 image: full width, half height
+    // 2 images: full width each, stacked
+    // 3-4 images: 2x2 grid
+    for (let i = 0; i < count; i++) {
+      const { rId, idx } = group[i];
+      let cx: number, cy: number;
+
+      if (count === 1) {
+        cx = 5400000; cy = 7200000; // full width, large
+      } else if (count === 2) {
+        cx = 5400000; cy = 3500000; // full width, half height
       } else {
-        // Portrait
-        cy = maxCy;
-        cx = Math.round(maxCy * ratio);
-        if (cx > maxCx) { cx = maxCx; cy = Math.round(maxCx / ratio); }
+        // 3 or 4: 2-column grid
+        cx = 2600000; cy = 3400000; // half width, half height
       }
-    } else {
-      // Fallback: use max width, A4 ratio
-      cx = maxCx;
-      cy = Math.round(maxCx * 1.414);
-    }
 
-    annexParagraphs.push(makeImageXml(rId, cx, cy, i + 1, W, WP, A_NS, PIC_NS));
+      annexParagraphs.push(makeImageXml(rId, cx, cy, idx, W, WP, A_NS, PIC_NS, count <= 2));
+    }
   }
 
   // ── Add PDFs as altChunk (embedded sub-documents) ─────────────────────
@@ -240,15 +243,12 @@ function getImageDimensions(data: Uint8Array, type: string): { width: number; he
   return null;
 }
 
-function makeImageXml(rId: string, cx: number, cy: number, idx: number, W: string, WP: string, A_NS: string, PIC_NS: string): string {
+function makeImageXml(rId: string, cx: number, cy: number, idx: number, W: string, WP: string, A_NS: string, PIC_NS: string, centered = true): string {
   return `
-<w:p xmlns:w="${W}">
-  <w:r><w:br w:type="page"/></w:r>
-</w:p>
 <w:p xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:pPr>
-    <w:jc w:val="center"/>
-    <w:spacing w:before="0" w:after="0"/>
+    <w:jc w:val="${centered ? "center" : "left"}"/>
+    <w:spacing w:before="60" w:after="60"/>
   </w:pPr>
   <w:r>
     <w:drawing>
