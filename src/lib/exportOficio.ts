@@ -898,16 +898,21 @@ async function autoUpdateStatus(oficioId?: string, newStatus = "Exportado") {
 export async function exportToPDF(data: OficioData): Promise<void> {
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
 
-  // Build Word without anexos embedded (we'll merge PDFs separately)
-  const wordBlob = await buildWordBlob(data);
+  // Build Word WITH images embedded via edge function
+  const wordBlob = await buildWordBlobForExport(data);
 
   try {
     const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
 
-    // Merge anexos into the PDF using pdf-lib
-    if (data.imagens && data.imagens.length > 0) {
+    // Only merge PDF attachments (images are already embedded in the Word)
+    const pdfAnexos = (data.imagens || []).filter(f => {
+      const mime = normalizeAttachmentMime(f.name, f.type);
+      return mime === "application/pdf";
+    });
+
+    if (pdfAnexos.length > 0) {
       const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
-      const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+      const mergedBytes = await mergePdfWithAnexos(pdfBytes, pdfAnexos);
       const mergedBlob = new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
       saveAs(mergedBlob, `${fileName}.pdf`);
     } else {
@@ -959,12 +964,18 @@ async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob>
 
 // ── Build merged PDF blob (for Drive upload) ───────────────────────────────
 export async function buildMergedPdfBlob(data: OficioData): Promise<Blob> {
-  const wordBlob = await buildWordBlob(data);
+  const wordBlob = await buildWordBlobForExport(data);
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
 
-  if (data.imagens && data.imagens.length > 0) {
+  // Only merge PDF attachments (images already embedded in Word)
+  const pdfAnexos = (data.imagens || []).filter(f => {
+    const mime = normalizeAttachmentMime(f.name, f.type);
+    return mime === "application/pdf";
+  });
+
+  if (pdfAnexos.length > 0) {
     const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
-    const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+    const mergedBytes = await mergePdfWithAnexos(pdfBytes, pdfAnexos);
     return new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
   }
 
@@ -973,13 +984,19 @@ export async function buildMergedPdfBlob(data: OficioData): Promise<Blob> {
 
 // ── Print via Word→PDF conversion ───────────────────────────────────────────
 export async function printOficioViaPdf(data: OficioData): Promise<void> {
-  const wordBlob = await buildWordBlob(data);
+  const wordBlob = await buildWordBlobForExport(data);
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
 
+  // Only merge PDF attachments (images already embedded in Word)
+  const pdfAnexos = (data.imagens || []).filter(f => {
+    const mime = normalizeAttachmentMime(f.name, f.type);
+    return mime === "application/pdf";
+  });
+
   let finalBlob = pdfBlob;
-  if (data.imagens && data.imagens.length > 0) {
+  if (pdfAnexos.length > 0) {
     const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
-    const mergedBytes = await mergePdfWithAnexos(pdfBytes, data.imagens);
+    const mergedBytes = await mergePdfWithAnexos(pdfBytes, pdfAnexos);
     finalBlob = new Blob([mergedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
   }
 
