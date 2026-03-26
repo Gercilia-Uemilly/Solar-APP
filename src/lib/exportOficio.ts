@@ -465,24 +465,27 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
-  // Auto-adjust font size (MAX 12pt) and line spacing based on content length
+  // Auto-adjust font size and line spacing based on content length (half-points)
   const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
-  const autoFontSizePt = contentLength < 400 ? 12
-    : contentLength < 700 ? 12
-    : contentLength < 1200 ? 11
-    : contentLength < 1800 ? 10
-    : 9;
-  const autoLineSpacing = contentLength < 400 ? 2.0
-    : contentLength < 700 ? 1.75
-    : contentLength < 1200 ? 1.5
-    : 1.33;
+  const calcularFonteEspacamento = (chars: number) => {
+    if (chars < 400) return { size: 26, line: 480 };  // 13pt equivalent in half-points
+    if (chars < 600) return { size: 24, line: 440 };  // 12pt
+    if (chars < 900) return { size: 23, line: 400 };  // 11.5pt
+    if (chars < 1200) return { size: 22, line: 360 }; // 11pt
+    if (chars < 1800) return { size: 21, line: 340 }; // 10.5pt
+    return { size: 20, line: 320 };                    // 10pt — long text, 2+ pages
+  };
+  const autoCalc = calcularFonteEspacamento(contentLength);
 
-  const defaultFontSizePt = Math.min(data.formatOptions?.fontSize || autoFontSizePt, 12);
-  const defaultFontSize = defaultFontSizePt * 2; // half-points
+  // If user set explicit format options, use them (capped at 12pt=24 half-points), otherwise auto
+  const defaultFontSize = data.formatOptions?.fontSize
+    ? Math.min(data.formatOptions.fontSize * 2, 24)
+    : autoCalc.size;
   const defaultFontName = data.formatOptions?.fontFamily || "Arial";
 
-  const lineSpacingMultiplier = data.formatOptions?.lineSpacing || autoLineSpacing;
-  const lineSpacing = Math.round(lineSpacingMultiplier * 240); // 240 twips per line
+  const lineSpacing = data.formatOptions?.lineSpacing
+    ? Math.round(data.formatOptions.lineSpacing * 240)
+    : autoCalc.line;
 
   // operadorMarca removed — operator name no longer appears in document
 
