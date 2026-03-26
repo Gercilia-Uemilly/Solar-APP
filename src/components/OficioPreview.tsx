@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from "react";
+import { forwardRef, useMemo, useRef, useState, useEffect, useCallback } from "react";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -106,25 +106,122 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return paras.map(p => `<p>${p}</p>`).join("");
     };
 
+    // ── Page simulation ────────────────────────────────────────────
+    const PAGE_W = "210mm";
+    const PAGE_H_PX = 1122; // 297mm ≈ 1122px at 96dpi
+    const MARGIN_TOP = 113;  // 30mm
+    const MARGIN_BOT = 76;   // 20mm
+    const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT; // usable per page
+
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [totalPages, setTotalPages] = useState(1);
+
+    const recalcPages = useCallback(() => {
+      if (!contentRef.current) return;
+      const h = contentRef.current.scrollHeight;
+      setTotalPages(Math.max(1, Math.ceil(h / CONTENT_H)));
+    }, []);
+
+    useEffect(() => {
+      recalcPages();
+      const timer = setInterval(recalcPages, 500);
+      return () => clearInterval(timer);
+    }, [recalcPages, conteudo, anexoImageUrls, anexoDocuments]);
+
     return (
-      <div
-        ref={ref}
-        style={{
-          width: "210mm",
-          minHeight: "297mm",
-          paddingTop: "30mm",
-          paddingRight: "20mm",
-          paddingBottom: "20mm",
-          paddingLeft: "30mm",
-          fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-          fontSize: `${effectiveFontSize}pt`,
-          lineHeight: String(effectiveLineSpacing),
-          color: "#000",
-          backgroundColor: "#fff",
-          position: "relative",
-          boxSizing: "border-box",
-        }}
-      >
+      <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
+        {/* Hidden measurable content — rendered off-screen to calculate pages */}
+        <div
+          ref={contentRef}
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            top: 0,
+            width: "160mm", /* 210 - 30 - 20 margins */
+            fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
+            fontSize: `${effectiveFontSize}pt`,
+            lineHeight: String(effectiveLineSpacing),
+            color: "#000",
+            visibility: "hidden",
+            pointerEvents: "none",
+          }}
+        >
+          {/* Mirror all visible content for measurement */}
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", marginBottom: "0" }}>
+            <img src={logoCamara} alt="" style={{ height: "70px" }} />
+            <img src={logoFabao} alt="" style={{ height: "70px" }} />
+          </div>
+          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
+          <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", lineHeight: "1.5" }}>Ofício GVF n° {numeroFormatado}</p>
+          <p style={{ fontSize: "11pt", marginBottom: "0", lineHeight: "1.5", fontWeight: "bold" }}>DESTINATÁRIO: {destinatarioCompleto}</p>
+          <p style={{ fontSize: "11pt", marginBottom: "24px", lineHeight: "1.5", fontWeight: "bold" }}>Assunto: {assuntoFormatado}</p>
+          <p style={{ fontSize: "11pt", marginBottom: "16px", textIndent: "1.25cm", lineHeight: "1.5" }}>{vocativo}</p>
+          {isHtml ? (
+            <div style={{ textAlign: "justify", fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing) }} dangerouslySetInnerHTML={{ __html: conteudo }} />
+          ) : (
+            <div>{paragraphs.map((p, i) => <p key={i} style={{ textIndent: "1.25cm", fontSize: "11pt", lineHeight: "1.5" }} dangerouslySetInnerHTML={{ __html: p }} />)}</div>
+          )}
+          <p style={{ marginTop: "16px", marginBottom: "32px", fontSize: "11pt" }}>Atenciosamente,</p>
+          <div style={{ textAlign: "center", lineHeight: "1.0" }}>
+            <img src={assinaturaFabao} alt="" style={{ width: "227px", height: "auto" }} />
+            <p style={{ fontSize: "11pt", fontWeight: "bold", lineHeight: "1.0" }}>FABÃO</p>
+            <p style={{ fontSize: "11pt", lineHeight: "1.0" }}>Vereador</p>
+          </div>
+          {anexoImageUrls && anexoImageUrls.length > 0 && (
+            <div style={{ marginTop: "20px" }}>
+              {anexoImageUrls.map((url, i) => <img key={i} src={url} alt="" style={{ width: "48%", height: "auto", margin: "4px" }} />)}
+            </div>
+          )}
+          <div style={{ marginTop: "80px", fontSize: "9pt", textAlign: "center" }}>Rodapé</div>
+        </div>
+
+        {/* ── Visible paginated preview ─────────────────────────────── */}
+        {Array.from({ length: totalPages }, (_, pageIdx) => (
+          <div
+            key={pageIdx}
+            style={{
+              width: PAGE_W,
+              height: `${PAGE_H_PX}px`,
+              background: "#fff",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.13)",
+              borderRadius: "4px",
+              position: "relative",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            {/* Page number label */}
+            <div style={{
+              position: "absolute",
+              top: "8px",
+              right: "12px",
+              fontSize: "10px",
+              color: "#999",
+              fontFamily: "Arial, sans-serif",
+              zIndex: 2,
+            }}>
+              Página {pageIdx + 1} de {totalPages}
+            </div>
+
+            {/* Content window — shifts up for each page */}
+            <div style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              paddingTop: "30mm",
+              paddingRight: "20mm",
+              paddingBottom: "20mm",
+              paddingLeft: "30mm",
+              boxSizing: "border-box",
+              fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
+              fontSize: `${effectiveFontSize}pt`,
+              lineHeight: String(effectiveLineSpacing),
+              color: "#000",
+              transform: `translateY(-${pageIdx * CONTENT_H}px)`,
+            }}>
+              {/* Only render full content once, CSS clips per page */}
         {/* CABEÇALHO */}
         <div style={{
           display: "flex",
@@ -138,13 +235,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* Nº de página — canto superior direito */}
-        <div style={{
-          position: "absolute",
-          top: "30mm",
-          right: "20mm",
-          fontSize: "9pt",
-          fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-        }}>1</div>
+        {/* (replaced by page label above) */}
 
         {/* DATA — after: 240 (~16px) */}
         {editable && onDataChange ? (
@@ -361,6 +452,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         }}>
           Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
         </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
