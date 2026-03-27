@@ -7,13 +7,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Call Lovable AI proxy for all file types (supports multimodal including audio/video)
-async function callLovableAI(base64: string, mimeType: string, prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+// Call OpenAI API for all file types (supports multimodal)
+async function callOpenAI(base64: string, mimeType: string, prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
 
-  const model = "google/gemini-2.5-flash";
-  const url = "https://ai-gateway.lovable.dev/v1/chat/completions";
+  const model = "gpt-4o-mini";
+  const url = "https://api.openai.com/v1/chat/completions";
 
   const MAX_RETRIES = 3;
   let lastError: Error | null = null;
