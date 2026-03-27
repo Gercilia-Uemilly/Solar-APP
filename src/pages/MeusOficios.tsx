@@ -287,6 +287,7 @@ export default function MeusOficios() {
   };
 
   const handleStatusChange = async (oficioId: string, newStatus: string) => {
+    await saveBackupBeforeEdit(oficioId);
     const { error } = await supabase.from("oficios").update({ status: newStatus }).eq("id", oficioId);
     if (error) {
       toast({ title: "Erro ao alterar status", description: error.message, variant: "destructive" });
