@@ -54,7 +54,7 @@ async function callOpenAI(base64: string, mimeType: string, prompt: string): Pro
     }
 
     const errText = await response.text();
-    console.error(`Lovable AI error (attempt ${attempt + 1}):`, response.status, errText);
+    console.error(`OpenAI error (attempt ${attempt + 1}):`, response.status, errText);
 
     if (response.status === 429) {
       lastError = Object.assign(new Error("Limite de requisições excedido. Tentando novamente..."), { status: 429 });
@@ -143,8 +143,8 @@ Retorne um texto descritivo claro e objetivo com todas as informações extraíd
 
     let resultText: string;
 
-    // Use Lovable AI proxy for all file types (multimodal support)
-    resultText = await callLovableAI(base64, mimeType, prompt);
+    // Use OpenAI API for all file types (multimodal support)
+    resultText = await callOpenAI(base64, mimeType, prompt);
 
     return new Response(
       JSON.stringify({ text: resultText, type: fileType }),
