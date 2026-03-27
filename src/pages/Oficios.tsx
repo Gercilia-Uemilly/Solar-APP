@@ -1253,12 +1253,15 @@ export default function Oficios() {
               </div>
 
               {/* Mídias Auxiliares — para transcrição/extração de texto, NÃO são anexos */}
-              <div className="p-3 rounded-lg border border-dashed border-blue-400/40 bg-blue-500/5 space-y-2">
-                <div className="flex items-center justify-between">
+               <div className="p-3 rounded-lg border-2 border-dashed border-amber-400/60 bg-amber-500/10 space-y-2">
+                <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
                     <Upload size={13} /> Mídias auxiliares (transcrever áudio / extrair texto de imagem)
                   </label>
-                  <span className="text-[10px] text-muted-foreground italic">Apenas para ajudar a escrever — não anexa ao documento</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700">
+                    <span className="text-amber-700 dark:text-amber-300 text-lg leading-none">⚠️</span>
+                    <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">Apenas para ajudar a escrever — NÃO anexa ao documento final</span>
+                  </div>
                 </div>
                 <div className="flex gap-2 items-center">
                   <input
