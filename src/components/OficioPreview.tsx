@@ -160,6 +160,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     useEffect(() => {
       recalcPages();
       const timer = setInterval(recalcPages, 500);
+
+      // Also recalc when images inside the content finish loading
+      const el = contentRef.current;
+      if (el) {
+        const imgs = el.querySelectorAll("img");
+        const handler = () => recalcPages();
+        imgs.forEach(img => img.addEventListener("load", handler));
+        return () => {
+          clearInterval(timer);
+          imgs.forEach(img => img.removeEventListener("load", handler));
+        };
+      }
+
       return () => clearInterval(timer);
     }, [recalcPages, conteudo, anexoImageUrls, anexoDocuments]);
 
