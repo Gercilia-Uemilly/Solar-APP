@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { ptBR } from "date-fns/locale";
+import { PDFDocument } from "pdf-lib";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOficios } from "@/hooks/useOficios";
@@ -77,7 +78,7 @@ export default function MeusOficios() {
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewAnexoUrls, setPreviewAnexoUrls] = useState<string[]>([]);
-  const [previewAnexoDocs, setPreviewAnexoDocs] = useState<Array<{ nome: string; tipo: string }>>([]);
+  const [previewAnexoDocs, setPreviewAnexoDocs] = useState<Array<{ nome: string; tipo: string; paginas?: number }>>([]);
   const [editedContent, setEditedContent] = useState<string>("");
   const editedContentRef = useRef<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
@@ -145,13 +146,28 @@ export default function MeusOficios() {
 
     // Load anexos (imagens + documentos)
     fetchSavedImages(o.id)
-      .then((files) => {
+      .then(async (files) => {
         const urls = files
           .filter((f) => f.type.startsWith("image/"))
           .map((f) => URL.createObjectURL(f));
-        const docs = files
-          .filter((f) => !f.type.startsWith("image/"))
-          .map((f) => ({ nome: f.name, tipo: f.type || "application/octet-stream" }));
+        const docs = await Promise.all(
+          files
+            .filter((f) => !f.type.startsWith("image/"))
+            .map(async (f) => {
+              const tipo = (f.type || "application/octet-stream").toLowerCase();
+              const isPdf = tipo.includes("pdf") || f.name.toLowerCase().endsWith(".pdf");
+
+              if (!isPdf) return { nome: f.name, tipo };
+
+              try {
+                const buffer = await f.arrayBuffer();
+                const pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
+                return { nome: f.name, tipo: "application/pdf", paginas: Math.max(1, pdf.getPageCount()) };
+              } catch {
+                return { nome: f.name, tipo: "application/pdf", paginas: 1 };
+              }
+            })
+        );
 
         setPreviewAnexoUrls(urls);
         setPreviewAnexoDocs(docs);
