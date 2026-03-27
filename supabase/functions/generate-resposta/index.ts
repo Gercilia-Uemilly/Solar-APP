@@ -7,6 +7,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const cleanQuotedResponse = (text: string) => {
+  const trimmed = text.trim();
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("“") && trimmed.endsWith("”"))) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+};
+
+const isEmpathicEnough = (text: string) => {
+  const hasEmpathy = /(entendo|imagino|sei como|sua preocupa|seu incômodo|chatead|transtorno|paciência|obrigado por avisar)/i.test(text);
+  const hasAction = /(vou|já encaminhei|encaminhar|cobrar|acompanhar|providenciando|retorno)/i.test(text);
+  return hasEmpathy && hasAction && text.length >= 60;
+};
+
+const buildEmpathicFallback = (solicitante?: string | null, local?: string | null, bairro?: string | null) => {
+  const nomeValido = solicitante && solicitante !== "Não informado" ? solicitante : "meu amigo";
+  const localResumo = local && local !== "Não informado"
+    ? local
+    : bairro && bairro !== "Não informado"
+      ? `o bairro ${bairro}`
+      : "esse ponto que você me passou";
+
+  return [
+    `Oi, ${nomeValido}! 😊`,
+    `Entendo sua preocupação com ${localResumo}, e obrigado por me avisar.` ,
+    `Pode ficar tranquilo(a): vou encaminhar isso agora para a secretaria responsável e cobrar retorno.`,
+    `Assim que eu tiver novidade, te aviso por aqui. Estou em cima disso! 💪`,
+  ].join("\n");
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -81,6 +111,11 @@ PERSONALIDADE DO FABÃO:
 - Tom firme mas acolhedor
 - Usa primeira pessoa: "eu", "vou", "estou"
 
+OBJETIVO OBRIGATÓRIO:
+- A resposta precisa soar acolhedora e empática (reconhecer o sentimento/problema do cidadão)
+- Precisa mostrar ação concreta do gabinete (encaminhar, cobrar, acompanhar)
+- Nunca responder seco, genérico ou vazio
+
 PARA WHATSAPP use:
 - Cumprimento pelo nome
 - Emoji com moderação (1-2 por mensagem)
@@ -121,8 +156,14 @@ Exemplo 3 — Cobrando retorno:
 Ainda não tive retorno da secretaria sobre seu caso. Vou cobrar pessoalmente e te aviso.
 Obrigado pela paciência! 🙏"
 
-USE o banco de scripts e respostas anteriores do sistema como base principal.
-Adapte ao contexto da mensagem recebida.
+ FORMATO OBRIGATÓRIO (ordem):
+ 1) Saudação + acolhimento humano
+ 2) Reconhecimento do incômodo/preocupação
+ 3) Ação prática imediata do gabinete
+ 4) Fechamento com compromisso de retorno
+
+ USE o banco de scripts e respostas anteriores do sistema como base principal.
+ Adapte ao contexto da mensagem recebida.
 Retorne APENAS o texto da resposta.`;
 
     const userPrompt = `MATERIAL INTERNO DO GABINETE:
@@ -171,7 +212,11 @@ Gere a resposta para WhatsApp com a persona do Fabão, baseada no material inter
     }
 
     const aiData = await aiResponse.json();
-    const resposta = aiData.choices?.[0]?.message?.content?.trim() || "Oi! Recebi sua mensagem e já estou verificando a situação. Assim que tiver retorno te aviso 👍";
+    const aiTexto = aiData.choices?.[0]?.message?.content?.trim() || "";
+    const respostaLimpa = aiTexto ? cleanQuotedResponse(aiTexto) : "";
+    const resposta = isEmpathicEnough(respostaLimpa)
+      ? respostaLimpa
+      : buildEmpathicFallback(solicitante, local, bairro);
 
     return new Response(JSON.stringify({
       resposta,
