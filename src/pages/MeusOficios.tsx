@@ -24,6 +24,8 @@ import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildMe
 import { type OficioRow, getVocativo } from "@/lib/oficioUtils";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
+import VersionHistoryDialog from "@/components/VersionHistoryDialog";
+import { saveBackupBeforeEdit } from "@/lib/oficioBackup";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
