@@ -148,13 +148,29 @@ serve(async (req) => {
       });
     }
 
+    if (!["image", "audio", "video"].includes(fileType)) {
+      return new Response(JSON.stringify({ error: "Tipo de arquivo inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     let resultText: string;
 
     if (fileType === "audio" || fileType === "video") {
       // Use Whisper API for audio/video transcription
-      const transcription = await callWhisper(file);
-      // Then organize with GPT
-      resultText = await organizeTranscription(transcription, fileType === "video" ? "vídeo" : "áudio");
+      try {
+        const transcription = await callWhisper(file);
+        // Then organize with GPT
+        resultText = await organizeTranscription(transcription, fileType === "video" ? "vídeo" : "áudio");
+      } catch (err: any) {
+        // Friendly fallback for media types not accepted by Whisper
+        if (fileType === "video") {
+          const msg = err?.message || "Não foi possível transcrever o vídeo automaticamente.";
+          resultText = `Não foi possível transcrever este vídeo automaticamente (${msg}).\n\nDica: envie o áudio extraído do vídeo (mp3/m4a/wav) para melhor resultado.`;
+        } else {
+          throw err;
+        }
+      }
     } else {
       // Images: use OpenAI Vision
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -164,10 +180,9 @@ serve(async (req) => {
         binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
       }
       const base64 = btoa(binary);
-      const mimeType = file.type || "image/jpeg";
+      const mimeType = file.type?.startsWith("image/") ? file.type : "image/jpeg";
 
-      const prompt = fileType === "image"
-        ? `Analise esta imagem e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
+      const prompt = `Analise esta imagem e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
 
 Foque em:
 - Textos visíveis (placas, documentos, cartazes)
@@ -175,16 +190,7 @@ Foque em:
 - Localização (ruas, bairros, referências)
 - Condições gerais da situação fotografada
 
-Retorne um texto descritivo claro e objetivo com todas as informações extraídas. Se houver texto legível na imagem, transcreva-o integralmente.`
-        : `Analise este documento e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
-
-Foque em:
-- Conteúdo textual completo
-- Dados de localização (endereços, bairros)
-- Problemas ou demandas relatadas
-- Nomes de solicitantes ou envolvidos
-
-Retorne um texto descritivo claro e objetivo com todas as informações extraídas.`;
+Retorne um texto descritivo claro e objetivo com todas as informações extraídas. Se houver texto legível na imagem, transcreva-o integralmente.`;
 
       resultText = await callOpenAIVision(base64, mimeType, prompt);
     }
