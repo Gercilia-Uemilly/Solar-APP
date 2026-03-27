@@ -1319,7 +1319,6 @@ export default function Oficios() {
                   </div>
                 )}
               </div>
-              </div>
 
               {/* Smart Suggestions */}
               {showSuggestions && (suggestions.length > 0 || kbSuggestions.length > 0) && (
