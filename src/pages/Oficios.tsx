@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
 import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Eye, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen, SearchCheck } from "lucide-react";
+import { PDFDocument } from "pdf-lib";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -946,12 +947,44 @@ export default function Oficios() {
     }).filter(Boolean);
   }, [anexos]);
 
-  const previewDocumentAnexos = useMemo(
-    () => anexos
-      .filter(a => !a.tipo.startsWith("image/"))
-      .map(a => ({ nome: a.nome, tipo: a.tipo })),
-    [anexos]
-  );
+  const [previewDocumentAnexos, setPreviewDocumentAnexos] = useState<Array<{ nome: string; tipo: string; paginas?: number }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const buildPreviewDocs = async () => {
+      const docs = anexos.filter((a) => !a.tipo.startsWith("image/"));
+      const resolved = await Promise.all(docs.map(async (a) => {
+        const tipoNormalizado = normalizeAttachmentMime(a.nome, a.tipo, a.file?.type);
+        const isPdf = tipoNormalizado === "application/pdf";
+
+        if (!isPdf) {
+          return { nome: a.nome, tipo: tipoNormalizado };
+        }
+
+        try {
+          const buffer = a.file
+            ? await a.file.arrayBuffer()
+            : a.url
+              ? await fetch(a.url).then((r) => r.arrayBuffer())
+              : null;
+
+          if (!buffer) return { nome: a.nome, tipo: tipoNormalizado, paginas: 1 };
+          const pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
+          return { nome: a.nome, tipo: tipoNormalizado, paginas: Math.max(1, pdf.getPageCount()) };
+        } catch {
+          return { nome: a.nome, tipo: tipoNormalizado, paginas: 1 };
+        }
+      }));
+
+      if (!cancelled) setPreviewDocumentAnexos(resolved);
+    };
+
+    void buildPreviewDocs();
+    return () => {
+      cancelled = true;
+    };
+  }, [anexos]);
 
   // Cleanup object URLs on unmount or when anexos change
   useEffect(() => {
