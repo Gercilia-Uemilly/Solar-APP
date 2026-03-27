@@ -149,8 +149,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const recalcPages = useCallback(() => {
       if (!contentRef.current) return;
-      const h = contentRef.current.scrollHeight;
-      setTotalPages(Math.max(1, Math.ceil(h / CONTENT_H)));
+      // scrollHeight includes padding, so subtract margins to get pure content height
+      const scrollH = contentRef.current.scrollHeight;
+      const contentH = scrollH - MARGIN_TOP - MARGIN_BOT;
+      setTotalPages(Math.max(1, Math.ceil(contentH / CONTENT_H)));
     }, []);
 
     const totalPagesForExport = totalPages + pdfPagesFromDocuments;
