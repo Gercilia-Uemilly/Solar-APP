@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callGemini, toGeminiMultimodal } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,36 +7,65 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Call Gemini API directly for audio/video — OpenAI doesn't support these MIME types
-async function callGeminiDirect(base64: string, mimeType: string, prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("GOOGLE_AI_API_KEY");
-  if (!apiKey) throw new Error("GOOGLE_AI_API_KEY não configurada");
+// Call Lovable AI proxy for all file types (supports multimodal including audio/video)
+async function callLovableAI(base64: string, mimeType: string, prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const model = "google/gemini-2.5-flash";
+  const url = "https://ai-gateway.lovable.dev/v1/chat/completions";
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inlineData: { mimeType, data: base64 } },
-          { text: prompt },
+  const MAX_RETRIES = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = Math.min(2000 * Math.pow(2, attempt - 1), 8000);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${base64}` },
+              },
+              { type: "text", text: prompt },
+            ],
+          },
         ],
-      }],
-      generationConfig: { maxOutputTokens: 8192 },
-    }),
-  });
+        max_tokens: 8192,
+      }),
+    });
 
-  if (!response.ok) {
+    if (response.ok) {
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || "";
+    }
+
     const errText = await response.text();
-    console.error("Gemini API error:", response.status, errText);
-    if (response.status === 429) throw Object.assign(new Error("Limite de requisições excedido."), { status: 429 });
-    throw Object.assign(new Error(`Erro Gemini: ${response.status}`), { status: response.status });
+    console.error(`Lovable AI error (attempt ${attempt + 1}):`, response.status, errText);
+
+    if (response.status === 429) {
+      lastError = Object.assign(new Error("Limite de requisições excedido. Tentando novamente..."), { status: 429 });
+      continue; // retry
+    }
+
+    // Non-retryable error
+    throw Object.assign(new Error(`Erro AI: ${response.status}`), { status: response.status });
   }
 
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  throw lastError || new Error("Falha após múltiplas tentativas");
 }
 
 serve(async (req) => {
@@ -115,18 +143,8 @@ Retorne um texto descritivo claro e objetivo com todas as informações extraíd
 
     let resultText: string;
 
-    // Audio/video → use Gemini API directly (supports multimodal audio/video)
-    // Images/docs → use OpenAI via shared helper
-    if (fileType === "audio" || fileType === "video") {
-      resultText = await callGeminiDirect(base64, mimeType, prompt);
-    } else {
-      const { systemInstruction, messages } = toGeminiMultimodal([
-        { inlineData: { mimeType, data: base64 } },
-        { text: prompt },
-      ]);
-      const result = await callGemini({ systemInstruction, messages });
-      resultText = result.text;
-    }
+    // Use Lovable AI proxy for all file types (multimodal support)
+    resultText = await callLovableAI(base64, mimeType, prompt);
 
     return new Response(
       JSON.stringify({ text: resultText, type: fileType }),
