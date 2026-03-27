@@ -395,6 +395,65 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             </div>
           </div>
         ))}
+
+        {/* ── Image attachment pages (each chunk = 1 page, matching PDF export) ── */}
+        {imageChunks.map((chunk, chunkIdx) => {
+          const pageNum = totalPages + chunkIdx + 1;
+          return (
+            <div key={`img-page-${chunkIdx}`} style={{ position: "relative" }}>
+              <div style={{
+                borderTop: "2px dashed #aaa",
+                margin: "0 0 8px 0",
+                textAlign: "center",
+                fontSize: "11px",
+                color: "#aaa",
+                paddingTop: "4px",
+              }}>
+                ── Página {pageNum} (Anexos) ──
+              </div>
+              <div style={{
+                width: `${PAGE_W_PX}px`,
+                height: `${PAGE_H_PX}px`,
+                background: "#fff",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+                borderRadius: "4px",
+                position: "relative",
+                overflow: "hidden",
+                flexShrink: 0,
+                boxSizing: "border-box",
+              }}>
+                <div style={{
+                  position: "absolute",
+                  top: "40px",
+                  right: "40px",
+                  fontSize: "9pt",
+                  color: "#999",
+                  fontFamily: "Arial, sans-serif",
+                  zIndex: 2,
+                }}>
+                  Página {pageNum} de {totalPagesForExport}
+                </div>
+                <div style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  paddingTop: `${MARGIN_TOP}px`,
+                  paddingRight: `${MARGIN_RIGHT}px`,
+                  paddingBottom: `${MARGIN_BOT}px`,
+                  paddingLeft: `${MARGIN_LEFT}px`,
+                  boxSizing: "border-box",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                  <ImageGrid urls={chunk} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   }
