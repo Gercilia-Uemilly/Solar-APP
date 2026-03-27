@@ -318,25 +318,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           {pdfPagesFromDocuments > 0 ? ` (inclui ${pdfPagesFromDocuments} página${pdfPagesFromDocuments > 1 ? "s" : ""} de anexo PDF)` : ""}
         </div>
 
-        {/* Hidden measurable content — off-screen, same layout as visible */}
-        <div
-          ref={contentRef}
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: "-9999px",
-            top: 0,
-            width: `${PAGE_W_PX - MARGIN_LEFT - MARGIN_RIGHT}px`,
-            fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-            fontSize: `${effectiveFontSize}pt`,
-            lineHeight: String(effectiveLineSpacing),
-            color: "#000",
-            visibility: "hidden",
-            pointerEvents: "none",
-          }}
-        >
-          {renderDocumentContent(true)}
-        </div>
+        {/* Hidden measurement removed — we measure the visible first page's content div directly */}
 
         {/* ── Visible paginated preview ─────────────────────────────── */}
         {Array.from({ length: totalPages }, (_, pageIdx) => (
