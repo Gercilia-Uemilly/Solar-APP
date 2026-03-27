@@ -9,6 +9,7 @@ import OficioPreviewEditor from "./OficioPreviewEditor";
 type AnexoDocumento = {
   nome: string;
   tipo: string;
+  paginas?: number;
 };
 
 interface Props {
@@ -126,6 +127,22 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return chunks;
     }, [anexoImageUrls]);
 
+    const pdfPagesFromDocuments = useMemo(() => {
+      if (!anexoDocuments || anexoDocuments.length === 0) return 0;
+      return anexoDocuments.reduce((acc, doc) => {
+        const tipo = (doc.tipo || "").toLowerCase();
+        const nome = (doc.nome || "").toLowerCase();
+        const isPdf = tipo.includes("pdf") || nome.endsWith(".pdf");
+        if (!isPdf) return acc;
+
+        const paginas = typeof doc.paginas === "number" && Number.isFinite(doc.paginas)
+          ? Math.max(1, Math.floor(doc.paginas))
+          : 1;
+
+        return acc + paginas;
+      }, 0);
+    }, [anexoDocuments]);
+
     // ── Page calculation ─────────────────────────────────────────
     const contentRef = useRef<HTMLDivElement>(null);
     const [totalPages, setTotalPages] = useState(1);
@@ -135,6 +152,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       const h = contentRef.current.scrollHeight;
       setTotalPages(Math.max(1, Math.ceil(h / CONTENT_H)));
     }, []);
+
+    const totalPagesForExport = totalPages + pdfPagesFromDocuments;
 
     useEffect(() => {
       recalcPages();
@@ -293,7 +312,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
         {/* Page count indicator */}
         <div style={{ textAlign: "center", fontSize: "12px", color: "#666" }}>
-          📄 {totalPages === 1 ? "Documento terá 1 página" : `Documento terá ${totalPages} páginas`}
+          📄 {totalPagesForExport === 1 ? "Documento terá 1 página" : `Documento terá ${totalPagesForExport} páginas`}
+          {pdfPagesFromDocuments > 0 ? ` (inclui ${pdfPagesFromDocuments} página${pdfPagesFromDocuments > 1 ? "s" : ""} de anexo PDF)` : ""}
         </div>
 
         {/* Hidden measurable content — off-screen, same layout as visible */}
@@ -358,7 +378,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                 fontFamily: "Arial, sans-serif",
                 zIndex: 2,
               }}>
-                Página {pageIdx + 1} de {totalPages}
+                Página {pageIdx + 1} de {totalPagesForExport}
               </div>
 
               {/* Content window — shifts up for each page */}
