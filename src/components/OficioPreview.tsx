@@ -157,7 +157,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       setTotalPages(Math.max(1, Math.ceil(contentH / CONTENT_H)));
     }, []);
 
-    const totalPagesForExport = totalPages + pdfPagesFromDocuments;
+    const totalPagesForExport = totalPages + imagePages + pdfPagesFromDocuments;
 
     useEffect(() => {
       recalcPages();
@@ -288,16 +288,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0", border: "none" }}>Vereador</p>
         </div>
 
-        {/* ANEXO DE IMAGENS — máx 4 por grupo, tamanhos controlados */}
-        {imageChunks.length > 0 && (
-          <div style={{ marginTop: "20px" }}>
-            {imageChunks.map((chunk, ci) => (
-              <div key={ci} style={{ marginTop: ci > 0 ? "16px" : "0", pageBreakInside: "avoid", breakInside: "avoid" }}>
-                <ImageGrid urls={chunk} />
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Images are rendered as separate pages below, not inline */}
 
         {/* ANEXO DE DOCUMENTOS */}
         {anexoDocuments && anexoDocuments.length > 0 && (
