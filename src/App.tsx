@@ -27,6 +27,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const Lixeira = lazy(() => import("./pages/Lixeira"));
+const Backups = lazy(() => import("./pages/Backups"));
 const WhatsAppConectar = lazy(() => import("./pages/WhatsAppConectar"));
 const WhatsAppMensagens = lazy(() => import("./pages/WhatsAppMensagens"));
 const ChatInterno = lazy(() => import("./pages/ChatInterno"));
@@ -115,6 +116,7 @@ const AppRoutes = () => {
         <Route path="/sobre" element={<ProtectedRoute><AppLayout><Sobre /></AppLayout></ProtectedRoute>} />
         <Route path="/numeracao" element={<ProtectedRoute><AppLayout><PainelNumeracao /></AppLayout></ProtectedRoute>} />
         <Route path="/lixeira" element={<ProtectedRoute><AppLayout><Lixeira /></AppLayout></ProtectedRoute>} />
+        <Route path="/backups" element={<AdminRoute><AppLayout><Backups /></AppLayout></AdminRoute>} />
         <Route path="/whatsapp" element={<AdminRoute><AppLayout><WhatsAppConectar /></AppLayout></AdminRoute>} />
         <Route path="/whatsapp-mensagens" element={<AdminRoute><AppLayout><WhatsAppMensagens /></AppLayout></AdminRoute>} />
         <Route path="*" element={<NotFound />} />
