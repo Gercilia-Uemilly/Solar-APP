@@ -151,10 +151,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const recalcPages = useCallback(() => {
       if (!contentRef.current) return;
-      // scrollHeight includes padding, so subtract margins to get pure content height
       const scrollH = contentRef.current.scrollHeight;
       const contentH = scrollH - MARGIN_TOP - MARGIN_BOT;
-      setTotalPages(Math.max(1, Math.ceil(contentH / CONTENT_H)));
+      // Avoid near-empty trailing pages (less than 5% content)
+      const raw = contentH / CONTENT_H;
+      const pages = raw % 1 < 0.05 ? Math.floor(raw) : Math.ceil(raw);
+      setTotalPages(Math.max(1, pages));
     }, []);
 
     const totalPagesForExport = totalPages + imagePages + pdfPagesFromDocuments;
@@ -307,7 +309,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* RODAPÉ */}
         <div style={{
-          marginTop: "80px", fontSize: "9pt", color: "#444",
+          marginTop: "24px", fontSize: "9pt", color: "#444",
           textAlign: "center", paddingTop: "6px", paddingBottom: "6px",
           fontFamily: "Arial, Helvetica, sans-serif",
         }}>
