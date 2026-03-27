@@ -24,6 +24,8 @@ import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildMe
 import { type OficioRow, getVocativo } from "@/lib/oficioUtils";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
+import VersionHistoryDialog from "@/components/VersionHistoryDialog";
+import { saveBackupBeforeEdit } from "@/lib/oficioBackup";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -181,6 +183,8 @@ export default function MeusOficios() {
   const saveFieldToDb = useCallback(async (fields: Record<string, any>) => {
     if (!viewOficio) return;
     setSaveStatus("saving");
+    // Auto-save backup before editing
+    await saveBackupBeforeEdit(viewOficio.id);
     const updatePayload: Record<string, any> = {
       ...fields,
       last_edited_by: user?.id || null,
@@ -283,6 +287,7 @@ export default function MeusOficios() {
   };
 
   const handleStatusChange = async (oficioId: string, newStatus: string) => {
+    await saveBackupBeforeEdit(oficioId);
     const { error } = await supabase.from("oficios").update({ status: newStatus }).eq("id", oficioId);
     if (error) {
       toast({ title: "Erro ao alterar status", description: error.message, variant: "destructive" });
@@ -708,6 +713,7 @@ export default function MeusOficios() {
                 <TableCell className="text-sm text-muted-foreground">{o.operador_nome || "-"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
+                    <VersionHistoryDialog oficioId={o.id} oficioNumero={o.numero} onRestored={fetchOficios} />
                     <button onClick={() => handleOpenPreview(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
                     <button
                       onClick={async () => {
