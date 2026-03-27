@@ -1397,11 +1397,16 @@ export default function Oficios() {
                 </Select>
               </div>
 
-              <FileDropzone
-                anexos={anexos}
-                onAddFile={editingOficioId ? persistAddFile : (file) => addLocalFile(file)}
-                onRemoveFile={editingOficioId ? persistRemoveFile : (id) => setAnexos(prev => prev.filter(a => a.id !== id))}
-              />
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
+                  <Paperclip size={12} /> Anexos do documento <span className="text-[10px] font-normal text-muted-foreground">(serão incluídos no PDF exportado)</span>
+                </label>
+                <FileDropzone
+                  anexos={anexos}
+                  onAddFile={editingOficioId ? persistAddFile : (file) => addLocalFile(file)}
+                  onRemoveFile={editingOficioId ? persistRemoveFile : (id) => setAnexos(prev => prev.filter(a => a.id !== id))}
+                />
+              </div>
 
               {anexos.length > 0 && (
                 <div>
