@@ -1252,6 +1252,75 @@ export default function Oficios() {
                 <p className="text-[10px] text-muted-foreground mt-0.5">💡 Aceita descrições curtas, detalhadas ou conversas coladas do WhatsApp — a IA interpreta e gera o ofício completo.</p>
               </div>
 
+              {/* Mídias Auxiliares — para transcrição/extração de texto, NÃO são anexos */}
+              <div className="p-3 rounded-lg border border-dashed border-blue-400/40 bg-blue-500/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                    <Upload size={13} /> Mídias auxiliares (transcrever áudio / extrair texto de imagem)
+                  </label>
+                  <span className="text-[10px] text-muted-foreground italic">Apenas para ajudar a escrever — não anexa ao documento</span>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <input
+                    ref={mediaInputRef}
+                    type="file"
+                    accept="image/*,audio/*,video/*"
+                    multiple
+                    className="hidden"
+                    onChange={e => { if (e.target.files) handleMultiFileUpload(e.target.files); }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-400/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+                    disabled={isProcessingFiles}
+                    onClick={() => mediaInputRef.current?.click()}
+                  >
+                    {isProcessingFiles ? <><Loader2 size={14} className="mr-1 animate-spin" /> Processando...</> : <><Upload size={14} className="mr-1" /> Enviar áudio ou print</>}
+                  </Button>
+                </div>
+
+                {/* Processing queue */}
+                {processingQueue.length > 0 && (
+                  <div className="space-y-1">
+                    {processingQueue.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs">
+                        {item.status === "processing" && <Loader2 size={12} className="animate-spin text-blue-500" />}
+                        {item.status === "done" && <CheckCircle2 size={12} className="text-green-500" />}
+                        {item.status === "error" && <AlertTriangle size={12} className="text-destructive" />}
+                        {item.status === "pending" && <span className="w-3 h-3 rounded-full bg-muted-foreground/30" />}
+                        <span className="text-muted-foreground">{item.file.name}</span>
+                        {item.status === "done" && <span className="text-green-600 dark:text-green-400">✓ Texto extraído</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Processed results ready to insert */}
+                {processedResults.length > 0 && (
+                  <div className="space-y-2">
+                    {processedResults.map((r, idx) => (
+                      <div key={idx} className="p-2 bg-card rounded border border-border text-xs">
+                        <p className="font-medium text-foreground mb-1">
+                          {r.type === "image" ? "📷" : r.type === "video" ? "🎬" : "🎤"} {r.fileName}
+                        </p>
+                        <p className="text-muted-foreground line-clamp-3">{r.text}</p>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={confirmAllProcessedTexts}
+                    >
+                      <CheckCircle2 size={14} className="mr-1" /> Inserir textos extraídos na descrição
+                    </Button>
+                  </div>
+                )}
+              </div>
+              </div>
+
               {/* Smart Suggestions */}
               {showSuggestions && (suggestions.length > 0 || kbSuggestions.length > 0) && (
                 <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
