@@ -149,8 +149,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const recalcPages = useCallback(() => {
       if (!contentRef.current) return;
-      const h = contentRef.current.scrollHeight;
-      setTotalPages(Math.max(1, Math.ceil(h / CONTENT_H)));
+      // scrollHeight includes padding, so subtract margins to get pure content height
+      const scrollH = contentRef.current.scrollHeight;
+      const contentH = scrollH - MARGIN_TOP - MARGIN_BOT;
+      setTotalPages(Math.max(1, Math.ceil(contentH / CONTENT_H)));
     }, []);
 
     const totalPagesForExport = totalPages + pdfPagesFromDocuments;
@@ -158,6 +160,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     useEffect(() => {
       recalcPages();
       const timer = setInterval(recalcPages, 500);
+
+      // Also recalc when images inside the content finish loading
+      const el = contentRef.current;
+      if (el) {
+        const imgs = el.querySelectorAll("img");
+        const handler = () => recalcPages();
+        imgs.forEach(img => img.addEventListener("load", handler));
+        return () => {
+          clearInterval(timer);
+          imgs.forEach(img => img.removeEventListener("load", handler));
+        };
+      }
+
       return () => clearInterval(timer);
     }, [recalcPages, conteudo, anexoImageUrls, anexoDocuments]);
 
@@ -316,25 +331,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           {pdfPagesFromDocuments > 0 ? ` (inclui ${pdfPagesFromDocuments} página${pdfPagesFromDocuments > 1 ? "s" : ""} de anexo PDF)` : ""}
         </div>
 
-        {/* Hidden measurable content — off-screen, same layout as visible */}
-        <div
-          ref={contentRef}
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: "-9999px",
-            top: 0,
-            width: `${PAGE_W_PX - MARGIN_LEFT - MARGIN_RIGHT}px`,
-            fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-            fontSize: `${effectiveFontSize}pt`,
-            lineHeight: String(effectiveLineSpacing),
-            color: "#000",
-            visibility: "hidden",
-            pointerEvents: "none",
-          }}
-        >
-          {renderDocumentContent(true)}
-        </div>
+        {/* Hidden measurement removed — we measure the visible first page's content div directly */}
 
         {/* ── Visible paginated preview ─────────────────────────────── */}
         {Array.from({ length: totalPages }, (_, pageIdx) => (
@@ -382,7 +379,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               </div>
 
               {/* Content window — shifts up for each page */}
-              <div style={{
+              <div
+                ref={pageIdx === 0 ? contentRef : undefined}
+                style={{
                 position: "absolute",
                 top: 0,
                 left: 0,
