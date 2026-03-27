@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
   Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
-  Smartphone, MessagesSquare, BookOpen, Hash
+  Smartphone, MessagesSquare, BookOpen, Hash, Trash2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +23,7 @@ const menuItems = [
   { label: "Mensagens WA", icon: MessagesSquare, path: "/whatsapp-mensagens", adminOnly: true },
   { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
   { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
+  { label: "Lixeira", icon: Trash2, path: "/lixeira", adminOnly: false },
   { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
   { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },
 ];
