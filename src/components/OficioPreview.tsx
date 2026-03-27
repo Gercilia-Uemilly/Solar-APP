@@ -117,7 +117,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return paras.map(p => `<p>${p}</p>`).join("");
     };
 
-    // Image chunks (groups of 4)
+    // Image chunks (groups of 4) — each chunk = 1 dedicated page in the export
     const imageChunks = useMemo(() => {
       if (!anexoImageUrls || anexoImageUrls.length === 0) return [];
       const chunks: string[][] = [];
@@ -126,6 +126,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       }
       return chunks;
     }, [anexoImageUrls]);
+
+    const imagePages = imageChunks.length;
 
     const pdfPagesFromDocuments = useMemo(() => {
       if (!anexoDocuments || anexoDocuments.length === 0) return 0;
