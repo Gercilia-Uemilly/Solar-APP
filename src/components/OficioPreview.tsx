@@ -40,16 +40,37 @@ interface Props {
 
 import { cleanNumero, buildVocativo } from "@/lib/oficioUtils";
 
+// A4 at 96dpi
+const PAGE_W_PX = 794;
+const PAGE_H_PX = 1123;
+// Margins: top 3cm=113px, bottom 2cm=76px, left 3cm=113px, right 2cm=76px
+const MARGIN_TOP = 113;
+const MARGIN_BOT = 76;
+const MARGIN_LEFT = 113;
+const MARGIN_RIGHT = 76;
+const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
+
+/** Render image grid for a chunk of images */
+function ImageGrid({ urls }: { urls: string[] }) {
+  const count = urls.length;
+  const totalClass = `total-${Math.min(count, 4)}`;
+  return (
+    <div className={`preview-imagens-grid ${totalClass}`}>
+      {urls.map((url, i) => (
+        <img key={i} src={url} alt={`Anexo ${i + 1}`} loading="eager" />
+      ))}
+    </div>
+  );
+}
+
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
   ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, onIncreaseFontSize, onDecreaseFontSize, dataGeracao, initialConteudo, anexoImageUrls, anexoDocuments }, ref) => {
     const rawFmt = formatOptions || defaultFormatOptions;
-    // Cap font size at 12pt max
     const fmt = useMemo(() => ({
       ...rawFmt,
       fontSize: Math.min(rawFmt.fontSize, 12),
     }), [rawFmt]);
 
-    // Auto-adjust font and spacing to fill page — match export logic exactly
     const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
     const autoCalc = useMemo(() => {
       if (contentLength < 400) return { fontSize: 13, lineSpacing: 2.0 };
@@ -75,28 +96,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     } : {};
 
     const isHtml = conteudo.startsWith("<");
-
     const paragraphs = isHtml ? [] : conteudo
-      .split("\n")
-      .map(p => p.trim())
-      .filter(Boolean)
+      .split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
-    // Clean numero — remove any "Ofício GVF n°" prefix already in the string
     const numeroCleaned = cleanNumero(numero);
     const numeroFormatado = numeroCleaned
       ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
       : "___";
 
-    // Assunto formatting — simply use assunto as-is. 
-    // The bairro is already included in the AI-generated assunto or set by the user.
-    // Do NOT append bairro again to avoid duplication.
     const assuntoFormatado = assunto || "___";
-
-    
-
     const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` de ${destinatario}` : ""}`;
-
     const vocativo = buildVocativo(cargoDestinatario);
 
     const buildEditorContent = (text: string) => {
@@ -106,13 +116,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return paras.map(p => `<p>${p}</p>`).join("");
     };
 
-    // ── Page simulation ────────────────────────────────────────────
-    const PAGE_W = "210mm";
-    const PAGE_H_PX = 1122; // 297mm ≈ 1122px at 96dpi
-    const MARGIN_TOP = 113;  // 30mm
-    const MARGIN_BOT = 76;   // 20mm
-    const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT; // usable per page
+    // Image chunks (groups of 4)
+    const imageChunks = useMemo(() => {
+      if (!anexoImageUrls || anexoImageUrls.length === 0) return [];
+      const chunks: string[][] = [];
+      for (let i = 0; i < anexoImageUrls.length; i += 4) {
+        chunks.push(anexoImageUrls.slice(i, i + 4));
+      }
+      return chunks;
+    }, [anexoImageUrls]);
 
+    // ── Page calculation ─────────────────────────────────────────
     const contentRef = useRef<HTMLDivElement>(null);
     const [totalPages, setTotalPages] = useState(1);
 
@@ -128,154 +142,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return () => clearInterval(timer);
     }, [recalcPages, conteudo, anexoImageUrls, anexoDocuments]);
 
-    return (
-      <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
-        {/* Hidden measurable content — rendered off-screen to calculate pages */}
-        <div
-          ref={contentRef}
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: "-9999px",
-            top: 0,
-            width: "160mm", /* 210 - 30 - 20 margins */
-            fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-            fontSize: `${effectiveFontSize}pt`,
-            lineHeight: String(effectiveLineSpacing),
-            color: "#000",
-            visibility: "hidden",
-            pointerEvents: "none",
-          }}
-        >
-          {/* Mirror all visible content for measurement */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", marginBottom: "0" }}>
-            <img src={logoCamara} alt="" style={{ height: "70px" }} />
-            <img src={logoFabao} alt="" style={{ height: "70px" }} />
-          </div>
-          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
-          <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", lineHeight: "1.5" }}>Ofício GVF n° {numeroFormatado}</p>
-          <p style={{ fontSize: "11pt", marginBottom: "0", lineHeight: "1.5", fontWeight: "bold" }}>DESTINATÁRIO: {destinatarioCompleto}</p>
-          <p style={{ fontSize: "11pt", marginBottom: "24px", lineHeight: "1.5", fontWeight: "bold" }}>Assunto: {assuntoFormatado}</p>
-          <p style={{ fontSize: "11pt", marginBottom: "16px", textIndent: "1.25cm", lineHeight: "1.5" }}>{vocativo}</p>
-          {isHtml ? (
-            <div style={{ textAlign: "justify", fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing) }} dangerouslySetInnerHTML={{ __html: conteudo }} />
-          ) : (
-            <div>{paragraphs.map((p, i) => <p key={i} style={{ textIndent: "1.25cm", fontSize: "11pt", lineHeight: "1.5" }} dangerouslySetInnerHTML={{ __html: p }} />)}</div>
-          )}
-          <p style={{ marginTop: "16px", marginBottom: "32px", fontSize: "11pt" }}>Atenciosamente,</p>
-          <div style={{ textAlign: "center", lineHeight: "1.0" }}>
-            <img src={assinaturaFabao} alt="" style={{ width: "227px", height: "auto" }} />
-            <p style={{ fontSize: "11pt", fontWeight: "bold", lineHeight: "1.0" }}>FABÃO</p>
-            <p style={{ fontSize: "11pt", lineHeight: "1.0" }}>Vereador</p>
-          </div>
-          {anexoImageUrls && anexoImageUrls.length > 0 && (() => {
-            const urls = anexoImageUrls;
-            const chunks: string[][] = [];
-            for (let i = 0; i < urls.length; i += 4) {
-              chunks.push(urls.slice(i, i + 4));
-            }
-            return (
-              <div style={{ marginTop: "20px" }}>
-                {chunks.map((chunk, ci) => {
-                  const count = chunk.length;
-                  if (count === 1) {
-                    return (
-                      <div key={ci} style={{ marginTop: ci > 0 ? "10px" : "0" }}>
-                        <img src={chunk[0]} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
-                      </div>
-                    );
-                  }
-                  if (count === 3) {
-                    return (
-                      <div key={ci} style={{ marginTop: ci > 0 ? "10px" : "0" }}>
-                        <div style={{ marginBottom: "6px" }}>
-                          <img src={chunk[0]} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-                          <img src={chunk[1]} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
-                          <img src={chunk[2]} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
-                        </div>
-                      </div>
-                    );
-                  }
-                  // 2 or 4 images: 2-column grid
-                  return (
-                    <div key={ci} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: ci > 0 ? "10px" : "0" }}>
-                      {chunk.map((url, i) => (
-                        <img key={i} src={url} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-          <div style={{ marginTop: "80px", fontSize: "9pt", textAlign: "center" }}>Rodapé</div>
-        </div>
-
-        {/* ── Visible paginated preview ─────────────────────────────── */}
-        {Array.from({ length: totalPages }, (_, pageIdx) => (
-          <div
-            key={pageIdx}
-            style={{
-              width: PAGE_W,
-              height: `${PAGE_H_PX}px`,
-              background: "#fff",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.13)",
-              borderRadius: "4px",
-              position: "relative",
-              overflow: "hidden",
-              flexShrink: 0,
-            }}
-          >
-            {/* Page number label */}
-            <div style={{
-              position: "absolute",
-              top: "8px",
-              right: "12px",
-              fontSize: "10px",
-              color: "#999",
-              fontFamily: "Arial, sans-serif",
-              zIndex: 2,
-            }}>
-              Página {pageIdx + 1} de {totalPages}
-            </div>
-
-            {/* Content window — shifts up for each page */}
-            <div style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              paddingTop: "30mm",
-              paddingRight: "20mm",
-              paddingBottom: "20mm",
-              paddingLeft: "30mm",
-              boxSizing: "border-box",
-              fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-              fontSize: `${effectiveFontSize}pt`,
-              lineHeight: String(effectiveLineSpacing),
-              color: "#000",
-              transform: `translateY(-${pageIdx * CONTENT_H}px)`,
-            }}>
-              {/* Only render full content once, CSS clips per page */}
+    // ── Shared document content renderer ─────────────────────────
+    const renderDocumentContent = (isHidden: boolean) => (
+      <>
         {/* CABEÇALHO */}
-        <div style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "24px",
-          marginBottom: "0",
-        }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", marginBottom: "0" }}>
           <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
           <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
         </div>
 
-        {/* Nº de página — canto superior direito */}
-        {/* (replaced by page label above) */}
-
-        {/* DATA — after: 240 (~16px) */}
-        {editable && onDataChange ? (
+        {/* DATA */}
+        {!isHidden && editable && onDataChange ? (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
           </p>
@@ -283,9 +160,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
         )}
 
-        {/* OFÍCIO GVF n° — NEGRITO, after: 240 */}
+        {/* OFÍCIO GVF n° */}
         <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
-          {editable && onNumeroChange ? (
+          {!isHidden && editable && onNumeroChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onNumeroChange(e.currentTarget.textContent || "")}>
               Ofício GVF n° {numeroFormatado}
             </span>
@@ -294,33 +171,33 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* DESTINATÁRIO — bold completo */}
+        {/* DESTINATÁRIO */}
         <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
           <span>DESTINATÁRIO: </span>
-          {editable && onCargoDestinatarioChange ? (
+          {!isHidden && editable && onCargoDestinatarioChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{destinatarioCompleto}</span>
           ) : (
             <span>{destinatarioCompleto}</span>
           )}
         </p>
 
-        {/* ASSUNTO — after: 240, NEGRITO completo, "Assunto:" com A maiúscula */}
+        {/* ASSUNTO */}
         <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
           <span>Assunto: </span>
-          {editable && onAssuntoChange ? (
+          {!isHidden && editable && onAssuntoChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onAssuntoChange(e.currentTarget.textContent || "")}>{assuntoFormatado}</span>
           ) : (
             <span>{assuntoFormatado}</span>
           )}
         </p>
 
-        {/* VOCATIVO — ESQUERDA com recuo 1.25cm, after: 240, NEGRITO */}
+        {/* VOCATIVO */}
         <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5", fontWeight: "normal" }}>
           {vocativo}
         </p>
 
-        {/* CORPO — after:0, before:0, line:fmt, justificado, recuo 1.25cm */}
-        {editable && onContentChange ? (
+        {/* CORPO */}
+        {!isHidden && editable && onContentChange ? (
           <OficioPreviewEditor
             content={buildEditorContent(conteudo)}
             onChange={onContentChange}
@@ -338,27 +215,19 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         ) : (
           <div style={{ textAlign: "justify" }}>
             {paragraphs.map((p, i) => (
-              <p key={i} style={{
-                textIndent: "1.25cm",
-                marginBottom: "0",
-                marginTop: "0",
-                fontSize: "11pt",
-                lineHeight: "1.5",
-              }}
+              <p key={i} style={{ textIndent: "1.25cm", marginBottom: "0", marginTop: "0", fontSize: "11pt", lineHeight: "1.5" }}
                 dangerouslySetInnerHTML={{ __html: p }}
               />
             ))}
           </div>
         )}
 
-
-
-        {/* ATENCIOSAMENTE — before: 240 (16px), after: 480 (32px), recuo 1.25cm */}
+        {/* ATENCIOSAMENTE */}
         <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt", lineHeight: "1.5" }}>
           Atenciosamente,
         </p>
 
-        {/* BLOCO ASSINATURA — centralizado, line-height SIMPLES, pageBreakInside avoid */}
+        {/* BLOCO ASSINATURA */}
         <div style={{
           textAlign: "center",
           display: "flex",
@@ -368,94 +237,31 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           breakInside: "avoid",
           lineHeight: "1.0",
           border: "none",
-          borderTop: "none",
-          borderBottom: "none",
         }}>
-          {/* Imagem assinatura */}
           <img
             src={assinaturaFabao}
             alt="Assinatura Fabão"
             style={{
-              width: "227px",
-              height: "auto",
-              objectFit: "contain",
-              marginBottom: "0",
-              display: "block",
-              border: "0 none transparent",
-              borderWidth: "0",
-              borderStyle: "none",
-              borderColor: "transparent",
-              outline: "0 none transparent",
-              boxShadow: "none",
-              borderRadius: "0",
-              padding: "0",
+              width: "227px", height: "auto", objectFit: "contain",
+              marginBottom: "0", display: "block",
+              border: "0 none transparent", outline: "0 none transparent",
+              boxShadow: "none", borderRadius: "0", padding: "0",
             }}
           />
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0", border: "none" }}>FABÃO</p>
           <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0", border: "none" }}>Vereador</p>
         </div>
 
-        {/* ANEXO DE IMAGENS */}
-        {anexoImageUrls && anexoImageUrls.length > 0 && (() => {
-          const count = anexoImageUrls.length;
-          const gridClass = count === 1 ? "grid-1" : count === 2 ? "grid-2" : count === 3 ? "grid-3" : "grid-4";
-
-          // For 3 images: 1 big on top, 2 side-by-side below
-          if (count === 3) {
-            return (
-              <div style={{ marginTop: "20px", pageBreakInside: "avoid", breakInside: "avoid" }}>
-                <div className="anexo-imagens grid-1">
-                  <div className="imagem-item">
-                    <img src={anexoImageUrls[0]} alt="Anexo 1" style={{ width: "100%", height: "auto", display: "block" }} loading="eager" />
-                  </div>
-                </div>
-                <div className="anexo-imagens grid-3-bottom" style={{ marginTop: "10px" }}>
-                  {anexoImageUrls.slice(1).map((url, i) => (
-                    <div key={i} className="imagem-item">
-                      <img src={url} alt={`Anexo ${i + 2}`} style={{ width: "100%", height: "auto", display: "block" }} loading="eager" />
-                    </div>
-                  ))}
-                </div>
+        {/* ANEXO DE IMAGENS — máx 4 por grupo, tamanhos controlados */}
+        {imageChunks.length > 0 && (
+          <div style={{ marginTop: "20px" }}>
+            {imageChunks.map((chunk, ci) => (
+              <div key={ci} style={{ marginTop: ci > 0 ? "16px" : "0", pageBreakInside: "avoid", breakInside: "avoid" }}>
+                <ImageGrid urls={chunk} />
               </div>
-            );
-          }
-
-          // For 5+ images: groups of 4 per "page block"
-          if (count > 4) {
-            const chunks: string[][] = [];
-            for (let i = 0; i < count; i += 4) {
-              chunks.push(anexoImageUrls.slice(i, i + 4));
-            }
-            return (
-              <div style={{ marginTop: "20px" }}>
-                {chunks.map((chunk, ci) => {
-                  const chunkGrid = chunk.length === 1 ? "grid-1" : chunk.length === 2 ? "grid-2" : chunk.length === 3 ? "grid-3" : "grid-4";
-                  return (
-                    <div key={ci} className={`anexo-imagens ${chunkGrid}`} style={{ marginTop: ci > 0 ? "10px" : "0", pageBreakInside: "avoid", breakInside: "avoid" }}>
-                      {chunk.map((url, i) => (
-                        <div key={i} className="imagem-item">
-                          <img src={url} alt={`Anexo ${ci * 4 + i + 1}`} style={{ width: "100%", height: "auto", display: "block" }} loading="eager" />
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          }
-
-          return (
-            <div style={{ marginTop: "20px", pageBreakInside: "avoid", breakInside: "avoid" }}>
-              <div className={`anexo-imagens ${gridClass}`}>
-                {anexoImageUrls.map((url, i) => (
-                  <div key={i} className="imagem-item">
-                    <img src={url} alt={`Anexo ${i + 1}`} style={{ width: "100%", height: "auto", display: "block" }} loading="eager" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
+            ))}
+          </div>
+        )}
 
         {/* ANEXO DE DOCUMENTOS */}
         {anexoDocuments && anexoDocuments.length > 0 && (
@@ -466,11 +272,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             <ul style={{ margin: "8px 0 0", paddingLeft: "20px", fontSize: "10pt", lineHeight: "1.5" }}>
               {anexoDocuments.map((doc, i) => {
                 const label = doc.tipo.includes("pdf") ? "PDF" : "Arquivo";
-                return (
-                  <li key={`${doc.nome}-${i}`}>
-                    {label}: {doc.nome}
-                  </li>
-                );
+                return <li key={`${doc.nome}-${i}`}>{label}: {doc.nome}</li>;
               })}
             </ul>
           </div>
@@ -478,17 +280,106 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* RODAPÉ */}
         <div style={{
-          marginTop: "80px",
-          fontSize: "9pt",
-          color: "#444",
-          textAlign: "center",
-          paddingTop: "6px",
-          paddingBottom: "6px",
-          position: "relative",
+          marginTop: "80px", fontSize: "9pt", color: "#444",
+          textAlign: "center", paddingTop: "6px", paddingBottom: "6px",
           fontFamily: "Arial, Helvetica, sans-serif",
         }}>
           Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
         </div>
+      </>
+    );
+
+    return (
+      <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
+        {/* Page count indicator */}
+        <div style={{ textAlign: "center", fontSize: "12px", color: "#666" }}>
+          📄 {totalPages === 1 ? "Documento terá 1 página" : `Documento terá ${totalPages} páginas`}
+        </div>
+
+        {/* Hidden measurable content — off-screen, same layout as visible */}
+        <div
+          ref={contentRef}
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            top: 0,
+            width: `${PAGE_W_PX - MARGIN_LEFT - MARGIN_RIGHT}px`,
+            fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
+            fontSize: `${effectiveFontSize}pt`,
+            lineHeight: String(effectiveLineSpacing),
+            color: "#000",
+            visibility: "hidden",
+            pointerEvents: "none",
+          }}
+        >
+          {renderDocumentContent(true)}
+        </div>
+
+        {/* ── Visible paginated preview ─────────────────────────────── */}
+        {Array.from({ length: totalPages }, (_, pageIdx) => (
+          <div key={pageIdx} style={{ position: "relative" }}>
+            {/* Page separator label */}
+            {pageIdx > 0 && (
+              <div style={{
+                borderTop: "2px dashed #aaa",
+                margin: "0 0 8px 0",
+                textAlign: "center",
+                fontSize: "11px",
+                color: "#aaa",
+                paddingTop: "4px",
+              }}>
+                ── Página {pageIdx + 1} ──
+              </div>
+            )}
+            <div
+              style={{
+                width: `${PAGE_W_PX}px`,
+                height: `${PAGE_H_PX}px`,
+                background: "#fff",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+                borderRadius: "4px",
+                position: "relative",
+                overflow: "hidden",
+                flexShrink: 0,
+                boxSizing: "border-box",
+                fontFamily: "Arial, sans-serif",
+                fontSize: "11pt",
+                lineHeight: "1.5",
+              }}
+            >
+              {/* Page number label */}
+              <div style={{
+                position: "absolute",
+                top: "40px",
+                right: "40px",
+                fontSize: "9pt",
+                color: "#999",
+                fontFamily: "Arial, sans-serif",
+                zIndex: 2,
+              }}>
+                Página {pageIdx + 1} de {totalPages}
+              </div>
+
+              {/* Content window — shifts up for each page */}
+              <div style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                paddingTop: `${MARGIN_TOP}px`,
+                paddingRight: `${MARGIN_RIGHT}px`,
+                paddingBottom: `${MARGIN_BOT}px`,
+                paddingLeft: `${MARGIN_LEFT}px`,
+                boxSizing: "border-box",
+                fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
+                fontSize: `${effectiveFontSize}pt`,
+                lineHeight: String(effectiveLineSpacing),
+                color: "#000",
+                transform: `translateY(-${pageIdx * CONTENT_H}px)`,
+              }}>
+                {renderDocumentContent(false)}
+              </div>
             </div>
           </div>
         ))}

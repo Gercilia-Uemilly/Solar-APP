@@ -204,51 +204,49 @@ img[alt="Assinatura Fabão"] {
 }
 
 /* Anexo de imagens - Preview e Print */
-.anexo-imagens {
-  display: grid;
-  gap: 10px;
-  margin-top: 20px;
-  width: 100%;
-}
-.anexo-imagens.grid-1 {
-  grid-template-columns: 1fr;
-}
-.anexo-imagens.grid-2 {
-  grid-template-columns: 1fr;
-}
-.anexo-imagens.grid-3 {
-  grid-template-columns: 1fr;
-}
-.anexo-imagens.grid-3 .imagem-item:first-child {
-  grid-column: 1 / -1;
-}
-.anexo-imagens.grid-3-bottom {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.anexo-imagens.grid-4 {
-  grid-template-columns: 1fr 1fr;
-}
-.imagem-item {
+.preview-imagens-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 16px 0;
   page-break-inside: avoid;
   break-inside: avoid;
-  overflow: hidden;
+}
+.preview-imagens-grid img {
+  max-width: 48%;
+  max-height: 280px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: inline-block;
+  margin: 4px;
+  vertical-align: top;
   border-radius: 4px;
 }
-.imagem-item img {
-  width: 100%;
-  height: auto;
-  display: block;
-  object-fit: cover;
+/* 1 imagem = centralizada, 60% da largura */
+.preview-imagens-grid.total-1 img {
+  max-width: 60%;
+  max-height: 350px;
+}
+/* 2 imagens = lado a lado, 48% cada */
+.preview-imagens-grid.total-2 img {
+  max-width: 48%;
+  max-height: 280px;
+}
+/* 3 imagens = 32% cada */
+.preview-imagens-grid.total-3 img {
+  max-width: 32%;
+  max-height: 220px;
+}
+/* 4 imagens = 48% em 2 linhas de 2 */
+.preview-imagens-grid.total-4 img {
+  max-width: 48%;
+  max-height: 220px;
 }
 
 @media print {
-  .anexo-imagens {
-    page-break-before: auto;
-    page-break-after: auto;
-  }
-  .imagem-item {
+  .preview-imagens-grid {
     page-break-inside: avoid;
     break-inside: avoid;
   }
