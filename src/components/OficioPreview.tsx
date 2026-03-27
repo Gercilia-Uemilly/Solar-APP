@@ -366,7 +366,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               </div>
 
               {/* Content window — shifts up for each page */}
-              <div style={{
+              <div
+                ref={pageIdx === 0 ? contentRef : undefined}
+                style={{
                 position: "absolute",
                 top: 0,
                 left: 0,
