@@ -256,3 +256,70 @@ img[alt="Assinatura Fabão"] {
 .font-mono-numbers {
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* ===== User preference variables ===== */
+:root {
+  --fonte-base: 16px;
+  --densidade-escala: 1;
+}
+
+body {
+  font-size: var(--fonte-base) !important;
+}
+
+/* ===== Responsive — Mobile first ===== */
+
+/* Touch targets for coarse pointers (mobile) */
+@media (pointer: coarse) {
+  button,
+  a,
+  [role="button"],
+  .sidebar-item {
+    min-height: 44px;
+  }
+}
+
+/* Mobile < 768px */
+@media (max-width: 767px) {
+  .topbar-user-info {
+    display: none;
+  }
+
+  /* Tables become cards on mobile */
+  table.responsive-table thead {
+    display: none;
+  }
+  table.responsive-table tbody tr {
+    display: block;
+    margin-bottom: 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    padding: 12px;
+  }
+  table.responsive-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    border: none;
+    padding: 6px 0;
+  }
+  table.responsive-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+    font-size: 12px;
+  }
+}
+
+/* Tablet 768px - 1024px */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Desktop > 1024px */
+@media (min-width: 1025px) {
+  .cards-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}

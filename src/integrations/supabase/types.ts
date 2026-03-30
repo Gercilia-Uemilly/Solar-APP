@@ -451,6 +451,42 @@ export type Database = {
         }
         Relationships: []
       }
+      preferencias_usuario: {
+        Row: {
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          densidade: string | null
+          id: string
+          sidebar_compacta: boolean | null
+          tamanho_fonte: string | null
+          tema: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          densidade?: string | null
+          id?: string
+          sidebar_compacta?: boolean | null
+          tamanho_fonte?: string | null
+          tema?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          densidade?: string | null
+          id?: string
+          sidebar_compacta?: boolean | null
+          tamanho_fonte?: string | null
+          tema?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           active: boolean

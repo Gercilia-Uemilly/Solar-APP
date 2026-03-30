@@ -117,6 +117,7 @@ function TwoFactorSection() {
 
 import ThemeToggle from "@/components/ThemeToggle";
 import UserAvatar from "@/components/UserAvatar";
+import PreferenciasPanel from "@/components/PreferenciasPanel";
 
 export default function Configuracoes() {
   const { user, isAdmin } = useAuth();
@@ -375,6 +376,9 @@ export default function Configuracoes() {
 
       {/* Audit Log (Admin only) */}
       {isAdmin && <AuditLogSection />}
+
+      {/* Personalização de Interface */}
+      <PreferenciasPanel />
 
       {/* Theme */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
