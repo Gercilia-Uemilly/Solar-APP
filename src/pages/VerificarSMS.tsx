@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Loader2, ShieldCheck, Mail } from "lucide-react";
-import logoSolar from "@/assets/logo-solar.png";
+import logoFabao from "@/assets/logo-fabao-oficial.svg";
 
 export default function VerificarEmail() {
   const navigate = useNavigate();
@@ -136,7 +136,7 @@ export default function VerificarEmail() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-sm bg-card border-border">
         <CardHeader className="text-center">
-          <img src={logoSolar} alt="Solar" className="h-16 mx-auto mb-2" />
+          <img src={logoFabao} alt="Gabinete" className="h-16 mx-auto mb-2" />
           <ShieldCheck size={32} className="mx-auto text-primary mb-2" />
           <CardTitle className="text-foreground">Verificação de Segurança</CardTitle>
           <CardDescription className="text-muted-foreground">

@@ -6,28 +6,49 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import logoSolar from "@/assets/logo-solar.png";
+import logoFabao from "@/assets/logo-fabao-oficial.svg";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const menuItems = [
-  { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
-  { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false, action: "openNew" },
-  { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
-  { label: "Modelos", icon: BookOpen, path: "/modelos", adminOnly: false },
-  { label: "Numeração", icon: Hash, path: "/numeracao", adminOnly: false },
-  { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
-  { label: "Chat", icon: MessageSquare, path: "/chat", adminOnly: false },
-  { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
-  { label: "WhatsApp", icon: Smartphone, path: "/whatsapp", adminOnly: true },
-  { label: "Mensagens WA", icon: MessagesSquare, path: "/whatsapp-mensagens", adminOnly: true },
-  { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
-  { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
-  { label: "Lixeira", icon: Trash2, path: "/lixeira", adminOnly: false },
-  { label: "Backups", icon: DatabaseBackup, path: "/backups", adminOnly: true },
-  { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
-  { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },
+const menuSections = [
+  {
+    title: "Principal",
+    items: [
+      { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
+      { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false, action: "openNew" },
+      { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
+      { label: "Modelos", icon: BookOpen, path: "/modelos", adminOnly: false },
+      { label: "Numeração", icon: Hash, path: "/numeracao", adminOnly: false },
+    ],
+  },
+  {
+    title: "Comunicação",
+    items: [
+      { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
+      { label: "Chat Interno", icon: MessageSquare, path: "/chat", adminOnly: false },
+      { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
+    ],
+  },
+  {
+    title: "Administração",
+    items: [
+      { label: "WhatsApp", icon: Smartphone, path: "/whatsapp", adminOnly: true },
+      { label: "Mensagens WA", icon: MessagesSquare, path: "/whatsapp-mensagens", adminOnly: true },
+      { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
+      { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
+      { label: "Backups", icon: DatabaseBackup, path: "/backups", adminOnly: true },
+    ],
+  },
+  {
+    title: "Sistema",
+    items: [
+      { label: "Lixeira", icon: Trash2, path: "/lixeira", adminOnly: false },
+      { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
+      { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },
+    ],
+  },
 ];
+
 interface Props {
   collapsed: boolean;
   onToggle: () => void;
@@ -42,14 +63,12 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadChat, setUnreadChat] = useState(0);
 
-  // Fetch pending users count for admin badge
   useEffect(() => {
     if (!isAdmin) return;
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pendente")
       .then(({ count }) => setPendingCount(count || 0));
   }, [isAdmin]);
 
-  // Fetch unread chat messages
   useEffect(() => {
     if (!user) return;
     supabase.from("mensagens").select("id", { count: "exact", head: true })
@@ -69,17 +88,22 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
     return () => { supabase.removeChannel(ch); };
   }, [user]);
 
-  const visibleItems = menuItems.filter(item => !item.adminOnly || isAdmin);
+  const getBadge = (path: string) => {
+    if (path === "/operadores" && pendingCount > 0) return pendingCount;
+    if (path === "/chat" && unreadChat > 0) return unreadChat;
+    return 0;
+  };
 
   return (
     <motion.aside
-      className="fixed left-0 top-0 bottom-0 bg-sidebar flex flex-col border-r border-sidebar-border z-50"
-      animate={{ width: collapsed ? 56 : 220 }}
+      className="fixed left-0 top-0 bottom-0 z-50 flex flex-col border-r-[3px] border-secondary"
+      style={{ background: "hsl(var(--sidebar-background))" }}
+      animate={{ width: collapsed ? 56 : 240 }}
       transition={{ duration: 0.15, ease: "easeInOut" }}
     >
-      {/* Logo */}
-      <div className="px-3 py-4 flex items-center gap-2.5 border-b border-sidebar-border min-h-[52px]">
-        <img src={logoSolar} alt="Solar" className="w-7 h-7 rounded-md object-contain flex-shrink-0" />
+      {/* Logo Header */}
+      <div className="px-4 py-5 flex items-center gap-3 border-b border-white/10 min-h-[64px]">
+        <img src={logoFabao} alt="Gabinete" className="w-8 h-8 rounded flex-shrink-0" />
         {!collapsed && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -87,66 +111,75 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
             exit={{ opacity: 0 }}
             transition={{ delay: 0.05, duration: 0.15 }}
           >
-            <div className="text-[13px] font-semibold text-foreground leading-tight tracking-tight">Solar</div>
-            <div className="text-2xs text-muted-foreground leading-tight">Gerenciamento de Mandato</div>
+            <div className="font-serif text-[13px] font-bold text-white leading-tight">
+              Gabinete Vereador Fabão
+            </div>
+            <div className="text-[10px] text-secondary uppercase tracking-[1.5px] leading-tight mt-0.5">
+              Câmara Municipal
+            </div>
           </motion.div>
         )}
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 px-2 mt-3 space-y-0.5 overflow-y-auto">
-        {!collapsed && (
-          <div className="text-2xs uppercase tracking-wider text-muted-foreground/60 px-2.5 mb-2 font-medium">
-            Menu
-          </div>
-        )}
-        {visibleItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          const badge = item.path === "/operadores" && pendingCount > 0
-            ? pendingCount
-            : item.path === "/chat" && unreadChat > 0
-            ? unreadChat
-            : 0;
-          const handleClick = (e: React.MouseEvent) => {
-            if ((item as any).action === "openNew") {
-              e.preventDefault();
-              document.body.style.overflow = 'auto';
-              document.body.style.pointerEvents = 'auto';
-              if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-              navigate(item.path, { state: { openNew: true, ts: Date.now() } });
-            }
-          };
+      <nav className="flex-1 px-2 mt-2 overflow-y-auto">
+        {menuSections.map((section) => {
+          const visibleItems = section.items.filter(item => !item.adminOnly || isAdmin);
+          if (visibleItems.length === 0) return null;
+
           return (
-            <Link
-              key={item.path + ((item as any).action || "")}
-              to={item.path}
-              state={(item as any).action === "openNew" ? { openNew: true, ts: Date.now() } : undefined}
-              onClick={handleClick}
-              title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] transition-all duration-150 ${
-                isActive
-                  ? "bg-accent text-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-accent/60 hover:text-foreground"
-              }`}
-            >
-              <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className="flex-shrink-0" />
-              {!collapsed && <span className="truncate flex-1">{item.label}</span>}
-              {badge > 0 && (
-                <span className="ml-auto min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-                  {badge > 99 ? "99+" : badge}
-                </span>
+            <div key={section.title} className="mb-1">
+              {!collapsed && (
+                <div className="text-[10px] uppercase tracking-[1.5px] text-white/35 px-3 py-2 font-sans">
+                  {section.title}
+                </div>
               )}
-            </Link>
+              {visibleItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                const badge = getBadge(item.path);
+                const handleClick = (e: React.MouseEvent) => {
+                  if ((item as any).action === "openNew") {
+                    e.preventDefault();
+                    document.body.style.overflow = 'auto';
+                    document.body.style.pointerEvents = 'auto';
+                    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+                    navigate(item.path, { state: { openNew: true, ts: Date.now() } });
+                  }
+                };
+                return (
+                  <Link
+                    key={item.path + ((item as any).action || "")}
+                    to={item.path}
+                    state={(item as any).action === "openNew" ? { openNew: true, ts: Date.now() } : undefined}
+                    onClick={handleClick}
+                    title={collapsed ? item.label : undefined}
+                    className={`flex items-center gap-2.5 px-3 py-[9px] text-[14px] transition-all duration-200 border-l-[3px] ${
+                      isActive
+                        ? "bg-secondary/15 text-white border-l-secondary font-semibold"
+                        : "text-white/75 hover:bg-white/8 hover:text-white border-l-transparent hover:border-l-secondary/50"
+                    }`}
+                  >
+                    <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className="flex-shrink-0" />
+                    {!collapsed && <span className="truncate flex-1 font-sans">{item.label}</span>}
+                    {badge > 0 && (
+                      <span className="ml-auto min-w-[18px] h-[18px] flex items-center justify-center rounded bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                        {badge > 99 ? "99+" : badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
 
       {/* Bottom */}
-      <div className="p-2 border-t border-sidebar-border space-y-0.5">
+      <div className="p-2 border-t border-white/10 space-y-0.5">
         <button
           onClick={onOpenTour}
-          title="Tutorial de uso"
-          className="flex items-center justify-center gap-2 px-2.5 py-[7px] rounded-md text-[13px] text-sidebar-foreground hover:bg-accent/60 hover:text-foreground w-full transition-colors duration-150"
+          title="Tutorial"
+          className="flex items-center justify-center gap-2.5 px-3 py-[9px] text-[14px] text-white/75 hover:bg-white/8 hover:text-white w-full transition-colors duration-200 border-l-[3px] border-l-transparent font-sans"
         >
           <HelpCircle size={15} strokeWidth={1.5} className="flex-shrink-0" />
           {!collapsed && <span>Tutorial</span>}
@@ -154,14 +187,14 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
         <button
           onClick={onOpenSupport}
           title="Suporte"
-          className="flex items-center justify-center gap-2 px-2.5 py-[7px] rounded-md text-[13px] text-sidebar-foreground hover:bg-accent/60 hover:text-foreground w-full transition-colors duration-150"
+          className="flex items-center justify-center gap-2.5 px-3 py-[9px] text-[14px] text-white/75 hover:bg-white/8 hover:text-white w-full transition-colors duration-200 border-l-[3px] border-l-transparent font-sans"
         >
           <Headphones size={15} strokeWidth={1.5} className="flex-shrink-0" />
           {!collapsed && <span>Suporte</span>}
         </button>
         <button
           onClick={onToggle}
-          className="flex items-center justify-center gap-2 px-2.5 py-[7px] rounded-md text-[13px] text-sidebar-foreground hover:bg-accent/60 hover:text-foreground w-full transition-colors duration-150"
+          className="flex items-center justify-center gap-2.5 px-3 py-[9px] text-[14px] text-white/75 hover:bg-white/8 hover:text-white w-full transition-colors duration-200 border-l-[3px] border-l-transparent font-sans"
         >
           {collapsed ? <ChevronRight size={15} strokeWidth={1.5} /> : <><ChevronLeft size={15} strokeWidth={1.5} /> <span>Recolher</span></>}
         </button>

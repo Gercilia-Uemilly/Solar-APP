@@ -1,7 +1,7 @@
 import { Headphones, Library, FileText, Search, MessageSquare, BarChart3, Newspaper, Shield, Database, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import logoSolar from "@/assets/logo-solar.png";
+import logoFabao from "@/assets/logo-fabao-oficial.svg";
 import solarLabsIcon from "@/assets/solar-labs-icon.png";
 import solarLabsHorizontal from "@/assets/solar-labs-horizontal.png";
 import solarLabsDark from "@/assets/solar-labs-dark-bg.png";
@@ -30,7 +30,7 @@ export default function Sobre() {
     <div className="space-y-10 max-w-4xl mx-auto pb-12">
       {/* Hero */}
       <div className="text-center space-y-4 pt-2">
-        <img src={logoSolar} alt="Solar" className="w-20 h-20 mx-auto rounded-2xl object-contain" />
+        <img src={logoFabao} alt="Gabinete" className="w-20 h-20 mx-auto rounded-lg object-contain" />
         <h1 className="text-3xl font-bold text-foreground">Sobre o Solar</h1>
         <p className="text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           Plataforma de organização e inteligência para gabinetes parlamentares.
