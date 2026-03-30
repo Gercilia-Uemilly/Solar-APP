@@ -377,6 +377,9 @@ export default function Configuracoes() {
       {/* Audit Log (Admin only) */}
       {isAdmin && <AuditLogSection />}
 
+      {/* Google Docs Numeração Config (Admin only) */}
+      {isAdmin && <GoogleDocsNumeracaoConfig />}
+
       {/* Personalização de Interface */}
       <PreferenciasPanel />
 
