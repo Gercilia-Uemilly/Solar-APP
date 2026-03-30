@@ -84,7 +84,8 @@ export default function BancoInformacoes() {
     table: "base_conhecimento",
     channel: "base-conhecimento-realtime",
     orderBy: { column: "created_at", ascending: false },
-    limit: 500,
+    select: "id,titulo,descricao,palavras_chave,orgao,bairro,data_publicacao,link,fonte,categoria,modelo,created_at",
+    limit: 200,
     disableRealtime: true,
   });
   const { data: scripts, setData: setScriptsData, loading: scriptsLoading, refetch: fetchScripts } = useRealtimeTable<ScriptRow>({

@@ -6,7 +6,6 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import logoFabao from "@/assets/logo-fabao-oficial.svg";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -103,7 +102,9 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
     >
       {/* Logo Header */}
       <div className="px-4 py-5 flex items-center gap-3 border-b border-white/10 min-h-[64px]">
-        <img src={logoFabao} alt="Gabinete" className="w-8 h-8 rounded flex-shrink-0" />
+        <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
+          <span className="text-white font-bold text-sm">☀️</span>
+        </div>
         {!collapsed && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -111,7 +112,7 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
             exit={{ opacity: 0 }}
             transition={{ delay: 0.05, duration: 0.15 }}
           >
-            <div className="font-serif text-[15px] font-bold text-white leading-tight">
+            <div className="font-serif text-[16px] font-bold text-white leading-tight">
               Solar
             </div>
             <div className="text-[10px] text-white/50 uppercase tracking-[1.5px] leading-tight mt-0.5">
