@@ -312,6 +312,9 @@ export default function MeusOficios() {
     const numLabel = oficio?.numero || "rascunho";
     if (!confirm(`Tem certeza que deseja excluir o Ofício nº ${numLabel}?\nEle ficará na Lixeira por 30 dias e pode ser recuperado.`)) return;
     
+    // Save backup before soft-delete
+    await saveBackupBeforeEdit(id);
+
     const { error } = await supabase.from("oficios").update({
       deleted_at: new Date().toISOString(),
       deleted_by: user?.id,

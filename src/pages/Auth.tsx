@@ -82,7 +82,15 @@ export default function Auth() {
         }
       }
     } catch (err: any) {
-      toast({ title: "Erro ao entrar", description: err.message, variant: "destructive" });
+      const attempts = loginAttempts + 1;
+      setLoginAttempts(attempts);
+      if (attempts >= 5) {
+        setLockoutUntil(Date.now() + 60_000); // 1 min lockout
+        setLoginAttempts(0);
+        toast({ title: "Conta bloqueada temporariamente", description: "Muitas tentativas. Aguarde 1 minuto.", variant: "destructive" });
+      } else {
+        toast({ title: "Erro ao entrar", description: err.message, variant: "destructive" });
+      }
     } finally {
       setLoading(false);
     }
