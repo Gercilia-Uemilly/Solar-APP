@@ -1153,23 +1153,17 @@ export default function Oficios() {
             <TabsContent value="dados" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício {isReservingNumber && <Loader2 size={12} className="inline animate-spin ml-1" />}</label>
                   <div className="flex items-center gap-0">
-                  <Input
-                      placeholder="Ex: 23"
-                      value={numero.includes(`/${new Date().getFullYear()}`) ? numero.replace(`/${new Date().getFullYear()}`, "") : numero}
-                      onChange={e => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setNumero(val ? `${val}/${new Date().getFullYear()}` : "");
-                        setValidationErrors(prev => ({ ...prev, numero: false }));
-                      }}
-                      className={`bg-muted rounded-r-none ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`}
+                    <Input
+                      value={numero}
+                      readOnly
+                      disabled
+                      className="bg-muted border-border font-mono font-bold text-foreground cursor-not-allowed"
+                      placeholder="Reservando..."
                     />
-                    <span className="inline-flex items-center px-3 h-9 bg-muted border border-l-0 border-border rounded-r-md text-sm text-muted-foreground whitespace-nowrap">
-                      /{new Date().getFullYear()}
-                    </span>
                   </div>
-                  {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Número reservado automaticamente — não pode ser alterado</p>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
