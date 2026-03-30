@@ -219,7 +219,7 @@ export default function Dashboard() {
                   contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(222 20% 90%)", borderRadius: 6, fontSize: 12 }}
                   labelStyle={{ color: "hsl(240 20% 13%)" }}
                 />
-                <Bar dataKey="value" fill="hsl(43 52% 55%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="hsl(160 45% 35%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
