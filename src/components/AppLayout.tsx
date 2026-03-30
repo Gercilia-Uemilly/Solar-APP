@@ -176,7 +176,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             >
               <Menu size={18} strokeWidth={1.5} />
             </button>
-            <h1 className="text-base font-bold text-foreground font-serif hidden sm:block">
+            <h1 className="text-lg font-bold text-foreground font-serif hidden sm:block">
               {getPageTitle()}
             </h1>
           </div>
