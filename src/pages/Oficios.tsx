@@ -362,7 +362,7 @@ export default function Oficios() {
         return;
       }
       setNumero(data.numero_completo || `${data.numero}/${ano}`);
-      toast({ title: `Número ${data.numero_completo} reservado (${data.origem === "hibrido" ? "sincronizado com planilha" : "sistema"})` });
+      toast({ title: `Número ${data.numero_completo} reservado`, description: data.docs_sync ? "Sincronizado com Google Docs" : undefined });
     } catch (err) {
       toast({ title: "Erro ao reservar número", variant: "destructive" });
       setShowDialog(false);

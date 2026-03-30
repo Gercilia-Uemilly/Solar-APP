@@ -48,8 +48,16 @@ const statusEmojis: Record<string, string> = {
 
 const origemLabels: Record<string, string> = {
   sistema: "Sistema",
+  docs: "Google Docs",
   planilha: "Planilha",
   hibrido: "Híbrido",
+};
+
+const origemColors: Record<string, string> = {
+  sistema: "bg-muted text-muted-foreground border-border",
+  docs: "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30",
+  planilha: "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30",
+  hibrido: "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
 };
 
 export default function PainelNumeracao() {
@@ -248,7 +256,7 @@ export default function PainelNumeracao() {
                               : "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge variant="outline" className={`text-[10px] ${origemColors[n.origem_numero || "sistema"] || origemColors.sistema}`}>
                             {origemLabels[n.origem_numero || "sistema"] || n.origem_numero}
                           </Badge>
                         </TableCell>
