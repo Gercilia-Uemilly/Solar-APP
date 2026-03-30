@@ -1162,12 +1162,7 @@ export default function Oficios() {
                       placeholder={isReservingNumber ? "Reservando..." : "Ex: 366/2026"}
                     />
                     {numero && !isReservingNumber && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-[10px] text-primary whitespace-nowrap">✔ Reservado</span>
-                        </TooltipTrigger>
-                        <TooltipContent>Número preenchido automaticamente. Você pode alterá-lo se necessário.</TooltipContent>
-                      </Tooltip>
+                      <span className="text-[10px] text-primary whitespace-nowrap" title="Número preenchido automaticamente. Você pode alterá-lo se necessário.">✔ Reservado</span>
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Preenchido automaticamente — editável se necessário</p>
