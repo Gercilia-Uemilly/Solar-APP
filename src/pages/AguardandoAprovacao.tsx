@@ -9,7 +9,7 @@ export default function AguardandoAprovacao() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center space-y-6">
-        <img src={logoSolar} alt="Solar" className="h-16 mx-auto" />
+        <img src={logoFabao} alt="Gabinete" className="h-16 mx-auto" />
         <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
           <Clock size={40} className="text-amber-500" />
         </div>
