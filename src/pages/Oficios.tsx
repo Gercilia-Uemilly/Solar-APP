@@ -340,11 +340,34 @@ export default function Oficios() {
     }
   }, [location.state]);
 
-  const generateNextNumero = () => {
-    const year = new Date().getFullYear();
-    const existingNumbers = oficios.map(o => o.numero).filter(Boolean).map(n => { const match = n!.match(/^(\d+)/); return match ? parseInt(match[1], 10) : 0; }).filter(n => n > 0);
-    const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-    return `${nextNum}/${year}`;
+  const [isReservingNumber, setIsReservingNumber] = useState(false);
+
+  const handleNovoOficio = async () => {
+    resetForm();
+    if (!user) return;
+    setIsReservingNumber(true);
+    setShowDialog(true);
+    try {
+      const ano = new Date().getFullYear();
+      const userName = profileName || user.user_metadata?.full_name || user.email || "";
+      const { data: reservedNum, error } = await supabase.rpc("reservar_proximo_numero", {
+        p_ano: ano,
+        p_user_id: user.id,
+        p_user_nome: userName,
+      });
+      if (error || !reservedNum) {
+        toast({ title: "Erro ao reservar número", description: error?.message || "Tente novamente.", variant: "destructive" });
+        setShowDialog(false);
+        return;
+      }
+      setNumero(`${reservedNum}/${ano}`);
+      toast({ title: `Número ${reservedNum}/${ano} reservado` });
+    } catch (err) {
+      toast({ title: "Erro ao reservar número", variant: "destructive" });
+      setShowDialog(false);
+    } finally {
+      setIsReservingNumber(false);
+    }
   };
 
   useEffect(() => {
@@ -520,17 +543,19 @@ export default function Oficios() {
 
   const validateForm = () => {
     const errors: Record<string, boolean> = {};
-    if (!numero.trim()) errors.numero = true;
+    // numero is auto-reserved, no validation needed
     return errors;
   };
 
   const handleCreate = async (closeAfterSave = true) => {
-    if (!user) return;
+    if (!user || !numero) {
+      toast({ title: "Aguarde", description: "Número ainda não reservado.", variant: "destructive" });
+      return;
+    }
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setFormTab("dados");
-      toast({ title: "Campos obrigatórios", description: "Preencha o número do ofício.", variant: "destructive" });
       return;
     }
     setValidationErrors({});
@@ -1033,9 +1058,7 @@ export default function Oficios() {
   useEffect(() => {
     const state = location.state as any;
     if (state?.openNew) {
-      resetForm();
-      setShowDialog(true);
-      // Clear the state so it doesn't re-trigger
+      handleNovoOficio();
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -1049,9 +1072,8 @@ export default function Oficios() {
     const hasContent = editedOficio.trim() || assunto.trim() || descricao.trim() || enderecoCompleto.trim();
     if (!hasContent) return;
     autoSaveRef.current = setTimeout(async () => {
-      // Need numero to save — auto-generate if missing
-      const saveNumero = numero || generateNextNumero();
-      if (!numero) setNumero(saveNumero);
+      if (!numero) return; // Don't auto-save without a reserved number
+      const saveNumero = numero;
       const payload: Record<string, any> = {
         numero: saveNumero || null,
         assunto: assunto || "Sem assunto",
@@ -1096,13 +1118,11 @@ export default function Oficios() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-foreground">Ofícios</h1>
         <Button
-          onClick={() => {
-            resetForm();
-            setShowDialog(true);
-          }}
+          onClick={handleNovoOficio}
+          disabled={isReservingNumber}
           className="gap-1.5"
         >
-          <Plus size={16} /> Novo Ofício
+          {isReservingNumber ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Novo Ofício
         </Button>
       </div>
 
@@ -1132,23 +1152,17 @@ export default function Oficios() {
             <TabsContent value="dados" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício <span className="text-destructive">*</span></label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício {isReservingNumber && <Loader2 size={12} className="inline animate-spin ml-1" />}</label>
                   <div className="flex items-center gap-0">
-                  <Input
-                      placeholder="Ex: 23"
-                      value={numero.includes(`/${new Date().getFullYear()}`) ? numero.replace(`/${new Date().getFullYear()}`, "") : numero}
-                      onChange={e => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setNumero(val ? `${val}/${new Date().getFullYear()}` : "");
-                        setValidationErrors(prev => ({ ...prev, numero: false }));
-                      }}
-                      className={`bg-muted rounded-r-none ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`}
+                    <Input
+                      value={numero}
+                      readOnly
+                      disabled
+                      className="bg-muted border-border font-mono font-bold text-foreground cursor-not-allowed"
+                      placeholder="Reservando..."
                     />
-                    <span className="inline-flex items-center px-3 h-9 bg-muted border border-l-0 border-border rounded-r-md text-sm text-muted-foreground whitespace-nowrap">
-                      /{new Date().getFullYear()}
-                    </span>
                   </div>
-                  {validationErrors.numero && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Número reservado automaticamente — não pode ser alterado</p>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
