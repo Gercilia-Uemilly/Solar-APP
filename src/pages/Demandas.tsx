@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import DOMPurify from "dompurify";
 import { Plus, Search, LayoutGrid, List, Sparkles, Loader2, Eye, Trash2, Edit, ChevronDown } from "lucide-react";
 import { store } from "@/lib/store";
 import { Demanda, DemandaTipo, DemandaStatus, DemandaOrigem, DemandaAnexo } from "@/types";
