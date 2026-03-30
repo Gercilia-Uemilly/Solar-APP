@@ -1072,9 +1072,8 @@ export default function Oficios() {
     const hasContent = editedOficio.trim() || assunto.trim() || descricao.trim() || enderecoCompleto.trim();
     if (!hasContent) return;
     autoSaveRef.current = setTimeout(async () => {
-      // Need numero to save — auto-generate if missing
-      const saveNumero = numero || generateNextNumero();
-      if (!numero) setNumero(saveNumero);
+      if (!numero) return; // Don't auto-save without a reserved number
+      const saveNumero = numero;
       const payload: Record<string, any> = {
         numero: saveNumero || null,
         assunto: assunto || "Sem assunto",
