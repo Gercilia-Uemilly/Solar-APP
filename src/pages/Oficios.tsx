@@ -1247,7 +1247,7 @@ export default function Oficios() {
                   placeholder="Descreva a demanda ou cole a conversa com o solicitante... Ex: 'Moradores da Rua Oscar Alvim, Bairro Fundinho, reclamam de buracos' ou cole um trecho da conversa do WhatsApp"
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
-                  className="bg-secondary border-border min-h-[120px]"
+                  className="bg-card border-border min-h-[120px]"
                 />
                 <p className="text-[10px] text-muted-foreground mt-0.5">💡 Aceita descrições curtas, detalhadas ou conversas coladas do WhatsApp — a IA interpreta e gera o ofício completo.</p>
               </div>
