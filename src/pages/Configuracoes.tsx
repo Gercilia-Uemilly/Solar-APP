@@ -377,6 +377,9 @@ export default function Configuracoes() {
       {/* Audit Log (Admin only) */}
       {isAdmin && <AuditLogSection />}
 
+      {/* Personalização de Interface */}
+      <PreferenciasPanel />
+
       {/* Theme */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground">Aparência</h3>
