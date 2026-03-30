@@ -1,7 +1,7 @@
 import { Headphones, Library, FileText, Search, MessageSquare, BarChart3, Newspaper, Shield, Database, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import logoSolar from "@/assets/logo-solar.png";
+import logoFabao from "@/assets/logo-fabao-oficial.svg";
 import solarLabsIcon from "@/assets/solar-labs-icon.png";
 import solarLabsHorizontal from "@/assets/solar-labs-horizontal.png";
 import solarLabsDark from "@/assets/solar-labs-dark-bg.png";
