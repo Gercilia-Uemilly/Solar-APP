@@ -6,9 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Hash, Loader2, RefreshCw, Grid3X3, List } from "lucide-react";
+import { Hash, Loader2, RefreshCw, Grid3X3, List, CloudCog, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface NumRow {
   id: string;
@@ -26,10 +25,10 @@ interface NumRow {
 }
 
 const statusColors: Record<string, string> = {
-  disponivel: "bg-green-500/30 text-green-800 dark:text-green-300 hover:bg-green-500/50",
+  disponivel: "bg-muted/60 text-muted-foreground hover:bg-muted",
   reservado: "bg-yellow-500/30 text-yellow-800 dark:text-yellow-300 hover:bg-yellow-500/50",
-  usado: "bg-blue-500/30 text-blue-800 dark:text-blue-300 hover:bg-blue-500/50",
-  cancelado: "bg-red-500/30 text-red-800 dark:text-red-300 hover:bg-red-500/50",
+  usado: "bg-primary/20 text-primary hover:bg-primary/30",
+  cancelado: "bg-destructive/20 text-destructive hover:bg-destructive/30",
 };
 
 const statusLabels: Record<string, string> = {
@@ -40,9 +39,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusEmojis: Record<string, string> = {
-  disponivel: "🟩",
+  disponivel: "⬜",
   reservado: "🟨",
-  usado: "🟦",
+  usado: "🟩",
   cancelado: "🟥",
 };
 
@@ -68,6 +67,8 @@ export default function PainelNumeracao() {
   const [selected, setSelected] = useState<NumRow | null>(null);
   const [ano] = useState(new Date().getFullYear());
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [syncStatus, setSyncStatus] = useState<null | "checking" | "ok" | "warning">(null);
+  const [syncInfo, setSyncInfo] = useState<string>("");
 
   const fetchNumeros = useCallback(async () => {
     setLoading(true);
@@ -104,6 +105,49 @@ export default function PainelNumeracao() {
   useEffect(() => {
     supabase.rpc("liberar_reservas_expiradas" as any).then(() => {});
   }, []);
+
+  // Check sync with Google Docs
+  const handleCheckSync = async () => {
+    setSyncStatus("checking");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        setSyncStatus("warning");
+        setSyncInfo("Sessão não encontrada. Faça login novamente.");
+        return;
+      }
+
+      const resp = await supabase.functions.invoke("reservar-numero-hibrido", {
+        body: { ano, user_nome: "", check_only: true },
+      });
+
+      if (resp.error) {
+        setSyncStatus("warning");
+        setSyncInfo("Erro ao verificar: " + (resp.error.message || "desconhecido"));
+        return;
+      }
+
+      const data = resp.data as any;
+      const maxDb = numeros.filter(n => n.status !== "disponivel").sort((a, b) => b.numero - a.numero)[0]?.numero || 0;
+      const maxDocs = data?.max_from_docs || 0;
+      const docsSynced = data?.docs_sync;
+
+      if (!docsSynced) {
+        setSyncStatus("warning");
+        setSyncInfo("Google Docs não está configurado ou sem token. Usando apenas o banco de dados.");
+      } else if (maxDocs <= maxDb) {
+        setSyncStatus("ok");
+        setSyncInfo(`✅ Sincronizado! Banco: ${maxDb} · Google Docs: ${maxDocs}`);
+      } else {
+        setSyncStatus("warning");
+        setSyncInfo(`⚠️ Google Docs tem número maior (${maxDocs}) que o banco (${maxDb}). Ao criar o próximo ofício, o sistema ajustará automaticamente.`);
+      }
+    } catch (e: any) {
+      setSyncStatus("warning");
+      setSyncInfo("Erro: " + (e?.message || "desconhecido"));
+    }
+  };
 
   const handleMarkUsed = async (num: NumRow) => {
     if (!user) return;
@@ -160,14 +204,16 @@ export default function PainelNumeracao() {
     cancelado: numeros.filter(n => n.status === "cancelado").length,
   };
 
-  const lastUsed = numeros.filter(n => n.status === "usado").sort((a, b) => b.numero - a.numero)[0];
-  const usedOrReserved = numeros.filter(n => n.status !== "disponivel");
+  const lastUsedNum = numeros.filter(n => n.status !== "disponivel").sort((a, b) => b.numero - a.numero)[0]?.numero || 0;
+
+  // All numbers up to the last used/reserved one, plus any beyond that are non-disponivel
+  const visibleNumbers = numeros.filter(n => n.numero <= lastUsedNum || n.status !== "disponivel");
 
   const getStatusBadge = (status: string) => {
     const colorMap: Record<string, string> = {
       reservado: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30",
-      usado: "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30",
-      cancelado: "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30",
+      usado: "bg-primary/20 text-primary border-primary/30",
+      cancelado: "bg-destructive/20 text-destructive border-destructive/30",
       disponivel: "bg-muted text-muted-foreground border-border",
     };
     return (
@@ -185,11 +231,21 @@ export default function PainelNumeracao() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Controle de Numeração — {ano}</h1>
             <p className="text-sm text-muted-foreground">
-              {lastUsed ? `Último protocolado: ${lastUsed.numero}` : "Nenhum protocolado"} · {counts.disponivel} disponíveis
+              Último número: <span className="font-mono font-bold text-foreground">{lastUsedNum || "—"}</span> · {counts.disponivel} disponíveis
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCheckSync}
+            disabled={syncStatus === "checking"}
+            className="gap-1.5"
+          >
+            <CloudCog size={14} className={syncStatus === "checking" ? "animate-spin" : ""} />
+            Verificar Sync
+          </Button>
           <div className="flex items-center bg-muted rounded-lg p-0.5">
             <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="h-7 px-2">
               <List size={14} />
@@ -203,6 +259,21 @@ export default function PainelNumeracao() {
           </Button>
         </div>
       </div>
+
+      {/* Sync status banner */}
+      {syncStatus && syncStatus !== "checking" && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
+          syncStatus === "ok"
+            ? "bg-primary/10 text-primary border border-primary/20"
+            : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border border-yellow-500/20"
+        }`}>
+          {syncStatus === "ok" ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+          {syncInfo}
+          <Button variant="ghost" size="sm" className="ml-auto h-6 text-xs" onClick={() => setSyncStatus(null)}>
+            Fechar
+          </Button>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex items-center gap-4 flex-wrap">
@@ -234,14 +305,14 @@ export default function PainelNumeracao() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {usedOrReserved.length === 0 ? (
+                  {visibleNumbers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         Nenhum número reservado ou utilizado ainda.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    usedOrReserved.map(n => (
+                    visibleNumbers.map(n => (
                       <TableRow key={n.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelected(n)}>
                         <TableCell className="font-mono font-bold text-foreground">{n.numero}/{n.ano}</TableCell>
                         <TableCell>{getStatusBadge(n.status)}</TableCell>
@@ -276,7 +347,7 @@ export default function PainelNumeracao() {
           ) : (
             <div className="bg-card rounded-xl border border-border p-4">
               <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(48px, 1fr))" }}>
-                {numeros.map(n => (
+                {visibleNumbers.map(n => (
                   <Tooltip key={n.id}>
                     <TooltipTrigger asChild>
                       <button
