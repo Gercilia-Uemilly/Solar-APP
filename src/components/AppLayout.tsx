@@ -36,7 +36,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     });
   }, [user]);
 
-  // Auto-show tutorial only on first login ever
   useEffect(() => {
     if (!user) return;
     const key = `tutorial_visto_${user.id}`;
@@ -50,7 +49,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (isMobile) setMobileOpen(false);
   }, [children]);
 
-  // Chat notifications via realtime
   const chatNotifSetupRef = useRef(false);
   useEffect(() => {
     if (!user || chatNotifSetupRef.current) return;
@@ -70,7 +68,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       } catch {}
     };
 
-    // Direct messages to this user
     const chDM = supabase
       .channel(`chat-notif-dm-${user.id}`)
       .on('postgres_changes', {
@@ -87,7 +84,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       })
       .subscribe();
 
-    // General channel messages (para_user_id is null)
     const chGeral = supabase
       .channel(`chat-notif-geral-${user.id}`)
       .on('postgres_changes', {
@@ -111,7 +107,30 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     };
   }, [user, location.pathname]);
 
-  const sidebarWidth = isMobile ? 0 : (collapsed ? 56 : 220);
+  const sidebarWidth = isMobile ? 0 : (collapsed ? 56 : 240);
+
+  // Get page title from path
+  const getPageTitle = () => {
+    const pathMap: Record<string, string> = {
+      "/": "Painel",
+      "/oficios": "Ofícios",
+      "/meus-oficios": "Todos os Ofícios",
+      "/modelos": "Modelos",
+      "/numeracao": "Numeração",
+      "/respostas": "Respostas",
+      "/chat": "Chat Interno",
+      "/banco-informacoes": "Banco de Informações",
+      "/whatsapp": "WhatsApp",
+      "/whatsapp-mensagens": "Mensagens WhatsApp",
+      "/operadores": "Operadores",
+      "/relatorios": "Relatórios",
+      "/lixeira": "Lixeira",
+      "/backups": "Backups",
+      "/configuracoes": "Configurações",
+      "/sobre": "Sobre",
+    };
+    return pathMap[location.pathname] || "Solar";
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -148,21 +167,26 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       )}
 
       <div className="flex-1 flex flex-col" style={{ marginLeft: sidebarWidth }}>
-        {/* Header */}
-        <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 sm:px-5 sticky top-0 z-30">
-          <button
-            onClick={() => isMobile ? setMobileOpen(!mobileOpen) : setCollapsed(!collapsed)}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
-          >
-            <Menu size={16} strokeWidth={1.5} />
-          </button>
-          <div className="flex items-center gap-2">
+        {/* Topbar */}
+        <header className="h-[60px] border-b border-border bg-card flex items-center justify-between px-7 sticky top-0 z-30 shadow-institutional">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => isMobile ? setMobileOpen(!mobileOpen) : setCollapsed(!collapsed)}
+              className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
+            >
+              <Menu size={18} strokeWidth={1.5} />
+            </button>
+            <h1 className="text-base font-bold text-foreground font-serif hidden sm:block">
+              {getPageTitle()}
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
             <ThemeToggle />
             <div className="text-right hidden sm:block">
-              <p className="text-[13px] font-medium text-foreground leading-tight">
+              <p className="text-[14px] font-semibold text-foreground leading-tight font-sans">
                 {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário"}
               </p>
-              <p className="text-2xs text-muted-foreground leading-tight">
+              <p className="text-2xs text-muted-foreground leading-tight font-sans">
                 {profileTel ? `📱 ${profileTel}` : user?.email}
               </p>
             </div>
@@ -174,7 +198,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             />
             <button
               onClick={() => signOut()}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150"
+              className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150"
               title="Sair"
             >
               <LogOut size={15} strokeWidth={1.5} />
@@ -183,14 +207,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Main */}
-        <main className="flex-1 p-4 sm:p-6 animate-fade-in">
+        <main className="flex-1 p-5 sm:p-7 animate-fade-in">
           {children}
         </main>
 
         {/* Footer */}
         <footer className="border-t border-border px-4 py-2.5 text-center">
-          <p className="text-2xs text-muted-foreground">
-            Desenvolvido por <span className="font-medium text-muted-foreground/80">Solar Labs</span>
+          <p className="text-2xs text-muted-foreground font-sans">
+            Desenvolvido por <span className="font-semibold text-muted-foreground/80">Solar Labs</span>
           </p>
         </footer>
       </div>

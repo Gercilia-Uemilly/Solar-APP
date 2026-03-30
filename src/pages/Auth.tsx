@@ -3,12 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import logoSolar from "@/assets/logo-solar.png";
+import logoFabao from "@/assets/logo-fabao-oficial.svg";
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
@@ -31,7 +30,6 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Rate limiting check
     if (lockoutUntil && Date.now() < lockoutUntil) {
       const secsLeft = Math.ceil((lockoutUntil - Date.now()) / 1000);
       toast({ title: "Muitas tentativas", description: `Aguarde ${secsLeft}s antes de tentar novamente.`, variant: "destructive" });
@@ -55,7 +53,6 @@ export default function Auth() {
         return;
       }
 
-      // Check 2FA via Email OTP
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: perfil } = await supabase
@@ -65,7 +62,6 @@ export default function Auth() {
           .single();
         const p = perfil as any;
         if (p?.usa_2fa) {
-          // Sign out current session, then send email OTP
           await supabase.auth.signOut();
           const { error: otpError } = await supabase.auth.signInWithOtp({
             email,
@@ -85,7 +81,7 @@ export default function Auth() {
       const attempts = loginAttempts + 1;
       setLoginAttempts(attempts);
       if (attempts >= 5) {
-        setLockoutUntil(Date.now() + 60_000); // 1 min lockout
+        setLockoutUntil(Date.now() + 60_000);
         setLoginAttempts(0);
         toast({ title: "Conta bloqueada temporariamente", description: "Muitas tentativas. Aguarde 1 minuto.", variant: "destructive" });
       } else {
@@ -128,62 +124,80 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-card border-border">
-        <CardHeader className="text-center">
-          <img src={logoSolar} alt="Solar" className="h-20 mx-auto mb-4" />
-          <CardTitle className="text-foreground">Solar</CardTitle>
-          <CardDescription className="text-muted-foreground">Sistema de Gerenciamento de Mandato</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {showForgot ? (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground">Esqueci minha senha</h3>
-              <p className="text-xs text-muted-foreground">Insira seu e-mail e enviaremos um link de recuperação.</p>
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <Input placeholder="Seu e-mail" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required className="bg-secondary border-border" />
-                <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={forgotLoading}>
-                  {forgotLoading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Enviar link
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, hsl(216 59% 26%) 0%, hsl(216 70% 13%) 100%)" }}>
+      <div className="w-full max-w-[400px] bg-card rounded-lg p-10 shadow-[0_20px_60px_rgba(0,0,0,0.3)] border-t-4 border-t-secondary">
+        <div className="text-center mb-8">
+          <img src={logoFabao} alt="Gabinete" className="h-16 mx-auto mb-5" />
+          <h1 className="font-serif text-[22px] font-bold text-primary">
+            Solar
+          </h1>
+          <p className="text-[13px] text-muted-foreground mt-1 font-sans">
+            Sistema de Gerenciamento de Mandato Parlamentar
+          </p>
+        </div>
+
+        {showForgot ? (
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-foreground font-serif">Esqueci minha senha</h3>
+            <p className="text-xs text-muted-foreground font-sans">Insira seu e-mail e enviaremos um link de recuperação.</p>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <Input placeholder="Seu e-mail" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required className="border-border focus:border-primary focus:ring-primary/10" />
+              <Button type="submit" className="w-full" disabled={forgotLoading}>
+                {forgotLoading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Enviar link
+              </Button>
+            </form>
+            <button onClick={() => setShowForgot(false)} className="text-xs text-primary hover:underline w-full text-center font-sans">← Voltar ao login</button>
+          </div>
+        ) : (
+          <Tabs defaultValue="login">
+            <TabsList className="w-full bg-muted">
+              <TabsTrigger value="login" className="flex-1 font-sans font-semibold text-[14px]">Entrar</TabsTrigger>
+              <TabsTrigger value="register" className="flex-1 font-sans font-semibold text-[14px]">Cadastrar</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4 mt-5">
+                <div>
+                  <label className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-1.5 block font-sans">Identificação</label>
+                  <Input
+                    placeholder="E-mail ou nome de usuário"
+                    value={loginIdentifier}
+                    onChange={e => setLoginIdentifier(e.target.value)}
+                    required
+                    className="border-border focus:border-primary focus:ring-primary/10"
+                  />
+                </div>
+                <div>
+                  <label className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-1.5 block font-sans">Senha</label>
+                  <Input placeholder="Sua senha" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="border-border focus:border-primary focus:ring-primary/10" />
+                </div>
+                <Button type="submit" className="w-full font-sans font-semibold text-[14px]" disabled={loading}>
+                  {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Entrar
+                </Button>
+                <button type="button" onClick={() => setShowForgot(true)} className="text-xs text-primary hover:underline w-full text-center font-sans">Esqueci minha senha</button>
+              </form>
+            </TabsContent>
+            <TabsContent value="register">
+              <form onSubmit={handleSignUp} className="space-y-4 mt-5">
+                <div>
+                  <label className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-1.5 block font-sans">Nome completo</label>
+                  <Input placeholder="Seu nome completo" value={regName} onChange={e => setRegName(e.target.value)} required className="border-border focus:border-primary focus:ring-primary/10" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-1.5 block font-sans">E-mail</label>
+                  <Input placeholder="seu@email.com" type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} required className="border-border focus:border-primary focus:ring-primary/10" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-1.5 block font-sans">Senha</label>
+                  <Input placeholder="Mínimo 6 caracteres" type="password" value={regPassword} onChange={e => setRegPassword(e.target.value)} required minLength={6} className="border-border focus:border-primary focus:ring-primary/10" />
+                </div>
+                <Button type="submit" className="w-full font-sans font-semibold text-[14px]" disabled={loading}>
+                  {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Cadastrar
                 </Button>
               </form>
-              <button onClick={() => setShowForgot(false)} className="text-xs text-primary hover:underline w-full text-center">← Voltar ao login</button>
-            </div>
-          ) : (
-            <Tabs defaultValue="login">
-              <TabsList className="w-full bg-secondary">
-                <TabsTrigger value="login" className="flex-1">Entrar</TabsTrigger>
-                <TabsTrigger value="register" className="flex-1">Cadastrar</TabsTrigger>
-              </TabsList>
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4 mt-4">
-                  <Input 
-                    placeholder="E-mail ou nome de usuário" 
-                    value={loginIdentifier} 
-                    onChange={e => setLoginIdentifier(e.target.value)} 
-                    required 
-                    className="bg-secondary border-border" 
-                  />
-                  <Input placeholder="Senha" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="bg-secondary border-border" />
-                  <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={loading}>
-                    {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Entrar
-                  </Button>
-                  <button type="button" onClick={() => setShowForgot(true)} className="text-xs text-primary hover:underline w-full text-center">Esqueci minha senha</button>
-                </form>
-              </TabsContent>
-              <TabsContent value="register">
-                <form onSubmit={handleSignUp} className="space-y-4 mt-4">
-                  <Input placeholder="Nome completo" value={regName} onChange={e => setRegName(e.target.value)} required className="bg-secondary border-border" />
-                  <Input placeholder="E-mail" type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} required className="bg-secondary border-border" />
-                  <Input placeholder="Senha (mínimo 6 caracteres)" type="password" value={regPassword} onChange={e => setRegPassword(e.target.value)} required minLength={6} className="bg-secondary border-border" />
-                  <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={loading}>
-                    {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Cadastrar
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
     </div>
   );
 }
