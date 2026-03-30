@@ -584,7 +584,7 @@ export default function MeusOficios() {
 
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setAbaAtiva("rascunhos")}
+          onClick={() => { setAbaAtiva("rascunhos"); setCurrentPage(1); }}
           className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-yellow-500 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📝 Rascunhos ({rascunhos.length})
