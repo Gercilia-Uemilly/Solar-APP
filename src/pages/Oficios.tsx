@@ -1122,7 +1122,7 @@ export default function Oficios() {
           </DialogHeader>
 
           <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
-            <TabsList className="w-full bg-secondary grid grid-cols-3">
+            <TabsList className="w-full bg-muted grid grid-cols-3">
               <TabsTrigger value="dados" className="text-xs">📋 Dados</TabsTrigger>
               <TabsTrigger value="preview" className="text-xs">👁️ Visualizar</TabsTrigger>
               <TabsTrigger value="historico" className="text-xs">📜 Histórico</TabsTrigger>
@@ -1142,7 +1142,7 @@ export default function Oficios() {
                         setNumero(val ? `${val}/${new Date().getFullYear()}` : "");
                         setValidationErrors(prev => ({ ...prev, numero: false }));
                       }}
-                      className={`bg-secondary rounded-r-none ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`}
+                      className={`bg-muted rounded-r-none ${validationErrors.numero ? "border-destructive ring-1 ring-destructive/50" : "border-border"}`}
                     />
                     <span className="inline-flex items-center px-3 h-9 bg-muted border border-l-0 border-border rounded-r-md text-sm text-muted-foreground whitespace-nowrap">
                       /{new Date().getFullYear()}
@@ -1173,7 +1173,7 @@ export default function Oficios() {
 
               {/* File name preview */}
               {numero && (
-                <div className="text-xs text-muted-foreground bg-secondary/50 rounded px-3 py-1.5 flex items-center gap-1">
+                <div className="text-xs text-muted-foreground bg-muted/50 rounded px-3 py-1.5 flex items-center gap-1">
                   <FileText size={12} />
                   <span>Nome do arquivo: <strong className="text-foreground">
                     {(() => {
@@ -1341,8 +1341,8 @@ export default function Oficios() {
                         <ArrowRight size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
                       <div className="flex gap-2 mt-1 flex-wrap">
-                        {s.destinatario && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{s.destinatario}</span>}
-                        {s.bairro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{s.bairro}</span>}
+                        {s.destinatario && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{s.destinatario}</span>}
+                        {s.bairro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{s.bairro}</span>}
                       </div>
                     </button>
                   ))}
@@ -1355,8 +1355,8 @@ export default function Oficios() {
                         <ArrowRight size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
                       <div className="flex gap-2 mt-1 flex-wrap">
-                        {kb.orgao && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{kb.orgao}</span>}
-                        {kb.bairro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{kb.bairro}</span>}
+                        {kb.orgao && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{kb.orgao}</span>}
+                        {kb.bairro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{kb.bairro}</span>}
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/30 text-accent-foreground">{kb.fonte}</span>
                         {kb.modelo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">⭐ Modelo</span>}
                       </div>
@@ -1486,7 +1486,7 @@ export default function Oficios() {
                     {modelos.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">Nenhum modelo salvo.</p>
                     ) : modelos.map(m => (
-                      <button key={m.id} type="button" onClick={() => usarModelo(m)} className="w-full text-left p-3 rounded-md bg-secondary hover:bg-accent/50 transition-colors border border-border">
+                      <button key={m.id} type="button" onClick={() => usarModelo(m)} className="w-full text-left p-3 rounded-md bg-muted hover:bg-accent/50 transition-colors border border-border">
                         <p className="text-sm font-medium text-foreground">{m.nome}</p>
                         <div className="flex gap-2 mt-1">
                           {m.secretaria && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">{m.secretaria}</span>}
@@ -1630,7 +1630,7 @@ export default function Oficios() {
 
             {/* TAB: HISTÓRICO */}
             <TabsContent value="historico" className="space-y-4 mt-4">
-              <div className="bg-secondary rounded-lg p-4 space-y-3">
+              <div className="bg-muted rounded-lg p-4 space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Informações do Ofício</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><span className="text-muted-foreground">Número:</span> <span className="text-foreground">{numero || "—"}</span></div>
@@ -1652,7 +1652,7 @@ export default function Oficios() {
                 <div className="space-y-2">
                   <h4 className="text-xs font-medium text-muted-foreground">Versões do texto ({oficioHistory.length})</h4>
                   {oficioHistory.map((_, i) => (
-                    <button key={i} onClick={() => { setHistoryIndex(i); setEditedOficio(oficioHistory[i]); }} className={`w-full text-left p-2 rounded text-xs ${i === historyIndex ? "bg-primary/10 border border-primary/30" : "bg-secondary"}`}>
+                    <button key={i} onClick={() => { setHistoryIndex(i); setEditedOficio(oficioHistory[i]); }} className={`w-full text-left p-2 rounded text-xs ${i === historyIndex ? "bg-primary/10 border border-primary/30" : "bg-muted"}`}>
                       Versão {i + 1} {i === historyIndex && "(atual)"}
                     </button>
                   ))}
