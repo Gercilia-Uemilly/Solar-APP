@@ -350,18 +350,19 @@ export default function Oficios() {
     try {
       const ano = new Date().getFullYear();
       const userName = profileName || user.user_metadata?.full_name || user.email || "";
-      const { data: reservedNum, error } = await supabase.rpc("reservar_proximo_numero", {
-        p_ano: ano,
-        p_user_id: user.id,
-        p_user_nome: userName,
+
+      // Call hybrid edge function that checks Google Sheets + DB
+      const { data, error } = await supabase.functions.invoke("reservar-numero-hibrido", {
+        body: { ano, user_nome: userName },
       });
-      if (error || !reservedNum) {
+
+      if (error || !data?.numero) {
         toast({ title: "Erro ao reservar número", description: error?.message || "Tente novamente.", variant: "destructive" });
         setShowDialog(false);
         return;
       }
-      setNumero(`${reservedNum}/${ano}`);
-      toast({ title: `Número ${reservedNum}/${ano} reservado` });
+      setNumero(data.numero_completo || `${data.numero}/${ano}`);
+      toast({ title: `Número ${data.numero_completo} reservado (${data.origem === "hibrido" ? "sincronizado com planilha" : "sistema"})` });
     } catch (err) {
       toast({ title: "Erro ao reservar número", variant: "destructive" });
       setShowDialog(false);
