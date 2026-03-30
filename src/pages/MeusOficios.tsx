@@ -283,7 +283,7 @@ export default function MeusOficios() {
 
   const canEditOrDelete = (o: OficioRow) => {
     if (!user) return false;
-    return true;
+    return isAdmin || o.author_id === user.id;
   };
 
   const handleStatusChange = async (oficioId: string, newStatus: string) => {
