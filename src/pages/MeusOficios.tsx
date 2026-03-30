@@ -590,7 +590,7 @@ export default function MeusOficios() {
           📝 Rascunhos ({rascunhos.length})
         </button>
         <button
-          onClick={() => setAbaAtiva("finalizados")}
+          onClick={() => { setAbaAtiva("finalizados"); setCurrentPage(1); }}
           className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "finalizados" ? "bg-purple-600 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📬 Finalizados ({finalizados.length})
