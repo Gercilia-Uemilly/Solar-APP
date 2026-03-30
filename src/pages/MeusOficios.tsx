@@ -561,10 +561,14 @@ export default function MeusOficios() {
   };
 
   const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados">("rascunhos");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
 
   const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido"].includes(o.status));
   const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido"].includes(o.status));
-  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : finalizados;
+  const listaCompleta = abaAtiva === "rascunhos" ? rascunhos : finalizados;
+  const totalPages = Math.max(1, Math.ceil(listaCompleta.length / ITEMS_PER_PAGE));
+  const listaExibida = listaCompleta.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-6">
