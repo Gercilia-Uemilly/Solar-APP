@@ -130,6 +130,7 @@ function GoogleDocsNumeracaoConfig() {
 }
 
 
+function TwoFactorSection() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [usa2fa, setUsa2fa] = useState(false);
