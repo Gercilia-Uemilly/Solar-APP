@@ -194,7 +194,8 @@ export default function MeusOficios() {
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
     if (error) {
       setSaveStatus("error");
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
+      toast({ title: "Erro ao salvar", description: msg, variant: "destructive" });
     } else {
       setSaveStatus("saved");
       setViewOficio(prev => prev ? { ...prev, ...fields } : prev);
@@ -225,7 +226,8 @@ export default function MeusOficios() {
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
     if (error) {
       setSaveStatus("error");
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
+      toast({ title: "Erro ao salvar", description: msg, variant: "destructive" });
     } else {
       setSaveStatus("saved");
       setOriginalContent(contentToSave);
@@ -283,14 +285,15 @@ export default function MeusOficios() {
 
   const canEditOrDelete = (o: OficioRow) => {
     if (!user) return false;
-    return true;
+    return isAdmin || o.author_id === user.id;
   };
 
   const handleStatusChange = async (oficioId: string, newStatus: string) => {
     await saveBackupBeforeEdit(oficioId);
     const { error } = await supabase.from("oficios").update({ status: newStatus }).eq("id", oficioId);
     if (error) {
-      toast({ title: "Erro ao alterar status", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
+      toast({ title: "Erro ao alterar status", description: msg, variant: "destructive" });
     } else {
       setOficios(prev => prev.map(o => o.id === oficioId ? { ...o, status: newStatus } : o));
       toast({ title: `Status alterado para "${newStatus}"` });
@@ -309,13 +312,17 @@ export default function MeusOficios() {
     const numLabel = oficio?.numero || "rascunho";
     if (!confirm(`Tem certeza que deseja excluir o Ofício nº ${numLabel}?\nEle ficará na Lixeira por 30 dias e pode ser recuperado.`)) return;
     
+    // Save backup before soft-delete
+    await saveBackupBeforeEdit(id);
+
     const { error } = await supabase.from("oficios").update({
       deleted_at: new Date().toISOString(),
       deleted_by: user?.id,
       deleted_by_name: profileName || user?.email || null,
     } as any).eq("id", id);
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("row-level security") ? "Você só pode excluir seus próprios ofícios." : error.message;
+      toast({ title: "Erro", description: msg, variant: "destructive" });
     } else {
       setOficios(prev => prev.filter(o => o.id !== id));
       toast({ title: "Ofício movido para a lixeira" });
@@ -554,10 +561,14 @@ export default function MeusOficios() {
   };
 
   const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados">("rascunhos");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
 
   const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido"].includes(o.status));
   const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido"].includes(o.status));
-  const listaExibida = abaAtiva === "rascunhos" ? rascunhos : finalizados;
+  const listaCompleta = abaAtiva === "rascunhos" ? rascunhos : finalizados;
+  const totalPages = Math.max(1, Math.ceil(listaCompleta.length / ITEMS_PER_PAGE));
+  const listaExibida = listaCompleta.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-6">
@@ -573,13 +584,13 @@ export default function MeusOficios() {
 
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setAbaAtiva("rascunhos")}
+          onClick={() => { setAbaAtiva("rascunhos"); setCurrentPage(1); }}
           className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-yellow-500 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📝 Rascunhos ({rascunhos.length})
         </button>
         <button
-          onClick={() => setAbaAtiva("finalizados")}
+          onClick={() => { setAbaAtiva("finalizados"); setCurrentPage(1); }}
           className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "finalizados" ? "bg-purple-600 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📬 Finalizados ({finalizados.length})
@@ -777,6 +788,20 @@ export default function MeusOficios() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, listaCompleta.length)} de {listaCompleta.length}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>← Anterior</Button>
+            <span className="text-sm text-muted-foreground px-2">Pág. {currentPage}/{totalPages}</span>
+            <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>Próxima →</Button>
+          </div>
+        </div>
+      )}
 
       {/* Export Confirmation Dialog */}
       <Dialog open={!!exportConfirmOficio} onOpenChange={(open) => !open && setExportConfirmOficio(null)}>

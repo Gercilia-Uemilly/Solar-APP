@@ -15,6 +15,8 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
 
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -29,6 +31,12 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Rate limiting check
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const secsLeft = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      toast({ title: "Muitas tentativas", description: `Aguarde ${secsLeft}s antes de tentar novamente.`, variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       let email = loginIdentifier;
@@ -74,7 +82,15 @@ export default function Auth() {
         }
       }
     } catch (err: any) {
-      toast({ title: "Erro ao entrar", description: err.message, variant: "destructive" });
+      const attempts = loginAttempts + 1;
+      setLoginAttempts(attempts);
+      if (attempts >= 5) {
+        setLockoutUntil(Date.now() + 60_000); // 1 min lockout
+        setLoginAttempts(0);
+        toast({ title: "Conta bloqueada temporariamente", description: "Muitas tentativas. Aguarde 1 minuto.", variant: "destructive" });
+      } else {
+        toast({ title: "Erro ao entrar", description: err.message, variant: "destructive" });
+      }
     } finally {
       setLoading(false);
     }
