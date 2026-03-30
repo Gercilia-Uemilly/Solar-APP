@@ -255,7 +255,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <div style={{ textAlign: "justify" }}>
             {paragraphs.map((p, i) => (
               <p key={i} style={{ textIndent: "1.25cm", marginBottom: "0", marginTop: "0", fontSize: "11pt", lineHeight: "1.5" }}
-                dangerouslySetInnerHTML={{ __html: p }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(p) }}
               />
             ))}
           </div>

@@ -149,10 +149,18 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const body = await req.json();
-    const { action, limit, url: instaUrl } = body;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Admin-only: check role before allowing knowledge base writes
+    const adminCheckClient = createClient(supabaseUrl, supabaseKey);
+    const { data: isAdmin } = await adminCheckClient.rpc("is_admin", { _user_id: claimsData.user.id });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Apenas administradores podem acessar esta função" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const body = await req.json();
+    const { action, limit, url: instaUrl } = body;
 
     if (action === "fetch_rss") {
       const rssUrl = "https://sosuberlandia.com.br/feed";
