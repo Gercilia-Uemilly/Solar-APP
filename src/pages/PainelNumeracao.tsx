@@ -5,7 +5,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Hash, Loader2, RefreshCw } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Hash, Loader2, RefreshCw, Grid3X3, List } from "lucide-react";
 
 interface NumRow {
   id: string;
@@ -19,6 +22,7 @@ interface NumRow {
   usado_por_nome: string | null;
   usado_em: string | null;
   oficio_id: string | null;
+  origem_numero?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -30,8 +34,8 @@ const statusColors: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
   disponivel: "Disponível",
-  reservado: "Reservado",
-  usado: "Usado",
+  reservado: "Rascunho",
+  usado: "Protocolado",
   cancelado: "Cancelado",
 };
 
@@ -42,6 +46,12 @@ const statusEmojis: Record<string, string> = {
   cancelado: "🟥",
 };
 
+const origemLabels: Record<string, string> = {
+  sistema: "Sistema",
+  planilha: "Planilha",
+  hibrido: "Híbrido",
+};
+
 export default function PainelNumeracao() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -49,6 +59,7 @@ export default function PainelNumeracao() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<NumRow | null>(null);
   const [ano] = useState(new Date().getFullYear());
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   const fetchNumeros = useCallback(async () => {
     setLoading(true);
@@ -61,28 +72,27 @@ export default function PainelNumeracao() {
     setLoading(false);
   }, [ano]);
 
-  useEffect(() => {
-    fetchNumeros();
-  }, [fetchNumeros]);
+  useEffect(() => { fetchNumeros(); }, [fetchNumeros]);
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel("numeracao-realtime")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "oficio_numeracao" },
-        (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "oficio_numeracao" }, (payload) => {
+        if (payload.eventType === "UPDATE") {
           const updated = payload.new as unknown as NumRow;
           setNumeros(prev => prev.map(n => n.id === updated.id ? updated : n));
+        } else if (payload.eventType === "INSERT") {
+          const inserted = payload.new as unknown as NumRow;
+          setNumeros(prev => {
+            if (prev.some(n => n.id === inserted.id)) return prev;
+            return [...prev, inserted].sort((a, b) => a.numero - b.numero);
+          });
         }
-      )
+      })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Release expired reservations on mount
   useEffect(() => {
     supabase.rpc("liberar_reservas_expiradas" as any).then(() => {});
   }, []);
@@ -92,11 +102,7 @@ export default function PainelNumeracao() {
     const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
     const userName = (profile as any)?.full_name || user.user_metadata?.full_name || user.email || "";
     const { data: result } = await supabase.rpc("usar_numero", {
-      p_numero: num.numero,
-      p_ano: ano,
-      p_user_id: user.id,
-      p_user_nome: userName,
-      p_oficio_id: null as any,
+      p_numero: num.numero, p_ano: ano, p_user_id: user.id, p_user_nome: userName, p_oficio_id: null as any,
     });
     if (result) {
       toast({ title: `Número ${num.numero} marcado como usado` });
@@ -146,8 +152,22 @@ export default function PainelNumeracao() {
     cancelado: numeros.filter(n => n.status === "cancelado").length,
   };
 
-  // Find last used number for display
   const lastUsed = numeros.filter(n => n.status === "usado").sort((a, b) => b.numero - a.numero)[0];
+  const usedOrReserved = numeros.filter(n => n.status !== "disponivel");
+
+  const getStatusBadge = (status: string) => {
+    const colorMap: Record<string, string> = {
+      reservado: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30",
+      usado: "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30",
+      cancelado: "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30",
+      disponivel: "bg-muted text-muted-foreground border-border",
+    };
+    return (
+      <Badge variant="outline" className={`text-[10px] font-medium ${colorMap[status] || colorMap.disponivel}`}>
+        {statusEmojis[status]} {statusLabels[status] || status}
+      </Badge>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -155,15 +175,25 @@ export default function PainelNumeracao() {
         <div className="flex items-center gap-3">
           <Hash size={24} className="text-primary" />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Painel de Numeração — {ano}</h1>
+            <h1 className="text-2xl font-bold text-foreground">Controle de Numeração — {ano}</h1>
             <p className="text-sm text-muted-foreground">
-              {lastUsed ? `Último usado: ${lastUsed.numero}` : "Nenhum usado"} · {counts.disponivel} disponíveis
+              {lastUsed ? `Último protocolado: ${lastUsed.numero}` : "Nenhum protocolado"} · {counts.disponivel} disponíveis
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchNumeros} disabled={loading}>
-          <RefreshCw size={14} className={loading ? "animate-spin mr-1" : "mr-1"} /> Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-muted rounded-lg p-0.5">
+            <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="h-7 px-2">
+              <List size={14} />
+            </Button>
+            <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("grid")} className="h-7 px-2">
+              <Grid3X3 size={14} />
+            </Button>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchNumeros} disabled={loading}>
+            <RefreshCw size={14} className={loading ? "animate-spin mr-1" : "mr-1"} /> Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Legend */}
@@ -176,41 +206,91 @@ export default function PainelNumeracao() {
         ))}
       </div>
 
-      {/* Grid */}
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="animate-spin text-muted-foreground" size={32} />
         </div>
       ) : (
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(48px, 1fr))" }}>
-            {numeros.map(n => (
-              <Tooltip key={n.id}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setSelected(n)}
-                    className={`
-                      text-xs font-mono font-medium rounded py-1.5 px-1 text-center transition-all
-                      ${statusColors[n.status] || "bg-muted text-muted-foreground"}
-                    `}
-                  >
-                    {String(n.numero).padStart(3, "0")}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs max-w-[200px]">
-                  <p className="font-medium">{n.numero}/{ano}</p>
-                  <p>{statusLabels[n.status] || n.status}</p>
-                  {n.status === "reservado" && n.reservado_por_nome && (
-                    <p>Reservado por: {n.reservado_por_nome}</p>
+        <>
+          {viewMode === "list" ? (
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">Número</TableHead>
+                    <TableHead className="w-28">Status</TableHead>
+                    <TableHead>Operador(a)</TableHead>
+                    <TableHead className="w-40">Data/Hora</TableHead>
+                    <TableHead className="w-24">Origem</TableHead>
+                    <TableHead className="w-20">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usedOrReserved.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        Nenhum número reservado ou utilizado ainda.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    usedOrReserved.map(n => (
+                      <TableRow key={n.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelected(n)}>
+                        <TableCell className="font-mono font-bold text-foreground">{n.numero}/{n.ano}</TableCell>
+                        <TableCell>{getStatusBadge(n.status)}</TableCell>
+                        <TableCell className="text-sm text-foreground">
+                          {n.status === "usado" ? n.usado_por_nome : n.reservado_por_nome || "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {n.status === "usado" && n.usado_em
+                            ? new Date(n.usado_em).toLocaleString("pt-BR")
+                            : n.reservado_em
+                              ? new Date(n.reservado_em).toLocaleString("pt-BR")
+                              : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">
+                            {origemLabels[n.origem_numero || "sistema"] || n.origem_numero}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {n.status === "disponivel" && (
+                            <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={(e) => { e.stopPropagation(); handleMarkUsed(n); }}>
+                              Usar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
-                  {n.status === "usado" && n.usado_por_nome && (
-                    <p>Usado por: {n.usado_por_nome}</p>
-                  )}
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </div>
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="bg-card rounded-xl border border-border p-4">
+              <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(48px, 1fr))" }}>
+                {numeros.map(n => (
+                  <Tooltip key={n.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setSelected(n)}
+                        className={`text-xs font-mono font-medium rounded py-1.5 px-1 text-center transition-all ${statusColors[n.status] || "bg-muted text-muted-foreground"}`}
+                      >
+                        {String(n.numero).padStart(3, "0")}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs max-w-[200px]">
+                      <p className="font-medium">{n.numero}/{ano}</p>
+                      <p>{statusLabels[n.status] || n.status}</p>
+                      {n.origem_numero && n.origem_numero !== "sistema" && <p>Origem: {origemLabels[n.origem_numero]}</p>}
+                      {n.status === "reservado" && n.reservado_por_nome && <p>Reservado por: {n.reservado_por_nome}</p>}
+                      {n.status === "usado" && n.usado_por_nome && <p>Usado por: {n.usado_por_nome}</p>}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Detail Dialog */}
@@ -223,10 +303,14 @@ export default function PainelNumeracao() {
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <span>Status:</span>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[selected.status]}`}>
-                  {statusEmojis[selected.status]} {statusLabels[selected.status]}
-                </span>
+                {getStatusBadge(selected.status)}
               </div>
+              {selected.origem_numero && (
+                <div className="flex items-center gap-2">
+                  <span>Origem:</span>
+                  <Badge variant="outline" className="text-[10px]">{origemLabels[selected.origem_numero] || selected.origem_numero}</Badge>
+                </div>
+              )}
               {selected.reservado_por_nome && (
                 <div>
                   <p className="text-muted-foreground">Reservado por: <span className="text-foreground">{selected.reservado_por_nome}</span></p>
@@ -243,26 +327,17 @@ export default function PainelNumeracao() {
                   )}
                 </div>
               )}
-              {/* Any user can mark available numbers as used */}
               {selected.status === "disponivel" && (
                 <div className="flex gap-2 pt-2 border-t border-border">
-                  <Button variant="default" size="sm" onClick={() => handleMarkUsed(selected)}>
-                    ✅ Marcar como usado
-                  </Button>
+                  <Button variant="default" size="sm" onClick={() => handleMarkUsed(selected)}>✅ Marcar como usado</Button>
                 </div>
               )}
-              {/* User can release own numbers, admin can release any */}
-              {(selected.status === "reservado" || selected.status === "usado") && (
-                isAdmin || selected.reservado_por === user?.id || selected.usado_por === user?.id
-              ) && (
+              {(selected.status === "reservado" || selected.status === "usado") &&
+                (isAdmin || selected.reservado_por === user?.id || selected.usado_por === user?.id) && (
                 <div className="flex gap-2 pt-2 border-t border-border">
-                  <Button variant="outline" size="sm" onClick={() => handleReleaseNumber(selected)}>
-                    🔓 Liberar número
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleReleaseNumber(selected)}>🔓 Liberar número</Button>
                   {isAdmin && (
-                    <Button variant="destructive" size="sm" onClick={() => handleCancelNumber(selected)}>
-                      Cancelar
-                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleCancelNumber(selected)}>Cancelar</Button>
                   )}
                 </div>
               )}
