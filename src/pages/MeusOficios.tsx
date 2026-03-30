@@ -318,7 +318,8 @@ export default function MeusOficios() {
       deleted_by_name: profileName || user?.email || null,
     } as any).eq("id", id);
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("row-level security") ? "Você só pode excluir seus próprios ofícios." : error.message;
+      toast({ title: "Erro", description: msg, variant: "destructive" });
     } else {
       setOficios(prev => prev.filter(o => o.id !== id));
       toast({ title: "Ofício movido para a lixeira" });
