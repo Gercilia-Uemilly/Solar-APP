@@ -40,8 +40,8 @@ async function getMaxNumeroFromDocs(accessToken: string, documentId: string): Pr
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!resp.ok) {
-      console.warn(`Google Docs API error: ${resp.status}`);
-      await resp.text();
+      const errText = await resp.text();
+      console.warn(`Google Docs API error: ${resp.status} ${errText}`);
       return 0;
     }
     const doc = await resp.json();
@@ -139,12 +139,12 @@ async function appendNumeroToDoc(
 }
 
 // ── Get a valid Google access token ──────────────────────────────────
-async function getGoogleAccessToken(supabaseAdmin: any): Promise<string | null> {
+async function getGoogleAccessToken(supabaseAdmin: any, userId: string): Promise<string | null> {
   const { data: tokenData } = await supabaseAdmin
     .from("user_drive_tokens")
     .select("*")
-    .limit(1)
-    .single();
+    .eq("user_id", userId)
+    .maybeSingle();
 
   if (!tokenData) return null;
 
@@ -231,7 +231,7 @@ serve(async (req) => {
     docsEnabled = settingsMap["numeracao_doc_enabled"] !== "false"; // enabled by default if doc_id exists
 
     if (documentId && docsEnabled) {
-      accessToken = await getGoogleAccessToken(supabaseAdmin);
+      accessToken = await getGoogleAccessToken(supabaseAdmin, userId);
 
       if (accessToken) {
         try {
