@@ -9,12 +9,12 @@ import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const PIE_COLORS = [
-  "hsl(216 59% 26%)",
-  "hsl(43 52% 55%)",
+  "hsl(160 45% 28%)",
+  "hsl(200 60% 45%)",
   "hsl(152 63% 29%)",
   "hsl(0 63% 44%)",
-  "hsl(43 70% 44%)",
-  "hsl(216 40% 50%)",
+  "hsl(40 70% 50%)",
+  "hsl(220 50% 55%)",
 ];
 
 export default function Dashboard() {
