@@ -236,6 +236,36 @@ export type Database = {
         }
         Relationships: []
       }
+      notificacoes: {
+        Row: {
+          criada_em: string | null
+          id: string
+          lida: boolean | null
+          mensagem: string
+          oficio_id: string | null
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          criada_em?: string | null
+          id?: string
+          lida?: boolean | null
+          mensagem: string
+          oficio_id?: string | null
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          criada_em?: string | null
+          id?: string
+          lida?: boolean | null
+          mensagem?: string
+          oficio_id?: string | null
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       oficio_anexos: {
         Row: {
           created_at: string
@@ -339,8 +369,10 @@ export type Database = {
           local_demanda: string | null
           marcador: string | null
           numero: string | null
+          numero_protocolo: string | null
           operador_nome: string | null
           origem: string | null
+          protocolado_em: string | null
           resposta_cidadao: string | null
           secretaria_identificada: string | null
           solicitante: string | null
@@ -377,8 +409,10 @@ export type Database = {
           local_demanda?: string | null
           marcador?: string | null
           numero?: string | null
+          numero_protocolo?: string | null
           operador_nome?: string | null
           origem?: string | null
+          protocolado_em?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
@@ -415,8 +449,10 @@ export type Database = {
           local_demanda?: string | null
           marcador?: string | null
           numero?: string | null
+          numero_protocolo?: string | null
           operador_nome?: string | null
           origem?: string | null
+          protocolado_em?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
@@ -887,6 +923,7 @@ export type Database = {
     }
     Functions: {
       backup_diario_oficios: { Args: never; Returns: undefined }
+      gerar_numero_protocolo: { Args: { p_ano: number }; Returns: string }
       get_email_by_username: { Args: { _username: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_active: { Args: { _user_id: string }; Returns: boolean }

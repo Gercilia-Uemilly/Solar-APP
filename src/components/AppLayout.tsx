@@ -12,6 +12,7 @@ import AiSupportChat from "@/components/AiSupportChat";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -181,6 +182,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <ThemeToggle />
             <div className="text-right hidden sm:block">
               <p className="text-[15px] font-semibold text-foreground leading-tight font-sans">
@@ -212,10 +214,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-border px-4 py-2.5 text-center">
+        <footer className="border-t border-border px-4 py-2.5 flex items-center justify-between">
           <p className="text-2xs text-muted-foreground font-sans">
             Desenvolvido por <span className="font-semibold text-muted-foreground/80">Solar Labs</span>
           </p>
+          <span className="flex items-center gap-1.5 text-2xs text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Sincronizado
+          </span>
         </footer>
       </div>
 
