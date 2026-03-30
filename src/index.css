@@ -120,29 +120,29 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
-    font-size: 16px;
+    font-size: 17px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
   h1 {
-    @apply text-2xl font-bold tracking-tight text-foreground;
+    @apply text-3xl font-bold tracking-tight text-foreground;
     font-family: 'Merriweather', serif;
   }
 
   h2 {
-    @apply text-xl font-bold tracking-tight text-foreground;
+    @apply text-2xl font-bold tracking-tight text-foreground;
     font-family: 'Merriweather', serif;
   }
 
   h3 {
-    @apply text-lg font-semibold text-foreground;
+    @apply text-xl font-semibold text-foreground;
     font-family: 'Merriweather', serif;
   }
 
   p {
-    @apply text-[15px] leading-relaxed;
+    @apply text-base leading-relaxed;
   }
 
   h1, h2, h3, h4, h5, h6, p, span, a, button, label, div {
