@@ -40,8 +40,8 @@ async function getMaxNumeroFromDocs(accessToken: string, documentId: string): Pr
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!resp.ok) {
-      console.warn(`Google Docs API error: ${resp.status}`);
-      await resp.text();
+      const errText = await resp.text();
+      console.warn(`Google Docs API error: ${resp.status} ${errText}`);
       return 0;
     }
     const doc = await resp.json();
