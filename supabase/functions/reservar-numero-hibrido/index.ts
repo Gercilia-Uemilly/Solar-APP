@@ -211,6 +211,7 @@ serve(async (req) => {
     const body = await req.json();
     const ano: number = body.ano || new Date().getFullYear();
     const userName: string = body.user_nome || "";
+    const checkOnly: boolean = body.check_only === true;
 
     // ── Step 1: Try to get max number from Google Docs ───────────────
     let maxFromDocs = 0;
@@ -242,6 +243,20 @@ serve(async (req) => {
       } else {
         console.warn("No Google token available — using DB only");
       }
+    }
+
+    // ── Check-only mode: return sync info without reserving ──────────
+    if (checkOnly) {
+      return new Response(
+        JSON.stringify({
+          check_only: true,
+          docs_sync: !!(documentId && docsEnabled && accessToken),
+          docs_enabled: docsEnabled,
+          docs_configured: !!documentId,
+          max_from_docs: maxFromDocs,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ── Step 2: Reserve the next number using the DB function ────────
