@@ -307,6 +307,7 @@ export type Database = {
           id: string
           numero: number
           oficio_id: string | null
+          origem_numero: string
           reservado_em: string | null
           reservado_por: string | null
           reservado_por_nome: string | null
@@ -320,6 +321,7 @@ export type Database = {
           id?: string
           numero: number
           oficio_id?: string | null
+          origem_numero?: string
           reservado_em?: string | null
           reservado_por?: string | null
           reservado_por_nome?: string | null
@@ -333,6 +335,7 @@ export type Database = {
           id?: string
           numero?: number
           oficio_id?: string | null
+          origem_numero?: string
           reservado_em?: string | null
           reservado_por?: string | null
           reservado_por_nome?: string | null
@@ -933,10 +936,20 @@ export type Database = {
         Returns: boolean
       }
       liberar_reservas_expiradas: { Args: never; Returns: undefined }
-      reservar_proximo_numero: {
-        Args: { p_ano: number; p_user_id: string; p_user_nome: string }
-        Returns: number
-      }
+      reservar_proximo_numero:
+        | {
+            Args: { p_ano: number; p_user_id: string; p_user_nome: string }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_ano: number
+              p_min_numero?: number
+              p_user_id: string
+              p_user_nome: string
+            }
+            Returns: number
+          }
       resetar_numeracao_anual: { Args: never; Returns: undefined }
       usar_numero: {
         Args: {
