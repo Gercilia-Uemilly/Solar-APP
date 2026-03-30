@@ -1154,16 +1154,23 @@ export default function Oficios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício {isReservingNumber && <Loader2 size={12} className="inline animate-spin ml-1" />}</label>
-                  <div className="flex items-center gap-0">
+                  <div className="flex items-center gap-1.5">
                     <Input
                       value={numero}
-                      readOnly
-                      disabled
-                      className="bg-muted border-border font-mono font-bold text-foreground cursor-not-allowed"
-                      placeholder="Reservando..."
+                      onChange={e => setNumero(e.target.value)}
+                      className="bg-card border-border font-mono font-bold text-foreground"
+                      placeholder={isReservingNumber ? "Reservando..." : "Ex: 366/2026"}
                     />
+                    {numero && !isReservingNumber && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-[10px] text-primary whitespace-nowrap">✔ Reservado</span>
+                        </TooltipTrigger>
+                        <TooltipContent>Número preenchido automaticamente. Você pode alterá-lo se necessário.</TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Número reservado automaticamente — não pode ser alterado</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Preenchido automaticamente — editável se necessário</p>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
