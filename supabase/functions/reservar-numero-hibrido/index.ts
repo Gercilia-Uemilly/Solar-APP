@@ -231,7 +231,7 @@ serve(async (req) => {
     docsEnabled = settingsMap["numeracao_doc_enabled"] !== "false"; // enabled by default if doc_id exists
 
     if (documentId && docsEnabled) {
-      accessToken = await getGoogleAccessToken(supabaseAdmin);
+      accessToken = await getGoogleAccessToken(supabaseAdmin, userId);
 
       if (accessToken) {
         try {
