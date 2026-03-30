@@ -111,7 +111,6 @@ export default function Dashboard() {
   const quickLinks = [
     { to: "/oficios", icon: FileText, label: "Novo Ofício", desc: "Criar documento" },
     { to: "/meus-oficios", icon: FolderOpen, label: "Meus Ofícios", desc: "Gerenciar documentos" },
-    { to: "/scripts", icon: MessageSquare, label: "Scripts", desc: "Respostas prontas" },
   ];
 
   const adminLinks = [
