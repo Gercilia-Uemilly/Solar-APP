@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Clock, LogOut } from "lucide-react";
-import logoSolar from "@/assets/logo-solar.png";
+import logoFabao from "@/assets/logo-fabao-oficial.svg";
 
 export default function AguardandoAprovacao() {
   const { signOut } = useAuth();
