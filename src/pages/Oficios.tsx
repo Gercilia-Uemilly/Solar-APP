@@ -543,17 +543,19 @@ export default function Oficios() {
 
   const validateForm = () => {
     const errors: Record<string, boolean> = {};
-    if (!numero.trim()) errors.numero = true;
+    // numero is auto-reserved, no validation needed
     return errors;
   };
 
   const handleCreate = async (closeAfterSave = true) => {
-    if (!user) return;
+    if (!user || !numero) {
+      toast({ title: "Aguarde", description: "Número ainda não reservado.", variant: "destructive" });
+      return;
+    }
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setFormTab("dados");
-      toast({ title: "Campos obrigatórios", description: "Preencha o número do ofício.", variant: "destructive" });
       return;
     }
     setValidationErrors({});
