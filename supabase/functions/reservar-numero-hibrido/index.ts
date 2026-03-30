@@ -30,50 +30,91 @@ async function refreshGoogleToken(refreshToken: string): Promise<{ access_token:
   return resp.json();
 }
 
-// ── Get max number from Google Sheets ────────────────────────────────
-async function getMaxNumeroFromSheet(accessToken: string, spreadsheetId: string, sheetRange: string): Promise<number> {
+// ── Get max number from a Google Docs document ──────────────────────
+// Reads the full document body and extracts numbers from all tables
+// and paragraphs. Looks for patterns like "366", "366/2026", "Ofício 366"
+async function getMaxNumeroFromDocs(accessToken: string, documentId: string): Promise<number> {
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetRange)}`;
+    const url = `https://docs.googleapis.com/v1/documents/${documentId}`;
     const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!resp.ok) {
-      console.warn(`Sheets API error: ${resp.status}`);
+      console.warn(`Google Docs API error: ${resp.status}`);
       await resp.text();
       return 0;
     }
-    const data = await resp.json();
-    const values: string[][] = data.values || [];
+    const doc = await resp.json();
     let maxNum = 0;
-    for (const row of values) {
-      for (const cell of row) {
-        // Extract number from cells like "366", "366/2026", etc.
-        const match = String(cell).trim().match(/^(\d+)/);
-        if (match) {
-          const n = parseInt(match[1], 10);
-          if (n > maxNum) maxNum = n;
+
+    // Recursively extract text content from document elements
+    const extractText = (elements: any[]): string[] => {
+      const texts: string[] = [];
+      if (!elements) return texts;
+      for (const el of elements) {
+        // Paragraphs
+        if (el.paragraph?.elements) {
+          for (const pe of el.paragraph.elements) {
+            if (pe.textRun?.content) {
+              texts.push(pe.textRun.content);
+            }
+          }
+        }
+        // Tables — iterate rows and cells
+        if (el.table) {
+          for (const row of el.table.tableRows || []) {
+            for (const cell of row.tableCells || []) {
+              if (cell.content) {
+                texts.push(...extractText(cell.content));
+              }
+            }
+          }
+        }
+        // Sections
+        if (el.sectionBreak) continue;
+        if (el.tableOfContents?.content) {
+          texts.push(...extractText(el.tableOfContents.content));
+        }
+      }
+      return texts;
+    };
+
+    const allTexts = extractText(doc.body?.content || []);
+
+    // Extract numbers from all text fragments
+    for (const text of allTexts) {
+      // Match patterns: "366", "366/2026", "Ofício 366", "nº 366", "#366"
+      const matches = text.matchAll(/(?:^|[^\d])(\d{1,4})(?:\/\d{4})?(?:$|[^\d])/g);
+      for (const match of matches) {
+        const n = parseInt(match[1], 10);
+        // Only consider reasonable ofício numbers (1-9999)
+        if (n > 0 && n < 10000 && n > maxNum) {
+          maxNum = n;
         }
       }
     }
+
+    console.log(`Google Docs max number found: ${maxNum}`);
     return maxNum;
   } catch (e) {
-    console.warn("Error reading Google Sheets:", e);
+    console.warn("Error reading Google Docs:", e);
     return 0;
   }
 }
 
-// ── Optionally write the new number back to the sheet ────────────────
-async function appendNumeroToSheet(
+// ── Optionally append the new number to the Google Doc ───────────────
+async function appendNumeroToDoc(
   accessToken: string,
-  spreadsheetId: string,
-  sheetName: string,
+  documentId: string,
   numero: number,
   ano: number,
   userName: string
 ): Promise<void> {
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
     const now = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    const textToAppend = `\n${numero}/${ano} — ${userName} — ${now} — Sistema Solar`;
+
+    const url = `https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`;
     await fetch(url, {
       method: "POST",
       headers: {
@@ -81,12 +122,55 @@ async function appendNumeroToSheet(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        values: [[numero, `${numero}/${ano}`, userName, now, "Sistema Solar"]],
+        requests: [
+          {
+            insertText: {
+              // endOfSegmentLocation inserts at the end of the body
+              endOfSegmentLocation: {},
+              text: textToAppend,
+            },
+          },
+        ],
       }),
     });
   } catch (e) {
-    console.warn("Error appending to Google Sheets (non-fatal):", e);
+    console.warn("Error appending to Google Docs (non-fatal):", e);
   }
+}
+
+// ── Get a valid Google access token ──────────────────────────────────
+async function getGoogleAccessToken(supabaseAdmin: any): Promise<string | null> {
+  const { data: tokenData } = await supabaseAdmin
+    .from("user_drive_tokens")
+    .select("*")
+    .limit(1)
+    .single();
+
+  if (!tokenData) return null;
+
+  let accessToken = tokenData.access_token;
+  const tokenExpiry = new Date(tokenData.token_expiry);
+
+  if (tokenExpiry.getTime() - Date.now() < 5 * 60 * 1000) {
+    try {
+      const refreshed = await refreshGoogleToken(tokenData.refresh_token);
+      accessToken = refreshed.access_token;
+      const newExpiry = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+      await supabaseAdmin
+        .from("user_drive_tokens")
+        .update({ access_token: accessToken, token_expiry: newExpiry, updated_at: new Date().toISOString() })
+        .eq("id", tokenData.id);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (/invalid_grant|expired or revoked/i.test(message)) {
+        await supabaseAdmin.from("user_drive_tokens").delete().eq("id", tokenData.id);
+        return null;
+      }
+      throw e;
+    }
+  }
+
+  return accessToken;
 }
 
 serve(async (req) => {
@@ -128,61 +212,44 @@ serve(async (req) => {
     const ano: number = body.ano || new Date().getFullYear();
     const userName: string = body.user_nome || "";
 
-    // ── Step 1: Try to get max number from Google Sheets ─────────────
-    let maxFromSheet = 0;
+    // ── Step 1: Try to get max number from Google Docs ───────────────
+    let maxFromDocs = 0;
     let accessToken: string | null = null;
+    let docsEnabled = false;
 
-    // Get app settings for spreadsheet config
+    // Get app settings for Google Docs config
     const { data: settings } = await supabaseAdmin
       .from("app_settings")
       .select("key, value")
-      .in("key", ["numeracao_spreadsheet_id", "numeracao_sheet_range", "numeracao_sheet_name"]);
+      .in("key", ["numeracao_doc_id", "numeracao_doc_enabled"]);
 
     const settingsMap: Record<string, string> = {};
     (settings || []).forEach((s: any) => { settingsMap[s.key] = s.value; });
 
-    const spreadsheetId = settingsMap["numeracao_spreadsheet_id"];
-    const sheetRange = settingsMap["numeracao_sheet_range"] || "Página1!A:A";
-    const sheetName = settingsMap["numeracao_sheet_name"] || "Página1";
+    const documentId = settingsMap["numeracao_doc_id"];
+    docsEnabled = settingsMap["numeracao_doc_enabled"] !== "false"; // enabled by default if doc_id exists
 
-    if (spreadsheetId) {
-      // Try to get a Google token from any user with drive connected
-      const { data: tokenData } = await supabaseAdmin
-        .from("user_drive_tokens")
-        .select("*")
-        .limit(1)
-        .single();
+    if (documentId && docsEnabled) {
+      accessToken = await getGoogleAccessToken(supabaseAdmin);
 
-      if (tokenData) {
+      if (accessToken) {
         try {
-          accessToken = tokenData.access_token;
-          const tokenExpiry = new Date(tokenData.token_expiry);
-
-          if (tokenExpiry.getTime() - Date.now() < 5 * 60 * 1000) {
-            const refreshed = await refreshGoogleToken(tokenData.refresh_token);
-            accessToken = refreshed.access_token;
-            const newExpiry = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
-            await supabaseAdmin
-              .from("user_drive_tokens")
-              .update({ access_token: accessToken, token_expiry: newExpiry, updated_at: new Date().toISOString() })
-              .eq("id", tokenData.id);
-          }
-
-          maxFromSheet = await getMaxNumeroFromSheet(accessToken, spreadsheetId, sheetRange);
-          console.log(`Max number from Google Sheets: ${maxFromSheet}`);
+          maxFromDocs = await getMaxNumeroFromDocs(accessToken, documentId);
+          console.log(`Max number from Google Docs: ${maxFromDocs}`);
         } catch (e) {
-          console.warn("Google Sheets access failed (continuing with DB only):", e);
+          console.warn("Google Docs access failed (continuing with DB only):", e);
         }
+      } else {
+        console.warn("No Google token available — using DB only");
       }
     }
 
     // ── Step 2: Reserve the next number using the DB function ────────
-    // Pass maxFromSheet so the DB can fill in any gaps
     const { data: reservedNum, error: rpcError } = await supabaseAdmin.rpc("reservar_proximo_numero", {
       p_ano: ano,
       p_user_id: userId,
       p_user_nome: userName,
-      p_min_numero: maxFromSheet,
+      p_min_numero: maxFromDocs,
     });
 
     if (rpcError || !reservedNum) {
@@ -192,17 +259,21 @@ serve(async (req) => {
       );
     }
 
-    // ── Step 3: Optionally write back to sheet ──────────────────────
-    if (spreadsheetId && accessToken) {
-      await appendNumeroToSheet(accessToken, spreadsheetId, sheetName, reservedNum, ano, userName);
+    // ── Step 3: Optionally write back to Google Doc ──────────────────
+    if (documentId && docsEnabled && accessToken) {
+      await appendNumeroToDoc(accessToken, documentId, reservedNum, ano, userName);
     }
+
+    const origem = documentId && docsEnabled ? "docs" : "sistema";
 
     return new Response(
       JSON.stringify({
         numero: reservedNum,
         ano,
         numero_completo: `${reservedNum}/${ano}`,
-        origem: spreadsheetId ? "hibrido" : "sistema",
+        origem,
+        docs_sync: !!(documentId && docsEnabled && accessToken),
+        max_from_docs: maxFromDocs,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
