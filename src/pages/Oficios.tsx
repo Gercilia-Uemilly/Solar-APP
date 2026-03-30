@@ -1119,13 +1119,11 @@ export default function Oficios() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-foreground">Ofícios</h1>
         <Button
-          onClick={() => {
-            resetForm();
-            setShowDialog(true);
-          }}
+          onClick={handleNovoOficio}
+          disabled={isReservingNumber}
           className="gap-1.5"
         >
-          <Plus size={16} /> Novo Ofício
+          {isReservingNumber ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Novo Ofício
         </Button>
       </div>
 
