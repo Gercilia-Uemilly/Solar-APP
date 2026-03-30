@@ -194,7 +194,8 @@ export default function MeusOficios() {
     const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
     if (error) {
       setSaveStatus("error");
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
+      toast({ title: "Erro ao salvar", description: msg, variant: "destructive" });
     } else {
       setSaveStatus("saved");
       setViewOficio(prev => prev ? { ...prev, ...fields } : prev);
