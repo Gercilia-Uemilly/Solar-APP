@@ -256,7 +256,7 @@ export default function PainelNumeracao() {
                               : "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge variant="outline" className={`text-[10px] ${origemColors[n.origem_numero || "sistema"] || origemColors.sistema}`}>
                             {origemLabels[n.origem_numero || "sistema"] || n.origem_numero}
                           </Badge>
                         </TableCell>
