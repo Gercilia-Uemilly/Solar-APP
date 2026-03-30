@@ -161,7 +161,7 @@ export default function Dashboard() {
             transition={{ duration: 0.25, delay: i * 0.06 }}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide font-sans">{card.label}</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide font-sans">{card.label}</p>
               <card.icon size={16} className="text-primary/50" />
             </div>
             <p className="text-5xl font-bold text-primary mt-3 font-mono">{card.value}</p>

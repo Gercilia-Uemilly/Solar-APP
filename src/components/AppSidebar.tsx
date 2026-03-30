@@ -95,7 +95,7 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
 
   return (
     <motion.aside
-      className="fixed left-0 top-0 bottom-0 z-50 flex flex-col border-r-[3px] border-secondary"
+      className="fixed left-0 top-0 bottom-0 z-50 flex flex-col border-r border-white/10"
       style={{ background: "hsl(var(--sidebar-background))" }}
       animate={{ width: collapsed ? 56 : 240 }}
       transition={{ duration: 0.15, ease: "easeInOut" }}

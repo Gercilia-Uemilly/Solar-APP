@@ -183,7 +183,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <div className="text-right hidden sm:block">
-              <p className="text-[14px] font-semibold text-foreground leading-tight font-sans">
+              <p className="text-[15px] font-semibold text-foreground leading-tight font-sans">
                 {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário"}
               </p>
               <p className="text-2xs text-muted-foreground leading-tight font-sans">
