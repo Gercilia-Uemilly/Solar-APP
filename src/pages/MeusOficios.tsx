@@ -290,7 +290,8 @@ export default function MeusOficios() {
     await saveBackupBeforeEdit(oficioId);
     const { error } = await supabase.from("oficios").update({ status: newStatus }).eq("id", oficioId);
     if (error) {
-      toast({ title: "Erro ao alterar status", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
+      toast({ title: "Erro ao alterar status", description: msg, variant: "destructive" });
     } else {
       setOficios(prev => prev.map(o => o.id === oficioId ? { ...o, status: newStatus } : o));
       toast({ title: `Status alterado para "${newStatus}"` });
