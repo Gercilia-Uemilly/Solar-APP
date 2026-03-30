@@ -111,11 +111,11 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
             exit={{ opacity: 0 }}
             transition={{ delay: 0.05, duration: 0.15 }}
           >
-            <div className="font-serif text-[13px] font-bold text-white leading-tight">
-              Gabinete Vereador Fabão
+            <div className="font-serif text-[15px] font-bold text-white leading-tight">
+              Solar
             </div>
-            <div className="text-[10px] text-secondary uppercase tracking-[1.5px] leading-tight mt-0.5">
-              Câmara Municipal
+            <div className="text-[10px] text-white/50 uppercase tracking-[1.5px] leading-tight mt-0.5">
+              Sistema de Ofícios Legislativos
             </div>
           </motion.div>
         )}
