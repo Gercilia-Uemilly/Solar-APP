@@ -139,12 +139,12 @@ async function appendNumeroToDoc(
 }
 
 // ── Get a valid Google access token ──────────────────────────────────
-async function getGoogleAccessToken(supabaseAdmin: any): Promise<string | null> {
+async function getGoogleAccessToken(supabaseAdmin: any, userId: string): Promise<string | null> {
   const { data: tokenData } = await supabaseAdmin
     .from("user_drive_tokens")
     .select("*")
-    .limit(1)
-    .single();
+    .eq("user_id", userId)
+    .maybeSingle();
 
   if (!tokenData) return null;
 
