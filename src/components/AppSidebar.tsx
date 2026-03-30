@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import logoFabao from "@/assets/logo-fabao-oficial.svg";
+import { useEffect, useState } from "react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
