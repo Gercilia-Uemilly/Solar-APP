@@ -249,7 +249,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         ) : isHtml ? (
           <div
             style={{ textAlign: "justify", fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing) }}
-            dangerouslySetInnerHTML={{ __html: conteudo }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(conteudo) }}
           />
         ) : (
           <div style={{ textAlign: "justify" }}>
