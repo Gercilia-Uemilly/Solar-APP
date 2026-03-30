@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import DOMPurify from "dompurify";
 import { Plus, Search, LayoutGrid, List, Sparkles, Loader2, Eye, Trash2, Edit, ChevronDown } from "lucide-react";
 import { store } from "@/lib/store";
 import { Demanda, DemandaTipo, DemandaStatus, DemandaOrigem, DemandaAnexo } from "@/types";
@@ -417,7 +418,7 @@ export default function Demandas() {
                 </div>
 
                 {viewingDemanda.conteudo_html && (
-                  <div className="prose prose-sm max-w-none text-foreground bg-secondary rounded-lg p-4" dangerouslySetInnerHTML={{ __html: viewingDemanda.conteudo_html }} />
+                  <div className="prose prose-sm max-w-none text-foreground bg-secondary rounded-lg p-4" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewingDemanda.conteudo_html) }} />
                 )}
 
                 {viewingDemanda.anexos && viewingDemanda.anexos.length > 0 && (

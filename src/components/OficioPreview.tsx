@@ -1,4 +1,5 @@
 import { forwardRef, useMemo, useRef, useState, useEffect, useCallback } from "react";
+import DOMPurify from "dompurify";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -248,13 +249,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         ) : isHtml ? (
           <div
             style={{ textAlign: "justify", fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing) }}
-            dangerouslySetInnerHTML={{ __html: conteudo }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(conteudo) }}
           />
         ) : (
           <div style={{ textAlign: "justify" }}>
             {paragraphs.map((p, i) => (
               <p key={i} style={{ textIndent: "1.25cm", marginBottom: "0", marginTop: "0", fontSize: "11pt", lineHeight: "1.5" }}
-                dangerouslySetInnerHTML={{ __html: p }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(p) }}
               />
             ))}
           </div>
