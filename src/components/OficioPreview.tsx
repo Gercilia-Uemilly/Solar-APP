@@ -1,4 +1,5 @@
 import { forwardRef, useMemo, useRef, useState, useEffect, useCallback } from "react";
+import DOMPurify from "dompurify";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
