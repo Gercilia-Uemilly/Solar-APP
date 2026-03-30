@@ -117,6 +117,7 @@ function TwoFactorSection() {
 
 import ThemeToggle from "@/components/ThemeToggle";
 import UserAvatar from "@/components/UserAvatar";
+import PreferenciasPanel from "@/components/PreferenciasPanel";
 
 export default function Configuracoes() {
   const { user, isAdmin } = useAuth();
