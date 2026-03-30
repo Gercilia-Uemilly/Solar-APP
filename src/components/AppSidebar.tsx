@@ -154,10 +154,10 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
                     state={(item as any).action === "openNew" ? { openNew: true, ts: Date.now() } : undefined}
                     onClick={handleClick}
                     title={collapsed ? item.label : undefined}
-                    className={`flex items-center gap-2.5 px-3 py-[9px] text-[14px] transition-all duration-200 border-l-[3px] ${
+                    className={`flex items-center gap-2.5 px-3 py-[10px] text-[15px] transition-all duration-200 border-l-[3px] rounded-r-md ${
                       isActive
-                        ? "bg-secondary/15 text-white border-l-secondary font-semibold"
-                        : "text-white/75 hover:bg-white/8 hover:text-white border-l-transparent hover:border-l-secondary/50"
+                        ? "bg-white/12 text-white border-l-white font-semibold"
+                        : "text-white/70 hover:bg-white/8 hover:text-white border-l-transparent hover:border-l-white/40"
                     }`}
                   >
                     <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className="flex-shrink-0" />
