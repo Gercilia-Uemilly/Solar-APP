@@ -214,10 +214,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-border px-4 py-2.5 text-center">
+        <footer className="border-t border-border px-4 py-2.5 flex items-center justify-between">
           <p className="text-2xs text-muted-foreground font-sans">
             Desenvolvido por <span className="font-semibold text-muted-foreground/80">Solar Labs</span>
           </p>
+          <span className="flex items-center gap-1.5 text-2xs text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Sincronizado
+          </span>
         </footer>
       </div>
 
