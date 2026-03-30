@@ -137,7 +137,7 @@
   }
 
   h3 {
-    @apply text-lg font-semibold text-foreground;
+    @apply text-xl font-semibold text-foreground;
     font-family: 'Merriweather', serif;
   }
 
