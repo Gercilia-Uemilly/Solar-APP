@@ -9,12 +9,12 @@ import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const PIE_COLORS = [
-  "hsl(216 59% 26%)",
-  "hsl(43 52% 55%)",
+  "hsl(160 45% 28%)",
+  "hsl(200 60% 45%)",
   "hsl(152 63% 29%)",
   "hsl(0 63% 44%)",
-  "hsl(43 70% 44%)",
-  "hsl(216 40% 50%)",
+  "hsl(40 70% 50%)",
+  "hsl(220 50% 55%)",
 ];
 
 export default function Dashboard() {
@@ -128,11 +128,11 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <p className="text-[13px] text-muted-foreground font-sans">{dataFormatada}</p>
-        <h1 className="text-xl font-bold text-foreground mt-1 font-serif">
+        <p className="text-sm text-muted-foreground font-sans">{dataFormatada}</p>
+        <h1 className="text-2xl font-bold text-foreground mt-1 font-serif">
           Bem-vindo, {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operador"}
         </h1>
-        <p className="text-[13px] text-muted-foreground font-sans mt-0.5">
+        <p className="text-sm text-muted-foreground font-sans mt-0.5">
           Gabinete Vereador Fabão · Câmara Municipal de Uberlândia
         </p>
         {onlineUsers.length > 0 && (
@@ -161,10 +161,10 @@ export default function Dashboard() {
             transition={{ duration: 0.25, delay: i * 0.06 }}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide font-sans">{card.label}</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide font-sans">{card.label}</p>
               <card.icon size={16} className="text-primary/50" />
             </div>
-            <p className="text-4xl font-semibold text-primary mt-2 font-mono">{card.value}</p>
+            <p className="text-5xl font-bold text-primary mt-3 font-mono">{card.value}</p>
           </motion.div>
         ))}
       </div>
@@ -219,7 +219,7 @@ export default function Dashboard() {
                   contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(222 20% 90%)", borderRadius: 6, fontSize: 12 }}
                   labelStyle={{ color: "hsl(240 20% 13%)" }}
                 />
-                <Bar dataKey="value" fill="hsl(43 52% 55%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="hsl(160 45% 35%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
