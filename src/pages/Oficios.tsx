@@ -1056,9 +1056,7 @@ export default function Oficios() {
   useEffect(() => {
     const state = location.state as any;
     if (state?.openNew) {
-      resetForm();
-      setShowDialog(true);
-      // Clear the state so it doesn't re-trigger
+      handleNovoOficio();
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
