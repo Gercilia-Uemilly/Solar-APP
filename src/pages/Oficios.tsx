@@ -1152,7 +1152,7 @@ export default function Oficios() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Geração</label>
-                  <Input type="date" value={dataGeracao} onChange={e => setDataGeracao(e.target.value)} className="bg-secondary border-border" />
+                  <Input type="date" value={dataGeracao} onChange={e => setDataGeracao(e.target.value)} className="bg-card border-border" />
                 </div>
               </div>
 
@@ -1160,7 +1160,7 @@ export default function Oficios() {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Origem da Demanda</label>
                   <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap") setCodigoZ(""); }}>
-                    <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Requerimento">Requerimento</SelectItem>
                       <SelectItem value="Zap">Zap</SelectItem>
@@ -1194,7 +1194,7 @@ export default function Oficios() {
               <div>
                 <label className="text-xs font-medium text-primary mb-1 block">Secretaria <span className="text-primary/70">(preenche destinatário automaticamente)</span></label>
                 <Select value={secretaria} onValueChange={setSecretaria}>
-                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione a secretaria..." /></SelectTrigger>
+                  <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Selecione a secretaria..." /></SelectTrigger>
                   <SelectContent>
                     {LISTA_SECRETARIAS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
@@ -1203,18 +1203,18 @@ export default function Oficios() {
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Assunto *</label>
-                <Input placeholder="Assunto do ofício" value={assunto} onChange={e => setAssunto(e.target.value)} className="bg-secondary border-border" />
+                <Input placeholder="Assunto do ofício" value={assunto} onChange={e => setAssunto(e.target.value)} className="bg-card border-border" />
               </div>
 
               {secretaria === "Outro (campo livre)" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Destinatário <span className="text-destructive">*</span></label>
-                    <Input placeholder="Nome do destinatário" value={destinatario} onChange={e => setDestinatario(e.target.value)} className="bg-secondary border-border" />
+                    <Input placeholder="Nome do destinatário" value={destinatario} onChange={e => setDestinatario(e.target.value)} className="bg-card border-border" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Cargo do Destinatário <span className="text-destructive">*</span></label>
-                    <Input placeholder="Ex: Ilmo(a). Sr(a)..." value={cargoDestinatario} onChange={e => setCargoDestinatario(e.target.value)} className="bg-secondary border-border" />
+                    <Input placeholder="Ex: Ilmo(a). Sr(a)..." value={cargoDestinatario} onChange={e => setCargoDestinatario(e.target.value)} className="bg-card border-border" />
                   </div>
                 </div>
               )}
@@ -1222,22 +1222,22 @@ export default function Oficios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Bairro</label>
-                  <Input placeholder="Ex: Luizote de Freitas" value={bairro} onChange={e => setBairro(e.target.value)} className="bg-secondary border-border" />
+                  <Input placeholder="Ex: Luizote de Freitas" value={bairro} onChange={e => setBairro(e.target.value)} className="bg-card border-border" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Endereço Completo</label>
-                  <Input placeholder="Ex: Rua das Flores, 123" value={enderecoCompleto} onChange={e => setEnderecoCompleto(e.target.value)} className="bg-secondary border-border" />
+                  <Input placeholder="Ex: Rua das Flores, 123" value={enderecoCompleto} onChange={e => setEnderecoCompleto(e.target.value)} className="bg-card border-border" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Solicitante</label>
-                  <Input placeholder="Nome do solicitante" value={solicitante} onChange={e => setSolicitante(e.target.value)} className="bg-secondary border-border" />
+                  <Input placeholder="Nome do solicitante" value={solicitante} onChange={e => setSolicitante(e.target.value)} className="bg-card border-border" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">WhatsApp do Solicitante</label>
-                  <Input placeholder="(34) 99999-9999" value={contatoSolicitante} onChange={e => setContatoSolicitante(e.target.value)} className="bg-secondary border-border" />
+                  <Input placeholder="(34) 99999-9999" value={contatoSolicitante} onChange={e => setContatoSolicitante(e.target.value)} className="bg-card border-border" />
                 </div>
               </div>
 
@@ -1247,7 +1247,7 @@ export default function Oficios() {
                   placeholder="Descreva a demanda ou cole a conversa com o solicitante... Ex: 'Moradores da Rua Oscar Alvim, Bairro Fundinho, reclamam de buracos' ou cole um trecho da conversa do WhatsApp"
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
-                  className="bg-secondary border-border min-h-[120px]"
+                  className="bg-card border-border min-h-[120px]"
                 />
                 <p className="text-[10px] text-muted-foreground mt-0.5">💡 Aceita descrições curtas, detalhadas ou conversas coladas do WhatsApp — a IA interpreta e gera o ofício completo.</p>
               </div>
@@ -1381,7 +1381,7 @@ export default function Oficios() {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1"><Phone size={12} /> Linha Telefônica utilizada</label>
                   <Select value={linhaTelefonica} onValueChange={setLinhaTelefonica}>
-                    <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Selecione a linha..." /></SelectTrigger>
+                    <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Selecione a linha..." /></SelectTrigger>
                     <SelectContent>
                       {userPhones.map((phone, i) => <SelectItem key={i} value={phone}>Linha {i + 1}: {phone}</SelectItem>)}
                     </SelectContent>
@@ -1392,7 +1392,7 @@ export default function Oficios() {
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Prioridade</label>
                 <Select value={prioridade} onValueChange={setPrioridade}>
-                  <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Normal">Normal</SelectItem>
                     <SelectItem value="Urgente">Urgente</SelectItem>
@@ -1418,7 +1418,7 @@ export default function Oficios() {
                     value={descricaoAnexos}
                     onChange={(e) => setDescricaoAnexos(e.target.value)}
                     placeholder="Ex: cópias de BOs e abaixo-assinado dos moradores"
-                    className="bg-secondary border-border"
+                    className="bg-card border-border"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     ℹ️ Estes arquivos serão incluídos automaticamente no PDF e Drive ao exportar.
