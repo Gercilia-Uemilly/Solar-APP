@@ -164,7 +164,7 @@ export default function Dashboard() {
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide font-sans">{card.label}</p>
               <card.icon size={16} className="text-primary/50" />
             </div>
-            <p className="text-4xl font-semibold text-primary mt-2 font-mono">{card.value}</p>
+            <p className="text-5xl font-bold text-primary mt-3 font-mono">{card.value}</p>
           </motion.div>
         ))}
       </div>
