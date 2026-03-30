@@ -128,11 +128,11 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <p className="text-[13px] text-muted-foreground font-sans">{dataFormatada}</p>
-        <h1 className="text-xl font-bold text-foreground mt-1 font-serif">
+        <p className="text-sm text-muted-foreground font-sans">{dataFormatada}</p>
+        <h1 className="text-2xl font-bold text-foreground mt-1 font-serif">
           Bem-vindo, {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operador"}
         </h1>
-        <p className="text-[13px] text-muted-foreground font-sans mt-0.5">
+        <p className="text-sm text-muted-foreground font-sans mt-0.5">
           Gabinete Vereador Fabão · Câmara Municipal de Uberlândia
         </p>
         {onlineUsers.length > 0 && (
