@@ -468,11 +468,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Auto-adjust font size and line spacing based on content length (half-points)
   const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
   const calcularFonteEspacamento = (chars: number) => {
-    if (chars < 400) return { size: 26, line: 480 };  // 13pt equivalent in half-points
-    if (chars < 600) return { size: 24, line: 440 };  // 12pt
-    if (chars < 900) return { size: 23, line: 400 };  // 11.5pt
-    if (chars < 1200) return { size: 22, line: 360 }; // 11pt
-    if (chars < 1800) return { size: 21, line: 340 }; // 10.5pt
+    if (chars < 400) return { size: 24, line: 480 };  // 12pt equivalent in half-points
+    if (chars < 600) return { size: 22, line: 440 };  // 11pt
+    if (chars < 900) return { size: 21, line: 400 };  // 10.5pt
+    if (chars < 1200) return { size: 20, line: 360 }; // 10pt
+    if (chars < 1800) return { size: 20, line: 340 }; // 10pt
     return { size: 20, line: 320 };                    // 10pt — long text, 2+ pages
   };
   const autoCalc = calcularFonteEspacamento(contentLength);
