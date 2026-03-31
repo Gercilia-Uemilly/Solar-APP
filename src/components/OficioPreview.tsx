@@ -75,11 +75,11 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
     const autoCalc = useMemo(() => {
-      if (contentLength < 400) return { fontSize: 13, lineSpacing: 2.0 };
-      if (contentLength < 600) return { fontSize: 12, lineSpacing: 1.83 };
-      if (contentLength < 900) return { fontSize: 11.5, lineSpacing: 1.67 };
-      if (contentLength < 1200) return { fontSize: 11, lineSpacing: 1.5 };
-      if (contentLength < 1800) return { fontSize: 10.5, lineSpacing: 1.42 };
+      if (contentLength < 400) return { fontSize: 12, lineSpacing: 2.0 };
+      if (contentLength < 600) return { fontSize: 11, lineSpacing: 1.83 };
+      if (contentLength < 900) return { fontSize: 10.5, lineSpacing: 1.67 };
+      if (contentLength < 1200) return { fontSize: 10, lineSpacing: 1.5 };
+      if (contentLength < 1800) return { fontSize: 10, lineSpacing: 1.42 };
       return { fontSize: 10, lineSpacing: 1.33 };
     }, [contentLength]);
 
