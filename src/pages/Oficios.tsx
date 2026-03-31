@@ -459,8 +459,11 @@ export default function Oficios() {
       setHistoryIndex(0);
       setEditedResposta(data.resposta_cidadao || "");
       if (data.assunto_sugerido) setAssunto(data.assunto_sugerido);
-      if (data.secretaria_identificada && !destinatario) setDestinatario(data.secretaria_identificada);
-      if (data.secretaria_identificada && !secretaria) setSecretaria(data.secretaria_identificada);
+      if (data.secretaria_identificada) {
+        setSecretaria(data.secretaria_identificada);
+        setDestinatario(getDestinatario(data.secretaria_identificada));
+        setCargoDestinatario(getDestinatario(data.secretaria_identificada));
+      }
       setFormTab("preview");
       toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
     } catch (e: any) {
@@ -1466,7 +1469,6 @@ export default function Oficios() {
                 <Button variant="outline" onClick={async () => {
                   // Save description directly as template content (no AI)
                   if (descricao.trim() && !editedOficio) {
-                    const vocativo = getVocativo(secretaria || "");
                     const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
                     const artigo = nomeOrgao.startsWith("Departamento") || nomeOrgao.startsWith("Instituto") ? "o" : "a";
                     const template = `<p>${descricao.split("\n").filter(l => l.trim()).join("</p><p>")}</p><p>Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;

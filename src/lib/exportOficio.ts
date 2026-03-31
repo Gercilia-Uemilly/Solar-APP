@@ -15,7 +15,7 @@ import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi
 const ASSINATURA_ALTURA = 113;  // ~3cm proportional
 
-import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, buildVocativo, extrairBairro } from "@/lib/oficioUtils";
+import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, getDestinatario, getVocativo, extrairBairro } from "@/lib/oficioUtils";
 export { generateOperatorCode };
 
 function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string, origem?: string): string {
@@ -452,7 +452,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
     : "___";
 
-  const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` ${destinatario}` : ""}`;
+  const destinatarioCompleto = cargoDestinatario || (data.secretaria ? getDestinatario(data.secretaria) : destinatario || "___");
   const bairroExtraido = bairro ? (extrairBairro(bairro) || bairro) : "";
   const bairroFormatado = bairroExtraido
     ? (bairroExtraido.toLowerCase().startsWith("bairro") || bairroExtraido.toLowerCase().includes("bairro ") ? bairroExtraido : `Bairro ${bairroExtraido}`)
@@ -461,7 +461,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Use assunto exactly as provided — bairro is already included by the AI or user
   const assuntoFormatado = assunto || "___";
 
-  const vocativo = buildVocativo(cargoDestinatario);
+  const vocativo = data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
 
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
