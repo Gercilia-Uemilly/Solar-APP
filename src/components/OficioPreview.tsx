@@ -437,26 +437,31 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           return (
             <div key={`img-page-${chunkIdx}`} style={{ position: "relative" }}>
               <div style={{
-                borderTop: "2px dashed #aaa",
-                margin: "0 0 8px 0",
-                textAlign: "center",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                margin: "8px 0 24px",
+                color: "#bbb",
                 fontSize: "11px",
-                color: "#aaa",
-                paddingTop: "4px",
+                fontFamily: "sans-serif",
               }}>
-                ── Página {pageNum} (Anexos) ──
+                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
+                ✂ Página {pageNum} — Anexos
+                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
               </div>
-              <div style={{
-                width: `${PAGE_W_PX}px`,
-                height: `${PAGE_H_PX}px`,
-                background: "#fff",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
-                borderRadius: "4px",
-                position: "relative",
-                overflow: "hidden",
-                flexShrink: 0,
-                boxSizing: "border-box",
-              }}>
+              <div
+                className="preview-pagina-a4"
+                style={{
+                  width: `${PAGE_W_PX}px`,
+                  height: `${PAGE_H_PX}px`,
+                  background: "#fff",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  boxSizing: "border-box",
+                }}
+              >
                 <div style={{
                   position: "absolute",
                   top: "40px",
