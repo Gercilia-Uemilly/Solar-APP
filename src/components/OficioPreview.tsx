@@ -123,12 +123,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return paras.map(p => `<p>${p}</p>`).join("");
     };
 
-    // Image chunks (groups of 4) — each chunk = 1 dedicated page in the export
+    // Image chunks — group by page capacity based on count
     const imageChunks = useMemo(() => {
       if (!anexoImageUrls || anexoImageUrls.length === 0) return [];
+      // For <= 6 images, fit them all on one page
+      if (anexoImageUrls.length <= 6) return [anexoImageUrls];
+      // For 7+, group in pages of up to 8 (4 per row, 2 rows)
       const chunks: string[][] = [];
-      for (let i = 0; i < anexoImageUrls.length; i += 4) {
-        chunks.push(anexoImageUrls.slice(i, i + 4));
+      for (let i = 0; i < anexoImageUrls.length; i += 8) {
+        chunks.push(anexoImageUrls.slice(i, i + 8));
       }
       return chunks;
     }, [anexoImageUrls]);
