@@ -1479,7 +1479,7 @@ export default function Oficios() {
                   await handleCreate(false);
                   setFormTab("preview");
                 }} className="border-border">
-                  <Save size={14} className="mr-1" /> Salvar Descrição
+                  <Save size={14} className="mr-1" /> Salvar
                 </Button>
                 <Button variant="outline" onClick={() => { carregarModelos(); setMostrarModelos(true); }} className="border-border">
                   <BookOpen size={14} className="mr-1" /> Usar Modelo

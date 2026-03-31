@@ -105,7 +105,7 @@ export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
     vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a) Presidente,'
   },
   'DMAE': {
-    destinatario: 'Ilmo(a). Sr(a). Diretor(a) Geral do Departamento Municipal de Água e Esgoto (DMAE)',
+    destinatario: 'Sr(a). Diretor(a) Geral do Departamento Municipal de Água e Esgoto (DMAE)',
     vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,'
   },
   'FUTEL': {
