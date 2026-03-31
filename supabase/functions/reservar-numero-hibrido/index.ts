@@ -212,6 +212,8 @@ serve(async (req) => {
     const ano: number = body.ano || new Date().getFullYear();
     const userName: string = body.user_nome || "";
     const checkOnly: boolean = body.check_only === true;
+    const markUsed: boolean = body.mark_used === true;
+    const usedNumero: number = body.used_numero || 0;
 
     // ── Step 1: Try to get max number from Google Docs ───────────────
     let maxFromDocs = 0;
@@ -255,6 +257,17 @@ serve(async (req) => {
           docs_configured: !!documentId,
           max_from_docs: maxFromDocs,
         }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Mark-used mode: just append the used number to Google Doc ───
+    if (markUsed && usedNumero > 0) {
+      if (documentId && docsEnabled && accessToken) {
+        await appendNumeroToDoc(accessToken, documentId, usedNumero, ano, userName);
+      }
+      return new Response(
+        JSON.stringify({ ok: true, numero: usedNumero, appended_to_docs: !!(documentId && docsEnabled && accessToken) }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

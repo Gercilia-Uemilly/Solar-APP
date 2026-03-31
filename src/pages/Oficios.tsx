@@ -606,19 +606,24 @@ export default function Oficios() {
       return;
     }
 
-    // Auto-mark number as "usado" in numeração table
+    // Auto-mark number as "usado" in numeração table + update Google Docs/planilha
     if (fullNumero && oficioId) {
       const numMatch = fullNumero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().match(/^(\d+)/);
       if (numMatch) {
         const numInt = parseInt(numMatch[1], 10);
         const ano = new Date().getFullYear();
+        const userName = profileName || user.user_metadata?.full_name || user.email || "";
         await supabase.rpc("usar_numero", {
           p_numero: numInt,
           p_ano: ano,
           p_user_id: user.id,
-          p_user_nome: profileName || user.user_metadata?.full_name || user.email || "",
+          p_user_nome: userName,
           p_oficio_id: oficioId,
         });
+        // Also update Google Docs/planilha with the used number
+        supabase.functions.invoke("reservar-numero-hibrido", {
+          body: { ano, user_nome: userName, mark_used: true, used_numero: numInt },
+        }).catch(() => {});
       }
     }
 
