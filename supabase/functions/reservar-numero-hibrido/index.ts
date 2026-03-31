@@ -212,6 +212,8 @@ serve(async (req) => {
     const ano: number = body.ano || new Date().getFullYear();
     const userName: string = body.user_nome || "";
     const checkOnly: boolean = body.check_only === true;
+    const markUsed: boolean = body.mark_used === true;
+    const usedNumero: number = body.used_numero || 0;
 
     // ── Step 1: Try to get max number from Google Docs ───────────────
     let maxFromDocs = 0;
