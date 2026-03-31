@@ -758,26 +758,7 @@ async function addAnexoImages(docxBlob: Blob, imagens: File[]): Promise<Blob> {
     console.log(`[addAnexoImages] Anexo: ${anexo.name}, tipo: ${mimeType}, tamanho: ${anexo.size}`);
 
     if (mimeType === "application/pdf") {
-      try {
-        const pdfBaseName = (anexo.name || "anexo-pdf").replace(/\.pdf$/i, "");
-        console.log(`[addAnexoImages] Convertendo PDF "${anexo.name}" em imagens...`);
-        const t0 = performance.now();
-        const pdfPages = await pdfToImageFiles(anexo, pdfBaseName || "anexo-pdf");
-        console.log(`[addAnexoImages] PDF convertido em ${pdfPages.length} página(s) em ${Math.round(performance.now() - t0)}ms`);
-
-        if (pdfPages.length > 0) {
-          for (const pageFile of pdfPages) {
-            formData.append(`imagem_${anexoIndex++}`, pageFile, pageFile.name);
-          }
-          continue;
-        }
-      } catch (error) {
-        console.warn("[addAnexoImages] Falha ao converter PDF em imagens, enviando PDF original:", {
-          nome: anexo.name,
-          erro: String(error),
-        });
-      }
-
+      console.log(`[addAnexoImages] Anexando PDF "${anexo.name}" diretamente (sem converter em imagens)`);
       formData.append(`pdf_${anexoIndex++}`, anexo, anexo.name);
       continue;
     }
