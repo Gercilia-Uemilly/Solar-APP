@@ -142,7 +142,7 @@ export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
   },
   'DER-MG': {
     destinatario: 'Sr(a). Coordenador(a) do Departamento de Estradas de Rodagem de Minas Gerais (DER-MG) – 11ª Unidade Regional – Uberlândia',
-    vocativo: 'Prezado(a) Senhor(a) Coordenador(a),'
+    vocativo: 'Prezados(a) Senhores(a) Coordenador(a),'
   },
   'DNIT': {
     destinatario: 'Sr(a). Chefe de Serviço do Departamento Nacional de Infraestrutura de Transportes (DNIT) – Unidade Local de Uberlândia',

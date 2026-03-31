@@ -71,7 +71,7 @@ const VOCATIVO_MAP: Record<string, string> = {
   'DETRAN-MG': 'Excelentíssimo(a) Senhor(a) Diretor(a),',
   'PROCON': 'Excelentíssimo(a) Senhor(a) Superintendente,',
   'HC/UFU': 'Prezados(as) Senhores(as),',
-  'DER-MG': 'Prezado(a) Senhor(a) Coordenador(a),',
+  'DER-MG': 'Prezados(a) Senhores(a) Coordenador(a),',
   'DNIT': 'Prezado(a) Senhor(a),',
   'Polícia Militar (PMMG)': 'Senhor(a) Comandante,',
   'Superintendência Regional de Saúde': 'Prezado(a) Senhor(a),',

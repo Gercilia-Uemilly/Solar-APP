@@ -16,7 +16,7 @@ interface PrintData {
   secretaria?: string;
 }
 
-import { cleanNumero, buildVocativo, formatDateOficio, extrairBairro } from "@/lib/oficioUtils";
+import { cleanNumero, getDestinatario, getVocativo } from "@/lib/oficioUtils";
 
 async function toDataUrl(src: string): Promise<string> {
   return new Promise((resolve) => {
@@ -48,9 +48,9 @@ export async function printOficio(data: PrintData) {
   // Use assunto exactly as provided — bairro is already included by the AI or user
   const assuntoFmt = data.assunto || "___";
 
-  const destinatarioCompleto = data.cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${data.destinatario ? ` ${data.destinatario}` : ""}`;
+  const destinatarioCompleto = data.cargoDestinatario || (data.secretaria ? getDestinatario(data.secretaria) : data.destinatario || "___");
 
-  const vocativo = buildVocativo(data.cargoDestinatario);
+  const vocativo = data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
 
   const isHtml = data.conteudo.startsWith("<");
   let bodyHtml: string;

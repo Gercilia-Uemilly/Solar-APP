@@ -40,7 +40,7 @@ interface Props {
   anexoDocuments?: AnexoDocumento[];
 }
 
-import { cleanNumero, buildVocativo } from "@/lib/oficioUtils";
+import { cleanNumero, getDestinatario, getVocativo } from "@/lib/oficioUtils";
 
 // A4 at 96dpi
 const PAGE_W_PX = 794;
@@ -113,8 +113,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       : "___";
 
     const assuntoFormatado = assunto || "___";
-    const destinatarioCompleto = cargoDestinatario || `Ilmo(a). Sr(a). Secretário(a) Municipal${destinatario ? ` de ${destinatario}` : ""}`;
-    const vocativo = buildVocativo(cargoDestinatario);
+    const destinatarioCompleto = cargoDestinatario || (secretaria ? getDestinatario(secretaria) : destinatario || "___");
+    const vocativo = secretaria ? getVocativo(secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
 
     const buildEditorContent = (text: string) => {
       if (text.startsWith("<")) return text;
