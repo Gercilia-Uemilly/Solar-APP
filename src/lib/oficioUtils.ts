@@ -170,12 +170,12 @@ export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
   },
   // ═══ OUTROS ═══
   'Prefeitura Municipal (Gabinete do Prefeito)': {
-    destinatario: 'Excelentíssimo(a) Senhor(a) Prefeito(a) Municipal',
-    vocativo: 'Excelentíssimo(a) Senhor(a) Prefeito(a),'
+    destinatario: 'Excelentíssimo Senhor Prefeito Municipal',
+    vocativo: 'Excelentíssimo Senhor Prefeito,'
   },
   'Câmara Municipal de Uberlândia': {
     destinatario: 'Excelentíssimo(a) Senhor(a) Presidente da Câmara Municipal',
-    vocativo: 'Excelentíssimo(a) Senhor(a) Presidente,'
+    vocativo: 'Excelentíssimo(a) Senhor(a) Vereador(a),'
   },
 };
 
