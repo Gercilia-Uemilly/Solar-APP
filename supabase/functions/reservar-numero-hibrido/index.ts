@@ -261,6 +261,17 @@ serve(async (req) => {
       );
     }
 
+    // ── Mark-used mode: just append the used number to Google Doc ───
+    if (markUsed && usedNumero > 0) {
+      if (documentId && docsEnabled && accessToken) {
+        await appendNumeroToDoc(accessToken, documentId, usedNumero, ano, userName);
+      }
+      return new Response(
+        JSON.stringify({ ok: true, numero: usedNumero, appended_to_docs: !!(documentId && docsEnabled && accessToken) }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── Step 2: Reserve the next number using the DB function ────────
     const { data: reservedNum, error: rpcError } = await supabaseAdmin.rpc("reservar_proximo_numero", {
       p_ano: ano,
