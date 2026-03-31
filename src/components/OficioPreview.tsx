@@ -52,12 +52,17 @@ const MARGIN_LEFT = 113;
 const MARGIN_RIGHT = 76;
 const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
 
-/** Render image grid for a chunk of images */
+/** Render image grid for a chunk of images with dynamic layout */
 function ImageGrid({ urls }: { urls: string[] }) {
   const count = urls.length;
-  const totalClass = `total-${Math.min(count, 4)}`;
+  const qtdClass = count === 1 ? 'qtd-1'
+    : count === 2 ? 'qtd-2'
+    : count === 3 ? 'qtd-3'
+    : count === 4 ? 'qtd-4'
+    : count <= 6 ? `qtd-${count}`
+    : 'qtd-7plus';
   return (
-    <div className={`preview-imagens-grid ${totalClass}`}>
+    <div className={`grade-imagens ${qtdClass}`}>
       {urls.map((url, i) => (
         <img key={i} src={url} alt={`Anexo ${i + 1}`} loading="eager" />
       ))}
