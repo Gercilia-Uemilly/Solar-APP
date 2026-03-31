@@ -378,18 +378,18 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               </div>
             )}
             <div
+              className="preview-pagina-a4"
               style={{
                 width: `${PAGE_W_PX}px`,
                 height: `${PAGE_H_PX}px`,
                 background: "#fff",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                 borderRadius: "4px",
-                position: "relative",
                 overflow: "hidden",
                 flexShrink: 0,
                 boxSizing: "border-box",
                 fontFamily: "Arial, sans-serif",
-                fontSize: "11pt",
+                fontSize: "10pt",
                 lineHeight: "1.5",
               }}
             >
