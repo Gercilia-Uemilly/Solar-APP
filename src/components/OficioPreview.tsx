@@ -70,7 +70,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const rawFmt = formatOptions || defaultFormatOptions;
     const fmt = useMemo(() => ({
       ...rawFmt,
-      fontSize: Math.min(rawFmt.fontSize, 12),
+      fontSize: Math.min(rawFmt.fontSize, 14),
     }), [rawFmt]);
 
     const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
