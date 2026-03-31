@@ -361,17 +361,20 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         {/* ── Visible paginated preview ─────────────────────────────── */}
         {Array.from({ length: totalPages }, (_, pageIdx) => (
           <div key={pageIdx} style={{ position: "relative" }}>
-            {/* Page separator label */}
+            {/* Page separator */}
             {pageIdx > 0 && (
               <div style={{
-                borderTop: "2px dashed #aaa",
-                margin: "0 0 8px 0",
-                textAlign: "center",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                margin: "8px 0 24px",
+                color: "#bbb",
                 fontSize: "11px",
-                color: "#aaa",
-                paddingTop: "4px",
+                fontFamily: "sans-serif",
               }}>
-                ── Página {pageIdx + 1} ──
+                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
+                ✂ Quebra de página
+                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
               </div>
             )}
             <div
