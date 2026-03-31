@@ -677,14 +677,8 @@ export default function Oficios() {
 
         results.push({ type: item.type, text, fileName: item.file.name, storageUrl });
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", text } : p));
-        if (item.type === "image") {
-          // Use persistent upload if editing, otherwise local-only
-          if (editingOficioId) {
-            await persistAddFile(item.file);
-          } else {
-            addLocalFile(item.file);
-          }
-        }
+        // AI-analyzed images are NOT added as document attachments
+        // Only the extracted text is used (inserted into description)
       } catch (err: any) {
         setProcessingQueue(prev => prev.map((p, i) => i === idx ? { ...p, status: "error" } : p));
         toast({ title: `Erro ao processar ${item.file.name}`, description: err.message || "Tente novamente.", variant: "destructive" });

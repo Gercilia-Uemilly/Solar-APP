@@ -52,12 +52,17 @@ const MARGIN_LEFT = 113;
 const MARGIN_RIGHT = 76;
 const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
 
-/** Render image grid for a chunk of images */
+/** Render image grid for a chunk of images with dynamic layout */
 function ImageGrid({ urls }: { urls: string[] }) {
   const count = urls.length;
-  const totalClass = `total-${Math.min(count, 4)}`;
+  const qtdClass = count === 1 ? 'qtd-1'
+    : count === 2 ? 'qtd-2'
+    : count === 3 ? 'qtd-3'
+    : count === 4 ? 'qtd-4'
+    : count <= 6 ? `qtd-${count}`
+    : 'qtd-7plus';
   return (
-    <div className={`preview-imagens-grid ${totalClass}`}>
+    <div className={`grade-imagens ${qtdClass}`}>
       {urls.map((url, i) => (
         <img key={i} src={url} alt={`Anexo ${i + 1}`} loading="eager" />
       ))}
@@ -70,20 +75,20 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const rawFmt = formatOptions || defaultFormatOptions;
     const fmt = useMemo(() => ({
       ...rawFmt,
-      fontSize: Math.min(rawFmt.fontSize, 12),
+      fontSize: Math.min(rawFmt.fontSize, 14),
     }), [rawFmt]);
 
     const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
     const autoCalc = useMemo(() => {
-      if (contentLength < 400) return { fontSize: 13, lineSpacing: 2.0 };
-      if (contentLength < 600) return { fontSize: 12, lineSpacing: 1.83 };
-      if (contentLength < 900) return { fontSize: 11.5, lineSpacing: 1.67 };
-      if (contentLength < 1200) return { fontSize: 11, lineSpacing: 1.5 };
-      if (contentLength < 1800) return { fontSize: 10.5, lineSpacing: 1.42 };
+      if (contentLength < 400) return { fontSize: 12, lineSpacing: 2.0 };
+      if (contentLength < 600) return { fontSize: 11, lineSpacing: 1.83 };
+      if (contentLength < 900) return { fontSize: 10.5, lineSpacing: 1.67 };
+      if (contentLength < 1200) return { fontSize: 10, lineSpacing: 1.5 };
+      if (contentLength < 1800) return { fontSize: 10, lineSpacing: 1.42 };
       return { fontSize: 10, lineSpacing: 1.33 };
     }, [contentLength]);
 
-    const effectiveFontSize = fmt.fontSize && fmt.fontSize !== 11 ? Math.min(fmt.fontSize, 12) : autoCalc.fontSize;
+    const effectiveFontSize = fmt.fontSize && fmt.fontSize !== 10 ? Math.min(fmt.fontSize, 14) : autoCalc.fontSize;
     const effectiveLineSpacing = fmt.lineSpacing && fmt.lineSpacing !== 1.5 ? fmt.lineSpacing : autoCalc.lineSpacing;
 
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
@@ -118,12 +123,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return paras.map(p => `<p>${p}</p>`).join("");
     };
 
-    // Image chunks (groups of 4) — each chunk = 1 dedicated page in the export
+    // Image chunks — group by page capacity based on count
     const imageChunks = useMemo(() => {
       if (!anexoImageUrls || anexoImageUrls.length === 0) return [];
+      // For <= 6 images, fit them all on one page
+      if (anexoImageUrls.length <= 6) return [anexoImageUrls];
+      // For 7+, group in pages of up to 8 (4 per row, 2 rows)
       const chunks: string[][] = [];
-      for (let i = 0; i < anexoImageUrls.length; i += 4) {
-        chunks.push(anexoImageUrls.slice(i, i + 4));
+      for (let i = 0; i < anexoImageUrls.length; i += 8) {
+        chunks.push(anexoImageUrls.slice(i, i + 8));
       }
       return chunks;
     }, [anexoImageUrls]);
@@ -322,9 +330,30 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     return (
       <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
         {/* Page count indicator */}
-        <div style={{ textAlign: "center", fontSize: "12px", color: "#666" }}>
-          📄 {totalPagesForExport === 1 ? "Documento terá 1 página" : `Documento terá ${totalPagesForExport} páginas`}
-          {pdfPagesFromDocuments > 0 ? ` (inclui ${pdfPagesFromDocuments} página${pdfPagesFromDocuments > 1 ? "s" : ""} de anexo PDF)` : ""}
+        <div style={{
+          background: "#1B3A6B",
+          color: "white",
+          padding: "8px 16px",
+          borderRadius: "6px",
+          fontSize: "12px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          fontFamily: "sans-serif",
+        }}>
+          📄 Este documento terá{" "}
+          <strong>{totalPagesForExport}</strong>{" "}
+          {totalPagesForExport === 1 ? "página" : "páginas"}
+          {pdfPagesFromDocuments > 0 && (
+            <span style={{ opacity: 0.8, fontSize: "11px" }}>
+              (inclui {pdfPagesFromDocuments} pág. de anexo PDF)
+            </span>
+          )}
+          {totalPagesForExport > 1 && (
+            <span style={{ opacity: 0.8, fontSize: "11px" }}>
+              — role para ver todas
+            </span>
+          )}
         </div>
 
         {/* Hidden measurement removed — we measure the visible first page's content div directly */}
@@ -332,32 +361,35 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         {/* ── Visible paginated preview ─────────────────────────────── */}
         {Array.from({ length: totalPages }, (_, pageIdx) => (
           <div key={pageIdx} style={{ position: "relative" }}>
-            {/* Page separator label */}
+            {/* Page separator */}
             {pageIdx > 0 && (
               <div style={{
-                borderTop: "2px dashed #aaa",
-                margin: "0 0 8px 0",
-                textAlign: "center",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                margin: "8px 0 24px",
+                color: "#bbb",
                 fontSize: "11px",
-                color: "#aaa",
-                paddingTop: "4px",
+                fontFamily: "sans-serif",
               }}>
-                ── Página {pageIdx + 1} ──
+                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
+                ✂ Quebra de página
+                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
               </div>
             )}
             <div
+              className="preview-pagina-a4"
               style={{
                 width: `${PAGE_W_PX}px`,
                 height: `${PAGE_H_PX}px`,
                 background: "#fff",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                 borderRadius: "4px",
-                position: "relative",
                 overflow: "hidden",
                 flexShrink: 0,
                 boxSizing: "border-box",
                 fontFamily: "Arial, sans-serif",
-                fontSize: "11pt",
+                fontSize: "10pt",
                 lineHeight: "1.5",
               }}
             >
@@ -405,26 +437,31 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           return (
             <div key={`img-page-${chunkIdx}`} style={{ position: "relative" }}>
               <div style={{
-                borderTop: "2px dashed #aaa",
-                margin: "0 0 8px 0",
-                textAlign: "center",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                margin: "8px 0 24px",
+                color: "#bbb",
                 fontSize: "11px",
-                color: "#aaa",
-                paddingTop: "4px",
+                fontFamily: "sans-serif",
               }}>
-                ── Página {pageNum} (Anexos) ──
+                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
+                ✂ Página {pageNum} — Anexos
+                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
               </div>
-              <div style={{
-                width: `${PAGE_W_PX}px`,
-                height: `${PAGE_H_PX}px`,
-                background: "#fff",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
-                borderRadius: "4px",
-                position: "relative",
-                overflow: "hidden",
-                flexShrink: 0,
-                boxSizing: "border-box",
-              }}>
+              <div
+                className="preview-pagina-a4"
+                style={{
+                  width: `${PAGE_W_PX}px`,
+                  height: `${PAGE_H_PX}px`,
+                  background: "#fff",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  boxSizing: "border-box",
+                }}
+              >
                 <div style={{
                   position: "absolute",
                   top: "40px",

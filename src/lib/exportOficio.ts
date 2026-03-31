@@ -468,11 +468,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Auto-adjust font size and line spacing based on content length (half-points)
   const contentLength = (conteudo || "").replace(/<[^>]+>/g, "").length;
   const calcularFonteEspacamento = (chars: number) => {
-    if (chars < 400) return { size: 26, line: 480 };  // 13pt equivalent in half-points
-    if (chars < 600) return { size: 24, line: 440 };  // 12pt
-    if (chars < 900) return { size: 23, line: 400 };  // 11.5pt
-    if (chars < 1200) return { size: 22, line: 360 }; // 11pt
-    if (chars < 1800) return { size: 21, line: 340 }; // 10.5pt
+    if (chars < 400) return { size: 24, line: 480 };  // 12pt equivalent in half-points
+    if (chars < 600) return { size: 22, line: 440 };  // 11pt
+    if (chars < 900) return { size: 21, line: 400 };  // 10.5pt
+    if (chars < 1200) return { size: 20, line: 360 }; // 10pt
+    if (chars < 1800) return { size: 20, line: 340 }; // 10pt
     return { size: 20, line: 320 };                    // 10pt — long text, 2+ pages
   };
   const autoCalc = calcularFonteEspacamento(contentLength);
@@ -533,25 +533,32 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     }
   });
   
-  // Group inline images: up to 4 per row for grid layout
+  // Group inline images with dynamic grid layout
   if (inlineImages.length > 0) {
-    for (let i = 0; i < inlineImages.length; i += 4) {
-      const group = inlineImages.slice(i, i + 4);
-      const count = group.length;
-      // Calculate dimensions: 1→480px, 2→220px, 3→145px, 4→108px
-      const imgWidth = count === 1 ? 480 : count === 2 ? 220 : count === 3 ? 145 : 108;
-      const imgHeight = Math.round(imgWidth * 0.75);
+    const totalImgs = inlineImages.length;
+    const calcDims = (count: number) => {
+      if (count === 1) return { w: 454, h: 340, cols: 1 };
+      if (count === 2) return { w: 284, h: 213, cols: 2 };
+      if (count === 3) return { w: 182, h: 137, cols: 3 };
+      if (count === 4) return { w: 284, h: 213, cols: 2 };
+      if (count <= 6) return { w: 182, h: 150, cols: 3 };
+      return { w: 136, h: 120, cols: 4 };
+    };
+    const dims = calcDims(totalImgs);
+
+    for (let i = 0; i < inlineImages.length; i += dims.cols) {
+      const group = inlineImages.slice(i, i + dims.cols);
       
       const imageRuns: ImageRun[] = group.map(r => new ImageRun({
         data: r.image,
-        transformation: { width: imgWidth, height: imgHeight },
+        transformation: { width: dims.w, height: dims.h },
         type: ('imageType' in r ? r.imageType : "png") as "png" | "jpg" | "gif" | "bmp",
       }));
       
       bodyParagraphs.push(new Paragraph({
         alignment: AlignmentType.CENTER,
         children: imageRuns,
-        spacing: { before: 100, after: 200, line: lineSpacing },
+        spacing: { before: 80, after: 80, line: lineSpacing },
       }));
     }
   }

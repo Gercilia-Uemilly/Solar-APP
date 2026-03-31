@@ -31,7 +31,7 @@ export default function OficioPreviewEditor({
   content,
   onChange,
   fontFamily = "Arial",
-  fontSize = 11,
+  fontSize = 10,
   lineSpacing = 1.5,
   onIncreaseFontSize,
   onDecreaseFontSize,

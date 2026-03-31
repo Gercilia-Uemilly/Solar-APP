@@ -18,7 +18,7 @@ export interface FormatOptions {
 }
 
 export const defaultFormatOptions: FormatOptions = {
-  fontSize: 11,
+  fontSize: 10,
   lineSpacing: 1.5,
   signatureHeight: 140,
   fontFamily: "Arial",
@@ -116,7 +116,7 @@ export default function PreviewFormatToolbar({ options, onChange, onUndo, hasCha
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {[10, 11, 12, 13, 14, 16, 18].map((s) => (
+            {[9, 10, 11, 12, 13, 14, 16, 18].map((s) => (
               <SelectItem key={s} value={String(s)}>{s}pt</SelectItem>
             ))}
           </SelectContent>
