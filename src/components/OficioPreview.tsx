@@ -83,7 +83,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       return { fontSize: 10, lineSpacing: 1.33 };
     }, [contentLength]);
 
-    const effectiveFontSize = fmt.fontSize && fmt.fontSize !== 11 ? Math.min(fmt.fontSize, 12) : autoCalc.fontSize;
+    const effectiveFontSize = fmt.fontSize && fmt.fontSize !== 10 ? Math.min(fmt.fontSize, 14) : autoCalc.fontSize;
     const effectiveLineSpacing = fmt.lineSpacing && fmt.lineSpacing !== 1.5 ? fmt.lineSpacing : autoCalc.lineSpacing;
 
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
