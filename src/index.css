@@ -207,7 +207,57 @@ img[alt="Assinatura Fabão"] {
   backdrop-filter: blur(16px);
 }
 
-/* Anexo de imagens - Preview e Print */
+/* Anexo de imagens - Grade dinâmica */
+.grade-imagens {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  box-sizing: border-box;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.grade-imagens img {
+  display: block;
+  border-radius: 2px;
+  width: 100%;
+  object-fit: contain;
+}
+.grade-imagens.qtd-1 {
+  grid-template-columns: 1fr;
+  max-width: 454px;
+  margin: 12px auto;
+}
+.grade-imagens.qtd-1 img { max-height: 340px; }
+.grade-imagens.qtd-2 {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.grade-imagens.qtd-2 img { max-height: 212px; }
+.grade-imagens.qtd-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.grade-imagens.qtd-3 img { max-height: 170px; }
+.grade-imagens.qtd-4 {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.grade-imagens.qtd-4 img { max-height: 212px; }
+.grade-imagens.qtd-5,
+.grade-imagens.qtd-6 {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.grade-imagens.qtd-5 img,
+.grade-imagens.qtd-6 img { max-height: 150px; }
+.grade-imagens.qtd-7plus {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 5px;
+}
+.grade-imagens.qtd-7plus img { max-height: 130px; }
+
+/* Legacy grid (backwards compat) */
 .preview-imagens-grid {
   display: flex;
   flex-wrap: wrap;
@@ -228,24 +278,36 @@ img[alt="Assinatura Fabão"] {
   vertical-align: top;
   border-radius: 4px;
 }
-.preview-imagens-grid.total-1 img {
-  max-width: 60%;
-  max-height: 350px;
+
+/* Preview page stacked paper effect */
+.preview-pagina-a4 {
+  position: relative;
 }
-.preview-imagens-grid.total-2 img {
-  max-width: 48%;
-  max-height: 280px;
+.preview-pagina-a4::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 4px;
+  right: -4px;
+  height: 100%;
+  background: #f0f0f0;
+  z-index: -1;
+  border-radius: 1px;
 }
-.preview-imagens-grid.total-3 img {
-  max-width: 32%;
-  max-height: 220px;
-}
-.preview-imagens-grid.total-4 img {
-  max-width: 48%;
-  max-height: 220px;
+.preview-pagina-a4::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 8px;
+  right: -8px;
+  height: 100%;
+  background: #e8e8e8;
+  z-index: -2;
+  border-radius: 1px;
 }
 
 @media print {
+  .grade-imagens,
   .preview-imagens-grid {
     page-break-inside: avoid;
     break-inside: avoid;
