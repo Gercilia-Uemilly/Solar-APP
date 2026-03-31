@@ -330,9 +330,30 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     return (
       <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
         {/* Page count indicator */}
-        <div style={{ textAlign: "center", fontSize: "12px", color: "#666" }}>
-          📄 {totalPagesForExport === 1 ? "Documento terá 1 página" : `Documento terá ${totalPagesForExport} páginas`}
-          {pdfPagesFromDocuments > 0 ? ` (inclui ${pdfPagesFromDocuments} página${pdfPagesFromDocuments > 1 ? "s" : ""} de anexo PDF)` : ""}
+        <div style={{
+          background: "#1B3A6B",
+          color: "white",
+          padding: "8px 16px",
+          borderRadius: "6px",
+          fontSize: "12px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          fontFamily: "sans-serif",
+        }}>
+          📄 Este documento terá{" "}
+          <strong>{totalPagesForExport}</strong>{" "}
+          {totalPagesForExport === 1 ? "página" : "páginas"}
+          {pdfPagesFromDocuments > 0 && (
+            <span style={{ opacity: 0.8, fontSize: "11px" }}>
+              (inclui {pdfPagesFromDocuments} pág. de anexo PDF)
+            </span>
+          )}
+          {totalPagesForExport > 1 && (
+            <span style={{ opacity: 0.8, fontSize: "11px" }}>
+              — role para ver todas
+            </span>
+          )}
         </div>
 
         {/* Hidden measurement removed — we measure the visible first page's content div directly */}
