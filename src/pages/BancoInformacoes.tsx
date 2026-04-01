@@ -766,65 +766,149 @@ export default function BancoInformacoes() {
         </TabsContent>
 
         {/* ═══════════ TAB: SCRIPTS ═══════════ */}
-        <TabsContent value="scripts" className="space-y-4">
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex-1 min-w-[200px] relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input placeholder="Buscar scripts..." value={scriptSearch} onChange={e => setScriptSearch(e.target.value)} className="pl-9" />
-                </div>
-                <Button size="sm" onClick={() => { resetScriptForm(); setShowScriptDialog(true); }} className="gap-1.5">
-                  <Plus size={14} /> Novo Script
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setShowAIScriptDialog(true)} className="gap-1.5">
-                  <Sparkles size={14} /> Gerar com IA
-                </Button>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button variant={scriptCatFilter === "Todas" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setScriptCatFilter("Todas")}>Todas</Button>
-                <Button variant={scriptCatFilter === "Favoritos" ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1" onClick={() => setScriptCatFilter("Favoritos")}><Star size={12} /> Favoritos</Button>
-                {scriptCategories.map(cat => (
-                  <Button key={cat} variant={scriptCatFilter === cat ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setScriptCatFilter(cat)}>{cat}</Button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">{filteredScripts.length} script(s)</p>
-            </CardContent>
-          </Card>
+        <TabsContent value="scripts" className="space-y-5">
+          {/* Search bar - large and prominent */}
+          <div className="relative">
+            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar script por título, categoria ou palavra-chave..."
+              value={scriptSearch}
+              onChange={e => setScriptSearch(e.target.value)}
+              className="pl-12 h-12 text-base bg-card border-border rounded-xl shadow-sm focus:shadow-md transition-shadow"
+            />
+            {scriptSearch && (
+              <button onClick={() => setScriptSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X size={16} />
+              </button>
+            )}
+          </div>
 
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {/* Category pills */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {["Todas", "Favoritos", "ANIMAIS", "SAÚDE", "JURÍDICO", "EDUCAÇÃO", "EMPREGO", "SOCIAL", "TRANSPORTE", "DMAE e CEMIG", "CASAS POPULARES", "ESPORTE", "MEIO AMBIENTE", "REQUERIMENTOS", "PEDIDOS DE AJUDA", "ARQUIVOS TEMPORÁRIOS"].map(cat => {
+              const isActive = scriptCatFilter === cat;
+              const exists = cat === "Todas" || cat === "Favoritos" || scriptCategories.some(c => c.toUpperCase() === cat.toUpperCase() || c === cat);
+              if (!exists && cat !== "Todas" && cat !== "Favoritos") return null;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setScriptCatFilter(cat === scriptCatFilter ? "Todas" : cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-transparent border border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                  }`}
+                >
+                  {cat === "Favoritos" && "⭐ "}{cat}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Actions row + count */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">
+              <span className="text-primary font-bold">{filteredScripts.length}</span>{" "}
+              <span className="text-muted-foreground">script{filteredScripts.length !== 1 ? "s" : ""} encontrado{filteredScripts.length !== 1 ? "s" : ""}</span>
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setShowAIScriptDialog(true)} className="gap-1.5 h-8">
+                <Sparkles size={13} /> Gerar com IA
+              </Button>
+              <Button size="sm" onClick={() => { resetScriptForm(); setShowScriptDialog(true); }} className="gap-1.5 h-8">
+                <Plus size={13} /> Novo Script
+              </Button>
+            </div>
+          </div>
+
+          {/* Scripts Grid */}
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {scriptsLoading ? (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                <Loader2 size={32} className="mx-auto mb-3 animate-spin opacity-40" /><p>Carregando...</p>
+              <div className="col-span-full text-center py-16 text-muted-foreground">
+                <Loader2 size={36} className="mx-auto mb-4 animate-spin opacity-40" />
+                <p className="text-sm">Carregando scripts...</p>
               </div>
             ) : filteredScripts.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                <MessageSquareText size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhum script encontrado</p>
+              <div className="col-span-full text-center py-16 text-muted-foreground">
+                <MessageSquareText size={52} className="mx-auto mb-4 opacity-20" />
+                <p className="font-semibold text-base">Nenhum script encontrado</p>
+                <p className="text-xs mt-1">Tente ajustar a busca ou os filtros.</p>
               </div>
-            ) : filteredScripts.map(s => (
-              <Card key={s.id} className="group hover:shadow-md transition-all">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-foreground leading-tight">{s.titulo}</h3>
-                    <Badge variant="secondary" className="text-[9px] px-1.5 flex-shrink-0">{s.categoria}</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2 line-clamp-3 whitespace-pre-wrap">{s.conteudo}</p>
-                  {s.tags && s.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {s.tags.slice(0, 3).map((t, i) => <Badge key={i} variant="outline" className="text-[9px] px-1.5 py-0">{t}</Badge>)}
+            ) : filteredScripts.map(s => {
+              const isExpanded = expandedScriptId === s.id;
+              const isCopied = copiedScriptId === s.id;
+              const catColor = getCategoryColor(s.categoria);
+              return (
+                <div
+                  key={s.id}
+                  className="group bg-card rounded-xl border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-200 flex flex-col overflow-hidden"
+                >
+                  {/* Category color bar */}
+                  <div className={`h-1 ${catColor}`} />
+                  
+                  <div className="p-4 flex-1 flex flex-col">
+                    {/* Header: title + category badge */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="text-sm font-bold text-foreground leading-snug flex-1">{s.titulo}</h3>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${catColor} bg-opacity-10`} style={{ backgroundColor: 'hsl(var(--muted))' }}>
+                        {s.categoria}
+                      </span>
                     </div>
-                  )}
-                  <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleScriptToggleFav(s)} className={`p-1.5 rounded-md ${s.favorito ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>
-                      {s.favorito ? <Star size={14} /> : <StarOff size={14} />}
-                    </button>
-                    <button onClick={() => handleScriptCopy(s.conteudo)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Copy size={14} /></button>
-                    <button onClick={() => handleScriptEdit(s)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"><Pencil size={14} /></button>
-                    <button onClick={() => handleScriptDelete(s.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto"><Trash2 size={14} /></button>
+
+                    {/* Content preview or full */}
+                    <div className="flex-1 min-h-0">
+                      {isExpanded ? (
+                        <div className="text-xs text-foreground/80 whitespace-pre-line leading-relaxed max-h-[400px] overflow-y-auto pr-1">
+                          {s.conteudo}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line">
+                          {s.conteudo}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Tags */}
+                    {s.tags && s.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2.5">
+                        {s.tags.slice(0, 3).map((t, i) => (
+                          <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
+                        ))}
+                        {s.tags.length > 3 && <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">+{s.tags.length - 3}</span>}
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+                      <button
+                        onClick={() => setExpandedScriptId(isExpanded ? null : s.id)}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-muted text-foreground hover:bg-accent transition-colors"
+                      >
+                        <Eye size={12} /> {isExpanded ? "Recolher" : "Ver completo"}
+                      </button>
+                      <button
+                        onClick={() => handleScriptCopyWithFeedback(s.id, s.conteudo)}
+                        className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors ${
+                          isCopied
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                        {isCopied ? "Copiado!" : "Copiar"}
+                      </button>
+                      <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleScriptToggleFav(s)} className={`p-1.5 rounded-md transition-colors ${s.favorito ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
+                          {s.favorito ? <Star size={13} fill="currentColor" /> : <Star size={13} />}
+                        </button>
+                        <button onClick={() => handleScriptEdit(s)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil size={13} /></button>
+                        <button onClick={() => handleScriptDelete(s.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"><Trash2 size={13} /></button>
+                      </div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </TabsContent>
 
