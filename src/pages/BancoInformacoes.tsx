@@ -70,11 +70,22 @@ function buildDownloadName(entry: KnowledgeEntry): string {
   return `${date}_${slug}_${origem}.${ext}`;
 }
 
-/** Build WhatsApp message */
-function buildWhatsAppMessage(entry: KnowledgeEntry): string {
+/** Build WhatsApp message for audio sharing */
+function buildWhatsAppAudioMessage(entry: KnowledgeEntry): string {
   const title = entry.titulo.replace(/🎤\s*/g, "");
-  const tags = entry.palavras_chave?.length ? `\nTemas: ${entry.palavras_chave.join(", ")}` : "";
-  return `Segue áudio sobre *${title}*${tags}\n\n${entry.link || ""}`;
+  return `🎤 Áudio do Vereador Fabão: ${entry.link || ""}`;
+}
+
+/** Open WhatsApp with audio message, optionally directed to a phone number */
+function openWhatsAppWithAudio(entry: KnowledgeEntry, phoneNumber?: string | null) {
+  const message = encodeURIComponent(buildWhatsAppAudioMessage(entry));
+  if (phoneNumber) {
+    const cleanPhone = phoneNumber.replace(/\D/g, "");
+    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    window.open(`https://wa.me/${fullPhone}?text=${message}`, "_blank");
+  } else {
+    window.open(`https://wa.me/?text=${message}`, "_blank");
+  }
 }
 
 export default function BancoInformacoes() {
