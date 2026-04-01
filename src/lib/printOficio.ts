@@ -14,6 +14,7 @@ interface PrintData {
   operadorEmail?: string;
   telefone?: string;
   secretaria?: string;
+  fechamento?: string;
 }
 
 import { cleanNumero, getDestinatario, getVocativo } from "@/lib/oficioUtils";
