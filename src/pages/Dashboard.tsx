@@ -35,6 +35,12 @@ export default function Dashboard() {
   const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const dataFormatada = `${diasSemana[hoje.getDay()]}, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
 
+  // Operadores veem só os próprios; admin vê todos
+  const oficiosFiltrados = useMemo(() => {
+    if (isAdmin) return oficios;
+    return oficios.filter(o => o.author_id === user?.id);
+  }, [oficios, isAdmin, user?.id]);
+
   const stats = useMemo(() => {
     const now = new Date();
     const mesAtual = now.getMonth();
@@ -42,20 +48,20 @@ export default function Dashboard() {
     const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1;
     const anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
 
-    const doMes = oficios.filter(o => {
+    const doMes = oficiosFiltrados.filter(o => {
       const d = new Date(o.created_at);
       return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
     });
-    const doMesAnterior = oficios.filter(o => {
+    const doMesAnterior = oficiosFiltrados.filter(o => {
       const d = new Date(o.created_at);
       return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
     });
 
-    const total = oficios.length;
+    const total = oficiosFiltrados.length;
     const totalMes = doMes.length;
-    const rascunhos = oficios.filter(o => o.status === "Rascunho").length;
-    const gerados = oficios.filter(o => o.status === "Gerado").length;
-    const enviados = oficios.filter(o => o.status === "Enviado" || o.status === "Respondido").length;
+    const rascunhos = oficiosFiltrados.filter(o => o.status === "Rascunho").length;
+    const gerados = oficiosFiltrados.filter(o => o.status === "Gerado").length;
+    const enviados = oficiosFiltrados.filter(o => o.status === "Enviado" || o.status === "Respondido").length;
 
     const opMap: Record<string, number> = {};
     doMes.forEach(o => {
@@ -92,14 +98,14 @@ export default function Dashboard() {
       .slice(0, 5);
 
     const statusMap: Record<string, number> = {};
-    oficios.forEach(o => {
+    oficiosFiltrados.forEach(o => {
       statusMap[o.status] = (statusMap[o.status] || 0) + 1;
     });
     const porStatus = Object.entries(statusMap)
       .map(([name, value]) => ({ name, value }));
 
     return { total, totalMes, rascunhos, gerados, enviados, porOperador, porBairro, porStatus, rankingBairros };
-  }, [oficios]);
+  }, [oficiosFiltrados]);
 
   const statCards = [
     { label: "TOTAL GERAL", value: stats.total, icon: FileText },
