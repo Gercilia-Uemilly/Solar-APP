@@ -104,7 +104,8 @@ VOCATIVO: ${vocativo}
 DESTINATÁRIO: ${destinatario || "A identificar"}
 DESCRIÇÃO: ${descricao || "Não informado"}
 SOLICITANTE: ${solicitante || "moradores da região"}
-ENDEREÇO: ${bairro || local || "Não informado"}
+BAIRRO: ${bairro || "Não informado"}
+ENDEREÇO/LOCAL: ${local || "Não informado"}
 PRIORIDADE: ${prioridade || "Normal"}
 ASSUNTO: ${assunto || "Gerar automaticamente"}
 

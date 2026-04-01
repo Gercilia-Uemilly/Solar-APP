@@ -16,6 +16,17 @@ const CORES = [
   { value: "#7f1d1d", label: "Vinho", bg: "bg-red-900" },
   { value: "#1e1e2e", label: "Grafite", bg: "bg-zinc-800" },
   { value: "#4c1d95", label: "Roxo", bg: "bg-purple-900" },
+  { value: "#f472b6", label: "Rosa Claro", bg: "bg-pink-400" },
+  { value: "#be185d", label: "Rosa Escuro", bg: "bg-pink-700" },
+  { value: "#0891b2", label: "Ciano", bg: "bg-cyan-600" },
+  { value: "#0d9488", label: "Teal", bg: "bg-teal-600" },
+  { value: "#d97706", label: "Âmbar", bg: "bg-amber-600" },
+  { value: "#dc2626", label: "Vermelho", bg: "bg-red-600" },
+  { value: "#2563eb", label: "Azul Royal", bg: "bg-blue-600" },
+  { value: "#7c3aed", label: "Violeta", bg: "bg-violet-600" },
+  { value: "#e11d48", label: "Rosa Vibrante", bg: "bg-rose-600" },
+  { value: "#059669", label: "Esmeralda", bg: "bg-emerald-600" },
+  { value: "#ea580c", label: "Laranja", bg: "bg-orange-600" },
 ];
 
 const FONTES = [
