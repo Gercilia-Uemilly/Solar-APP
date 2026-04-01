@@ -1550,21 +1550,24 @@ export default function Oficios() {
                 }}>
                   {isExportingWord ? <Loader2 size={14} className="mr-1 animate-spin" /> : <FileText size={14} className="mr-1" />} Word
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => {
+                <Button size="sm" variant="outline" disabled={isExportingPdf} onClick={async () => {
                   if (!editedOficio) {
                     toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de exportar." });
                   }
                   if (origemOficio === "Zap" && !codigoZ) {
                     toast({ title: "⚠️ Código Z não preenchido" });
                   }
-                  const formData = await withSavedAttachments(await buildFormExportData());
+                  setIsExportingPdf(true);
                   try {
+                    const formData = await withSavedAttachments(await buildFormExportData());
                     await exportToPDF(formData);
                   } catch (e: any) {
                     toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  } finally {
+                    setIsExportingPdf(false);
                   }
                 }}>
-                  <Download size={14} className="mr-1" /> PDF
+                  {isExportingPdf ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Download size={14} className="mr-1" />} PDF
                 </Button>
                 <Button size="sm" variant="outline" disabled={isUploading} onClick={async () => {
                   if (!editedOficio) {
