@@ -1638,6 +1638,8 @@ export default function Oficios() {
                   anexoDocuments={previewDocumentAnexos}
                   bairro={assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro)}
                   formatOptions={formatOptions}
+                  fechamento={fechamento}
+                  onFechamentoChange={setFechamento}
                 />
               </div>
             </TabsContent>
