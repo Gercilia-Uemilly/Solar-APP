@@ -1768,6 +1768,9 @@ export default function Oficios() {
             if (erro.campo === "assunto") setAssunto(erro.correcao);
             else if (erro.campo === "destinatario") setDestinatario(erro.correcao);
             else if (erro.campo === "vocativo") setCargoDestinatario(erro.correcao);
+            else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
+              setEditedOficio(erro.correcao);
+            }
           }
           // Persist all corrections
           if (editingOficioId && revisaoResult.erros) {

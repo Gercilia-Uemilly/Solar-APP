@@ -992,6 +992,10 @@ export default function MeusOficios() {
             if (erro.campo === "assunto") handleInlineFieldChange("assunto", erro.correcao);
             else if (erro.campo === "destinatario") handleInlineFieldChange("destinatario", erro.correcao);
             else if (erro.campo === "vocativo") handleInlineFieldChange("cargo_destinatario", erro.correcao);
+            else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
+              setEditedContent(erro.correcao);
+              handleSaveContent(erro.correcao);
+            }
           }
           toast({ title: "✅ Correções aplicadas!" });
         }}
