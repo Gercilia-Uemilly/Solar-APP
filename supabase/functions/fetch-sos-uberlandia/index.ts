@@ -1,0 +1,166 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const WP_API = "https://sosuberlandia.com.br/wp-json/wp/v2/posts";
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#\d+;/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractKeywords(title: string, content: string): string[] {
+  const text = `${title} ${content}`.toLowerCase();
+  const keywords: string[] = [];
+  
+  const bairros = ["santa mônica", "tibery", "morumbi", "luizote", "umuarama", "segismundo pereira", "saraiva", "jardim karaíba", "roosevelt", "planalto", "custódio pereira", "tubalina", "martins", "brasil", "guarani", "tabajaras", "santa rosa", "patrimônio", "daniel fonseca", "osvaldo rezende", "jaraguá", "granada", "novo mundo", "chácaras tubalina", "presidente roosevelt", "mansour", "minas gerais", "são jorge", "laranjeiras", "shopping park"];
+  
+  for (const b of bairros) {
+    if (text.includes(b)) keywords.push(b);
+  }
+  
+  const temas = ["saúde", "educação", "segurança", "trânsito", "transporte", "infraestrutura", "meio ambiente", "cultura", "esporte", "habitação", "emprego", "concurso", "licitação", "obra"];
+  for (const t of temas) {
+    if (text.includes(t)) keywords.push(t);
+  }
+  
+  return keywords.slice(0, 10);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // Validate user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const pages = Math.min(body.pages || 3, 10); // max 10 pages
+    const perPage = 20;
+
+    // Get existing links to avoid duplicates
+    const { data: existingEntries } = await supabase
+      .from("base_conhecimento")
+      .select("link")
+      .eq("fonte", "SOS Uberlândia");
+    const existingLinks = new Set(
+      (existingEntries || []).map((e: any) => e.link).filter(Boolean)
+    );
+
+    let inserted = 0;
+    let skipped = 0;
+    let totalFetched = 0;
+
+    for (let page = 1; page <= pages; page++) {
+      const url = `${WP_API}?per_page=${perPage}&page=${page}&_fields=id,title,content,excerpt,link,date,categories`;
+      
+      console.log(`Fetching page ${page}: ${url}`);
+      
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.log(`Page ${page} returned ${res.status}, stopping.`);
+        break;
+      }
+
+      const posts = await res.json();
+      if (!Array.isArray(posts) || posts.length === 0) break;
+
+      totalFetched += posts.length;
+
+      const toInsert: any[] = [];
+
+      for (const post of posts) {
+        const link = post.link || "";
+        if (existingLinks.has(link)) {
+          skipped++;
+          continue;
+        }
+
+        const titulo = stripHtml(post.title?.rendered || "Sem título");
+        const rawContent = post.content?.rendered || post.excerpt?.rendered || "";
+        const descricao = stripHtml(rawContent).substring(0, 2000);
+        const dataPub = post.date ? new Date(post.date).toISOString() : new Date().toISOString();
+        const palavrasChave = extractKeywords(titulo, descricao);
+
+        // Try to detect bairro from content
+        let bairro: string | null = null;
+        const bairroMatch = descricao.match(/bairro\s+([A-Za-zÀ-ú\s]+?)(?:\.|,|\s{2}|$)/i);
+        if (bairroMatch) bairro = bairroMatch[1].trim().substring(0, 60);
+
+        toInsert.push({
+          titulo,
+          descricao: descricao || null,
+          link: link || null,
+          data_publicacao: dataPub,
+          fonte: "SOS Uberlândia",
+          categoria: "Notícia",
+          palavras_chave: palavrasChave.length > 0 ? palavrasChave : null,
+          bairro,
+          modelo: false,
+        });
+
+        existingLinks.add(link); // prevent duplicates within same batch
+      }
+
+      // Batch insert
+      if (toInsert.length > 0) {
+        const { error } = await supabase.from("base_conhecimento").insert(toInsert);
+        if (!error) {
+          inserted += toInsert.length;
+        } else {
+          console.error("Insert error:", error);
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        totalFetched,
+        inserted,
+        skipped,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error fetching SOS Uberlândia:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
