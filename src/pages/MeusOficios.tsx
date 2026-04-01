@@ -981,7 +981,9 @@ export default function MeusOficios() {
           } else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
             if (correcao) {
               setEditedContent(correcao);
-              handleSaveContent(correcao);
+              editedContentRef.current = correcao;
+              setEditorKey(prev => prev + 1);
+              handleSaveContent();
             }
           }
         }}
