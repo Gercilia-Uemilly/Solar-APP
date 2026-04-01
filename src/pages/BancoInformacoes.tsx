@@ -237,15 +237,15 @@ export default function BancoInformacoes() {
     } finally { setImporting(false); }
   };
 
-  const handleScrapeAll = async () => {
+  const handleScrapeAll = async (pages = 5) => {
     setScraping(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fetch-knowledge", { body: { action: "scrape_all", limit: 100 } });
+      const { data, error } = await supabase.functions.invoke("fetch-sos-uberlandia", { body: { pages } });
       if (error) throw error;
-      toast({ title: "Scraping concluído!", description: `${data.saved} novas notícias.` });
+      toast({ title: "Importação concluída!", description: `${data.inserted} novas notícias importadas (${data.skipped} já existentes).` });
       await fetchEntries();
     } catch (err: any) {
-      toast({ title: "Erro no scraping", description: err.message, variant: "destructive" });
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally { setScraping(false); }
   };
 
@@ -1013,9 +1013,13 @@ export default function BancoInformacoes() {
                   {importing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                   {importing ? "Importando..." : "RSS (Últimas 20)"}
                 </Button>
-                <Button onClick={handleScrapeAll} disabled={importing || scraping} className="gap-2">
+                <Button onClick={() => handleScrapeAll(3)} disabled={importing || scraping} variant="outline" className="gap-2">
                   {scraping ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
-                  {scraping ? "Buscando..." : "Importar Todas (Site)"}
+                  {scraping ? "Buscando..." : "Últimas 60"}
+                </Button>
+                <Button onClick={() => handleScrapeAll(10)} disabled={importing || scraping} className="gap-2">
+                  {scraping ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
+                  {scraping ? "Buscando..." : "Importar Todas (200)"}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Automática a cada 6h.</p>
