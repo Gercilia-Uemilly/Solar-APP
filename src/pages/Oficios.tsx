@@ -80,6 +80,7 @@ export default function Oficios() {
   const [origemOficio, setOrigemOficio] = useState("WhatsApp Gabinete");
   const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
+  const [fechamento, setFechamento] = useState("Atenciosamente,");
   const [userPhones, setUserPhones] = useState<string[]>([]);
   const [profileName, setProfileName] = useState<string>("");
 
