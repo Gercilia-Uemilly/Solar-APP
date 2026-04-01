@@ -661,7 +661,13 @@ export default function MeusOficios() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skel-${i}`}>
+                  {Array.from({ length: 8 }).map((_, j) => (
+                    <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+                  ))}
+                </TableRow>
+              ))
             ) : listaExibida.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
             ) : listaExibida.map(o => (
