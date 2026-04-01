@@ -10,6 +10,17 @@ const MENSAGENS: Record<string, string> = {
   timeout: "Operação demorou muito. Tente novamente.",
   NetworkError: "Sem conexão. Verifique sua internet.",
   "Load failed": "Falha ao carregar. Verifique sua conexão.",
+  Unauthorized: "Sessão expirada. Faça login novamente.",
+  "Not found": "Item não encontrado.",
+  "Internal server error": "Erro no servidor. Tente novamente.",
+  "row-level security": "Sem permissão para esta ação.",
+  "duplicate key": "Este registro já existe.",
+  "rate limit": "Muitas tentativas. Aguarde 1 minuto.",
+  "429": "Muitas requisições. Aguarde 1 minuto.",
+  "invalid_grant": "Sessão Google expirada. Reconecte nas Configurações.",
+  "PGRST": "Erro ao acessar os dados. Tente novamente.",
+  "AbortError": "Operação cancelada.",
+  "TypeError": "Erro de conexão. Verifique sua internet.",
 };
 
 /**
