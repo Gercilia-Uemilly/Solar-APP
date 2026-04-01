@@ -241,7 +241,7 @@ export default function BancoInformacoes() {
   const filteredScripts = useMemo(() => {
     return scripts.filter(s => {
       if (scriptCatFilter === "Favoritos" && !s.favorito) return false;
-      if (scriptCatFilter !== "Todas" && scriptCatFilter !== "Favoritos" && s.categoria !== scriptCatFilter) return false;
+      if (scriptCatFilter !== "Todas" && scriptCatFilter !== "Favoritos" && s.categoria.toUpperCase() !== scriptCatFilter.toUpperCase()) return false;
       if (scriptSearch) {
         const q = scriptSearch.toLowerCase();
         return s.titulo.toLowerCase().includes(q) || s.conteudo.toLowerCase().includes(q) || s.tags?.some(t => t.toLowerCase().includes(q));
