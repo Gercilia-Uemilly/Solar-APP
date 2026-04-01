@@ -70,6 +70,27 @@ function buildDownloadName(entry: KnowledgeEntry): string {
   return `${date}_${slug}_${origem}.${ext}`;
 }
 
+/** Category color mapping for script cards */
+function getCategoryColor(cat: string): string {
+  const colors: Record<string, string> = {
+    "ANIMAIS": "bg-amber-500",
+    "SAÚDE": "bg-red-500",
+    "JURÍDICO": "bg-indigo-500",
+    "EDUCAÇÃO": "bg-blue-500",
+    "EMPREGO": "bg-emerald-500",
+    "SOCIAL": "bg-violet-500",
+    "TRANSPORTE": "bg-cyan-500",
+    "DMAE e CEMIG": "bg-orange-500",
+    "CASAS POPULARES": "bg-rose-500",
+    "ESPORTE": "bg-lime-500",
+    "MEIO AMBIENTE": "bg-green-600",
+    "REQUERIMENTOS": "bg-slate-500",
+    "PEDIDOS DE AJUDA": "bg-pink-500",
+    "ARQUIVOS TEMPORÁRIOS": "bg-gray-500",
+  };
+  return colors[cat.toUpperCase()] || colors[cat] || "bg-primary";
+}
+
 /** Build WhatsApp message for audio sharing */
 function buildWhatsAppAudioMessage(entry: KnowledgeEntry): string {
   const title = entry.titulo.replace(/🎤\s*/g, "");
