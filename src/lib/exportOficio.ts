@@ -70,6 +70,7 @@ export interface OficioData {
   contatoSolicitante?: string;
   origem?: string;
   descricaoAnexos?: string;
+  fechamento?: string;
   oficioId?: string;
   formatOptions?: {
     fontSize?: number;
