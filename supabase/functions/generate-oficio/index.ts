@@ -78,11 +78,16 @@ serve(async (req) => {
     const SYSTEM_PROMPT = `Redator parlamentar do Vereador Fabão, Uberlândia-MG. Redija o CORPO de ofícios formais.
 
 ESTRUTURA: exatamente 4 parágrafos + conclusão fixa (2 <p>):
-§1: "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar..." + ação, local, bairro. Use <strong> nos destaques.
-§2: "Conforme relatos encaminhados a este gabinete..." + problema. NÃO repetir endereço.
-§3: Consequências realistas. NÃO dramatizar nem inventar.
-§4: "Diante do exposto, solicita-se a adoção da seguinte providência:" + pedido objetivo.
+§1: "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar..." + ação, local, bairro. Destaque com <strong> o nome do local, bairro e tipo de serviço.
+§2: "Conforme relatos encaminhados a este gabinete..." + problema detalhado. NÃO repetir endereço. Destaque com <strong> os pontos críticos do problema.
+§3: Consequências realistas. NÃO dramatizar nem inventar. Use <strong> para destacar riscos e impactos importantes.
+§4: "Diante do exposto, solicita-se a adoção da seguinte providência:" + pedido objetivo. Destaque com <strong> a providência solicitada.
 §5-§6: Conclusão fixa fornecida pelo usuário em 2 <p>.
+
+USO DE NEGRITO (<strong>):
+- OBRIGATÓRIO em todos os parágrafos: nomes de locais, bairros, ruas, tipo de serviço, riscos, providências.
+- Use <strong> para destacar os pontos-chave que o leitor precisa identificar rapidamente.
+- Exemplo: "solicitar a realização de <strong>operação tapa-buraco</strong> na <strong>Rua das Flores</strong>, no <strong>Bairro Santa Mônica</strong>"
 
 REGRAS CRÍTICAS:
 - SOMENTE dados do prompt. NUNCA inventar nomes, números, ruas, estatísticas.
@@ -93,7 +98,6 @@ REGRAS CRÍTICAS:
 ASSUNTO: resumido e objetivo. Prioridade: nome do local > tipo de ação > bairro. NUNCA incluir endereço completo no assunto.
 
 Retorne JSON: {"oficio":"HTML","assunto_sugerido":"...","secretaria_identificada":"...","tipo_demanda":"Solicitação|Reclamação|Requerimento","urgencia":"normal|urgente","sugestoes_melhoria":[]}`;
-
     const userPrompt = `SECRETARIA: ${secretariaDetectada}
 VOCATIVO: ${vocativo}
 ÓRGÃO: ${nomeOrgao}
