@@ -1531,21 +1531,24 @@ export default function Oficios() {
                 <Button size="sm" variant="outline" onClick={salvarComoModelo} title="Salvar como modelo reutilizável">
                   <BookOpen size={14} className="mr-1" /> Salvar Modelo
                 </Button>
-                <Button size="sm" variant="outline" onClick={async () => {
+                <Button size="sm" variant="outline" disabled={isExportingWord} onClick={async () => {
                   if (!editedOficio) {
                     toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de exportar." });
                   }
                   if (!destinatario && !cargoDestinatario) {
                     toast({ title: "⚠️ Destinatário não preenchido" });
                   }
-                  const formData = await withSavedAttachments(await buildFormExportData());
+                  setIsExportingWord(true);
                   try {
+                    const formData = await withSavedAttachments(await buildFormExportData());
                     await exportToWord(formData);
                   } catch (e: any) {
                     toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
+                  } finally {
+                    setIsExportingWord(false);
                   }
                 }}>
-                  <FileText size={14} className="mr-1" /> Word
+                  {isExportingWord ? <Loader2 size={14} className="mr-1 animate-spin" /> : <FileText size={14} className="mr-1" />} Word
                 </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!editedOficio) {
