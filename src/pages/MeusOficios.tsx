@@ -978,6 +978,11 @@ export default function MeusOficios() {
             handleInlineFieldChange("destinatario", correcao);
           } else if (campo === "vocativo" || campo === "cargo_destinatario") {
             handleInlineFieldChange("cargo_destinatario", correcao);
+          } else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
+            if (correcao) {
+              setEditedContent(correcao);
+              handleSaveContent(correcao);
+            }
           }
         }}
         onCorrigirTudo={() => {
