@@ -778,6 +778,8 @@ export default function Oficios() {
     toast({ title: `${label} copiado!` });
   };
 
+  const [isExportingWord, setIsExportingWord] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleUploadToDrive = async (oficio: OficioRow) => {
