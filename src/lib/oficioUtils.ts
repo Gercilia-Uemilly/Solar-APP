@@ -15,87 +15,87 @@ export interface SecretariaConfig {
 export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
   // ═══ SECRETARIAS MUNICIPAIS ═══
   'Administração': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Administração',
+    destinatario: 'Secretário(a) Municipal de Administração',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Agronegócio': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Agronegócio',
+    destinatario: 'Secretário(a) Municipal de Agronegócio',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Comunicação': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Comunicação',
+    destinatario: 'Secretário(a) Municipal de Comunicação',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Controladoria-Geral do Município': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Controladoria-Geral do Município',
+    destinatario: 'Secretário(a) Municipal de Controladoria-Geral do Município',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Cultura e Turismo': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Cultura e Turismo',
+    destinatario: 'Secretário(a) Municipal de Cultura e Turismo',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Desenvolvimento Econômico e Inovação': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Desenvolvimento Econômico e Inovação',
+    destinatario: 'Secretário(a) Municipal de Desenvolvimento Econômico e Inovação',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Desenvolvimento Social': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Desenvolvimento Social',
+    destinatario: 'Secretário(a) Municipal de Desenvolvimento Social',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Educação': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Educação',
+    destinatario: 'Secretário(a) Municipal de Educação',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Finanças': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Finanças',
+    destinatario: 'Secretário(a) Municipal de Finanças',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Gestão Ambiental e Sustentabilidade': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Gestão Ambiental e Sustentabilidade',
+    destinatario: 'Secretário(a) Municipal de Gestão Ambiental e Sustentabilidade',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Gestão Estratégica': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Gestão Estratégica',
+    destinatario: 'Secretário(a) Municipal de Gestão Estratégica',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Governo': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Governo',
+    destinatario: 'Secretário(a) Municipal de Governo',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Habitação': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Habitação',
+    destinatario: 'Secretário(a) Municipal de Habitação',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Infraestrutura': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Infraestrutura',
+    destinatario: 'Secretário(a) Municipal de Infraestrutura',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Juventude': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Juventude',
+    destinatario: 'Secretário(a) Municipal de Juventude',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Planejamento Urbano': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Planejamento Urbano',
+    destinatario: 'Secretário(a) Municipal de Planejamento Urbano',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Procuradoria-Geral do Município': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Procuradoria-Geral do Município',
+    destinatario: 'Secretário(a) Municipal de Procuradoria-Geral do Município',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Saúde': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Saúde',
+    destinatario: 'Secretário(a) Municipal de Saúde',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Segurança Integrada': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Segurança Integrada',
+    destinatario: 'Secretário(a) Municipal de Segurança Integrada',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Serviços Urbanos': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Serviços Urbanos',
+    destinatario: 'Secretário(a) Municipal de Serviços Urbanos',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
   'Trânsito e Transportes (SETTRAN)': {
-    destinatario: 'Ilmo(a). Sr(a). Secretário(a) de Trânsito e Transportes',
+    destinatario: 'Secretário(a) Municipal de Trânsito e Transportes',
     vocativo: 'Excelentíssimo(a) Senhor(a) Secretário(a),'
   },
 
@@ -137,7 +137,7 @@ export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
     vocativo: 'Excelentíssimo(a) Senhor(a) Superintendente,'
   },
   'HC/UFU': {
-    destinatario: 'Ilmo(a). Sr(a). Diretor(a) e Superintendente do Hospital de Clínicas da Universidade Federal de Uberlândia (HC/UFU)',
+    destinatario: 'Diretor(a) e Superintendente do Hospital de Clínicas da Universidade Federal de Uberlândia (HC/UFU)',
     vocativo: 'Prezados(as) Senhores(as),'
   },
   'DER-MG': {
@@ -185,7 +185,7 @@ export const LISTA_SECRETARIAS = Object.keys(SECRETARIAS_CONFIG);
 /** Get destinatario string for a secretaria key */
 export const getDestinatario = (secretaria: string): string => {
   return SECRETARIAS_CONFIG[secretaria]?.destinatario ||
-    `Ilmo(a). Sr(a). Secretário(a) de ${secretaria}`;
+    `Secretário(a) Municipal de ${secretaria}`;
 };
 
 /** Get vocativo string for a secretaria key */
