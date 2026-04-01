@@ -32,6 +32,8 @@ interface Props {
   onCargoDestinatarioChange?: (val: string) => void;
   onNumeroChange?: (val: string) => void;
   onDataChange?: (val: string) => void;
+  fechamento?: string;
+  onFechamentoChange?: (val: string) => void;
   onIncreaseFontSize?: () => void;
   onDecreaseFontSize?: () => void;
   dataGeracao?: string;
@@ -71,7 +73,7 @@ function ImageGrid({ urls }: { urls: string[] }) {
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, onIncreaseFontSize, onDecreaseFontSize, dataGeracao, initialConteudo, anexoImageUrls, anexoDocuments }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, fechamento, onFechamentoChange, onIncreaseFontSize, onDecreaseFontSize, dataGeracao, initialConteudo, anexoImageUrls, anexoDocuments }, ref) => {
     const rawFmt = formatOptions || defaultFormatOptions;
     const fmt = useMemo(() => ({
       ...rawFmt,
@@ -271,7 +273,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* ATENCIOSAMENTE */}
         <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt", lineHeight: "1.5" }}>
-          Atenciosamente,
+          {!isHidden && editable && onFechamentoChange ? (
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onFechamentoChange(e.currentTarget.textContent || "")}>
+              {fechamento || "Atenciosamente,"}
+            </span>
+          ) : (
+            <>{fechamento || "Atenciosamente,"}</>
+          )}
         </p>
 
         {/* BLOCO ASSINATURA */}

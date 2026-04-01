@@ -951,6 +951,7 @@ export default function MeusOficios() {
                 onAssuntoChange={(val) => handleInlineFieldChange("assunto", val)}
                 onCargoDestinatarioChange={(val) => handleInlineFieldChange("cargo_destinatario", val)}
                 onDataChange={undefined}
+                onFechamentoChange={(val) => handleInlineFieldChange("fechamento_text", val)}
                 onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
                 onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
                 initialConteudo={originalContent}

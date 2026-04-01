@@ -14,6 +14,7 @@ interface PrintData {
   operadorEmail?: string;
   telefone?: string;
   secretaria?: string;
+  fechamento?: string;
 }
 
 import { cleanNumero, getDestinatario, getVocativo } from "@/lib/oficioUtils";
@@ -189,7 +190,7 @@ export async function printOficio(data: PrintData) {
 
     <div class="corpo">${bodyHtml}</div>
 
-    <p class="fechamento">Atenciosamente,</p>
+    <p class="fechamento">${data.fechamento || "Atenciosamente,"}</p>
 
     <div class="assinatura">
       <img src="${assinaturaB64}" alt="Assinatura" />

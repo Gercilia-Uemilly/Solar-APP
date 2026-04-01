@@ -80,6 +80,7 @@ export default function Oficios() {
   const [origemOficio, setOrigemOficio] = useState("WhatsApp Gabinete");
   const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
+  const [fechamento, setFechamento] = useState("Atenciosamente,");
   const [userPhones, setUserPhones] = useState<string[]>([]);
   const [profileName, setProfileName] = useState<string>("");
 
@@ -1034,6 +1035,7 @@ export default function Oficios() {
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
     formatOptions,
+    fechamento: fechamento !== "Atenciosamente," ? fechamento : undefined,
     descricaoAnexos: descricaoAnexos || undefined,
     imagens: await getImageFilesFromAnexos(),
   });
@@ -1637,6 +1639,8 @@ export default function Oficios() {
                   anexoDocuments={previewDocumentAnexos}
                   bairro={assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro)}
                   formatOptions={formatOptions}
+                  fechamento={fechamento}
+                  onFechamentoChange={setFechamento}
                 />
               </div>
             </TabsContent>
