@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOficios } from "@/hooks/useOficios";
 import OficioPreview from "@/components/OficioPreview";
-import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, fetchSavedImages, buildMergedPdfBlob, buildWordBlobForExport, buildFileName, type OficioData } from "@/lib/exportOficio";
 import { registrarAuditoria } from "@/lib/auditLog";
 import { enqueueExport } from "@/lib/exportQueue";
 import { comprimirImagem } from "@/lib/imageCompression";
