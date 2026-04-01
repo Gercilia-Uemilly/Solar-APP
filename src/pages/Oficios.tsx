@@ -1744,10 +1744,9 @@ export default function Oficios() {
           else if (campo === "destinatario") setDestinatario(correcao);
           else if (campo === "vocativo") setCargoDestinatario(correcao);
           else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
-            // Apply text correction to the editor content
-            if (editedOficio) {
-              const updated = editedOficio;
-              setEditedOficio(updated.includes(correcao) ? updated : updated + correcao);
+            // Replace the editor content with the corrected version
+            if (correcao) {
+              setEditedOficio(correcao);
             }
           }
           // Persist correction to database
@@ -1769,6 +1768,9 @@ export default function Oficios() {
             if (erro.campo === "assunto") setAssunto(erro.correcao);
             else if (erro.campo === "destinatario") setDestinatario(erro.correcao);
             else if (erro.campo === "vocativo") setCargoDestinatario(erro.correcao);
+            else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
+              setEditedOficio(erro.correcao);
+            }
           }
           // Persist all corrections
           if (editingOficioId && revisaoResult.erros) {

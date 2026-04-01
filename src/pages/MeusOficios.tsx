@@ -978,6 +978,13 @@ export default function MeusOficios() {
             handleInlineFieldChange("destinatario", correcao);
           } else if (campo === "vocativo" || campo === "cargo_destinatario") {
             handleInlineFieldChange("cargo_destinatario", correcao);
+          } else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
+            if (correcao) {
+              setEditedContent(correcao);
+              editedContentRef.current = correcao;
+              setEditorKey(prev => prev + 1);
+              handleSaveContent();
+            }
           }
         }}
         onCorrigirTudo={() => {
@@ -987,6 +994,11 @@ export default function MeusOficios() {
             if (erro.campo === "assunto") handleInlineFieldChange("assunto", erro.correcao);
             else if (erro.campo === "destinatario") handleInlineFieldChange("destinatario", erro.correcao);
             else if (erro.campo === "vocativo") handleInlineFieldChange("cargo_destinatario", erro.correcao);
+            else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
+              setEditedContent(erro.correcao);
+              editedContentRef.current = erro.correcao;
+              setEditorKey(prev => prev + 1);
+            }
           }
           toast({ title: "✅ Correções aplicadas!" });
         }}
