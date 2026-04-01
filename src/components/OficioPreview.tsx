@@ -32,6 +32,8 @@ interface Props {
   onCargoDestinatarioChange?: (val: string) => void;
   onNumeroChange?: (val: string) => void;
   onDataChange?: (val: string) => void;
+  fechamento?: string;
+  onFechamentoChange?: (val: string) => void;
   onIncreaseFontSize?: () => void;
   onDecreaseFontSize?: () => void;
   dataGeracao?: string;
