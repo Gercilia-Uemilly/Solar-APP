@@ -237,15 +237,15 @@ export default function BancoInformacoes() {
     } finally { setImporting(false); }
   };
 
-  const handleScrapeAll = async () => {
+  const handleScrapeAll = async (pages = 5) => {
     setScraping(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fetch-knowledge", { body: { action: "scrape_all", limit: 100 } });
+      const { data, error } = await supabase.functions.invoke("fetch-sos-uberlandia", { body: { pages } });
       if (error) throw error;
-      toast({ title: "Scraping concluído!", description: `${data.saved} novas notícias.` });
+      toast({ title: "Importação concluída!", description: `${data.inserted} novas notícias importadas (${data.skipped} já existentes).` });
       await fetchEntries();
     } catch (err: any) {
-      toast({ title: "Erro no scraping", description: err.message, variant: "destructive" });
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally { setScraping(false); }
   };
 
