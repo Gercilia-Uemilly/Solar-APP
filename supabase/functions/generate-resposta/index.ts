@@ -12,7 +12,6 @@ const cleanQuotedResponse = (text: string) => {
   if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("\u201c") && t.endsWith("\u201d"))) {
     t = t.slice(1, -1).trim();
   }
-  // Remove prefixos de IA
   t = t.replace(/^(Resposta:?\s*|Sugestão:?\s*)/i, "").trim();
   return t;
 };
@@ -20,7 +19,12 @@ const cleanQuotedResponse = (text: string) => {
 const scoreRelevance = (text: string, keywords: string[]): number => {
   if (!text) return 0;
   const lower = text.toLowerCase();
-  return keywords.reduce((score, kw) => score + (lower.includes(kw) ? 1 : 0), 0);
+  return keywords.reduce((score, kw) => {
+    if (!lower.includes(kw)) return score;
+    if (kw.length > 6) return score + 3;
+    if (kw.length > 4) return score + 2;
+    return score + 1;
+  }, 0);
 };
 
 serve(async (req) => {
@@ -47,9 +51,9 @@ serve(async (req) => {
 
     const { numero, assunto, destinatario, descricao, solicitante, bairro, local, secretaria, tipo_demanda, urgencia } = await req.json();
 
-    // Palavras-chave da demanda para ranquear relevância
+    // Palavras-chave da demanda para ranquear relevância (filtro > 2 letras)
     const demandaText = `${assunto || ""} ${descricao || ""} ${bairro || ""} ${local || ""} ${secretaria || ""} ${tipo_demanda || ""}`.toLowerCase();
-    const keywords = demandaText.split(/\s+/).filter(w => w.length > 3);
+    const keywords = demandaText.split(/\s+/).filter(w => w.length > 2);
 
     // ═══ Buscar dados em paralelo ═══
     const [scriptsRes, baseInfoRes, respostasRes, conversasRes] = await Promise.all([
@@ -87,12 +91,12 @@ serve(async (req) => {
     const contextoInterno = `
 ═══ SCRIPTS DO GABINETE (FONTE PRIMÁRIA — use como base!) ═══
 ${topScripts.length > 0
-  ? topScripts.map(s => `[${s.categoria}] ${s.titulo} (relevância: ${s.score}):\n${s.conteudo?.substring(0, 400)}`).join("\n---\n")
+  ? topScripts.map(s => `[${s.categoria}] ${s.titulo} (relevância: ${s.score}):\n${s.conteudo?.substring(0, 800)}`).join("\n---\n")
   : "Nenhum script cadastrado."}
 
 ═══ RESPOSTAS JÁ ENVIADAS PELO GABINETE (copie o tom e estilo!) ═══
 ${topRespostas.length > 0
-  ? topRespostas.map(r => `[${r.secretaria_identificada || "Geral"}] Assunto: ${r.assunto}\n${r.resposta_cidadao?.substring(0, 300)}`).join("\n---\n")
+  ? topRespostas.map(r => `[${r.secretaria_identificada || "Geral"}] Assunto: ${r.assunto}\n${r.resposta_cidadao?.substring(0, 500)}`).join("\n---\n")
   : "Nenhuma resposta anterior."}
 
 ═══ MENSAGENS REAIS DO WHATSAPP DO FABÃO (referência de tom de voz) ═══
@@ -150,6 +154,9 @@ Exemplo — Saúde:
 Sei como é difícil essa situação com saúde, viu? Já entrei em contato com a Secretaria de Saúde pedindo prioridade no seu caso.
 Estou de olho e te passo retorno assim que tiver resposta. Conta comigo! 💪"
 
+═══ USO DOS SCRIPTS ═══
+Se houver script com relevância maior que zero no material interno, extraia as informações concretas dele — como links, nomes de secretaria, procedimentos e telefones — e incorpore naturalmente na resposta como se o Fabão soubesse de cabeça, sem nunca citar que está usando um script ou material interno. As informações do script devem aparecer como conhecimento natural do Fabão.
+
 ═══ PROIBIDO ═══
 - "Prezado(a)", "Vossa Senhoria", "Venho por meio deste"
 - "Comunicamos", "Informamos", "Em atenção ao seu contato"
@@ -191,9 +198,9 @@ Gere a resposta como o Fabão responderia no WhatsApp. Use os scripts e resposta
         "Authorization": `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        max_tokens: 600,
-        temperature: 0.5,
+        model: "gpt-4o",
+        max_tokens: 700,
+        temperature: 0.75,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
