@@ -185,7 +185,7 @@ export const LISTA_SECRETARIAS = Object.keys(SECRETARIAS_CONFIG);
 /** Get destinatario string for a secretaria key */
 export const getDestinatario = (secretaria: string): string => {
   return SECRETARIAS_CONFIG[secretaria]?.destinatario ||
-    `Ilmo(a). Sr(a). Secretário(a) de ${secretaria}`;
+    `Secretário(a) Municipal de ${secretaria}`;
 };
 
 /** Get vocativo string for a secretaria key */
