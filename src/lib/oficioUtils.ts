@@ -137,7 +137,7 @@ export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
     vocativo: 'Excelentíssimo(a) Senhor(a) Superintendente,'
   },
   'HC/UFU': {
-    destinatario: 'Ilmo(a). Sr(a). Diretor(a) e Superintendente do Hospital de Clínicas da Universidade Federal de Uberlândia (HC/UFU)',
+    destinatario: 'Diretor(a) e Superintendente do Hospital de Clínicas da Universidade Federal de Uberlândia (HC/UFU)',
     vocativo: 'Prezados(as) Senhores(as),'
   },
   'DER-MG': {
