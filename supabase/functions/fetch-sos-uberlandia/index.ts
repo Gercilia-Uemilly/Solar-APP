@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const pages = Math.min(body.pages || 3, 10); // max 10 pages
+    const pages = Math.min(body.pages || 3, 50); // max 50 pages (1000 posts)
     const perPage = 20;
 
     // Get existing links to avoid duplicates
