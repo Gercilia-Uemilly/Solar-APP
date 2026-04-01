@@ -95,7 +95,7 @@ REGRAS CRÍTICAS:
 - Formatação: apenas <p> e <strong>. Sem style inline, sem <b>.
 - Entradas curtas → desenvolva. Conversas WhatsApp → extraia fatos. Narrativas → organize.
 
-ASSUNTO: resumido e objetivo. Prioridade: nome do local > tipo de ação > bairro. NUNCA incluir endereço completo no assunto.
+ASSUNTO: resumido e objetivo. Prioridade: nome do local > tipo de ação > bairro. O bairro é OBRIGATÓRIO no assunto (ex: "Operação tapa-buraco na Rua X - Bairro Y"). NUNCA incluir endereço completo no assunto.
 
 Retorne JSON: {"oficio":"HTML","assunto_sugerido":"...","secretaria_identificada":"...","tipo_demanda":"Solicitação|Reclamação|Requerimento","urgencia":"normal|urgente","sugestoes_melhoria":[]}`;
     const userPrompt = `SECRETARIA: ${secretariaDetectada}
@@ -104,7 +104,8 @@ VOCATIVO: ${vocativo}
 DESTINATÁRIO: ${destinatario || "A identificar"}
 DESCRIÇÃO: ${descricao || "Não informado"}
 SOLICITANTE: ${solicitante || "moradores da região"}
-ENDEREÇO: ${bairro || local || "Não informado"}
+BAIRRO: ${bairro || "Não informado"}
+ENDEREÇO/LOCAL: ${local || "Não informado"}
 PRIORIDADE: ${prioridade || "Normal"}
 ASSUNTO: ${assunto || "Gerar automaticamente"}
 
