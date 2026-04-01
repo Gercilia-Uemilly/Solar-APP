@@ -694,7 +694,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         // Atenciosamente + assinatura sempre juntos
         new Paragraph({
           indent: { firstLine: 709 },
-          children: [new TextRun({ text: "Atenciosamente,", font: defaultFontName, size: defaultFontSize })],
+          children: [new TextRun({ text: data.fechamento || "Atenciosamente,", font: defaultFontName, size: defaultFontSize })],
           spacing: { before: 180, after: 180, line: lineSpacing },
           keepNext: true,
           keepLines: true,

@@ -190,7 +190,7 @@ export async function printOficio(data: PrintData) {
 
     <div class="corpo">${bodyHtml}</div>
 
-    <p class="fechamento">Atenciosamente,</p>
+    <p class="fechamento">${data.fechamento || "Atenciosamente,"}</p>
 
     <div class="assinatura">
       <img src="${assinaturaB64}" alt="Assinatura" />
