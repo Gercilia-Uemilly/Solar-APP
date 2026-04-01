@@ -208,38 +208,59 @@ export default function ScriptsPage() {
         ))}
       </div>
 
-      {/* Scripts List */}
-      <div className="space-y-4">
+      {/* Scripts List - Grouped by Category */}
+      <div className="space-y-6">
         {loading ? (
           <p className="text-center text-muted-foreground py-8"><Loader2 className="inline animate-spin mr-2" size={16} />Carregando...</p>
         ) : filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum script encontrado.</p>
-        ) : filtered.map((s) => (
-          <div key={s.id} className="bg-card rounded-xl p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleToggleFav(s.id)} className={`${s.favorito ? "text-yellow-500" : "text-muted-foreground"} hover:text-yellow-500`}>
-                  <Star size={16} fill={s.favorito ? "currentColor" : "none"} />
-                </button>
-                <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary font-medium">{s.categoria}</span>
-                <span className="text-sm font-semibold text-foreground">{s.titulo}</span>
+        ) : (() => {
+          const grouped = filtered.reduce<Record<string, ScriptRow[]>>((acc, s) => {
+            const cat = s.categoria || "Outros";
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(s);
+            return acc;
+          }, {});
+          const sortedCats = Object.keys(grouped).sort();
+          return sortedCats.map((cat) => (
+            <div key={cat} className="space-y-2">
+              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2 border-b border-border">
+                <h2 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  {cat}
+                  <span className="text-xs font-normal text-muted-foreground">({grouped[cat].length})</span>
+                </h2>
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => handleCopy(s.conteudo)} className="p-2 text-muted-foreground hover:text-foreground"><Copy size={14} /></button>
-                <button onClick={() => handleEdit(s)} className="p-2 text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
-                <button onClick={() => handleDelete(s.id)} className="p-2 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
-              </div>
-            </div>
-            <p className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed line-clamp-6">{s.conteudo}</p>
-            {s.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-3">
-                {s.tags.map((tag) => (
-                  <span key={tag} className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground">{tag}</span>
+              <div className="space-y-2">
+                {grouped[cat].map((s) => (
+                  <div key={s.id} className="bg-card rounded-lg p-4 border border-border/50 hover:border-primary/30 transition-colors">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <button onClick={() => handleToggleFav(s.id)} className={`shrink-0 ${s.favorito ? "text-yellow-500" : "text-muted-foreground"} hover:text-yellow-500`}>
+                          <Star size={14} fill={s.favorito ? "currentColor" : "none"} />
+                        </button>
+                        <span className="text-sm font-medium text-foreground truncate">{s.titulo}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button onClick={() => handleCopy(s.conteudo)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Copiar"><Copy size={13} /></button>
+                        <button onClick={() => handleEdit(s)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={13} /></button>
+                        <button onClick={() => handleDelete(s.id)} className="p-1.5 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={13} /></button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-foreground/70 whitespace-pre-line leading-relaxed line-clamp-4 ml-6">{s.conteudo}</p>
+                    {s.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2 ml-6">
+                        {s.tags.map((tag) => (
+                          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          ));
+        })()}
       </div>
 
       {/* Dialog - Manual */}
