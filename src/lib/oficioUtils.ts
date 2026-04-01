@@ -183,24 +183,36 @@ export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
 export const LISTA_SECRETARIAS = Object.keys(SECRETARIAS_CONFIG);
 
 /** Get destinatario string for a secretaria key */
+const normalizeSecretariaNome = (secretaria: string): string => {
+  return secretaria
+    .replace(/^Ilmo\(a\)\.\s*Sr\(a\)\.\s*/i, "")
+    .replace(/^Secret[aá]rio\(a\)\s+Municipal\s+de\s+/i, "")
+    .replace(/^Secretaria\s+Municipal\s+de\s+/i, "")
+    .trim();
+};
+
 export const getDestinatario = (secretaria: string): string => {
+  const normalized = normalizeSecretariaNome(secretaria);
   return SECRETARIAS_CONFIG[secretaria]?.destinatario ||
-    `Ilmo(a). Sr(a). Secretário(a) Municipal de ${secretaria}`;
+    SECRETARIAS_CONFIG[normalized]?.destinatario ||
+    `Ilmo(a). Sr(a). Secretário(a) Municipal de ${normalized}`;
 };
 
 /** Get vocativo string for a secretaria key */
 export const getVocativo = (secretaria: string): string => {
   return SECRETARIAS_CONFIG[secretaria]?.vocativo ||
+    SECRETARIAS_CONFIG[normalizeSecretariaNome(secretaria)]?.vocativo ||
     'Excelentíssimo(a) Senhor(a) Secretário(a),';
 };
 
 /** Extract the organ name from a secretaria key (for AI conclusion text) */
 export const getNomeOrgao = (secretaria: string): string => {
-  const dest = SECRETARIAS_CONFIG[secretaria]?.destinatario || '';
+  const normalized = normalizeSecretariaNome(secretaria);
+  const dest = SECRETARIAS_CONFIG[secretaria]?.destinatario || SECRETARIAS_CONFIG[normalized]?.destinatario || '';
   if (dest.includes('Municipal de ')) {
     return 'Secretaria Municipal de ' + dest.split('Municipal de ')[1];
   }
-  return secretaria;
+  return normalized;
 };
 
 // ═══════════════════════════════════════════════════════════
