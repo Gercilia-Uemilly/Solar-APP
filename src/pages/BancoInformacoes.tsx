@@ -1013,9 +1013,13 @@ export default function BancoInformacoes() {
                   {importing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                   {importing ? "Importando..." : "RSS (Últimas 20)"}
                 </Button>
-                <Button onClick={handleScrapeAll} disabled={importing || scraping} className="gap-2">
+                <Button onClick={() => handleScrapeAll(3)} disabled={importing || scraping} variant="outline" className="gap-2">
                   {scraping ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
-                  {scraping ? "Buscando..." : "Importar Todas (Site)"}
+                  {scraping ? "Buscando..." : "Últimas 60"}
+                </Button>
+                <Button onClick={() => handleScrapeAll(10)} disabled={importing || scraping} className="gap-2">
+                  {scraping ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
+                  {scraping ? "Buscando..." : "Importar Todas (200)"}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Automática a cada 6h.</p>
