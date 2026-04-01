@@ -114,8 +114,8 @@ export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
   const body: any = {
     model: mapModel(opts.model),
     messages: openaiMessages,
-    temperature: 1,
-    max_tokens: 8192,
+    temperature: 0.7,
+    max_tokens: 3000,
   };
 
   const convertedTools = convertTools(opts.tools);
