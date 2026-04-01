@@ -152,6 +152,8 @@ export default function BancoInformacoes() {
   const [aiScriptGenerating, setAiScriptGenerating] = useState(false);
   const [aiScriptResult, setAiScriptResult] = useState<any>(null);
   const [showAIScriptDialog, setShowAIScriptDialog] = useState(false);
+  const [expandedScriptId, setExpandedScriptId] = useState<string | null>(null);
+  const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null);
 
   // ─── Derived data ───
   const fontes = useMemo(() => {
