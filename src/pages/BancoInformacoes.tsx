@@ -530,6 +530,13 @@ export default function BancoInformacoes() {
     setSFormTags(s.tags?.join(", ") || ""); setSEditingId(s.id); setShowScriptDialog(true);
   };
 
+  const handleScriptCopyWithFeedback = useCallback((id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedScriptId(id);
+    toast({ title: "Copiado!", description: "Script copiado para a área de transferência." });
+    setTimeout(() => setCopiedScriptId(null), 2000);
+  }, [toast]);
+
   const handleScriptCopy = (text: string) => { navigator.clipboard.writeText(text); toast({ title: "Copiado!" }); };
 
   const handleScriptToggleFav = async (s: ScriptRow) => {
