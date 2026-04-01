@@ -91,22 +91,30 @@ function getCategoryColor(cat: string): string {
   return colors[cat.toUpperCase()] || colors[cat] || "bg-primary";
 }
 
-/** Build WhatsApp message for audio sharing */
-function buildWhatsAppAudioMessage(entry: KnowledgeEntry): string {
-  const title = entry.titulo.replace(/🎤\s*/g, "");
-  return `🎤 Áudio do Vereador Fabão: ${entry.link || ""}`;
-}
+/** Download audio and open WhatsApp for manual attachment */
+function downloadAndOpenWhatsApp(entry: KnowledgeEntry, phoneNumber?: string | null, showToast?: () => void) {
+  // 1. Download the audio file
+  if (entry.link) {
+    const a = document.createElement("a");
+    a.href = entry.link;
+    a.download = entry.titulo.replace(/[^\w\s.-]/g, "").trim() + ".mp3";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 
-/** Open WhatsApp with audio message, optionally directed to a phone number */
-function openWhatsAppWithAudio(entry: KnowledgeEntry, phoneNumber?: string | null) {
-  const message = encodeURIComponent(buildWhatsAppAudioMessage(entry));
+  // 2. Open WhatsApp
   if (phoneNumber) {
     const cleanPhone = phoneNumber.replace(/\D/g, "");
     const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-    window.open(`https://wa.me/${fullPhone}?text=${message}`, "_blank");
+    window.open(`https://wa.me/${fullPhone}`, "_blank");
   } else {
-    window.open(`https://wa.me/?text=${message}`, "_blank");
+    window.open(`https://web.whatsapp.com`, "_blank");
   }
+
+  // 3. Show instruction toast
+  showToast?.();
 }
 
 export default function BancoInformacoes() {
