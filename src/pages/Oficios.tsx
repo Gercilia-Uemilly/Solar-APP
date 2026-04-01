@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOficios } from "@/hooks/useOficios";
 import OficioPreview from "@/components/OficioPreview";
-import { exportToWord, exportToPDF, fetchSavedImages, type OficioData } from "@/lib/exportOficio";
+import { exportToWord, exportToPDF, fetchSavedImages, buildMergedPdfBlob, buildWordBlobForExport, buildFileName, type OficioData } from "@/lib/exportOficio";
 import { registrarAuditoria } from "@/lib/auditLog";
 import { enqueueExport } from "@/lib/exportQueue";
 import { comprimirImagem } from "@/lib/imageCompression";
@@ -798,39 +798,26 @@ export default function Oficios() {
 
       const authToken = accessToken;
       const imgs = await fetchSavedImages(oficio.id);
-      const wordBlob = await exportToWord({
-        ...buildExportData(oficio),
-        conteudo: oficio.conteudo || "",
-        imagens: imgs.length > 0 ? imgs : (await getImageFilesFromAnexos()),
-      });
-      // Build file name: [numero]-[ano] [solicitante_code]
-      const cleanedNum = (oficio.numero || "rascunho").replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
-      const solicitanteCode = (oficio.solicitante || "").trim().split(/\s+/)[0] || "";
-      const baseFileName = solicitanteCode ? `${cleanedNum} ${solicitanteCode}` : cleanedNum;
+      const data = buildExportData(oficio);
+      const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
-      const convertFormData = new FormData();
-      convertFormData.append("file", wordBlob, `${cleanedNum}.docx`);
-      const convertResp = await fetch(`${supabaseUrl}/functions/v1/convert-to-pdf`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
-        body: convertFormData,
-      });
+      // Build merged PDF (ofício + all attachments) for Drive upload
+      const exportData = {
+        ...data,
+        conteudo: oficio.conteudo || "",
+        imagens: imgs.length > 0 ? imgs : (await getImageFilesFromAnexos()),
+      };
 
       let uploadBlob: Blob;
       let uploadFileName: string;
 
-      if (convertResp.ok) {
-        const contentType = convertResp.headers.get("content-type") || "";
-        if (contentType.includes("application/pdf")) {
-          uploadBlob = await convertResp.blob();
-          uploadFileName = `${baseFileName}.pdf`;
-        } else {
-          uploadBlob = wordBlob;
-          uploadFileName = `${baseFileName}.docx`;
-        }
-      } else {
-        uploadBlob = wordBlob;
+      try {
+        uploadBlob = await buildMergedPdfBlob(exportData);
+        uploadFileName = `${baseFileName}.pdf`;
+      } catch {
+        // Fallback to Word if PDF conversion fails
+        uploadBlob = await buildWordBlobForExport(exportData);
         uploadFileName = `${baseFileName}.docx`;
       }
 
