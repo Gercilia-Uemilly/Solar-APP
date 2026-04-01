@@ -372,47 +372,54 @@ async function fixDocxRelationshipIds(blob: Blob): Promise<Blob> {
   }
 }
 
-// ── Fetch image as Uint8Array (optional white background flatten) ───────────
+// ── Fetch image as Uint8Array with in-memory cache ─────────────────────────
 type FetchImageOptions = { flattenWhite?: boolean };
+const _imageCache = new Map<string, Uint8Array>();
 
 async function fetchImageBytes(src: string, options?: FetchImageOptions): Promise<Uint8Array> {
+  const cacheKey = `${src}__${options?.flattenWhite ? "flat" : "raw"}`;
+  const cached = _imageCache.get(cacheKey);
+  if (cached) return cached;
+
+  let bytes: Uint8Array;
+
   if (!options?.flattenWhite) {
     const resp = await fetch(src);
-    return new Uint8Array(await resp.arrayBuffer());
+    bytes = new Uint8Array(await resp.arrayBuffer());
+  } else {
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image();
+        el.crossOrigin = "anonymous";
+        el.onload = () => resolve(el);
+        el.onerror = () => reject(new Error("Falha ao carregar imagem"));
+        el.src = src;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context indisponível");
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((result) => {
+          if (result) resolve(result);
+          else reject(new Error("Falha ao converter imagem"));
+        }, "image/png");
+      });
+      bytes = new Uint8Array(await blob.arrayBuffer());
+    } catch {
+      const resp = await fetch(src);
+      bytes = new Uint8Array(await resp.arrayBuffer());
+    }
   }
 
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.crossOrigin = "anonymous";
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("Falha ao carregar imagem"));
-      el.src = src;
-    });
-
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas context indisponível");
-
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
-
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((result) => {
-        if (result) resolve(result);
-        else reject(new Error("Falha ao converter imagem"));
-      }, "image/png");
-    });
-
-    return new Uint8Array(await blob.arrayBuffer());
-  } catch {
-    const resp = await fetch(src);
-    return new Uint8Array(await resp.arrayBuffer());
-  }
+  _imageCache.set(cacheKey, bytes);
+  return bytes;
 }
 
 // ── Get user session token ──────────────────────────────────────────────────
