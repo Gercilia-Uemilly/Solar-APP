@@ -93,9 +93,50 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const effectiveFontSize = fmt.fontSize && fmt.fontSize !== 10 ? Math.min(fmt.fontSize, 14) : autoCalc.fontSize;
     const effectiveLineSpacing = fmt.lineSpacing && fmt.lineSpacing !== 1.5 ? fmt.lineSpacing : autoCalc.lineSpacing;
 
+    // ── Local state for editable fields ──────────────────────────
+    // Initialize once from props; never overwrite if user has manually edited.
+    const prevPropsRef = useRef({ numero, destinatario, assunto, cargoDestinatario, dataGeracao });
+    const userEditedRef = useRef<Record<string, boolean>>({});
+
+    const numeroCleaned = cleanNumero(numero);
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
-    const dataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
+    const defaultDataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
+    const defaultNumeroFormatado = numeroCleaned
+      ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
+      : "___";
+    const defaultDestinatarioCompleto = cargoDestinatario || (secretaria ? getDestinatario(secretaria) : destinatario || "___");
+    const defaultAssuntoFormatado = assunto || "___";
+
+    const [localData, setLocalData] = useState(defaultDataFormatada);
+    const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
+    const [localDestinatario, setLocalDestinatario] = useState(`DESTINATÁRIO: ${defaultDestinatarioCompleto}`);
+    const [localAssunto, setLocalAssunto] = useState(`Assunto: ${defaultAssuntoFormatado}`);
+
+    // Sync from props ONLY when the prop value actually changed externally (not from user edit)
+    useEffect(() => {
+      const prev = prevPropsRef.current;
+
+      if (dataGeracao !== prev.dataGeracao && !userEditedRef.current.data) {
+        const h = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
+        setLocalData(`Uberlândia, ${h.getDate()} de ${meses[h.getMonth()]} de ${h.getFullYear()}.`);
+      }
+      if (numero !== prev.numero && !userEditedRef.current.numero) {
+        const nc = cleanNumero(numero);
+        const nf = nc ? (nc.includes("/") ? nc : `${nc}/${(dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date()).getFullYear()}`) : "___";
+        setLocalNumero(`Ofício GVF n° ${nf}`);
+      }
+      const newDestCompleto = cargoDestinatario || (secretaria ? getDestinatario(secretaria) : destinatario || "___");
+      const prevDestCompleto = prev.cargoDestinatario || (secretaria ? getDestinatario(secretaria) : prev.destinatario || "___");
+      if (newDestCompleto !== prevDestCompleto && !userEditedRef.current.destinatario) {
+        setLocalDestinatario(`DESTINATÁRIO: ${newDestCompleto}`);
+      }
+      if (assunto !== prev.assunto && !userEditedRef.current.assunto) {
+        setLocalAssunto(`Assunto: ${assunto || "___"}`);
+      }
+
+      prevPropsRef.current = { numero, destinatario, assunto, cargoDestinatario, dataGeracao };
+    }, [numero, destinatario, assunto, cargoDestinatario, dataGeracao, secretaria]);
 
     const editableStyle = editable ? {
       cursor: "text" as const,
@@ -109,13 +150,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       .split("\n").map(p => p.trim()).filter(Boolean)
       .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
 
-    const numeroCleaned = cleanNumero(numero);
-    const numeroFormatado = numeroCleaned
-      ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
-      : "___";
-
-    const assuntoFormatado = assunto || "___";
-    const destinatarioCompleto = cargoDestinatario || (secretaria ? getDestinatario(secretaria) : destinatario || "___");
+    const numeroFormatado = defaultNumeroFormatado;
+    const assuntoFormatado = defaultAssuntoFormatado;
+    const destinatarioCompleto = defaultDestinatarioCompleto;
     const vocativo = secretaria ? getVocativo(secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
 
     const buildEditorContent = (text: string) => {
@@ -203,10 +240,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         {/* DATA */}
         {!isHidden && editable && onDataChange ? (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => {
+              const val = e.currentTarget.textContent || "";
+              userEditedRef.current.data = true;
+              setLocalData(val);
+              onDataChange(val);
+            }}>{localData}</span>
           </p>
         ) : (
-          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
+          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{localData}</p>
         )}
 
         {/* OFÍCIO GVF n° */}
@@ -215,9 +257,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             contentEditable
             suppressContentEditableWarning
             style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", ...editableStyle }}
-            onBlur={e => onNumeroChange(e.currentTarget.innerHTML || "")}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`Ofício GVF n° ${numeroFormatado}`) }}
-          />
+            onBlur={e => {
+              const val = e.currentTarget.textContent || "";
+              userEditedRef.current.numero = true;
+              setLocalNumero(val);
+              onNumeroChange(val);
+            }}
+          >{localNumero}</div>
         ) : (
           <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
             Ofício GVF n° {numeroFormatado}
@@ -231,13 +277,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             suppressContentEditableWarning
             style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
             onBlur={e => {
-              const html = e.currentTarget.innerHTML || "";
-              // Strip the "DESTINATÁRIO: " prefix if user didn't remove it
+              const html = e.currentTarget.textContent || "";
+              userEditedRef.current.destinatario = true;
               const cleaned = html.replace(/^DESTINAT[AÁ]RIO:\s*/i, "");
+              setLocalDestinatario(e.currentTarget.textContent || "");
               onCargoDestinatarioChange(cleaned);
             }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`DESTINATÁRIO: ${destinatarioCompleto}`) }}
-          />
+          >{localDestinatario}</div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             DESTINATÁRIO: {destinatarioCompleto}
@@ -251,12 +297,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             suppressContentEditableWarning
             style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
             onBlur={e => {
-              const html = e.currentTarget.innerHTML || "";
+              const html = e.currentTarget.textContent || "";
+              userEditedRef.current.assunto = true;
               const cleaned = html.replace(/^Assunto:\s*/i, "");
+              setLocalAssunto(e.currentTarget.textContent || "");
               onAssuntoChange(cleaned);
             }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`Assunto: ${assuntoFormatado}`) }}
-          />
+          >{localAssunto}</div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             Assunto: {assuntoFormatado}
