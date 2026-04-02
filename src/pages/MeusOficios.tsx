@@ -87,6 +87,8 @@ export default function MeusOficios() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inlineFieldSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Refs to track latest inline-edited field values (avoids React batching race condition)
+  const inlineFieldsRef = useRef<Record<string, string>>({});
   const previewRef = useRef<HTMLDivElement>(null);
   const formatStorageKey = "oficio_preview_format_options";
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(() => {
@@ -138,6 +140,7 @@ export default function MeusOficios() {
       o = { ...o, conteudo: latest.conteudo, cargo_destinatario: latest.cargo_destinatario, destinatario: latest.destinatario, assunto: latest.assunto, numero: latest.numero, bairro: latest.bairro, data_geracao: latest.data_geracao };
     }
     setViewOficio(o);
+    inlineFieldsRef.current = {};
     setEditedContent(o.conteudo || "");
     editedContentRef.current = o.conteudo || "";
     setOriginalContent(o.conteudo || "");
@@ -262,6 +265,7 @@ export default function MeusOficios() {
   }, [viewOficio, user, profileName, setOficios]);
 
   const handleInlineFieldChange = useCallback((field: string, value: string) => {
+    inlineFieldsRef.current = { ...inlineFieldsRef.current, [field]: value };
     setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
     setSaveStatus("idle");
 
@@ -329,27 +333,31 @@ export default function MeusOficios() {
     }
   };
 
-  const buildExportData = (o: OficioRow) => ({
-    oficioId: o.id,
-    numero: o.numero || "",
-    destinatario: o.destinatario,
-    assunto: o.assunto,
-    conteudo: o.conteudo || "",
-    bairro: o.bairro || "",
-    cargoDestinatario: o.cargo_destinatario || "",
-    dataGeracao: o.data_geracao || undefined,
-    operadorNome: o.operador_nome || profileName || user?.email || undefined,
-    telefone: o.linha_telefonica || undefined,
-    solicitante: o.solicitante || undefined,
-    codigoZ: (o as any).codigo_z || undefined,
-    contatoSolicitante: o.contato_solicitante || undefined,
-    secretaria: (o as any).secretaria_identificada || undefined,
-    origem: (o as any).origem || undefined,
-    logoCamaraUrl: logoCamara,
-    logoFabaoUrl: logoFabao,
-    assinaturaUrl: assinaturaFabao,
-    formatOptions,
-  });
+  const buildExportData = (o: OficioRow) => {
+    // Merge latest inline-edited field values from ref (avoids React batching race)
+    const merged = { ...o, ...inlineFieldsRef.current };
+    return {
+      oficioId: merged.id,
+      numero: merged.numero || "",
+      destinatario: merged.destinatario,
+      assunto: merged.assunto,
+      conteudo: merged.conteudo || "",
+      bairro: merged.bairro || "",
+      cargoDestinatario: merged.cargo_destinatario || "",
+      dataGeracao: merged.data_geracao || undefined,
+      operadorNome: merged.operador_nome || profileName || user?.email || undefined,
+      telefone: merged.linha_telefonica || undefined,
+      solicitante: merged.solicitante || undefined,
+      codigoZ: (merged as any).codigo_z || undefined,
+      contatoSolicitante: merged.contato_solicitante || undefined,
+      secretaria: (merged as any).secretaria_identificada || undefined,
+      origem: (merged as any).origem || undefined,
+      logoCamaraUrl: logoCamara,
+      logoFabaoUrl: logoFabao,
+      assinaturaUrl: assinaturaFabao,
+      formatOptions,
+    };
+  };
 
   const handleUploadToDrive = async (oficio: OficioRow) => {
     if (!oficio.conteudo) {
@@ -903,7 +911,7 @@ export default function MeusOficios() {
                   if (!viewOficio) return;
                   const imgs = await fetchSavedImages(viewOficio.id);
                   try {
-                    await exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent, imagens: imgs.length > 0 ? imgs : undefined });
+                    await exportToWord({ ...buildExportData(viewOficio), conteudo: editedContentRef.current, imagens: imgs.length > 0 ? imgs : undefined });
                   } catch (e: any) {
                     toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                   }
@@ -914,7 +922,7 @@ export default function MeusOficios() {
                   if (!viewOficio) return;
                   const imgs = await fetchSavedImages(viewOficio.id);
                   try {
-                    await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContent, imagens: imgs.length > 0 ? imgs : undefined });
+                    await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContentRef.current, imagens: imgs.length > 0 ? imgs : undefined });
                   } catch (e: any) {
                     toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                   }
