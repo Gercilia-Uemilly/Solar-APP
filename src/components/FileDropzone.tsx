@@ -46,7 +46,7 @@ function iconForType(tipo: string) {
   if (tipo.includes("pdf")) return <FileText size={16} className="text-orange-400" />;
   if (tipo.includes("word") || tipo.includes("docx") || tipo.includes("doc")) return <FileText size={16} className="text-blue-600" />;
   if (tipo.includes("sheet") || tipo.includes("xlsx") || tipo.includes("xls")) return <FileText size={16} className="text-green-500" />;
-  return <File size={16} className="text-muted-foreground" />;
+  return <FileIcon size={16} className="text-muted-foreground" />;
 }
 
 function formatSize(bytes: number) {
