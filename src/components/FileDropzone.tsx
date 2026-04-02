@@ -66,6 +66,39 @@ function getFileCategory(tipo: string): string {
 export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile, onRemoveFile }: FileDropzoneProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropzoneRef = useRef<HTMLDivElement>(null);
+
+  // Handle paste (Ctrl+V / Print Screen) anywhere on the dropzone
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) {
+          // Give pasted screenshots a meaningful name
+          const finalFile = file.name === "image.png" || !file.name
+            ? new File([file], `print-${Date.now()}.png`, { type: file.type || "image/png" })
+            : file;
+          files.push(finalFile);
+        }
+      }
+    }
+    if (files.length > 0) {
+      e.preventDefault();
+      const dt = new DataTransfer();
+      files.forEach(f => dt.items.add(f));
+      addFiles(dt.files);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: ClipboardEvent) => handlePaste(e);
+    document.addEventListener("paste", handler);
+    return () => document.removeEventListener("paste", handler);
+  }, [handlePaste]);
 
   const addFiles = useCallback((files: FileList | null) => {
     if (!files) return;
