@@ -206,27 +206,44 @@ export default function MeusOficios() {
     }
   }, [viewOficio, user, profileName, toast, setOficios]);
 
+  const getLatestPreviewState = useCallback(() => {
+    if (!viewOficio) return null;
+
+    return {
+      ...viewOficio,
+      ...inlineFieldsRef.current,
+      conteudo: editedContentRef.current,
+    };
+  }, [viewOficio]);
+
   const handleSaveContent = useCallback(async () => {
-    if (!viewOficio) return;
-    const contentToSave = editedContentRef.current;
+    const latestViewOficio = getLatestPreviewState();
+    if (!latestViewOficio) return;
+
+    if (inlineFieldSaveTimerRef.current) {
+      clearTimeout(inlineFieldSaveTimerRef.current);
+      inlineFieldSaveTimerRef.current = null;
+    }
+
+    const contentToSave = latestViewOficio.conteudo || "";
     setSaveStatus("saving");
-    const validDataGeracao = typeof viewOficio.data_geracao === "string" && /^\d{4}-\d{2}-\d{2}$/.test(viewOficio.data_geracao)
-      ? viewOficio.data_geracao
+    const validDataGeracao = typeof latestViewOficio.data_geracao === "string" && /^\d{4}-\d{2}-\d{2}$/.test(latestViewOficio.data_geracao)
+      ? latestViewOficio.data_geracao
       : null;
 
     const updatePayload: Record<string, any> = {
       conteudo: contentToSave,
-      destinatario: viewOficio.destinatario,
-      cargo_destinatario: viewOficio.cargo_destinatario,
-      assunto: viewOficio.assunto,
-      numero: viewOficio.numero,
+      destinatario: latestViewOficio.destinatario,
+      cargo_destinatario: latestViewOficio.cargo_destinatario,
+      assunto: latestViewOficio.assunto,
+      numero: latestViewOficio.numero,
       data_geracao: validDataGeracao,
       status: "Salvo",
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
       last_edited_at: new Date().toISOString(),
     };
-    const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
+    const { error } = await supabase.from("oficios").update(updatePayload).eq("id", latestViewOficio.id);
     if (error) {
       setSaveStatus("error");
       const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
@@ -234,9 +251,10 @@ export default function MeusOficios() {
     } else {
       setSaveStatus("saved");
       setOriginalContent(contentToSave);
-      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...updatePayload } : o));
+      setViewOficio(prev => prev ? { ...prev, ...updatePayload } : prev);
+      setOficios(prev => prev.map(o => o.id === latestViewOficio.id ? { ...o, ...updatePayload } : o));
     }
-  }, [viewOficio, user, profileName, toast, setOficios]);
+  }, [getLatestPreviewState, user, profileName, toast, setOficios]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditedContent(newContent);
