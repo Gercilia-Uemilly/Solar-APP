@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoFabao from "@/assets/logo-fabao-oficial.svg";
 
@@ -27,6 +27,8 @@ export default function Auth() {
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,7 +170,12 @@ export default function Auth() {
                 </div>
                 <div>
                   <label className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-1.5 block font-sans">Senha</label>
-                  <Input placeholder="Sua senha" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="border-border focus:border-primary focus:ring-primary/10" />
+                  <div className="relative">
+                    <Input placeholder="Sua senha" type={showLoginPassword ? "text" : "password"} value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="border-border focus:border-primary focus:ring-primary/10 pr-10" />
+                    <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
+                      {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full font-sans font-semibold text-[14px]" disabled={loading}>
                   {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Entrar
@@ -188,7 +195,12 @@ export default function Auth() {
                 </div>
                 <div>
                   <label className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-1.5 block font-sans">Senha</label>
-                  <Input placeholder="Mínimo 6 caracteres" type="password" value={regPassword} onChange={e => setRegPassword(e.target.value)} required minLength={6} className="border-border focus:border-primary focus:ring-primary/10" />
+                  <div className="relative">
+                    <Input placeholder="Mínimo 6 caracteres" type={showRegPassword ? "text" : "password"} value={regPassword} onChange={e => setRegPassword(e.target.value)} required minLength={6} className="border-border focus:border-primary focus:ring-primary/10 pr-10" />
+                    <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
+                      {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full font-sans font-semibold text-[14px]" disabled={loading}>
                   {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Cadastrar
