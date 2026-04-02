@@ -347,15 +347,18 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* DESTINATÁRIO */}
         {!isHidden && editable && onCargoDestinatarioChange ? (
-          <div
-            ref={destElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="destinatario"
-            style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={e => syncDestinatario(e.currentTarget.textContent || "")}
-            onBlur={e => syncDestinatario(e.currentTarget.textContent || "")}
-          />
+          <div style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", display: "flex" }}>
+            <span>DESTINATÁRIO:&nbsp;</span>
+            <div
+              ref={destElRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-preview-field="destinatario"
+              style={{ flex: 1, ...editableStyle }}
+              onInput={e => syncDestinatario(e.currentTarget.textContent || "")}
+              onBlur={e => syncDestinatario(e.currentTarget.textContent || "")}
+            />
+          </div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             DESTINATÁRIO: {destinatarioCompleto}
@@ -364,15 +367,18 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* ASSUNTO */}
         {!isHidden && editable && onAssuntoChange ? (
-          <div
-            ref={assuntoElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="assunto"
-            style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={e => syncAssunto(e.currentTarget.textContent || "")}
-            onBlur={e => syncAssunto(e.currentTarget.textContent || "")}
-          />
+          <div style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", display: "flex" }}>
+            <span>Assunto:&nbsp;</span>
+            <div
+              ref={assuntoElRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-preview-field="assunto"
+              style={{ flex: 1, ...editableStyle }}
+              onInput={e => syncAssunto(e.currentTarget.textContent || "")}
+              onBlur={e => syncAssunto(e.currentTarget.textContent || "")}
+            />
+          </div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             Assunto: {assuntoFormatado}
