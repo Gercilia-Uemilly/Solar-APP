@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-import { Upload, X, FileText, Image as ImageIcon, File, Paperclip } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Upload, X, FileText, Image as ImageIcon, File as FileIcon, Paperclip, ClipboardPaste } from "lucide-react";
 
 export interface AnexoFile {
   id: string;
@@ -46,7 +46,7 @@ function iconForType(tipo: string) {
   if (tipo.includes("pdf")) return <FileText size={16} className="text-orange-400" />;
   if (tipo.includes("word") || tipo.includes("docx") || tipo.includes("doc")) return <FileText size={16} className="text-blue-600" />;
   if (tipo.includes("sheet") || tipo.includes("xlsx") || tipo.includes("xls")) return <FileText size={16} className="text-green-500" />;
-  return <File size={16} className="text-muted-foreground" />;
+  return <FileIcon size={16} className="text-muted-foreground" />;
 }
 
 function formatSize(bytes: number) {
@@ -65,6 +65,39 @@ function getFileCategory(tipo: string): string {
 export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile, onRemoveFile }: FileDropzoneProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropzoneRef = useRef<HTMLDivElement>(null);
+
+  // Handle paste (Ctrl+V / Print Screen) anywhere on the dropzone
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) {
+          // Give pasted screenshots a meaningful name
+          const finalFile = file.name === "image.png" || !file.name
+            ? new File([file], `print-${Date.now()}.png`, { type: file.type || "image/png" })
+            : file;
+          files.push(finalFile);
+        }
+      }
+    }
+    if (files.length > 0) {
+      e.preventDefault();
+      const dt = new DataTransfer();
+      files.forEach(f => dt.items.add(f));
+      addFiles(dt.files);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: ClipboardEvent) => handlePaste(e);
+    document.addEventListener("paste", handler);
+    return () => document.removeEventListener("paste", handler);
+  }, [handlePaste]);
 
   const addFiles = useCallback((files: FileList | null) => {
     if (!files) return;
@@ -137,9 +170,9 @@ export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile,
       >
         <Upload size={20} className="mx-auto mb-1.5 text-muted-foreground" />
         <p className="text-xs text-muted-foreground">
-          Arraste arquivos ou <span className="text-primary font-medium">clique para selecionar</span>
+          Arraste arquivos, <span className="text-primary font-medium">cole um print (Ctrl+V)</span> ou clique para selecionar
         </p>
-        <p className="text-[10px] text-muted-foreground mt-1">Imagens (JPG, PNG, WebP) · PDF · DOCX · XLSX</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Imagens (JPG, PNG, WebP) · PDF · DOCX · XLSX · Print Screen</p>
         <input ref={inputRef} type="file" multiple accept={ACCEPTED} className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
       </div>
 
