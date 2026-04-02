@@ -264,6 +264,7 @@ export default function MeusOficios() {
   }, [viewOficio, user, profileName, setOficios]);
 
   const handleInlineFieldChange = useCallback((field: string, value: string) => {
+    inlineFieldsRef.current = { ...inlineFieldsRef.current, [field]: value };
     setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
     setSaveStatus("idle");
 
