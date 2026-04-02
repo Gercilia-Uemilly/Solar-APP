@@ -170,7 +170,12 @@ export default function Auth() {
                 </div>
                 <div>
                   <label className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-1.5 block font-sans">Senha</label>
-                  <Input placeholder="Sua senha" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="border-border focus:border-primary focus:ring-primary/10" />
+                  <div className="relative">
+                    <Input placeholder="Sua senha" type={showLoginPassword ? "text" : "password"} value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="border-border focus:border-primary focus:ring-primary/10 pr-10" />
+                    <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
+                      {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full font-sans font-semibold text-[14px]" disabled={loading}>
                   {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null} Entrar
