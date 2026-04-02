@@ -533,13 +533,23 @@ export default function Operadores() {
                     <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
                       <KeyRound size={12} /> Nova senha
                     </label>
-                    <Input
-                      value={newPassword}
-                      onChange={e => setNewPassword(e.target.value)}
-                      type="password"
-                      placeholder="Mínimo 6 caracteres"
-                      className="bg-secondary border-border"
-                    />
+                    <div className="relative">
+                      <Input
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="Mínimo 6 caracteres"
+                        className="bg-secondary border-border pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={handleSavePassword} disabled={savingPassword || newPassword.length < 6} size="sm" className="bg-primary text-primary-foreground">
