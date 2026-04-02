@@ -107,22 +107,22 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
       numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-      destinatario: defaultDestinatarioCompleto,
-      assunto: defaultAssuntoFormatado,
+      destinatario: `DESTINATÁRIO: ${defaultDestinatarioCompleto}`,
+      assunto: `Assunto: ${defaultAssuntoFormatado}`,
       data: defaultDataFormatada,
     });
     const userEditedRef = useRef<Record<string, boolean>>({});
 
     const [localData, setLocalData] = useState(defaultDataFormatada);
     const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
-    const [localDestinatario, setLocalDestinatario] = useState(defaultDestinatarioCompleto);
-    const [localAssunto, setLocalAssunto] = useState(defaultAssuntoFormatado);
+    const [localDestinatario, setLocalDestinatario] = useState(`DESTINATÁRIO: ${defaultDestinatarioCompleto}`);
+    const [localAssunto, setLocalAssunto] = useState(`Assunto: ${defaultAssuntoFormatado}`);
 
     useEffect(() => {
       const externalValues = {
         numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-        destinatario: defaultDestinatarioCompleto,
-        assunto: defaultAssuntoFormatado,
+        destinatario: `DESTINATÁRIO: ${defaultDestinatarioCompleto}`,
+        assunto: `Assunto: ${defaultAssuntoFormatado}`,
         data: defaultDataFormatada,
       };
 
