@@ -170,9 +170,9 @@ export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile,
       >
         <Upload size={20} className="mx-auto mb-1.5 text-muted-foreground" />
         <p className="text-xs text-muted-foreground">
-          Arraste arquivos ou <span className="text-primary font-medium">clique para selecionar</span>
+          Arraste arquivos, <span className="text-primary font-medium">cole um print (Ctrl+V)</span> ou clique para selecionar
         </p>
-        <p className="text-[10px] text-muted-foreground mt-1">Imagens (JPG, PNG, WebP) · PDF · DOCX · XLSX</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Imagens (JPG, PNG, WebP) · PDF · DOCX · XLSX · Print Screen</p>
         <input ref={inputRef} type="file" multiple accept={ACCEPTED} className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
       </div>
 
