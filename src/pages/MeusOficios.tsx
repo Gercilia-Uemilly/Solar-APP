@@ -140,6 +140,7 @@ export default function MeusOficios() {
       o = { ...o, conteudo: latest.conteudo, cargo_destinatario: latest.cargo_destinatario, destinatario: latest.destinatario, assunto: latest.assunto, numero: latest.numero, bairro: latest.bairro, data_geracao: latest.data_geracao };
     }
     setViewOficio(o);
+    inlineFieldsRef.current = {};
     setEditedContent(o.conteudo || "");
     editedContentRef.current = o.conteudo || "";
     setOriginalContent(o.conteudo || "");
