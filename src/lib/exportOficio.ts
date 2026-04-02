@@ -29,7 +29,12 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
     const last4 = digits.length >= 4 ? digits.slice(-4) : digits;
     const zPart = last4 ? `Z${codigoZ} ${last4}` : `Z${codigoZ}`;
     
-    // Only Zap type includes solicitante first name
+    // Zap Emprego: numero + Z + codigo_z + últimos 4 dígitos (sem nome)
+    if (origem === "Zap Emprego") {
+      return `${numPart} ${zPart}`;
+    }
+    
+    // Zap normal: includes solicitante first name
     if (isZap && solicitante) {
       const firstName = solicitante.trim().split(/\s+/)[0] || "";
       if (firstName) return `${numPart} ${zPart} ${firstName}`;
