@@ -47,6 +47,8 @@ export default function OficioPreviewEditor({
       isInternalChange.current = false;
       return;
     }
+    // Never overwrite while the editor is focused — this prevents cursor jumps
+    if (document.activeElement === editorRef.current) return;
     if (editorRef.current.innerHTML !== content) {
       editorRef.current.innerHTML = content || "";
     }
