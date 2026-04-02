@@ -287,10 +287,9 @@ export default function MeusOficios() {
     setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
     setSaveStatus("idle");
 
+    // Persist immediately on blur (no debounce)
     if (inlineFieldSaveTimerRef.current) clearTimeout(inlineFieldSaveTimerRef.current);
-    inlineFieldSaveTimerRef.current = setTimeout(() => {
-      saveFieldToDb({ [field]: value });
-    }, 600);
+    saveFieldToDb({ [field]: value });
   }, [saveFieldToDb]);
 
   const handleEditForm = (o: OficioRow) => {
