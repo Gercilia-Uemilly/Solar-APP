@@ -107,7 +107,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
       numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-      destinatario: `DESTINATÁRIO: ${defaultDestinatarioCompleto}`,
+      destinatario: `Destinatário: ${defaultDestinatarioCompleto}`,
       assunto: `Assunto: ${defaultAssuntoFormatado}`,
       data: defaultDataFormatada,
     });
@@ -115,13 +115,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const [localData, setLocalData] = useState(defaultDataFormatada);
     const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
-    const [localDestinatario, setLocalDestinatario] = useState(`DESTINATÁRIO: ${defaultDestinatarioCompleto}`);
+    const [localDestinatario, setLocalDestinatario] = useState(`Destinatário: ${defaultDestinatarioCompleto}`);
     const [localAssunto, setLocalAssunto] = useState(`Assunto: ${defaultAssuntoFormatado}`);
 
     useEffect(() => {
       const externalValues = {
         numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-        destinatario: `DESTINATÁRIO: ${defaultDestinatarioCompleto}`,
+        destinatario: `Destinatário: ${defaultDestinatarioCompleto}`,
         assunto: `Assunto: ${defaultAssuntoFormatado}`,
         data: defaultDataFormatada,
       };
@@ -157,7 +157,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const syncDestinatario = useCallback((rawValue: string) => {
       userEditedRef.current.destinatario = true;
       setLocalDestinatario(rawValue);
-      const cleaned = rawValue.replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim();
+      const cleaned = rawValue.replace(/^Destinat[aá]rio:\s*/i, "").trim();
       onCargoDestinatarioChange?.(cleaned);
       onDestinatarioChange?.(cleaned);
     }, [onCargoDestinatarioChange, onDestinatarioChange]);
@@ -359,7 +359,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-            DESTINATÁRIO: {destinatarioCompleto}
+            Destinatário: {destinatarioCompleto}
           </p>
         )}
 
