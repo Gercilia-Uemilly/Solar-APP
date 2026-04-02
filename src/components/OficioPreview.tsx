@@ -107,22 +107,22 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
       numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-      destinatario: `DESTINATÁRIO: ${defaultDestinatarioCompleto}`,
-      assunto: `Assunto: ${defaultAssuntoFormatado}`,
+      destinatario: defaultDestinatarioCompleto,
+      assunto: defaultAssuntoFormatado,
       data: defaultDataFormatada,
     });
     const userEditedRef = useRef<Record<string, boolean>>({});
 
     const [localData, setLocalData] = useState(defaultDataFormatada);
     const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
-    const [localDestinatario, setLocalDestinatario] = useState(`DESTINATÁRIO: ${defaultDestinatarioCompleto}`);
-    const [localAssunto, setLocalAssunto] = useState(`Assunto: ${defaultAssuntoFormatado}`);
+    const [localDestinatario, setLocalDestinatario] = useState(defaultDestinatarioCompleto);
+    const [localAssunto, setLocalAssunto] = useState(defaultAssuntoFormatado);
 
     useEffect(() => {
       const externalValues = {
         numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-        destinatario: `DESTINATÁRIO: ${defaultDestinatarioCompleto}`,
-        assunto: `Assunto: ${defaultAssuntoFormatado}`,
+        destinatario: defaultDestinatarioCompleto,
+        assunto: defaultAssuntoFormatado,
         data: defaultDataFormatada,
       };
 
@@ -157,15 +157,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const syncDestinatario = useCallback((rawValue: string) => {
       userEditedRef.current.destinatario = true;
       setLocalDestinatario(rawValue);
-      const cleaned = rawValue.replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim();
-      onCargoDestinatarioChange?.(cleaned);
-      onDestinatarioChange?.(cleaned);
+      onCargoDestinatarioChange?.(rawValue.trim());
+      onDestinatarioChange?.(rawValue.trim());
     }, [onCargoDestinatarioChange, onDestinatarioChange]);
 
     const syncAssunto = useCallback((rawValue: string) => {
       userEditedRef.current.assunto = true;
       setLocalAssunto(rawValue);
-      onAssuntoChange?.(rawValue.replace(/^Assunto:\s*/i, "").trim());
+      onAssuntoChange?.(rawValue.trim());
     }, [onAssuntoChange]);
 
     const syncNumero = useCallback((rawValue: string) => {
@@ -348,15 +347,18 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* DESTINATÁRIO */}
         {!isHidden && editable && onCargoDestinatarioChange ? (
-          <div
-            ref={destElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="destinatario"
-            style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={e => syncDestinatario(e.currentTarget.textContent || "")}
-            onBlur={e => syncDestinatario(e.currentTarget.textContent || "")}
-          />
+          <div style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", display: "flex" }}>
+            <span>DESTINATÁRIO:&nbsp;</span>
+            <div
+              ref={destElRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-preview-field="destinatario"
+              style={{ flex: 1, ...editableStyle }}
+              onInput={e => syncDestinatario(e.currentTarget.textContent || "")}
+              onBlur={e => syncDestinatario(e.currentTarget.textContent || "")}
+            />
+          </div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             DESTINATÁRIO: {destinatarioCompleto}
@@ -365,15 +367,18 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* ASSUNTO */}
         {!isHidden && editable && onAssuntoChange ? (
-          <div
-            ref={assuntoElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="assunto"
-            style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={e => syncAssunto(e.currentTarget.textContent || "")}
-            onBlur={e => syncAssunto(e.currentTarget.textContent || "")}
-          />
+          <div style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", display: "flex" }}>
+            <span>Assunto:&nbsp;</span>
+            <div
+              ref={assuntoElRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-preview-field="assunto"
+              style={{ flex: 1, ...editableStyle }}
+              onInput={e => syncAssunto(e.currentTarget.textContent || "")}
+              onBlur={e => syncAssunto(e.currentTarget.textContent || "")}
+            />
+          </div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             Assunto: {assuntoFormatado}
