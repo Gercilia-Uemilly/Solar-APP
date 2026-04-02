@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2, KeyRound, Mail, Eye, Copy, Calendar, Hash, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Users, Pencil, Phone, Save, UserPlus, ShieldCheck, ShieldOff, Trash2, KeyRound, Mail, Eye, EyeOff, Copy, Calendar, Hash, CheckCircle, XCircle, Clock } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 
 interface Profile {
