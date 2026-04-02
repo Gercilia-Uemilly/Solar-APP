@@ -210,35 +210,58 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* OFÍCIO GVF n° */}
-        <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
-          {!isHidden && editable && onNumeroChange ? (
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onNumeroChange(e.currentTarget.textContent || "")}>
-              Ofício GVF n° {numeroFormatado}
-            </span>
-          ) : (
-            <>Ofício GVF n° {numeroFormatado}</>
-          )}
-        </p>
+        {!isHidden && editable && onNumeroChange ? (
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", ...editableStyle }}
+            onBlur={e => onNumeroChange(e.currentTarget.innerHTML || "")}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`Ofício GVF n° ${numeroFormatado}`) }}
+          />
+        ) : (
+          <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
+            Ofício GVF n° {numeroFormatado}
+          </p>
+        )}
 
         {/* DESTINATÁRIO */}
-        <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-          <span>DESTINATÁRIO: </span>
-          {!isHidden && editable && onCargoDestinatarioChange ? (
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onCargoDestinatarioChange(e.currentTarget.textContent || "")}>{destinatarioCompleto}</span>
-          ) : (
-            <span>{destinatarioCompleto}</span>
-          )}
-        </p>
+        {!isHidden && editable && onCargoDestinatarioChange ? (
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
+            onBlur={e => {
+              const html = e.currentTarget.innerHTML || "";
+              // Strip the "DESTINATÁRIO: " prefix if user didn't remove it
+              const cleaned = html.replace(/^DESTINAT[AÁ]RIO:\s*/i, "");
+              onCargoDestinatarioChange(cleaned);
+            }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`DESTINATÁRIO: ${destinatarioCompleto}`) }}
+          />
+        ) : (
+          <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
+            DESTINATÁRIO: {destinatarioCompleto}
+          </p>
+        )}
 
         {/* ASSUNTO */}
-        <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-          <span>Assunto: </span>
-          {!isHidden && editable && onAssuntoChange ? (
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onAssuntoChange(e.currentTarget.textContent || "")}>{assuntoFormatado}</span>
-          ) : (
-            <span>{assuntoFormatado}</span>
-          )}
-        </p>
+        {!isHidden && editable && onAssuntoChange ? (
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
+            onBlur={e => {
+              const html = e.currentTarget.innerHTML || "";
+              const cleaned = html.replace(/^Assunto:\s*/i, "");
+              onAssuntoChange(cleaned);
+            }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`Assunto: ${assuntoFormatado}`) }}
+          />
+        ) : (
+          <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
+            Assunto: {assuntoFormatado}
+          </p>
+        )}
 
         {/* VOCATIVO */}
         <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5", fontWeight: "normal" }}>
