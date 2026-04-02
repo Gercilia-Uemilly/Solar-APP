@@ -459,20 +459,24 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     fetchImageBytes(assinaturaClean, { flattenWhite: true }),
   ]);
 
+  // Strip HTML tags from fields that may contain rich-text from contentEditable
+  const stripHtml = (s: string) => s.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
+
   const hoje = new Date();
-  const numeroCleaned = cleanNumero(numero || "");
+  const numeroCleaned = cleanNumero(stripHtml(numero || ""));
   const numeroFormatado = numeroCleaned
     ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
     : "___";
 
-  const destinatarioCompleto = cargoDestinatario || (data.secretaria ? getDestinatario(data.secretaria) : destinatario || "___");
+  const rawDestinatario = stripHtml(cargoDestinatario || (data.secretaria ? getDestinatario(data.secretaria) : destinatario || "___"));
+  const destinatarioCompleto = rawDestinatario || "___";
   const bairroExtraido = bairro ? (extrairBairro(bairro) || bairro) : "";
   const bairroFormatado = bairroExtraido
     ? (bairroExtraido.toLowerCase().startsWith("bairro") || bairroExtraido.toLowerCase().includes("bairro ") ? bairroExtraido : `Bairro ${bairroExtraido}`)
     : "";
 
   // Use assunto exactly as provided — bairro is already included by the AI or user
-  const assuntoFormatado = assunto || "___";
+  const assuntoFormatado = stripHtml(assunto) || "___";
 
   const vocativo = data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
 
