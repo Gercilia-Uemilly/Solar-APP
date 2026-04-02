@@ -359,7 +359,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-            DESTINATÁRIO: {destinatarioCompleto}
+            Destinatário: {destinatarioCompleto}
           </p>
         )}
 
