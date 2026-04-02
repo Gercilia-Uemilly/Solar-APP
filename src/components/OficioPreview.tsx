@@ -181,6 +181,37 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       minWidth: "40px",
     } : {};
 
+    // Refs for contentEditable DOM elements — prevents React from resetting text
+    const destElRef = useRef<HTMLDivElement>(null);
+    const assuntoElRef = useRef<HTMLDivElement>(null);
+    const numeroElRef = useRef<HTMLDivElement>(null);
+    const dataElRef = useRef<HTMLSpanElement>(null);
+
+    // Imperatively sync DOM when local state changes from external props only
+    useEffect(() => {
+      if (destElRef.current && destElRef.current.textContent !== localDestinatario && !userEditedRef.current.destinatario) {
+        destElRef.current.textContent = localDestinatario;
+      }
+    }, [localDestinatario]);
+
+    useEffect(() => {
+      if (assuntoElRef.current && assuntoElRef.current.textContent !== localAssunto && !userEditedRef.current.assunto) {
+        assuntoElRef.current.textContent = localAssunto;
+      }
+    }, [localAssunto]);
+
+    useEffect(() => {
+      if (numeroElRef.current && numeroElRef.current.textContent !== localNumero && !userEditedRef.current.numero) {
+        numeroElRef.current.textContent = localNumero;
+      }
+    }, [localNumero]);
+
+    useEffect(() => {
+      if (dataElRef.current && dataElRef.current.textContent !== localData && !userEditedRef.current.data) {
+        dataElRef.current.textContent = localData;
+      }
+    }, [localData]);
+
     const isHtml = conteudo.startsWith("<");
     const paragraphs = isHtml ? [] : conteudo
       .split("\n").map(p => p.trim()).filter(Boolean)
@@ -276,12 +307,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         {/* DATA */}
         {!isHidden && editable && onDataChange ? (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => {
+            <span ref={dataElRef} contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => {
               const val = e.currentTarget.textContent || "";
               userEditedRef.current.data = true;
               setLocalData(val);
               onDataChange(val);
-            }}>{localData}</span>
+            }} />
           </p>
         ) : (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{localData}</p>
@@ -290,13 +321,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         {/* OFÍCIO GVF n° */}
         {!isHidden && editable && onNumeroChange ? (
           <div
+            ref={numeroElRef}
             contentEditable
             suppressContentEditableWarning
             data-preview-field="numero"
             style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", ...editableStyle }}
             onInput={e => syncNumero(e.currentTarget.textContent || "")}
             onBlur={e => syncNumero(e.currentTarget.textContent || "")}
-          >{localNumero}</div>
+          />
         ) : (
           <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
             Ofício GVF n° {numeroFormatado}
@@ -306,13 +338,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         {/* DESTINATÁRIO */}
         {!isHidden && editable && onCargoDestinatarioChange ? (
           <div
+            ref={destElRef}
             contentEditable
             suppressContentEditableWarning
             data-preview-field="destinatario"
             style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
             onInput={e => syncDestinatario(e.currentTarget.textContent || "")}
             onBlur={e => syncDestinatario(e.currentTarget.textContent || "")}
-          >{localDestinatario}</div>
+          />
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             DESTINATÁRIO: {destinatarioCompleto}
@@ -322,13 +355,14 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         {/* ASSUNTO */}
         {!isHidden && editable && onAssuntoChange ? (
           <div
+            ref={assuntoElRef}
             contentEditable
             suppressContentEditableWarning
             data-preview-field="assunto"
             style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
             onInput={e => syncAssunto(e.currentTarget.textContent || "")}
             onBlur={e => syncAssunto(e.currentTarget.textContent || "")}
-          >{localAssunto}</div>
+          />
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             Assunto: {assuntoFormatado}
