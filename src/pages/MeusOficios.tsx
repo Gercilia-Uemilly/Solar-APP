@@ -332,27 +332,31 @@ export default function MeusOficios() {
     }
   };
 
-  const buildExportData = (o: OficioRow) => ({
-    oficioId: o.id,
-    numero: o.numero || "",
-    destinatario: o.destinatario,
-    assunto: o.assunto,
-    conteudo: o.conteudo || "",
-    bairro: o.bairro || "",
-    cargoDestinatario: o.cargo_destinatario || "",
-    dataGeracao: o.data_geracao || undefined,
-    operadorNome: o.operador_nome || profileName || user?.email || undefined,
-    telefone: o.linha_telefonica || undefined,
-    solicitante: o.solicitante || undefined,
-    codigoZ: (o as any).codigo_z || undefined,
-    contatoSolicitante: o.contato_solicitante || undefined,
-    secretaria: (o as any).secretaria_identificada || undefined,
-    origem: (o as any).origem || undefined,
-    logoCamaraUrl: logoCamara,
-    logoFabaoUrl: logoFabao,
-    assinaturaUrl: assinaturaFabao,
-    formatOptions,
-  });
+  const buildExportData = (o: OficioRow) => {
+    // Merge latest inline-edited field values from ref (avoids React batching race)
+    const merged = { ...o, ...inlineFieldsRef.current };
+    return {
+      oficioId: merged.id,
+      numero: merged.numero || "",
+      destinatario: merged.destinatario,
+      assunto: merged.assunto,
+      conteudo: merged.conteudo || "",
+      bairro: merged.bairro || "",
+      cargoDestinatario: merged.cargo_destinatario || "",
+      dataGeracao: merged.data_geracao || undefined,
+      operadorNome: merged.operador_nome || profileName || user?.email || undefined,
+      telefone: merged.linha_telefonica || undefined,
+      solicitante: merged.solicitante || undefined,
+      codigoZ: (merged as any).codigo_z || undefined,
+      contatoSolicitante: merged.contato_solicitante || undefined,
+      secretaria: (merged as any).secretaria_identificada || undefined,
+      origem: (merged as any).origem || undefined,
+      logoCamaraUrl: logoCamara,
+      logoFabaoUrl: logoFabao,
+      assinaturaUrl: assinaturaFabao,
+      formatOptions,
+    };
+  };
 
   const handleUploadToDrive = async (oficio: OficioRow) => {
     if (!oficio.conteudo) {
