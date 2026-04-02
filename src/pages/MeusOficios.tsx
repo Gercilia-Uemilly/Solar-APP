@@ -911,7 +911,7 @@ export default function MeusOficios() {
                   if (!viewOficio) return;
                   const imgs = await fetchSavedImages(viewOficio.id);
                   try {
-                    await exportToWord({ ...buildExportData(viewOficio), conteudo: editedContent, imagens: imgs.length > 0 ? imgs : undefined });
+                    await exportToWord({ ...buildExportData(viewOficio), conteudo: editedContentRef.current, imagens: imgs.length > 0 ? imgs : undefined });
                   } catch (e: any) {
                     toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                   }
@@ -922,7 +922,7 @@ export default function MeusOficios() {
                   if (!viewOficio) return;
                   const imgs = await fetchSavedImages(viewOficio.id);
                   try {
-                    await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContent, imagens: imgs.length > 0 ? imgs : undefined });
+                    await exportToPDF({ ...buildExportData(viewOficio), conteudo: editedContentRef.current, imagens: imgs.length > 0 ? imgs : undefined });
                   } catch (e: any) {
                     toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                   }
