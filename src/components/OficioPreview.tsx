@@ -240,10 +240,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         {/* DATA */}
         {!isHidden && editable && onDataChange ? (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onDataChange(e.currentTarget.textContent || "")}>{dataFormatada}</span>
+            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => {
+              const val = e.currentTarget.textContent || "";
+              userEditedRef.current.data = true;
+              setLocalData(val);
+              onDataChange(val);
+            }}>{localData}</span>
           </p>
         ) : (
-          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{dataFormatada}</p>
+          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{localData}</p>
         )}
 
         {/* OFÍCIO GVF n° */}
@@ -252,9 +257,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             contentEditable
             suppressContentEditableWarning
             style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", ...editableStyle }}
-            onBlur={e => onNumeroChange(e.currentTarget.innerHTML || "")}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`Ofício GVF n° ${numeroFormatado}`) }}
-          />
+            onBlur={e => {
+              const val = e.currentTarget.textContent || "";
+              userEditedRef.current.numero = true;
+              setLocalNumero(val);
+              onNumeroChange(val);
+            }}
+          >{localNumero}</div>
         ) : (
           <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
             Ofício GVF n° {numeroFormatado}
@@ -268,13 +277,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             suppressContentEditableWarning
             style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
             onBlur={e => {
-              const html = e.currentTarget.innerHTML || "";
-              // Strip the "DESTINATÁRIO: " prefix if user didn't remove it
+              const html = e.currentTarget.textContent || "";
+              userEditedRef.current.destinatario = true;
               const cleaned = html.replace(/^DESTINAT[AÁ]RIO:\s*/i, "");
+              setLocalDestinatario(e.currentTarget.textContent || "");
               onCargoDestinatarioChange(cleaned);
             }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`DESTINATÁRIO: ${destinatarioCompleto}`) }}
-          />
+          >{localDestinatario}</div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             DESTINATÁRIO: {destinatarioCompleto}
@@ -288,12 +297,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             suppressContentEditableWarning
             style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
             onBlur={e => {
-              const html = e.currentTarget.innerHTML || "";
+              const html = e.currentTarget.textContent || "";
+              userEditedRef.current.assunto = true;
               const cleaned = html.replace(/^Assunto:\s*/i, "");
+              setLocalAssunto(e.currentTarget.textContent || "");
               onAssuntoChange(cleaned);
             }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`Assunto: ${assuntoFormatado}`) }}
-          />
+          >{localAssunto}</div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
             Assunto: {assuntoFormatado}
