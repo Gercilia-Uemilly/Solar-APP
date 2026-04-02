@@ -188,6 +188,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const dataElRef = useRef<HTMLSpanElement>(null);
 
     // Imperatively sync DOM when local state changes from external props only
+    // Initial mount: set DOM text content once refs are attached
+    const initialDomSyncDone = useRef(false);
+    useEffect(() => {
+      if (initialDomSyncDone.current) return;
+      if (destElRef.current) destElRef.current.textContent = localDestinatario;
+      if (assuntoElRef.current) assuntoElRef.current.textContent = localAssunto;
+      if (numeroElRef.current) numeroElRef.current.textContent = localNumero;
+      if (dataElRef.current) dataElRef.current.textContent = localData;
+      initialDomSyncDone.current = true;
+    });
+
     useEffect(() => {
       if (destElRef.current && destElRef.current.textContent !== localDestinatario && !userEditedRef.current.destinatario) {
         destElRef.current.textContent = localDestinatario;
