@@ -87,6 +87,8 @@ export default function MeusOficios() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inlineFieldSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Refs to track latest inline-edited field values (avoids React batching race condition)
+  const inlineFieldsRef = useRef<Record<string, string>>({});
   const previewRef = useRef<HTMLDivElement>(null);
   const formatStorageKey = "oficio_preview_format_options";
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(() => {
