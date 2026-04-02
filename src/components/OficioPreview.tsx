@@ -93,11 +93,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const effectiveFontSize = fmt.fontSize && fmt.fontSize !== 10 ? Math.min(fmt.fontSize, 14) : autoCalc.fontSize;
     const effectiveLineSpacing = fmt.lineSpacing && fmt.lineSpacing !== 1.5 ? fmt.lineSpacing : autoCalc.lineSpacing;
 
-    // ── Local state for editable fields ──────────────────────────
-    // Initialize once from props; never overwrite if user has manually edited.
-    const prevPropsRef = useRef({ numero, destinatario, assunto, cargoDestinatario, dataGeracao });
-    const userEditedRef = useRef<Record<string, boolean>>({});
-
     const numeroCleaned = cleanNumero(numero);
     const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
     const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -108,35 +103,76 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const defaultDestinatarioCompleto = cargoDestinatario || (secretaria ? getDestinatario(secretaria) : destinatario || "___");
     const defaultAssuntoFormatado = assunto || "___";
 
+    // ── Local state for editable fields ──────────────────────────
+    const initialFieldSyncDoneRef = useRef(false);
+    const prevExternalValuesRef = useRef({
+      numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
+      destinatario: `DESTINATÁRIO: ${defaultDestinatarioCompleto}`,
+      assunto: `Assunto: ${defaultAssuntoFormatado}`,
+      data: defaultDataFormatada,
+    });
+    const userEditedRef = useRef<Record<string, boolean>>({});
+
     const [localData, setLocalData] = useState(defaultDataFormatada);
     const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
     const [localDestinatario, setLocalDestinatario] = useState(`DESTINATÁRIO: ${defaultDestinatarioCompleto}`);
     const [localAssunto, setLocalAssunto] = useState(`Assunto: ${defaultAssuntoFormatado}`);
 
-    // Sync from props ONLY when the prop value actually changed externally (not from user edit)
     useEffect(() => {
-      const prev = prevPropsRef.current;
+      const externalValues = {
+        numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
+        destinatario: `DESTINATÁRIO: ${defaultDestinatarioCompleto}`,
+        assunto: `Assunto: ${defaultAssuntoFormatado}`,
+        data: defaultDataFormatada,
+      };
 
-      if (dataGeracao !== prev.dataGeracao && !userEditedRef.current.data) {
-        const h = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
-        setLocalData(`Uberlândia, ${h.getDate()} de ${meses[h.getMonth()]} de ${h.getFullYear()}.`);
-      }
-      if (numero !== prev.numero && !userEditedRef.current.numero) {
-        const nc = cleanNumero(numero);
-        const nf = nc ? (nc.includes("/") ? nc : `${nc}/${(dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date()).getFullYear()}`) : "___";
-        setLocalNumero(`Ofício GVF n° ${nf}`);
-      }
-      const newDestCompleto = cargoDestinatario || (secretaria ? getDestinatario(secretaria) : destinatario || "___");
-      const prevDestCompleto = prev.cargoDestinatario || (secretaria ? getDestinatario(secretaria) : prev.destinatario || "___");
-      if (newDestCompleto !== prevDestCompleto && !userEditedRef.current.destinatario) {
-        setLocalDestinatario(`DESTINATÁRIO: ${newDestCompleto}`);
-      }
-      if (assunto !== prev.assunto && !userEditedRef.current.assunto) {
-        setLocalAssunto(`Assunto: ${assunto || "___"}`);
+      if (!initialFieldSyncDoneRef.current) {
+        setLocalNumero(externalValues.numero);
+        setLocalDestinatario(externalValues.destinatario);
+        setLocalAssunto(externalValues.assunto);
+        setLocalData(externalValues.data);
+        prevExternalValuesRef.current = externalValues;
+        initialFieldSyncDoneRef.current = true;
+        return;
       }
 
-      prevPropsRef.current = { numero, destinatario, assunto, cargoDestinatario, dataGeracao };
+      const prev = prevExternalValuesRef.current;
+
+      if (externalValues.data !== prev.data && !userEditedRef.current.data) {
+        setLocalData(externalValues.data);
+      }
+      if (externalValues.numero !== prev.numero && !userEditedRef.current.numero) {
+        setLocalNumero(externalValues.numero);
+      }
+      if (externalValues.destinatario !== prev.destinatario && !userEditedRef.current.destinatario) {
+        setLocalDestinatario(externalValues.destinatario);
+      }
+      if (externalValues.assunto !== prev.assunto && !userEditedRef.current.assunto) {
+        setLocalAssunto(externalValues.assunto);
+      }
+
+      prevExternalValuesRef.current = externalValues;
     }, [numero, destinatario, assunto, cargoDestinatario, dataGeracao, secretaria]);
+
+    const syncDestinatario = useCallback((rawValue: string) => {
+      userEditedRef.current.destinatario = true;
+      setLocalDestinatario(rawValue);
+      const cleaned = rawValue.replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim();
+      onCargoDestinatarioChange?.(cleaned);
+      onDestinatarioChange?.(cleaned);
+    }, [onCargoDestinatarioChange, onDestinatarioChange]);
+
+    const syncAssunto = useCallback((rawValue: string) => {
+      userEditedRef.current.assunto = true;
+      setLocalAssunto(rawValue);
+      onAssuntoChange?.(rawValue.replace(/^Assunto:\s*/i, "").trim());
+    }, [onAssuntoChange]);
+
+    const syncNumero = useCallback((rawValue: string) => {
+      userEditedRef.current.numero = true;
+      setLocalNumero(rawValue);
+      onNumeroChange?.(rawValue.trim());
+    }, [onNumeroChange]);
 
     const editableStyle = editable ? {
       cursor: "text" as const,
@@ -256,13 +292,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <div
             contentEditable
             suppressContentEditableWarning
+            data-preview-field="numero"
             style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", ...editableStyle }}
-            onBlur={e => {
-              const val = e.currentTarget.textContent || "";
-              userEditedRef.current.numero = true;
-              setLocalNumero(val);
-              onNumeroChange(val);
-            }}
+            onInput={e => syncNumero(e.currentTarget.textContent || "")}
+            onBlur={e => syncNumero(e.currentTarget.textContent || "")}
           >{localNumero}</div>
         ) : (
           <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
@@ -275,14 +308,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <div
             contentEditable
             suppressContentEditableWarning
+            data-preview-field="destinatario"
             style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onBlur={e => {
-              const html = e.currentTarget.textContent || "";
-              userEditedRef.current.destinatario = true;
-              const cleaned = html.replace(/^DESTINAT[AÁ]RIO:\s*/i, "");
-              setLocalDestinatario(e.currentTarget.textContent || "");
-              onCargoDestinatarioChange(cleaned);
-            }}
+            onInput={e => syncDestinatario(e.currentTarget.textContent || "")}
+            onBlur={e => syncDestinatario(e.currentTarget.textContent || "")}
           >{localDestinatario}</div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
@@ -295,14 +324,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           <div
             contentEditable
             suppressContentEditableWarning
+            data-preview-field="assunto"
             style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onBlur={e => {
-              const html = e.currentTarget.textContent || "";
-              userEditedRef.current.assunto = true;
-              const cleaned = html.replace(/^Assunto:\s*/i, "");
-              setLocalAssunto(e.currentTarget.textContent || "");
-              onAssuntoChange(cleaned);
-            }}
+            onInput={e => syncAssunto(e.currentTarget.textContent || "")}
+            onBlur={e => syncAssunto(e.currentTarget.textContent || "")}
           >{localAssunto}</div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>

@@ -60,6 +60,8 @@ export default function Oficios() {
   const [viewingOficio, setViewingOficio] = useState<OficioRow | null>(null);
   const [viewingAnexoUrls, setViewingAnexoUrls] = useState<string[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
+  const destinatarioManualmenteEditadoRef = useRef(false);
+  const cargoManualmenteEditadoRef = useRef(false);
 
   // Form state
   const [numero, setNumero] = useState("");
@@ -388,10 +390,35 @@ export default function Oficios() {
   // When secretaria changes, auto-fill destinatario and cargo from centralized config
   useEffect(() => {
     if (secretaria) {
-      setCargoDestinatario(getDestinatario(secretaria));
-      setDestinatario(getDestinatario(secretaria));
+      const destinatarioGerado = getDestinatario(secretaria);
+      if (!cargoManualmenteEditadoRef.current) {
+        setCargoDestinatario(destinatarioGerado);
+      }
+      if (!destinatarioManualmenteEditadoRef.current) {
+        setDestinatario(destinatarioGerado);
+      }
     }
   }, [secretaria]);
+
+  const getPreviewEditableSnapshot = useCallback(() => {
+    const readField = (field: string) => previewRef.current
+      ?.querySelector<HTMLElement>(`[data-preview-field="${field}"]`)
+      ?.textContent
+      ?.trim();
+
+    const nextNumero = readField("numero") || numero;
+    const nextAssunto = (readField("assunto") || assunto).replace(/^Assunto:\s*/i, "").trim();
+    const nextDestinatario = (readField("destinatario") || cargoDestinatario || destinatario)
+      .replace(/^DESTINAT[AÁ]RIO:\s*/i, "")
+      .trim();
+
+    return {
+      numero: nextNumero,
+      assunto: nextAssunto,
+      destinatario: nextDestinatario,
+      cargoDestinatario: nextDestinatario,
+    };
+  }, [assunto, cargoDestinatario, destinatario, numero]);
 
   useEffect(() => {
     const query = `${assunto} ${descricao}`.trim();
@@ -557,6 +584,13 @@ export default function Oficios() {
       toast({ title: "Aguarde", description: "Número ainda não reservado.", variant: "destructive" });
       return;
     }
+
+    const previewSnapshot = getPreviewEditableSnapshot();
+    setNumero(previewSnapshot.numero);
+    setAssunto(previewSnapshot.assunto);
+    setDestinatario(previewSnapshot.destinatario);
+    setCargoDestinatario(previewSnapshot.cargoDestinatario);
+
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
@@ -564,11 +598,11 @@ export default function Oficios() {
       return;
     }
     setValidationErrors({});
-    const fullNumero = numero || null;
+    const fullNumero = previewSnapshot.numero || numero || null;
     const payload: Record<string, any> = {
       numero: fullNumero,
-      assunto: assunto || aiResult?.tipo_demanda || "Sem assunto",
-      destinatario: destinatario || "",
+      assunto: previewSnapshot.assunto || aiResult?.tipo_demanda || "Sem assunto",
+      destinatario: previewSnapshot.destinatario || "",
       status: "Salvo",
       conteudo: editedOficio || null,
       resposta_cidadao: null,
@@ -579,7 +613,7 @@ export default function Oficios() {
       codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
       origem: origemOficio || "Outros",
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
-      cargo_destinatario: cargoDestinatario || null,
+      cargo_destinatario: previewSnapshot.cargoDestinatario || null,
       local_demanda: localDemanda || null,
       bairro: enderecoCompleto || bairro || null,
       endereco_completo: enderecoCompleto || null,
@@ -717,6 +751,8 @@ export default function Oficios() {
   const resetForm = () => {
     setShowDialog(false);
     setEditingOficioId(null);
+    destinatarioManualmenteEditadoRef.current = false;
+    cargoManualmenteEditadoRef.current = false;
     setNumero("");
     setDataGeracao(new Date().toISOString().split("T")[0]);
     setEnderecoCompleto("");
@@ -1621,8 +1657,14 @@ export default function Oficios() {
                     setAssunto(val);
                     setAssuntoEditedInPreview(true);
                   }}
-                  onDestinatarioChange={setDestinatario}
-                  onCargoDestinatarioChange={setCargoDestinatario}
+                  onDestinatarioChange={(val) => {
+                    destinatarioManualmenteEditadoRef.current = true;
+                    setDestinatario(val);
+                  }}
+                  onCargoDestinatarioChange={(val) => {
+                    cargoManualmenteEditadoRef.current = true;
+                    setCargoDestinatario(val);
+                  }}
                   onNumeroChange={setNumero}
                   onDataChange={(val) => {
                     /* data is display-only from date input */
