@@ -74,6 +74,7 @@ export default function Operadores() {
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // Invite modal
   const [showInvite, setShowInvite] = useState(false);
