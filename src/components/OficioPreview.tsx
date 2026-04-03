@@ -54,6 +54,22 @@ const MARGIN_LEFT = 113;
 const MARGIN_RIGHT = 76;
 const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
 
+const LABELED_LINE_PATTERN = /^[^:\n]{2,32}:\s*\S+/;
+
+function formatInlineField(label: string, value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed || trimmed === "___") {
+    return `${label}: ___`;
+  }
+
+  if (LABELED_LINE_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `${label}: ${trimmed}`;
+}
+
 /** Render image grid for a chunk of images with dynamic layout */
 function ImageGrid({ urls }: { urls: string[] }) {
   const count = urls.length;
@@ -100,29 +116,29 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const defaultNumeroFormatado = numeroCleaned
       ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
       : "___";
-    const defaultDestinatarioCompleto = cargoDestinatario || (secretaria ? getDestinatario(secretaria) : destinatario || "___");
+    const defaultDestinatarioCompleto = destinatario || cargoDestinatario || (secretaria ? getDestinatario(secretaria) : "___");
     const defaultAssuntoFormatado = assunto || "___";
 
     // ── Local state for editable fields ──────────────────────────
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
       numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-      destinatario: `Destinatário: ${defaultDestinatarioCompleto}`,
-      assunto: `Assunto: ${defaultAssuntoFormatado}`,
+      destinatario: formatInlineField("Destinatário", defaultDestinatarioCompleto),
+      assunto: formatInlineField("Assunto", defaultAssuntoFormatado),
       data: defaultDataFormatada,
     });
     const userEditedRef = useRef<Record<string, boolean>>({});
 
     const [localData, setLocalData] = useState(defaultDataFormatada);
     const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
-    const [localDestinatario, setLocalDestinatario] = useState(`Destinatário: ${defaultDestinatarioCompleto}`);
-    const [localAssunto, setLocalAssunto] = useState(`Assunto: ${defaultAssuntoFormatado}`);
+    const [localDestinatario, setLocalDestinatario] = useState(formatInlineField("Destinatário", defaultDestinatarioCompleto));
+    const [localAssunto, setLocalAssunto] = useState(formatInlineField("Assunto", defaultAssuntoFormatado));
 
     useEffect(() => {
       const externalValues = {
         numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-        destinatario: `Destinatário: ${defaultDestinatarioCompleto}`,
-        assunto: `Assunto: ${defaultAssuntoFormatado}`,
+        destinatario: formatInlineField("Destinatário", defaultDestinatarioCompleto),
+        assunto: formatInlineField("Assunto", defaultAssuntoFormatado),
         data: defaultDataFormatada,
       };
 
@@ -157,15 +173,16 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const syncDestinatario = useCallback((rawValue: string) => {
       userEditedRef.current.destinatario = true;
       setLocalDestinatario(rawValue);
-      const cleaned = rawValue.replace(/^Destinat[aá]rio:\s*/i, "").trim();
+      const trimmed = rawValue.trim();
+      const cleaned = trimmed.replace(/^Destinat[aá]rio:\s*/i, "").trim();
       onCargoDestinatarioChange?.(cleaned);
-      onDestinatarioChange?.(cleaned);
+      onDestinatarioChange?.(trimmed);
     }, [onCargoDestinatarioChange, onDestinatarioChange]);
 
     const syncAssunto = useCallback((rawValue: string) => {
       userEditedRef.current.assunto = true;
       setLocalAssunto(rawValue);
-      onAssuntoChange?.(rawValue.replace(/^Assunto:\s*/i, "").trim());
+      onAssuntoChange?.(rawValue.trim());
     }, [onAssuntoChange]);
 
     const syncNumero = useCallback((rawValue: string) => {
@@ -359,7 +376,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-            Destinatário: {destinatarioCompleto}
+            {localDestinatario}
           </p>
         )}
 
@@ -376,7 +393,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-            Assunto: {assuntoFormatado}
+            {localAssunto}
           </p>
         )}
 

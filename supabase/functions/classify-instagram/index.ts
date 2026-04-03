@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       .from("base_conhecimento")
       .select("id, link, titulo, descricao, categoria, palavras_chave")
       .eq("fonte", "Instagram")
-      .or("titulo.eq.Instagram @fabaovereador,titulo.like.%Post do Instagram%,titulo.like.%Reel do Instagram%")
+      .or("categoria.eq.Instagram,titulo.eq.Instagram @fabaovereador,titulo.like.%Post do Instagram%,titulo.like.%Reel do Instagram%")
       .limit(limit);
 
     if (fetchError) {

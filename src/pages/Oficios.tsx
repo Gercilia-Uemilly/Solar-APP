@@ -407,16 +407,15 @@ export default function Oficios() {
       ?.trim();
 
     const nextNumero = readField("numero") || numero;
-    const nextAssunto = (readField("assunto") || assunto).replace(/^Assunto:\s*/i, "").trim();
-    const nextDestinatario = (readField("destinatario") || cargoDestinatario || destinatario)
-      .replace(/^DESTINAT[AÁ]RIO:\s*/i, "")
-      .trim();
+    const nextAssunto = (readField("assunto") || assunto).trim();
+    const nextDestinatario = (readField("destinatario") || destinatario || cargoDestinatario).trim();
+    const nextCargoDestinatario = nextDestinatario.replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim();
 
     return {
       numero: nextNumero,
       assunto: nextAssunto,
       destinatario: nextDestinatario,
-      cargoDestinatario: nextDestinatario,
+      cargoDestinatario: nextCargoDestinatario,
     };
   }, [assunto, cargoDestinatario, destinatario, numero]);
 
