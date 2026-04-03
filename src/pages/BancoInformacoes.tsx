@@ -47,6 +47,20 @@ interface ScriptRow {
   created_at: string;
 }
 
+const INSTAGRAM_PENDING_TITLE_PATTERNS = [
+  "Instagram @fabaovereador",
+  "Post do Instagram",
+  "Reel do Instagram",
+] as const;
+
+function isPendingInstagramEntry(entry: KnowledgeEntry) {
+  return (entry.fonte === "Instagram" || entry.link?.includes("instagram.com"))
+    && (
+      entry.categoria === "Instagram"
+      || INSTAGRAM_PENDING_TITLE_PATTERNS.some((pattern) => entry.titulo?.includes(pattern))
+    );
+}
+
 const TAB_CONFIG = [
   { value: "base", label: "Base", icon: Library, adminOnly: false },
   { value: "scripts", label: "Scripts", icon: MessageSquareText, adminOnly: false },
@@ -129,6 +143,15 @@ export default function BancoInformacoes() {
     limit: 1000,
     disableRealtime: true,
   });
+  const { data: audioBaseEntries, loading: audioLoading, refetch: fetchAudioEntries } = useRealtimeTable<KnowledgeEntry>({
+    table: "base_conhecimento",
+    channel: "base-conhecimento-audios-realtime",
+    orderBy: { column: "created_at", ascending: false },
+    select: "id,titulo,descricao,palavras_chave,orgao,bairro,data_publicacao,link,fonte,categoria,modelo,created_at",
+    filters: { categoria: "Áudio" },
+    limit: 300,
+    disableRealtime: true,
+  });
   const { data: scripts, setData: setScriptsData, loading: scriptsLoading, refetch: fetchScripts } = useRealtimeTable<ScriptRow>({
     table: "scripts",
     channel: "scripts-banco-realtime",
@@ -185,6 +208,10 @@ export default function BancoInformacoes() {
   const [expandedScriptId, setExpandedScriptId] = useState<string | null>(null);
   const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null);
 
+  const refreshKnowledgeViews = useCallback(async () => {
+    await Promise.all([fetchEntries(), fetchAudioEntries()]);
+  }, [fetchEntries, fetchAudioEntries]);
+
   // ─── Derived data ───
   const fontes = useMemo(() => {
     const s = new Set(entries.map(e => e.fonte).filter(Boolean));
@@ -219,7 +246,7 @@ export default function BancoInformacoes() {
   }, [entries, search, fonteFilter, themeFilter, dateFilter]);
 
   const audioEntries = useMemo(() => {
-    let result = entries.filter(e => e.categoria === "Áudio");
+    let result = audioBaseEntries;
     if (audioOriginFilter !== "Todas") result = result.filter(e => e.fonte === audioOriginFilter);
     if (audioTagFilter !== "Todos") result = result.filter(e => e.palavras_chave?.includes(audioTagFilter));
     if (!audioSearch) return result;
@@ -229,17 +256,27 @@ export default function BancoInformacoes() {
       e.descricao?.toLowerCase().includes(s) ||
       e.palavras_chave?.some(k => k.toLowerCase().includes(s))
     );
-  }, [entries, audioSearch, audioOriginFilter, audioTagFilter]);
+  }, [audioBaseEntries, audioSearch, audioOriginFilter, audioTagFilter]);
 
   const audioOrigins = useMemo(() => {
-    const s = new Set(entries.filter(e => e.categoria === "Áudio").map(e => e.fonte).filter(Boolean));
+    const s = new Set(audioBaseEntries.map(e => e.fonte).filter(Boolean));
     return ["Todas", ...Array.from(s)] as string[];
-  }, [entries]);
+  }, [audioBaseEntries]);
 
   const audioTags = useMemo(() => {
-    const s = new Set(entries.filter(e => e.categoria === "Áudio").flatMap(e => e.palavras_chave || []).filter(Boolean));
+    const s = new Set(audioBaseEntries.flatMap(e => e.palavras_chave || []).filter(Boolean));
     return ["Todos", ...Array.from(s)] as string[];
-  }, [entries]);
+  }, [audioBaseEntries]);
+
+  const instagramEntries = useMemo(
+    () => entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram"),
+    [entries]
+  );
+
+  const pendingInstagramEntries = useMemo(
+    () => entries.filter(isPendingInstagramEntry),
+    [entries]
+  );
 
   // Scripts computed
   const scriptCategories = useMemo(() => {
@@ -262,10 +299,10 @@ export default function BancoInformacoes() {
   const stats = useMemo(() => ({
     total: entries.length,
     scripts: scripts.length,
-    audios: entries.filter(e => e.categoria === "Áudio").length,
-    instagram: entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length,
+    audios: audioBaseEntries.length,
+    instagram: instagramEntries.length,
     modelos: entries.filter(e => e.modelo).length,
-  }), [entries, scripts]);
+  }), [entries, scripts, audioBaseEntries.length, instagramEntries.length]);
 
   // ─── Handlers ───
   const handleImport = async () => {
@@ -274,7 +311,7 @@ export default function BancoInformacoes() {
       const { data, error } = await supabase.functions.invoke("fetch-knowledge", { body: { action: "fetch_rss", limit: 20 } });
       if (error) throw error;
       toast({ title: "Importação concluída!", description: `${data.saved} novas notícias importadas.` });
-      await fetchEntries();
+      await refreshKnowledgeViews();
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally { setImporting(false); }
@@ -286,7 +323,7 @@ export default function BancoInformacoes() {
       const { data, error } = await supabase.functions.invoke("fetch-sos-uberlandia", { body: { pages } });
       if (error) throw error;
       toast({ title: "Importação concluída!", description: `${data.inserted} novas notícias importadas (${data.skipped} já existentes).` });
-      await fetchEntries();
+      await refreshKnowledgeViews();
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally { setScraping(false); }
@@ -294,7 +331,7 @@ export default function BancoInformacoes() {
 
   const handleDelete = async (id: string) => {
     await supabase.from("base_conhecimento" as any).delete().eq("id", id);
-    setEntries(prev => prev.filter(e => e.id !== id));
+    await refreshKnowledgeViews();
     toast({ title: "Entrada removida" });
   };
 
@@ -314,7 +351,7 @@ export default function BancoInformacoes() {
       if (data.preview) { setInstaPreview(data.preview); setInstaEditing(true); }
       else if (data.saved !== undefined) {
         toast({ title: "Posts importados!", description: `${data.saved} posts salvos.` });
-        await fetchEntries(); setInstaUrl("");
+        await refreshKnowledgeViews(); setInstaUrl("");
       }
     } catch (err: any) {
       toast({ title: "Erro ao importar Instagram", description: err.message, variant: "destructive" });
@@ -327,7 +364,7 @@ export default function BancoInformacoes() {
       const { data, error } = await supabase.functions.invoke("fetch-knowledge", { body: { action: "import_instagram", url: "https://www.instagram.com/fabaovereador/", limit: 20 } });
       if (error) throw error;
       toast({ title: "Feed importado!", description: `${data.saved} posts salvos.` });
-      await fetchEntries();
+      await refreshKnowledgeViews();
     } catch (err: any) {
       toast({ title: "Erro ao importar feed", description: err.message, variant: "destructive" });
     } finally { setInstaFeedImporting(false); }
@@ -339,32 +376,46 @@ export default function BancoInformacoes() {
     const { error } = await supabase.from("base_conhecimento" as any).insert(entry);
     if (error) { toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Post salvo na base!" });
-    setInstaPreview(null); setInstaEditing(false); setInstaUrl(""); await fetchEntries();
+    setInstaPreview(null); setInstaEditing(false); setInstaUrl(""); await refreshKnowledgeViews();
   };
 
   const handleInstagramClassify = async () => {
     setInstaClassifying(true);
     setInstaClassifyProgress(null);
     try {
-      const instagramEntries = entries.filter(e => 
-        (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
-        (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
-      );
-      
-      const totalToProcess = Math.min(instagramEntries.length, 50);
-      setInstaClassifyProgress({ processed: 0, total: totalToProcess });
+      const batchLimit = 50;
+      let processed = 0;
+      let updated = 0;
+      let totalEstimate = Math.max(pendingInstagramEntries.length, batchLimit);
 
-      const { data, error } = await supabase.functions.invoke("classify-instagram", {
-        body: { limit: 50 },
-      });
+      setInstaClassifyProgress({ processed: 0, total: totalEstimate });
 
-      if (error) throw error;
+      for (let batch = 0; batch < 60; batch++) {
+        const { data, error } = await supabase.functions.invoke("classify-instagram", {
+          body: { limit: batchLimit },
+        });
+
+        if (error) throw error;
+
+        const processedBatch = Number(data?.processed || 0);
+        const updatedBatch = Number(data?.updated || 0);
+        const fetchedBatch = Number(data?.total || 0);
+
+        processed += processedBatch;
+        updated += updatedBatch;
+        totalEstimate = Math.max(totalEstimate, processed + (fetchedBatch === batchLimit ? batchLimit : 0));
+        setInstaClassifyProgress({ processed, total: totalEstimate });
+
+        if (fetchedBatch === 0 || processedBatch === 0 || fetchedBatch < batchLimit) {
+          break;
+        }
+      }
 
       toast({ 
         title: "Classificação concluída!", 
-        description: `${data.updated} posts atualizados de ${data.processed} processados.` 
+        description: `${updated} posts atualizados de ${processed} processados.` 
       });
-      await fetchEntries();
+      await refreshKnowledgeViews();
     } catch (err: any) {
       toast({ title: "Erro na classificação", description: err.message, variant: "destructive" });
     } finally { 
@@ -423,7 +474,7 @@ export default function BancoInformacoes() {
         toast({ title: `Erro em "${file.name}"`, description: err.message, variant: "destructive" });
       }
     }
-    setUploadingFile(false); await fetchEntries();
+    setUploadingFile(false); await refreshKnowledgeViews();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -487,7 +538,7 @@ export default function BancoInformacoes() {
         toast({ title: `Erro em "${file.name}"`, description: err.message, variant: "destructive" });
       }
     }
-    setUploadingAudio(false); await fetchEntries();
+    setUploadingAudio(false); await refreshKnowledgeViews();
     if (audioInputRef.current) audioInputRef.current.value = "";
   };
 
@@ -884,7 +935,14 @@ export default function BancoInformacoes() {
 
           {/* Audio cards */}
           <div className="space-y-3">
-            {audioEntries.length === 0 ? (
+            {audioLoading ? (
+              <Card>
+                <CardContent className="text-center py-12 text-muted-foreground">
+                  <Loader2 size={32} className="mx-auto mb-3 animate-spin opacity-40" />
+                  <p>Carregando áudios...</p>
+                </CardContent>
+              </Card>
+            ) : audioEntries.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-12 text-muted-foreground">
                   <Headphones size={48} className="mx-auto mb-3 opacity-20" />
@@ -1057,13 +1115,9 @@ export default function BancoInformacoes() {
                   </h3>
                   <p className="text-xs text-muted-foreground w-full mb-2">
                     Processa posts não classificados usando IA para gerar título, tema e tags automaticamente.
-                    {entries.filter(e => (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
-                      (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
-                    ).length > 0 && (
+                    {pendingInstagramEntries.length > 0 && (
                       <span className="ml-1 font-medium text-purple-600">
-                        ({entries.filter(e => (e.fonte === "Instagram" || e.link?.includes("instagram.com")) && 
-                          (e.titulo === "Instagram @fabaovereador" || e.titulo?.includes("Post do Instagram") || e.titulo?.includes("Reel do Instagram"))
-                        ).length} pendentes)
+                        ({pendingInstagramEntries.length} pendentes nesta carga)
                       </span>
                     )}
                   </p>
@@ -1101,11 +1155,11 @@ export default function BancoInformacoes() {
                   </div>
                 </div>
               <div className="grid gap-3 md:grid-cols-2">
-                {entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").length === 0 ? (
+                {instagramEntries.length === 0 ? (
                   <div className="col-span-full text-center py-10 text-muted-foreground">
                     <InstagramIcon size={40} className="mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">Nenhum post cadastrado</p>
                   </div>
-                ) : entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram").map(entry => (
+                ) : instagramEntries.map(entry => (
                   <Card key={entry.id} className="group hover:shadow-md transition-all">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2">

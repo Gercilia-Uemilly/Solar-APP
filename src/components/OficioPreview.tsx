@@ -174,7 +174,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       userEditedRef.current.destinatario = true;
       setLocalDestinatario(rawValue);
       const trimmed = rawValue.trim();
-      onCargoDestinatarioChange?.(trimmed);
+      const cleaned = trimmed.replace(/^Destinat[aá]rio:\s*/i, "").trim();
+      onCargoDestinatarioChange?.(cleaned);
       onDestinatarioChange?.(trimmed);
     }, [onCargoDestinatarioChange, onDestinatarioChange]);
 
@@ -375,7 +376,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-            Destinatário: {destinatarioCompleto}
+            {localDestinatario}
           </p>
         )}
 
@@ -392,7 +393,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-            Assunto: {assuntoFormatado}
+            {localAssunto}
           </p>
         )}
 
