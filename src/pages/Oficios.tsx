@@ -1629,18 +1629,20 @@ export default function Oficios() {
                   if (!editedOficio) {
                     toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de enviar ao Drive." });
                   }
-                  // Build a temporary OficioRow-like object for handleUploadToDrive
+                  // Auto-save before upload to ensure preview edits are persisted
+                  await handleCreate(false);
+                  const snap = getPreviewEditableSnapshot();
                   const tempOficio: OficioRow = {
                     id: editingOficioId || "",
-                    numero: numero || null,
-                    assunto: assunto || "",
-                    destinatario: destinatario || "",
+                    numero: snap.numero || numero || null,
+                    assunto: snap.assunto || assunto || "",
+                    destinatario: snap.destinatario || destinatario || "",
                     status: "Rascunho",
                     conteudo: editedOficio,
                     resposta_cidadao: null,
                     author_id: user?.id || "",
                     created_at: new Date().toISOString(),
-                    cargo_destinatario: cargoDestinatario || null,
+                    cargo_destinatario: snap.cargoDestinatario || cargoDestinatario || null,
                     local_demanda: localDemanda || null,
                     bairro: enderecoCompleto || bairro || null,
                     solicitante: solicitante || null,
@@ -1648,10 +1650,6 @@ export default function Oficios() {
                     data_geracao: dataGeracao || null,
                     ano: new Date().getFullYear(),
                   };
-                  if (!editingOficioId) {
-                    // Save first
-                    await handleCreate(false);
-                  }
                   await handleUploadToDrive(tempOficio);
                 }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
