@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callGemini, toGeminiMessages } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,25 +35,6 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const sb = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: userData, error: authErr } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (authErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const { conversa } = await req.json();
     if (!conversa || typeof conversa !== "string" || conversa.trim().length < 5) {
       return new Response(JSON.stringify({ error: "Envie o texto da conversa" }), {
@@ -61,56 +42,19 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+    const { systemInstruction, messages } = toGeminiMessages(SYSTEM_PROMPT, `Conversa de WhatsApp:\n\n${conversa}`);
+    const result = await callGemini({ systemInstruction, messages });
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Conversa de WhatsApp:\n\n${conversa}` },
-        ],
-        temperature: 0.7,
-        max_tokens: 2048,
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Muitas requisições. Tente novamente em alguns segundos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos de IA esgotados. Adicione fundos nas configurações." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`Erro IA: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const rawText = data.choices?.[0]?.message?.content || "";
-
-    // Parse JSON from response
     let parsed: any;
     try {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+      const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : result.text);
     } catch {
       parsed = {
         titulo: "Script gerado",
         categoria: "Outros",
         palavras_chave: [],
-        script_base: rawText,
+        script_base: result.text,
         observacao: "",
       };
     }
@@ -120,9 +64,10 @@ serve(async (req) => {
     });
   } catch (e: any) {
     console.error("generate-script error:", e);
+    const status = e.status || 500;
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
