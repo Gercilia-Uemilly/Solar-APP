@@ -212,6 +212,38 @@ export type Database = {
         }
         Relationships: []
       }
+      mensagem_reacoes: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          mensagem_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          mensagem_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          mensagem_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagem_reacoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mensagens: {
         Row: {
           conteudo: string
