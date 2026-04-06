@@ -170,6 +170,48 @@ export type Database = {
         }
         Relationships: []
       }
+      lembretes: {
+        Row: {
+          created_at: string
+          criado_por: string
+          data_hora: string
+          descricao: string | null
+          destinatarios: string[] | null
+          google_event_id: string | null
+          id: string
+          lido_por: string[] | null
+          recorrencia: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por: string
+          data_hora: string
+          descricao?: string | null
+          destinatarios?: string[] | null
+          google_event_id?: string | null
+          id?: string
+          lido_por?: string[] | null
+          recorrencia?: string | null
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string
+          data_hora?: string
+          descricao?: string | null
+          destinatarios?: string[] | null
+          google_event_id?: string | null
+          id?: string
+          lido_por?: string[] | null
+          recorrencia?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       mensagens: {
         Row: {
           conteudo: string
