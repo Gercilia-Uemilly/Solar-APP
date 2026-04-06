@@ -697,7 +697,7 @@ export default function MeusOficios() {
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
             ) : listaExibida.map(o => (
               <TableRow key={o.id}>
-                <TableCell className="font-medium">{o.numero || "-"}</TableCell>
+                <TableCell className="font-medium">{o.numero ? cleanNumero(o.numero) : "-"}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
