@@ -22,27 +22,28 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
   const cleanedNumero = cleanNumero(numero || "");
   const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9a-zA-Z\-\s]/g, '').trim() || 'rascunho';
   
-  const isZap = origem === "Zap" || origem === "Zap Emprego";
+  const ORIGENS_COM_Z = ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"];
+  const isOrigemComZ = ORIGENS_COM_Z.includes(origem || "");
   
-  if (codigoZ) {
+  if (codigoZ && isOrigemComZ) {
     const digits = (contatoSolicitante || "").replace(/\D/g, '');
     const last4 = digits.length >= 4 ? digits.slice(-4) : digits;
     const zPart = last4 ? `Z${codigoZ} ${last4}` : `Z${codigoZ}`;
     
-    // Zap Emprego: numero + Z + codigo_z + últimos 4 dígitos (sem nome)
-    if (origem === "Zap Emprego") {
+    // Zap Emprego, Conecta Jovem, Empregador, DI: sem nome do solicitante
+    if (["Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origem || "")) {
       return `${numPart} ${zPart}`;
     }
     
     // Zap normal: includes solicitante first name
-    if (isZap && solicitante) {
+    if (solicitante) {
       const firstName = solicitante.trim().split(/\s+/)[0] || "";
       if (firstName) return `${numPart} ${zPart} ${firstName}`;
     }
     return `${numPart} ${zPart}`;
   }
   
-  // Non-Zap: standard format
+  // Non-Z origins: standard format
   const solicitanteCode = (solicitante || "").trim().split(/\s+/)[0] || "";
   if (solicitanteCode) {
     return `${numPart} ${solicitanteCode}`;
