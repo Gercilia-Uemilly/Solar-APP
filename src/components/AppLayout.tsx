@@ -51,7 +51,24 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (isMobile) setMobileOpen(false);
   }, [children]);
 
+  // Cache profiles for notification names
+  const [notifProfiles, setNotifProfiles] = useState<Record<string, string>>({});
+  useEffect(() => {
+    supabase.from("profiles").select("id, full_name, email").then(({ data }) => {
+      if (data) {
+        const map: Record<string, string> = {};
+        for (const p of data as any[]) {
+          map[p.id] = p.full_name || p.email?.split("@")[0] || "Usuário";
+        }
+        setNotifProfiles(map);
+      }
+    });
+  }, []);
+
   const chatNotifSetupRef = useRef(false);
+  const notifProfilesRef = useRef(notifProfiles);
+  notifProfilesRef.current = notifProfiles;
+
   useEffect(() => {
     if (!user || chatNotifSetupRef.current) return;
     chatNotifSetupRef.current = true;
@@ -70,6 +87,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       } catch {}
     };
 
+    const getSenderName = (id: string) => notifProfilesRef.current[id] || "Alguém";
+
     const chDM = supabase
       .channel(`chat-notif-dm-${user.id}`)
       .on('postgres_changes', {
@@ -81,7 +100,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         const msg = payload.new as any;
         if (msg.de_user_id === user.id) return;
         if (location.pathname === '/chat') return;
-        toast(`💬 Nova mensagem: ${(msg.conteudo || "").substring(0, 60)}`, { duration: 5000 });
+        const name = getSenderName(msg.de_user_id);
+        toast(`💬 ${name}: ${(msg.conteudo || "").substring(0, 50)}`, { duration: 5000 });
         playBeep();
       })
       .subscribe();
@@ -97,7 +117,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         const msg = payload.new as any;
         if (msg.de_user_id === user.id) return;
         if (location.pathname === '/chat') return;
-        toast(`📢 Chat geral: ${(msg.conteudo || "").substring(0, 60)}`, { duration: 4000 });
+        const name = getSenderName(msg.de_user_id);
+        toast(`📢 ${name} no geral: ${(msg.conteudo || "").substring(0, 50)}`, { duration: 4000 });
         playBeep();
       })
       .subscribe();
