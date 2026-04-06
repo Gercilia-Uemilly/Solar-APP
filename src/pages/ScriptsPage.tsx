@@ -74,14 +74,27 @@ export default function ScriptsPage() {
       }).eq("id", editingId);
       toast({ title: "Script atualizado!" });
     } else {
+      // Auto-classify before saving
+      let autoTags = tags.split(",").map(t => t.trim()).filter(Boolean);
+      let autoCategoria = categoria || "Outros";
+      try {
+        const { data: classif } = await supabase.functions.invoke("classificar-conteudo", {
+          body: { conteudo, tipo: "script" },
+        });
+        if (classif && !classif.error) {
+          if (!categoria && classif.categoria) autoCategoria = classif.categoria;
+          if (autoTags.length === 0 && classif.tags?.length > 0) autoTags = classif.tags;
+        }
+      } catch { /* ignore classification errors */ }
+
       await supabase.from("scripts").insert({
         titulo,
         conteudo,
-        categoria: categoria || "Outros",
-        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+        categoria: autoCategoria,
+        tags: autoTags,
         author_id: user.id,
       });
-      toast({ title: "Script criado!" });
+      toast({ title: "Script criado e classificado!" });
     }
     await fetchScripts();
     setShowDialog(false);
@@ -251,7 +264,7 @@ export default function ScriptsPage() {
                     {s.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2 ml-6">
                         {s.tags.map((tag) => (
-                          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{tag}</span>
+                          <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{tag}</span>
                         ))}
                       </div>
                     )}
