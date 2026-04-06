@@ -1219,16 +1219,32 @@ export default function Oficios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Origem da Demanda</label>
-                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap") setCodigoZ(""); }}>
+                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (!["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(v)) setCodigoZ(""); }}>
                     <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Requerimento">Requerimento</SelectItem>
                       <SelectItem value="Zap">Zap</SelectItem>
+                      <SelectItem value="Zap Emprego">Zap Emprego</SelectItem>
+                      <SelectItem value="Conecta Jovem">Conecta Jovem</SelectItem>
+                      <SelectItem value="Empregador">Empregador</SelectItem>
+                      <SelectItem value="DI">DI (Demanda Interna)</SelectItem>
                       <SelectItem value="Outros">Outros</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Código Z field removed — solicitante code is used instead */}
+                {["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Código Z</label>
+                    <Select value={codigoZ} onValueChange={setCodigoZ}>
+                      <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+                          <SelectItem key={n} value={String(n)}>Z{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* File name preview */}
