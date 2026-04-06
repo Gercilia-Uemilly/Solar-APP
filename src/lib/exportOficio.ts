@@ -22,7 +22,7 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
   const cleanedNumero = cleanNumero(numero || "");
   const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9a-zA-Z\-\s]/g, '').trim() || 'rascunho';
   
-  const ORIGENS_COM_Z = ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"];
+  const ORIGENS_COM_Z = ["Zap", "Conecta Jovem", "Empregador", "DI"];
   const isOrigemComZ = ORIGENS_COM_Z.includes(origem || "");
   
   if (codigoZ && isOrigemComZ) {
@@ -31,7 +31,7 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
     const zPart = last4 ? `Z${codigoZ} ${last4}` : `Z${codigoZ}`;
     
     // Zap Emprego, Conecta Jovem, Empregador, DI: sem nome do solicitante
-    if (["Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origem || "")) {
+    if (["Conecta Jovem", "Empregador", "DI"].includes(origem || "")) {
       return `${numPart} ${zPart}`;
     }
     
