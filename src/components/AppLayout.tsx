@@ -183,6 +183,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            <LembreteBell />
             <NotificationBell />
             <ThemeToggle />
             <div className="text-right hidden sm:block">
