@@ -609,7 +609,7 @@ export default function Oficios() {
       tipo_demanda: secretaria || aiResult?.tipo_demanda || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
+      codigo_z: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
       origem: origemOficio || "Outros",
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: previewSnapshot.cargoDestinatario || null,
