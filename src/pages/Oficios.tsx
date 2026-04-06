@@ -1050,30 +1050,45 @@ export default function Oficios() {
     };
   }, [previewImageUrls]);
 
-  const buildFormExportData = async (): Promise<OficioData> => ({
-    oficioId: editingOficioId || undefined,
-    numero,
-    destinatario,
-    assunto,
-    conteudo: editedOficio,
-    bairro: assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro),
-    cargoDestinatario,
-    dataGeracao: dataGeracao || undefined,
-    operadorNome: profileName || user?.email || undefined,
-    telefone: linhaTelefonica || undefined,
-    solicitante: solicitante || undefined,
-    secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
-    codigoZ: origemOficio === "Zap" ? (codigoZ || undefined) : undefined,
-    contatoSolicitante: contatoSolicitante || undefined,
-    origem: origemOficio || undefined,
-    logoCamaraUrl: logoCamara,
-    logoFabaoUrl: logoFabao,
-    assinaturaUrl: assinaturaFabao,
-    formatOptions,
-    fechamento: fechamento !== "Atenciosamente," ? fechamento : undefined,
-    descricaoAnexos: descricaoAnexos || undefined,
-    imagens: await getImageFilesFromAnexos(),
-  });
+  const buildFormExportData = async (): Promise<OficioData> => {
+    // Always capture the latest editable snapshot from preview DOM
+    const snap = getPreviewEditableSnapshot();
+    const exportNumero = snap.numero || numero;
+    const exportAssunto = snap.assunto || assunto;
+    const exportDestinatario = snap.destinatario || destinatario;
+    const exportCargo = snap.cargoDestinatario || cargoDestinatario;
+
+    // Sync state so subsequent saves also reflect preview edits
+    if (snap.numero) setNumero(snap.numero);
+    if (snap.assunto) setAssunto(snap.assunto);
+    if (snap.destinatario) setDestinatario(snap.destinatario);
+    if (snap.cargoDestinatario) setCargoDestinatario(snap.cargoDestinatario);
+
+    return {
+      oficioId: editingOficioId || undefined,
+      numero: exportNumero,
+      destinatario: exportDestinatario,
+      assunto: exportAssunto,
+      conteudo: editedOficio,
+      bairro: assuntoEditedInPreview ? undefined : (enderecoCompleto || bairro),
+      cargoDestinatario: exportCargo,
+      dataGeracao: dataGeracao || undefined,
+      operadorNome: profileName || user?.email || undefined,
+      telefone: linhaTelefonica || undefined,
+      solicitante: solicitante || undefined,
+      secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
+      codigoZ: origemOficio === "Zap" ? (codigoZ || undefined) : undefined,
+      contatoSolicitante: contatoSolicitante || undefined,
+      origem: origemOficio || undefined,
+      logoCamaraUrl: logoCamara,
+      logoFabaoUrl: logoFabao,
+      assinaturaUrl: assinaturaFabao,
+      formatOptions,
+      fechamento: fechamento !== "Atenciosamente," ? fechamento : undefined,
+      descricaoAnexos: descricaoAnexos || undefined,
+      imagens: await getImageFilesFromAnexos(),
+    };
+  };
 
   // Cleanup body styles on unmount
   useEffect(() => {
