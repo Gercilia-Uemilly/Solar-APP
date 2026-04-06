@@ -187,7 +187,13 @@ export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile,
               const src = a.url || (a.file ? URL.createObjectURL(a.file) : "");
               return (
                 <div key={a.id} className="relative group rounded-lg overflow-hidden border border-border aspect-square bg-secondary">
-                  <img src={src} alt={a.nome} className="w-full h-full object-cover" />
+              <img src={src} alt={a.nome} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setCropTarget({ id: a.id, src, name: a.nome }); }}
+                    className="absolute bottom-0.5 left-0.5 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Recortar"
+                  ><Crop size={10} /></button>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); remove(a.id); }}
