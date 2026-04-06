@@ -468,7 +468,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
     : "___";
 
-  const rawDestinatario = stripHtml(cargoDestinatario || (data.secretaria ? getDestinatario(data.secretaria) : destinatario || "___"));
+  // Priority: manual edit (cargoDestinatario) > direct destinatario > secretaria auto-fill
+  const rawDestinatario = stripHtml(cargoDestinatario || destinatario || (data.secretaria ? getDestinatario(data.secretaria) : "___"));
   const destinatarioCompleto = rawDestinatario || "___";
   const bairroExtraido = bairro ? (extrairBairro(bairro) || bairro) : "";
   const bairroFormatado = bairroExtraido
