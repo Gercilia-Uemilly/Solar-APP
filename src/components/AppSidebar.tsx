@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import logoSolar from "@/assets/logo-solar.png";
 
 const menuSections = [
   {
