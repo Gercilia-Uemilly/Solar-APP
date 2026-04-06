@@ -1625,7 +1625,7 @@ export default function Oficios() {
                   if (!editedOficio) {
                     toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de exportar." });
                   }
-                  if (origemOficio === "Zap" && !codigoZ) {
+                  if (["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) && !codigoZ) {
                     toast({ title: "⚠️ Código Z não preenchido" });
                   }
                   setIsExportingPdf(true);
