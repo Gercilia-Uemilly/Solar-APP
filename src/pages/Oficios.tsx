@@ -609,7 +609,7 @@ export default function Oficios() {
       tipo_demanda: secretaria || aiResult?.tipo_demanda || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      codigo_z: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
+      codigo_z: ["Zap", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
       origem: origemOficio || "Outros",
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: previewSnapshot.cargoDestinatario || null,
@@ -1077,7 +1077,7 @@ export default function Oficios() {
       telefone: linhaTelefonica || undefined,
       solicitante: solicitante || undefined,
       secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
-      codigoZ: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || undefined) : undefined,
+      codigoZ: ["Zap", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || undefined) : undefined,
       contatoSolicitante: contatoSolicitante || undefined,
       origem: origemOficio || undefined,
       logoCamaraUrl: logoCamara,
@@ -1129,7 +1129,7 @@ export default function Oficios() {
         tipo_demanda: secretaria || null,
         urgencia: prioridade === "Urgente" ? "urgente" : "normal",
         linha_telefonica: linhaTelefonica || null,
-        codigo_z: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
+        codigo_z: ["Zap", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
         origem: origemOficio || "Outros",
         cargo_destinatario: cargoDestinatario || null,
         local_demanda: localDemanda || null,
@@ -1219,7 +1219,7 @@ export default function Oficios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Origem da Demanda</label>
-                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (!["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(v)) setCodigoZ(""); }}>
+                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (!["Zap", "Conecta Jovem", "Empregador", "DI"].includes(v)) setCodigoZ(""); }}>
                     <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Requerimento">Requerimento</SelectItem>
@@ -1231,7 +1231,7 @@ export default function Oficios() {
                     </SelectContent>
                   </Select>
                 </div>
-                {["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) && (
+                {["Zap", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) && (
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Código Z</label>
                     <Select value={codigoZ} onValueChange={setCodigoZ}>
@@ -1254,7 +1254,7 @@ export default function Oficios() {
                     {(() => {
                       const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
                       const base = cleanedNum || 'rascunho';
-                      const ORIGENS_COM_Z = ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"];
+                      const ORIGENS_COM_Z = ["Zap", "Conecta Jovem", "Empregador", "DI"];
                       if (ORIGENS_COM_Z.includes(origemOficio) && codigoZ) {
                         const cel = contatoSolicitante.replace(/\D/g, '').slice(-4);
                         const nome = origemOficio === "Zap" ? (solicitante.trim().split(/\s+/)[0] || "") : "";
@@ -1624,7 +1624,7 @@ export default function Oficios() {
                   if (!editedOficio) {
                     toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de exportar." });
                   }
-                  if (["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) && !codigoZ) {
+                  if (["Zap", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) && !codigoZ) {
                     toast({ title: "⚠️ Código Z não preenchido" });
                   }
                   setIsExportingPdf(true);
