@@ -103,9 +103,7 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
     >
       {/* Logo Header */}
       <div className="px-4 py-5 flex items-center gap-3 border-b border-white/10 min-h-[64px]">
-        <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm">☀️</span>
-        </div>
+        <img src={logoSolar} alt="Solar" className="w-8 h-8 rounded-lg flex-shrink-0 object-contain" />
         {!collapsed && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -117,7 +115,7 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
               Solar
             </div>
             <div className="text-[10px] text-white/50 uppercase tracking-[1.5px] leading-tight mt-0.5">
-              Sistema de Ofícios Legislativos
+              Gerenciamento de Mandato
             </div>
           </motion.div>
         )}

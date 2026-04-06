@@ -129,12 +129,12 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, hsl(216 59% 26%) 0%, hsl(216 70% 13%) 100%)" }}>
       <div className="w-full max-w-[400px] bg-card rounded-lg p-10 shadow-[0_20px_60px_rgba(0,0,0,0.3)] border-t-4 border-t-secondary">
         <div className="text-center mb-8">
-          <img src={logoFabao} alt="Gabinete" className="h-16 mx-auto mb-5" />
+          <img src={logoSolar} alt="Solar" className="h-20 mx-auto mb-5" />
           <h1 className="font-serif text-[22px] font-bold text-primary">
             Solar
           </h1>
           <p className="text-[13px] text-muted-foreground mt-1 font-sans">
-            Sistema de Gerenciamento de Mandato Parlamentar
+            Sistema de Gerenciamento de Mandato
           </p>
         </div>
 
