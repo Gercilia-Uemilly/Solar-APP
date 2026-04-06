@@ -746,7 +746,7 @@ export default function MeusOficios() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    {(o.status === "Exportado") && (o as any).uploaded_by_name && (
+                    {(o.status === "Exportado" || o.status === "Salvo no Drive") && (o as any).uploaded_by_name && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">por {(o as any).uploaded_by_name}</p>
                     )}
                   </div>
