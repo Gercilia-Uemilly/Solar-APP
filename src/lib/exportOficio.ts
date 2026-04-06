@@ -30,16 +30,7 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
     const last4 = digits.length >= 4 ? digits.slice(-4) : digits;
     const zPart = last4 ? `Z${codigoZ} ${last4}` : `Z${codigoZ}`;
     
-    // Zap Emprego, Conecta Jovem, Empregador, DI: sem nome do solicitante
-    if (["Conecta Jovem", "Empregador", "DI"].includes(origem || "")) {
-      return `${numPart} ${zPart}`;
-    }
-    
-    // Zap normal: includes solicitante first name
-    if (solicitante) {
-      const firstName = solicitante.trim().split(/\s+/)[0] || "";
-      if (firstName) return `${numPart} ${zPart} ${firstName}`;
-    }
+    // All Z-code origins: numero + Z + last4 only (no solicitante name)
     return `${numPart} ${zPart}`;
   }
   
