@@ -238,7 +238,7 @@ export default function MeusOficios() {
       assunto: latestViewOficio.assunto,
       numero: latestViewOficio.numero,
       data_geracao: validDataGeracao,
-      status: "Salvo",
+      ...(["Exportado", "Salvo no Drive", "Protocolado", "Feito", "Respondido", "Impresso"].includes(latestViewOficio.status) ? {} : { status: "Salvo" }),
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
       last_edited_at: new Date().toISOString(),
