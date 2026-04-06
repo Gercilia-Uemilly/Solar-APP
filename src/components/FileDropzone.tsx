@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, X, FileText, Image as ImageIcon, File as FileIcon, Paperclip, ClipboardPaste } from "lucide-react";
+import { Upload, X, FileText, Image as ImageIcon, File as FileIcon, Paperclip, ClipboardPaste, Crop } from "lucide-react";
+import ImageCropDialog from "./ImageCropDialog";
 
 export interface AnexoFile {
   id: string;
@@ -64,6 +65,7 @@ function getFileCategory(tipo: string): string {
 
 export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile, onRemoveFile }: FileDropzoneProps) {
   const [dragging, setDragging] = useState(false);
+  const [cropTarget, setCropTarget] = useState<{ id: string; src: string; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
 
@@ -185,7 +187,13 @@ export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile,
               const src = a.url || (a.file ? URL.createObjectURL(a.file) : "");
               return (
                 <div key={a.id} className="relative group rounded-lg overflow-hidden border border-border aspect-square bg-secondary">
-                  <img src={src} alt={a.nome} className="w-full h-full object-cover" />
+              <img src={src} alt={a.nome} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setCropTarget({ id: a.id, src, name: a.nome }); }}
+                    className="absolute bottom-0.5 left-0.5 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Recortar"
+                  ><Crop size={10} /></button>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); remove(a.id); }}
@@ -213,6 +221,28 @@ export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile,
             </div>
           ))}
         </div>
+      )}
+      {cropTarget && (
+        <ImageCropDialog
+          open={!!cropTarget}
+          onClose={() => setCropTarget(null)}
+          imageSrc={cropTarget.src}
+          fileName={cropTarget.name}
+          onCropped={(croppedFile) => {
+            // Replace the file in the list
+            if (onAddFile && onRemoveFile) {
+              onRemoveFile(cropTarget.id);
+              onAddFile(croppedFile);
+            } else if (onChange) {
+              const updated = anexos.map(a => {
+                if (a.id !== cropTarget.id) return a;
+                return { ...a, file: croppedFile, tamanho: croppedFile.size, url: undefined };
+              });
+              onChange(updated);
+            }
+            setCropTarget(null);
+          }}
+        />
       )}
     </div>
   );

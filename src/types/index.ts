@@ -1,7 +1,7 @@
 export type DemandaTipo = "Solicitação" | "Reclamação" | "Denúncia" | "Sugestão" | "Informação" | "Outro";
 export type DemandaStatus = "Pendente" | "Em Andamento" | "Concluída" | "Cancelada";
 export type DemandaPrioridade = "Normal" | "Urgente";
-export type DemandaOrigem = "WhatsApp Gabinete" | "WhatsApp Vereador" | "Requerimento" | "E-mail" | "Atendimento presencial" | "Outro";
+export type DemandaOrigem = "WhatsApp Gabinete" | "WhatsApp Vereador" | "Requerimento" | "E-mail" | "Atendimento presencial" | "Conecta Jovem" | "Empregador" | "DI" | "Outro";
 
 export interface DemandaAnexo {
   id: string;

@@ -609,7 +609,7 @@ export default function Oficios() {
       tipo_demanda: secretaria || aiResult?.tipo_demanda || null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
-      codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
+      codigo_z: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
       origem: origemOficio || "Outros",
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
       cargo_destinatario: previewSnapshot.cargoDestinatario || null,
@@ -1077,7 +1077,7 @@ export default function Oficios() {
       telefone: linhaTelefonica || undefined,
       solicitante: solicitante || undefined,
       secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
-      codigoZ: origemOficio === "Zap" ? (codigoZ || undefined) : undefined,
+      codigoZ: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || undefined) : undefined,
       contatoSolicitante: contatoSolicitante || undefined,
       origem: origemOficio || undefined,
       logoCamaraUrl: logoCamara,
@@ -1129,7 +1129,7 @@ export default function Oficios() {
         tipo_demanda: secretaria || null,
         urgencia: prioridade === "Urgente" ? "urgente" : "normal",
         linha_telefonica: linhaTelefonica || null,
-        codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
+        codigo_z: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
         origem: origemOficio || "Outros",
         cargo_destinatario: cargoDestinatario || null,
         local_demanda: localDemanda || null,
@@ -1219,16 +1219,32 @@ export default function Oficios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Origem da Demanda</label>
-                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (v !== "Zap") setCodigoZ(""); }}>
+                  <Select value={origemOficio} onValueChange={v => { setOrigemOficio(v); if (!["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(v)) setCodigoZ(""); }}>
                     <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Requerimento">Requerimento</SelectItem>
                       <SelectItem value="Zap">Zap</SelectItem>
+                      <SelectItem value="Zap Emprego">Zap Emprego</SelectItem>
+                      <SelectItem value="Conecta Jovem">Conecta Jovem</SelectItem>
+                      <SelectItem value="Empregador">Empregador</SelectItem>
+                      <SelectItem value="DI">DI (Demanda Interna)</SelectItem>
                       <SelectItem value="Outros">Outros</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Código Z field removed — solicitante code is used instead */}
+                {["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Código Z</label>
+                    <Select value={codigoZ} onValueChange={setCodigoZ}>
+                      <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+                          <SelectItem key={n} value={String(n)}>Z{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* File name preview */}
@@ -1239,9 +1255,10 @@ export default function Oficios() {
                     {(() => {
                       const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
                       const base = cleanedNum || 'rascunho';
-                      if (origemOficio === "Zap" && codigoZ) {
+                      const ORIGENS_COM_Z = ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"];
+                      if (ORIGENS_COM_Z.includes(origemOficio) && codigoZ) {
                         const cel = contatoSolicitante.replace(/\D/g, '').slice(-4);
-                        const nome = solicitante.trim().split(/\s+/)[0] || "";
+                        const nome = origemOficio === "Zap" ? (solicitante.trim().split(/\s+/)[0] || "") : "";
                         return [base, `Z${codigoZ}`, cel, nome].filter(Boolean).join(' ') + '.pdf';
                       }
                       const solCode = solicitante.trim().split(/\s+/)[0] || "";
@@ -1608,7 +1625,7 @@ export default function Oficios() {
                   if (!editedOficio) {
                     toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de exportar." });
                   }
-                  if (origemOficio === "Zap" && !codigoZ) {
+                  if (["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) && !codigoZ) {
                     toast({ title: "⚠️ Código Z não preenchido" });
                   }
                   setIsExportingPdf(true);
