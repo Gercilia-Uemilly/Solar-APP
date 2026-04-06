@@ -21,7 +21,7 @@ import OficioPreview from "@/components/OficioPreview";
 import PreviewFormatToolbar, { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildMergedPdfBlob, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
-import { type OficioRow, getVocativo } from "@/lib/oficioUtils";
+import { type OficioRow, getVocativo, cleanNumero } from "@/lib/oficioUtils";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import VersionHistoryDialog from "@/components/VersionHistoryDialog";
@@ -444,12 +444,12 @@ export default function MeusOficios() {
       if (driveResult.driveLink) {
         await supabase.from("oficios").update({
           link_pdf_drive: driveResult.driveLink,
-           status: "Exportado",
+          status: "Salvo no Drive",
           uploaded_by_name: profileName || user?.email || null,
           uploaded_by_email: user?.email || null,
           uploaded_at: new Date().toISOString(),
         } as any).eq("id", oficio.id);
-        await fetchOficios();
+        optimisticUpdate(oficio.id, { status: "Salvo no Drive", link_pdf_drive: driveResult.driveLink } as any);
       }
       toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado!" : "Enviado como Word." });
     } catch (e: any) {
@@ -535,12 +535,12 @@ export default function MeusOficios() {
       if (driveResult.driveLink) {
         await supabase.from("oficios").update({
           link_pdf_drive: driveResult.driveLink,
-          status: "Exportado",
+          status: "Salvo no Drive",
           uploaded_by_name: profileName || user?.email || null,
           uploaded_by_email: user?.email || null,
           uploaded_at: new Date().toISOString(),
         } as any).eq("id", oficio.id);
-        await fetchOficios();
+        optimisticUpdate(oficio.id, { status: "Salvo no Drive", link_pdf_drive: driveResult.driveLink } as any);
       }
 
       toast({ title: "✅ PDF, Word e Drive salvos com sucesso!", description: uploadName });
@@ -589,8 +589,8 @@ export default function MeusOficios() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
-  const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido"].includes(o.status));
-  const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido"].includes(o.status));
+  const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido", "Exportado", "Salvo no Drive"].includes(o.status));
+  const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido", "Exportado", "Salvo no Drive"].includes(o.status));
   const listaCompleta = abaAtiva === "rascunhos" ? rascunhos : finalizados;
   const totalPages = Math.max(1, Math.ceil(listaCompleta.length / ITEMS_PER_PAGE));
   const listaExibida = listaCompleta.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -697,7 +697,7 @@ export default function MeusOficios() {
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
             ) : listaExibida.map(o => (
               <TableRow key={o.id}>
-                <TableCell className="font-medium">{o.numero || "-"}</TableCell>
+                <TableCell className="font-medium">{o.numero ? cleanNumero(o.numero) : "-"}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -746,7 +746,7 @@ export default function MeusOficios() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    {(o.status === "Exportado") && (o as any).uploaded_by_name && (
+                    {(o.status === "Exportado" || o.status === "Salvo no Drive") && (o as any).uploaded_by_name && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">por {(o as any).uploaded_by_name}</p>
                     )}
                   </div>
@@ -763,6 +763,10 @@ export default function MeusOficios() {
                         const imgs = await fetchSavedImages(o.id);
                         try {
                           await exportToWord({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                          if (o.status === "Rascunho" || o.status === "Salvo") {
+                            await supabase.from("oficios").update({ status: "Exportado" } as any).eq("id", o.id);
+                            optimisticUpdate(o.id, { status: "Exportado" });
+                          }
                         } catch (e: any) {
                           toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                         }
@@ -778,6 +782,10 @@ export default function MeusOficios() {
                         const imgs = await fetchSavedImages(o.id);
                         try {
                           await exportToPDF({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                          if (o.status === "Rascunho" || o.status === "Salvo") {
+                            await supabase.from("oficios").update({ status: "Exportado" } as any).eq("id", o.id);
+                            optimisticUpdate(o.id, { status: "Exportado" });
+                          }
                         } catch (e: any) {
                           toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                         }
