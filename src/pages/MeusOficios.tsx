@@ -763,6 +763,10 @@ export default function MeusOficios() {
                         const imgs = await fetchSavedImages(o.id);
                         try {
                           await exportToWord({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                          if (o.status === "Rascunho" || o.status === "Salvo") {
+                            await supabase.from("oficios").update({ status: "Exportado" } as any).eq("id", o.id);
+                            optimisticUpdate(o.id, { status: "Exportado" });
+                          }
                         } catch (e: any) {
                           toast({ title: "Falha ao gerar Word", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                         }
@@ -778,6 +782,10 @@ export default function MeusOficios() {
                         const imgs = await fetchSavedImages(o.id);
                         try {
                           await exportToPDF({ ...buildExportData(o), imagens: imgs.length > 0 ? imgs : undefined });
+                          if (o.status === "Rascunho" || o.status === "Salvo") {
+                            await supabase.from("oficios").update({ status: "Exportado" } as any).eq("id", o.id);
+                            optimisticUpdate(o.id, { status: "Exportado" });
+                          }
                         } catch (e: any) {
                           toast({ title: "Falha ao gerar PDF", description: e?.message || "Tente novamente em instantes.", variant: "destructive" });
                         }
