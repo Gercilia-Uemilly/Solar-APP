@@ -1257,8 +1257,7 @@ export default function Oficios() {
                       const ORIGENS_COM_Z = ["Zap", "Conecta Jovem", "Empregador", "DI"];
                       if (ORIGENS_COM_Z.includes(origemOficio) && codigoZ) {
                         const cel = contatoSolicitante.replace(/\D/g, '').slice(-4);
-                        const nome = origemOficio === "Zap" ? (solicitante.trim().split(/\s+/)[0] || "") : "";
-                        return [base, `Z${codigoZ}`, cel, nome].filter(Boolean).join(' ') + '.pdf';
+                        return [base, `Z${codigoZ}`, cel].filter(Boolean).join(' ') + '.pdf';
                       }
                       const solCode = solicitante.trim().split(/\s+/)[0] || "";
                       return `${base}${solCode ? ` ${solCode}` : ''}.pdf`;
