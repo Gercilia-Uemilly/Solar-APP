@@ -27,6 +27,13 @@ interface Profile {
   email: string | null;
 }
 
+// Track last message time per user for ordering sidebar
+interface UserLastMsg {
+  userId: string;
+  lastAt: string;
+  unread: number;
+}
+
 export default function ChatInterno() {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -35,6 +42,7 @@ export default function ChatInterno() {
   const [tab, setTab] = useState<"geral" | "privado">("geral");
   const [texto, setTexto] = useState("");
   const [sending, setSending] = useState(false);
+  const [userLastMsgs, setUserLastMsgs] = useState<UserLastMsg[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -44,15 +52,50 @@ export default function ChatInterno() {
     });
   }, []);
 
-  // When switching tabs, reset selection
+  // Fetch last message timestamps for DM users
+  useEffect(() => {
+    if (!user) return;
+    fetchUserLastMsgs();
+  }, [user]);
+
+  const fetchUserLastMsgs = async () => {
+    if (!user) return;
+    // Get all DMs involving current user
+    const { data } = await supabase
+      .from("mensagens")
+      .select("de_user_id, para_user_id, created_at, lida")
+      .not("para_user_id", "is", null)
+      .or(`de_user_id.eq.${user.id},para_user_id.eq.${user.id}`)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (!data) return;
+    const map = new Map<string, { lastAt: string; unread: number }>();
+    for (const m of data as any[]) {
+      const otherId = m.de_user_id === user.id ? m.para_user_id : m.de_user_id;
+      if (!otherId) continue;
+      if (!map.has(otherId)) {
+        map.set(otherId, { lastAt: m.created_at, unread: 0 });
+      }
+      if (!m.lida && m.de_user_id !== user.id && m.para_user_id === user.id) {
+        const entry = map.get(otherId)!;
+        entry.unread++;
+      }
+    }
+    setUserLastMsgs(
+      Array.from(map.entries()).map(([userId, v]) => ({ userId, ...v }))
+    );
+  };
+
   useEffect(() => {
     if (tab === "geral") {
       setSelectedChat(null);
     } else {
-      // Select first other user if none selected
       const others = profiles.filter(p => p.id !== user?.id);
       if (others.length > 0 && selectedChat === null) {
-        setSelectedChat(others[0].id);
+        // Pick most recent DM user or first
+        const sorted = sortedOtherProfiles(others);
+        if (sorted.length > 0) setSelectedChat(sorted[0].id);
       }
     }
   }, [tab, profiles, user?.id]);
@@ -84,6 +127,7 @@ export default function ChatInterno() {
       const unread = (data as Mensagem[]).filter(m => !m.lida && m.de_user_id !== user.id);
       if (unread.length > 0) {
         await supabase.from("mensagens").update({ lida: true }).in("id", unread.map(m => m.id));
+        fetchUserLastMsgs();
       }
     }
     setTimeout(() => scrollToBottom(), 100);
@@ -107,6 +151,8 @@ export default function ChatInterno() {
             supabase.from("mensagens").update({ lida: true }).eq("id", msg.id);
           }
         }
+        // Update sidebar order for DMs
+        fetchUserLastMsgs();
       })
       .subscribe();
 
@@ -143,7 +189,21 @@ export default function ChatInterno() {
     return p?.full_name || p?.email?.split("@")[0] || "Usuário";
   };
 
-  const otherProfiles = profiles.filter(p => p.id !== user?.id);
+  const sortedOtherProfiles = (others: Profile[]) => {
+    return [...others].sort((a, b) => {
+      const aMsg = userLastMsgs.find(u => u.userId === a.id);
+      const bMsg = userLastMsgs.find(u => u.userId === b.id);
+      // Unread first, then most recent
+      const aUnread = aMsg?.unread || 0;
+      const bUnread = bMsg?.unread || 0;
+      if (bUnread !== aUnread) return bUnread - aUnread;
+      const aTime = aMsg?.lastAt || "";
+      const bTime = bMsg?.lastAt || "";
+      return bTime.localeCompare(aTime);
+    });
+  };
+
+  const otherProfiles = sortedOtherProfiles(profiles.filter(p => p.id !== user?.id));
 
   return (
     <div className="h-[calc(100vh-140px)] flex rounded-xl border border-border bg-card overflow-hidden">
@@ -177,18 +237,26 @@ export default function ChatInterno() {
           ) : (
             <>
               <p className="text-2xs text-muted-foreground px-2.5 mb-1 uppercase tracking-wider">Operadores</p>
-              {otherProfiles.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedChat(p.id)}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
-                    selectedChat === p.id ? "bg-accent text-foreground font-medium" : "text-muted-foreground hover:bg-accent/60"
-                  }`}
-                >
-                  <UserAvatar userId={p.id} fullName={p.full_name} avatarUrl={p.avatar_url} size="sm" />
-                  <span className="truncate">{p.full_name || p.email?.split("@")[0]}</span>
-                </button>
-              ))}
+              {otherProfiles.map(p => {
+                const unread = userLastMsgs.find(u => u.userId === p.id)?.unread || 0;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedChat(p.id)}
+                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+                      selectedChat === p.id ? "bg-accent text-foreground font-medium" : unread > 0 ? "bg-primary/10 text-foreground font-medium" : "text-muted-foreground hover:bg-accent/60"
+                    }`}
+                  >
+                    <UserAvatar userId={p.id} fullName={p.full_name} avatarUrl={p.avatar_url} size="sm" />
+                    <span className="truncate flex-1 text-left">{p.full_name || p.email?.split("@")[0]}</span>
+                    {unread > 0 && (
+                      <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1">
+                        {unread > 99 ? "99+" : unread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </>
           )}
         </div>
@@ -222,16 +290,13 @@ export default function ChatInterno() {
           {mensagens.length === 0 && (
             <p className="text-center text-sm text-muted-foreground py-8">Nenhuma mensagem ainda. Comece a conversa!</p>
           )}
-          {mensagens.map((msg, i) => {
+          {mensagens.map((msg) => {
             const isMe = msg.de_user_id === user?.id;
             const senderProfile = getProfile(msg.de_user_id);
-            const showAvatar = !isMe;
-            // Show name if general channel or if it's not me
-            const showName = !isMe && (selectedChat === null || tab === "geral");
 
             return (
               <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} gap-2`}>
-                {showAvatar && (
+                {!isMe && (
                   <div className="flex-shrink-0 mt-1">
                     <UserAvatar
                       userId={msg.de_user_id}
@@ -242,18 +307,22 @@ export default function ChatInterno() {
                   </div>
                 )}
                 <div className={`max-w-[70%] rounded-xl px-3 py-2 ${
-                  isMe ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                  isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"
                 }`}>
-                  {showName && (
-                    <p className="text-2xs font-semibold mb-0.5 opacity-80">{getProfileName(msg.de_user_id)}</p>
-                  )}
-                  {!isMe && !showName && (
+                  {!isMe && (
                     <p className="text-2xs font-semibold mb-0.5 opacity-80">{getProfileName(msg.de_user_id)}</p>
                   )}
                   <p className="text-sm whitespace-pre-wrap break-words">{msg.conteudo}</p>
-                  <p className={`text-2xs mt-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                    {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
-                  </p>
+                  <div className={`flex items-center gap-1 mt-1 ${isMe ? "justify-end" : ""}`}>
+                    <p className={`text-2xs ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                      {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
+                    </p>
+                    {isMe && (
+                      <span className={`text-2xs ${msg.lida ? "text-primary-foreground/80" : "text-primary-foreground/40"}`}>
+                        {msg.lida ? "✓✓" : "✓"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
