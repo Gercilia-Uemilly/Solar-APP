@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, MessageSquare, Users as UsersIcon, Hash, User } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Send, MessageSquare, Users as UsersIcon, Hash, User, Heart, ThumbsUp, Laugh, Flame } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import EmojiPicker from "@/components/chat/EmojiPicker";
 import { format } from "date-fns";
@@ -20,6 +21,13 @@ interface Mensagem {
   created_at: string;
 }
 
+interface Reacao {
+  id: string;
+  mensagem_id: string;
+  user_id: string;
+  emoji: string;
+}
+
 interface Profile {
   id: string;
   full_name: string | null;
@@ -27,17 +35,19 @@ interface Profile {
   email: string | null;
 }
 
-// Track last message time per user for ordering sidebar
 interface UserLastMsg {
   userId: string;
   lastAt: string;
   unread: number;
 }
 
+const REACTION_EMOJIS = ["❤️", "👍", "😂", "🔥", "👏", "😮"];
+
 export default function ChatInterno() {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
+  const [reacoes, setReacoes] = useState<Reacao[]>([]);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [tab, setTab] = useState<"geral" | "privado">("geral");
   const [texto, setTexto] = useState("");
@@ -52,7 +62,6 @@ export default function ChatInterno() {
     });
   }, []);
 
-  // Fetch last message timestamps for DM users
   useEffect(() => {
     if (!user) return;
     fetchUserLastMsgs();
@@ -60,7 +69,6 @@ export default function ChatInterno() {
 
   const fetchUserLastMsgs = async () => {
     if (!user) return;
-    // Get all DMs involving current user
     const { data } = await supabase
       .from("mensagens")
       .select("de_user_id, para_user_id, created_at, lida")
@@ -68,23 +76,17 @@ export default function ChatInterno() {
       .or(`de_user_id.eq.${user.id},para_user_id.eq.${user.id}`)
       .order("created_at", { ascending: false })
       .limit(500);
-
     if (!data) return;
     const map = new Map<string, { lastAt: string; unread: number }>();
     for (const m of data as any[]) {
       const otherId = m.de_user_id === user.id ? m.para_user_id : m.de_user_id;
       if (!otherId) continue;
-      if (!map.has(otherId)) {
-        map.set(otherId, { lastAt: m.created_at, unread: 0 });
-      }
+      if (!map.has(otherId)) map.set(otherId, { lastAt: m.created_at, unread: 0 });
       if (!m.lida && m.de_user_id !== user.id && m.para_user_id === user.id) {
-        const entry = map.get(otherId)!;
-        entry.unread++;
+        map.get(otherId)!.unread++;
       }
     }
-    setUserLastMsgs(
-      Array.from(map.entries()).map(([userId, v]) => ({ userId, ...v }))
-    );
+    setUserLastMsgs(Array.from(map.entries()).map(([userId, v]) => ({ userId, ...v })));
   };
 
   useEffect(() => {
@@ -93,7 +95,6 @@ export default function ChatInterno() {
     } else {
       const others = profiles.filter(p => p.id !== user?.id);
       if (others.length > 0 && selectedChat === null) {
-        // Pick most recent DM user or first
         const sorted = sortedOtherProfiles(others);
         if (sorted.length > 0) setSelectedChat(sorted[0].id);
       }
@@ -107,20 +108,12 @@ export default function ChatInterno() {
 
   const fetchMessages = async () => {
     if (!user) return;
-    let query = supabase
-      .from("mensagens")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .limit(200);
-
+    let query = supabase.from("mensagens").select("*").order("created_at", { ascending: true }).limit(200);
     if (selectedChat === null) {
       query = query.is("para_user_id", null);
     } else {
-      query = query.or(
-        `and(de_user_id.eq.${user.id},para_user_id.eq.${selectedChat}),and(de_user_id.eq.${selectedChat},para_user_id.eq.${user.id})`
-      );
+      query = query.or(`and(de_user_id.eq.${user.id},para_user_id.eq.${selectedChat}),and(de_user_id.eq.${selectedChat},para_user_id.eq.${user.id})`);
     }
-
     const { data } = await query;
     if (data) {
       setMensagens(data as Mensagem[]);
@@ -128,6 +121,12 @@ export default function ChatInterno() {
       if (unread.length > 0) {
         await supabase.from("mensagens").update({ lida: true }).in("id", unread.map(m => m.id));
         fetchUserLastMsgs();
+      }
+      // Fetch reactions for these messages
+      const msgIds = (data as Mensagem[]).map(m => m.id);
+      if (msgIds.length > 0) {
+        const { data: rData } = await supabase.from("mensagem_reacoes").select("*").in("mensagem_id", msgIds);
+        if (rData) setReacoes(rData as unknown as Reacao[]);
       }
     }
     setTimeout(() => scrollToBottom(), 100);
@@ -151,18 +150,31 @@ export default function ChatInterno() {
             supabase.from("mensagens").update({ lida: true }).eq("id", msg.id);
           }
         }
-        // Update sidebar order for DMs
         fetchUserLastMsgs();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [user, selectedChat]);
+    const reacChannel = supabase
+      .channel("reacoes-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "mensagem_reacoes" }, () => {
+        // Refetch reactions
+        const msgIds = mensagens.map(m => m.id);
+        if (msgIds.length > 0) {
+          supabase.from("mensagem_reacoes").select("*").in("mensagem_id", msgIds).then(({ data }) => {
+            if (data) setReacoes(data as unknown as Reacao[]);
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(reacChannel);
+    };
+  }, [user, selectedChat, mensagens.length]);
 
   const scrollToBottom = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   };
 
   const handleSend = async () => {
@@ -183,6 +195,35 @@ export default function ChatInterno() {
     inputRef.current?.focus();
   };
 
+  const toggleReaction = async (msgId: string, emoji: string) => {
+    if (!user) return;
+    const existing = reacoes.find(r => r.mensagem_id === msgId && r.user_id === user.id && r.emoji === emoji);
+    if (existing) {
+      await supabase.from("mensagem_reacoes").delete().eq("id", existing.id);
+      setReacoes(prev => prev.filter(r => r.id !== existing.id));
+    } else {
+      const { data } = await supabase.from("mensagem_reacoes").insert({
+        mensagem_id: msgId,
+        user_id: user.id,
+        emoji,
+      } as any).select().single();
+      if (data) setReacoes(prev => [...prev, data as unknown as Reacao]);
+    }
+  };
+
+  const getReactionsForMsg = (msgId: string) => {
+    const msgReacoes = reacoes.filter(r => r.mensagem_id === msgId);
+    const grouped = new Map<string, { count: number; users: string[]; myReaction: boolean }>();
+    for (const r of msgReacoes) {
+      if (!grouped.has(r.emoji)) grouped.set(r.emoji, { count: 0, users: [], myReaction: false });
+      const g = grouped.get(r.emoji)!;
+      g.count++;
+      g.users.push(r.user_id);
+      if (r.user_id === user?.id) g.myReaction = true;
+    }
+    return grouped;
+  };
+
   const getProfile = (id: string) => profiles.find(p => p.id === id);
   const getProfileName = (id: string) => {
     const p = getProfile(id);
@@ -193,13 +234,10 @@ export default function ChatInterno() {
     return [...others].sort((a, b) => {
       const aMsg = userLastMsgs.find(u => u.userId === a.id);
       const bMsg = userLastMsgs.find(u => u.userId === b.id);
-      // Unread first, then most recent
       const aUnread = aMsg?.unread || 0;
       const bUnread = bMsg?.unread || 0;
       if (bUnread !== aUnread) return bUnread - aUnread;
-      const aTime = aMsg?.lastAt || "";
-      const bTime = bMsg?.lastAt || "";
-      return bTime.localeCompare(aTime);
+      return (bMsg?.lastAt || "").localeCompare(aMsg?.lastAt || "");
     });
   };
 
@@ -215,16 +253,11 @@ export default function ChatInterno() {
           </h2>
           <Tabs value={tab} onValueChange={(v) => setTab(v as "geral" | "privado")}>
             <TabsList className="w-full grid grid-cols-2 h-8">
-              <TabsTrigger value="geral" className="text-xs gap-1">
-                <Hash size={12} /> Geral
-              </TabsTrigger>
-              <TabsTrigger value="privado" className="text-xs gap-1">
-                <User size={12} /> Privado
-              </TabsTrigger>
+              <TabsTrigger value="geral" className="text-xs gap-1"><Hash size={12} /> Geral</TabsTrigger>
+              <TabsTrigger value="privado" className="text-xs gap-1"><User size={12} /> Privado</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
-
         <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
           {tab === "geral" ? (
             <div className="px-2.5 py-3 text-center">
@@ -264,7 +297,6 @@ export default function ChatInterno() {
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <div className="h-12 px-4 border-b border-border flex items-center gap-2">
           {tab === "geral" || selectedChat === null ? (
             <>
@@ -274,18 +306,12 @@ export default function ChatInterno() {
             </>
           ) : (
             <>
-              <UserAvatar
-                userId={selectedChat}
-                fullName={getProfile(selectedChat)?.full_name}
-                avatarUrl={getProfile(selectedChat)?.avatar_url}
-                size="sm"
-              />
+              <UserAvatar userId={selectedChat} fullName={getProfile(selectedChat)?.full_name} avatarUrl={getProfile(selectedChat)?.avatar_url} size="sm" />
               <span className="text-sm font-medium text-foreground">{getProfileName(selectedChat)}</span>
             </>
           )}
         </div>
 
-        {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
           {mensagens.length === 0 && (
             <p className="text-center text-sm text-muted-foreground py-8">Nenhuma mensagem ainda. Comece a conversa!</p>
@@ -293,43 +319,78 @@ export default function ChatInterno() {
           {mensagens.map((msg) => {
             const isMe = msg.de_user_id === user?.id;
             const senderProfile = getProfile(msg.de_user_id);
+            const reactions = getReactionsForMsg(msg.id);
 
             return (
-              <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} gap-2`}>
+              <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} gap-2 group`}>
                 {!isMe && (
                   <div className="flex-shrink-0 mt-1">
-                    <UserAvatar
-                      userId={msg.de_user_id}
-                      fullName={senderProfile?.full_name}
-                      avatarUrl={senderProfile?.avatar_url}
-                      size="sm"
-                    />
+                    <UserAvatar userId={msg.de_user_id} fullName={senderProfile?.full_name} avatarUrl={senderProfile?.avatar_url} size="sm" />
                   </div>
                 )}
-                <div className={`max-w-[70%] rounded-xl px-3 py-2 ${
-                  isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"
-                }`}>
-                  {!isMe && (
-                    <p className="text-2xs font-semibold mb-0.5 opacity-80">{getProfileName(msg.de_user_id)}</p>
-                  )}
-                  <p className="text-sm whitespace-pre-wrap break-words">{msg.conteudo}</p>
-                  <div className={`flex items-center gap-1 mt-1 ${isMe ? "justify-end" : ""}`}>
-                    <p className={`text-2xs ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                      {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
-                    </p>
-                    {isMe && (
-                      <span className={`text-2xs ${msg.lida ? "text-primary-foreground/80" : "text-primary-foreground/40"}`}>
-                        {msg.lida ? "✓✓" : "✓"}
-                      </span>
+                <div className="relative">
+                  <div className={`max-w-[70%] min-w-[120px] rounded-xl px-3 py-2 ${
+                    isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"
+                  }`}>
+                    {!isMe && (
+                      <p className="text-2xs font-semibold mb-0.5 opacity-80">{getProfileName(msg.de_user_id)}</p>
                     )}
+                    <p className="text-sm whitespace-pre-wrap break-words">{msg.conteudo}</p>
+                    <div className={`flex items-center gap-1 mt-1 ${isMe ? "justify-end" : ""}`}>
+                      <p className={`text-2xs ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                        {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
+                      </p>
+                      {isMe && (
+                        <span className={`text-2xs ${msg.lida ? "text-primary-foreground/80" : "text-primary-foreground/40"}`}>
+                          {msg.lida ? "✓✓" : "✓"}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Reaction badges */}
+                  {reactions.size > 0 && (
+                    <div className={`flex gap-1 mt-0.5 flex-wrap ${isMe ? "justify-end" : "justify-start"}`}>
+                      {Array.from(reactions.entries()).map(([emoji, data]) => (
+                        <button
+                          key={emoji}
+                          onClick={() => toggleReaction(msg.id, emoji)}
+                          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
+                            data.myReaction ? "bg-primary/15 border-primary/30 text-foreground" : "bg-muted border-border text-muted-foreground hover:bg-accent"
+                          }`}
+                        >
+                          <span>{emoji}</span>
+                          <span className="text-2xs font-medium">{data.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Quick react button */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className={`absolute ${isMe ? "-left-7" : "-right-7"} top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-accent text-muted-foreground`}>
+                        <Heart size={13} />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-1.5 flex gap-1" side="top" align="center">
+                      {REACTION_EMOJIS.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => toggleReaction(msg.id, emoji)}
+                          className="text-lg hover:scale-125 transition-transform p-0.5"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Input */}
         <div className="p-3 border-t border-border">
           <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2 items-center">
             <EmojiPicker onSelect={handleEmojiSelect} />
