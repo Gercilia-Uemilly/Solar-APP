@@ -1592,6 +1592,8 @@ export default function Oficios() {
                   }
                   setIsExportingWord(true);
                   try {
+                    // Auto-save before export to ensure DB is in sync
+                    await handleCreate(false);
                     const formData = await withSavedAttachments(await buildFormExportData());
                     await exportToWord(formData);
                   } catch (e: any) {
@@ -1611,6 +1613,8 @@ export default function Oficios() {
                   }
                   setIsExportingPdf(true);
                   try {
+                    // Auto-save before export to ensure DB is in sync
+                    await handleCreate(false);
                     const formData = await withSavedAttachments(await buildFormExportData());
                     await exportToPDF(formData);
                   } catch (e: any) {
