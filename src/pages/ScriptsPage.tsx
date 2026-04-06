@@ -264,7 +264,7 @@ export default function ScriptsPage() {
                     {s.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2 ml-6">
                         {s.tags.map((tag) => (
-                          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{tag}</span>
+                          <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{tag}</span>
                         ))}
                       </div>
                     )}
