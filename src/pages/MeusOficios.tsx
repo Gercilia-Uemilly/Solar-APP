@@ -21,7 +21,7 @@ import OficioPreview from "@/components/OficioPreview";
 import PreviewFormatToolbar, { defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildMergedPdfBlob, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
-import { type OficioRow, getVocativo } from "@/lib/oficioUtils";
+import { type OficioRow, getVocativo, cleanNumero } from "@/lib/oficioUtils";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import VersionHistoryDialog from "@/components/VersionHistoryDialog";
