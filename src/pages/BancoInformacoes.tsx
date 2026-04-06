@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+import ContatosTable from "@/components/ContatosTable";
 
 interface KnowledgeEntry {
   id: string;
@@ -68,6 +69,7 @@ const TAB_CONFIG = [
   { value: "importar", label: "SOS Uberlândia", icon: Rss, adminOnly: false },
   { value: "instagram", label: "Instagram", icon: InstagramIcon, adminOnly: false },
   { value: "upload", label: "Upload", icon: UploadCloud, adminOnly: false },
+  { value: "contatos", label: "Contatos", icon: Smartphone, adminOnly: false },
 ] as const;
 
 /** Build a smart download filename: 2026-03-04_tarifa-zero-criancas_fala-vereador.mp3 */
@@ -1202,6 +1204,11 @@ export default function BancoInformacoes() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ═══════════ TAB: CONTATOS ═══════════ */}
+        <TabsContent value="contatos" className="space-y-4">
+          <ContatosTable scripts={scripts as any} loading={scriptsLoading} />
         </TabsContent>
       </Tabs>
 
