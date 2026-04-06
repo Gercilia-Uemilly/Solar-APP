@@ -129,6 +129,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       "/lixeira": "Lixeira",
       "/backups": "Backups",
       "/configuracoes": "Configurações",
+      "/lembretes": "Lembretes",
       "/sobre": "Sobre",
     };
     return pathMap[location.pathname] || "Solar";
