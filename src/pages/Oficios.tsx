@@ -1077,7 +1077,7 @@ export default function Oficios() {
       telefone: linhaTelefonica || undefined,
       solicitante: solicitante || undefined,
       secretaria: secretaria || aiResult?.secretaria_identificada || undefined,
-      codigoZ: origemOficio === "Zap" ? (codigoZ || undefined) : undefined,
+      codigoZ: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || undefined) : undefined,
       contatoSolicitante: contatoSolicitante || undefined,
       origem: origemOficio || undefined,
       logoCamaraUrl: logoCamara,
