@@ -1129,7 +1129,7 @@ export default function Oficios() {
         tipo_demanda: secretaria || null,
         urgencia: prioridade === "Urgente" ? "urgente" : "normal",
         linha_telefonica: linhaTelefonica || null,
-        codigo_z: origemOficio === "Zap" ? (codigoZ || null) : null,
+        codigo_z: ["Zap", "Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
         origem: origemOficio || "Outros",
         cargo_destinatario: cargoDestinatario || null,
         local_demanda: localDemanda || null,
