@@ -535,12 +535,12 @@ export default function MeusOficios() {
       if (driveResult.driveLink) {
         await supabase.from("oficios").update({
           link_pdf_drive: driveResult.driveLink,
-          status: "Exportado",
+          status: "Salvo no Drive",
           uploaded_by_name: profileName || user?.email || null,
           uploaded_by_email: user?.email || null,
           uploaded_at: new Date().toISOString(),
         } as any).eq("id", oficio.id);
-        await fetchOficios();
+        optimisticUpdate(oficio.id, { status: "Salvo no Drive", link_pdf_drive: driveResult.driveLink } as any);
       }
 
       toast({ title: "✅ PDF, Word e Drive salvos com sucesso!", description: uploadName });
