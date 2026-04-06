@@ -1224,7 +1224,6 @@ export default function Oficios() {
                     <SelectContent>
                       <SelectItem value="Requerimento">Requerimento</SelectItem>
                       <SelectItem value="Zap">Zap</SelectItem>
-                      <SelectItem value="Zap Emprego">Zap Emprego</SelectItem>
                       <SelectItem value="Conecta Jovem">Conecta Jovem</SelectItem>
                       <SelectItem value="Empregador">Empregador</SelectItem>
                       <SelectItem value="DI">DI (Demanda Interna)</SelectItem>
