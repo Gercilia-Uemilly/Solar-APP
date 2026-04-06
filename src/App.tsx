@@ -37,6 +37,7 @@ const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
 const Modelos = lazy(() => import("./pages/Modelos"));
 const VerificarSMS = lazy(() => import("./pages/VerificarSMS"));
 const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
+const Lembretes = lazy(() => import("./pages/Lembretes"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
