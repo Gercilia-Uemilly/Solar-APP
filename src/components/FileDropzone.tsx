@@ -222,6 +222,28 @@ export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile,
           ))}
         </div>
       )}
+      {cropTarget && (
+        <ImageCropDialog
+          open={!!cropTarget}
+          onClose={() => setCropTarget(null)}
+          imageSrc={cropTarget.src}
+          fileName={cropTarget.name}
+          onCropped={(croppedFile) => {
+            // Replace the file in the list
+            if (onAddFile && onRemoveFile) {
+              onRemoveFile(cropTarget.id);
+              onAddFile(croppedFile);
+            } else if (onChange) {
+              const updated = anexos.map(a => {
+                if (a.id !== cropTarget.id) return a;
+                return { ...a, file: croppedFile, tamanho: croppedFile.size, url: undefined };
+              });
+              onChange(updated);
+            }
+            setCropTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 }
