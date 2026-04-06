@@ -21,10 +21,10 @@ const DEFAULTS: Preferencias = {
 };
 
 const FONT_SIZES: Record<string, string> = {
-  pequeno: "14px",
-  medio: "16px",
-  grande: "18px",
-  extragrande: "20px",
+  pequeno: "13px",
+  medio: "14px",
+  grande: "16px",
+  extragrande: "18px",
 };
 
 const DENSITY_SPACING: Record<string, string> = {
@@ -60,13 +60,13 @@ function hexToHsl(hex: string): string {
 export function aplicarPreferencias(prefs: Preferencias) {
   const root = document.documentElement;
 
-  // Font size
-  root.style.setProperty("--fonte-base", FONT_SIZES[prefs.tamanho_fonte] || "16px");
+  // Font size — apply instantly via CSS var
+  root.style.setProperty("--fonte-base", FONT_SIZES[prefs.tamanho_fonte] || "14px");
 
   // Density
   root.style.setProperty("--densidade-escala", DENSITY_SPACING[prefs.densidade] || "1");
 
-  // Primary color → apply to CSS HSL variables
+  // Primary color → apply to CSS HSL variables instantly
   if (prefs.cor_primaria) {
     const hsl = hexToHsl(prefs.cor_primaria);
     root.style.setProperty("--primary", hsl);
@@ -103,7 +103,6 @@ export function aplicarPreferencias(prefs: Preferencias) {
     root.style.setProperty("--muted-foreground", "0 0% 75%");
     root.style.setProperty("--border", "0 0% 30%");
   } else {
-    // Reset high-contrast overrides
     root.style.removeProperty("--background");
     root.style.removeProperty("--foreground");
     root.style.removeProperty("--card");
@@ -118,34 +117,81 @@ export function usePreferencias() {
   const [prefs, setPrefs] = useState<Preferencias>(DEFAULTS);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const carregarPreferencias = useCallback(async () => {
     if (!user) return;
-    (supabase.from("preferencias_usuario" as any) as any)
+    const { data } = await (supabase.from("preferencias_usuario" as any) as any)
       .select("*")
       .eq("user_id", user.id)
-      .single()
-      .then(({ data }: any) => {
-        if (data) {
-          const p: Preferencias = {
-            tema: data.tema || DEFAULTS.tema,
-            cor_primaria: data.cor_primaria || DEFAULTS.cor_primaria,
-            cor_secundaria: data.cor_secundaria || DEFAULTS.cor_secundaria,
-            tamanho_fonte: data.tamanho_fonte || DEFAULTS.tamanho_fonte,
-            sidebar_compacta: data.sidebar_compacta ?? DEFAULTS.sidebar_compacta,
-            densidade: data.densidade || DEFAULTS.densidade,
-          };
-          setPrefs(p);
-          aplicarPreferencias(p);
-        } else {
-          aplicarPreferencias(DEFAULTS);
+      .single();
+    if (data) {
+      const p: Preferencias = {
+        tema: data.tema || DEFAULTS.tema,
+        cor_primaria: data.cor_primaria || DEFAULTS.cor_primaria,
+        cor_secundaria: data.cor_secundaria || DEFAULTS.cor_secundaria,
+        tamanho_fonte: data.tamanho_fonte || DEFAULTS.tamanho_fonte,
+        sidebar_compacta: data.sidebar_compacta ?? DEFAULTS.sidebar_compacta,
+        densidade: data.densidade || DEFAULTS.densidade,
+      };
+      setPrefs(p);
+      aplicarPreferencias(p);
+    } else {
+      aplicarPreferencias(DEFAULTS);
+    }
+    setLoading(false);
+  }, [user]);
+
+  // Load on login
+  useEffect(() => {
+    if (!user) return;
+    carregarPreferencias();
+  }, [user, carregarPreferencias]);
+
+  // Reload when tab regains focus
+  useEffect(() => {
+    if (!user) return;
+    const onFocus = () => carregarPreferencias();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [user, carregarPreferencias]);
+
+  // Realtime: instant sync when prefs change in DB
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`prefs-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "preferencias_usuario",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          if (payload.new) {
+            const p: Preferencias = {
+              tema: payload.new.tema || DEFAULTS.tema,
+              cor_primaria: payload.new.cor_primaria || DEFAULTS.cor_primaria,
+              cor_secundaria: payload.new.cor_secundaria || DEFAULTS.cor_secundaria,
+              tamanho_fonte: payload.new.tamanho_fonte || DEFAULTS.tamanho_fonte,
+              sidebar_compacta: payload.new.sidebar_compacta ?? DEFAULTS.sidebar_compacta,
+              densidade: payload.new.densidade || DEFAULTS.densidade,
+            };
+            setPrefs(p);
+            aplicarPreferencias(p);
+          }
         }
-        setLoading(false);
-      });
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const salvar = useCallback(
     async (novas: Preferencias) => {
       if (!user) return;
+      // Apply IMMEDIATELY before saving to DB
       setPrefs(novas);
       aplicarPreferencias(novas);
 
