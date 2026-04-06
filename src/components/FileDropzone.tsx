@@ -65,6 +65,7 @@ function getFileCategory(tipo: string): string {
 
 export default function FileDropzone({ anexos, onChange, onFileAdded, onAddFile, onRemoveFile }: FileDropzoneProps) {
   const [dragging, setDragging] = useState(false);
+  const [cropTarget, setCropTarget] = useState<{ id: string; src: string; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
 
