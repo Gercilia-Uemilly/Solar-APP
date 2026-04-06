@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, X, FileText, Image as ImageIcon, File as FileIcon, Paperclip, ClipboardPaste } from "lucide-react";
+import { Upload, X, FileText, Image as ImageIcon, File as FileIcon, Paperclip, ClipboardPaste, Crop } from "lucide-react";
+import ImageCropDialog from "./ImageCropDialog";
 
 export interface AnexoFile {
   id: string;
