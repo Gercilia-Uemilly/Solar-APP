@@ -74,14 +74,27 @@ export default function ScriptsPage() {
       }).eq("id", editingId);
       toast({ title: "Script atualizado!" });
     } else {
+      // Auto-classify before saving
+      let autoTags = tags.split(",").map(t => t.trim()).filter(Boolean);
+      let autoCategoria = categoria || "Outros";
+      try {
+        const { data: classif } = await supabase.functions.invoke("classificar-conteudo", {
+          body: { conteudo, tipo: "script" },
+        });
+        if (classif && !classif.error) {
+          if (!categoria && classif.categoria) autoCategoria = classif.categoria;
+          if (autoTags.length === 0 && classif.tags?.length > 0) autoTags = classif.tags;
+        }
+      } catch { /* ignore classification errors */ }
+
       await supabase.from("scripts").insert({
         titulo,
         conteudo,
-        categoria: categoria || "Outros",
-        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+        categoria: autoCategoria,
+        tags: autoTags,
         author_id: user.id,
       });
-      toast({ title: "Script criado!" });
+      toast({ title: "Script criado e classificado!" });
     }
     await fetchScripts();
     setShowDialog(false);
