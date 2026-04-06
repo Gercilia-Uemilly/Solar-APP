@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.revisar-oficio]
 verify_jwt = false
+
+[functions.classificar-conteudo]
+verify_jwt = false
