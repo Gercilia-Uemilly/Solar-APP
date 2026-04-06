@@ -31,7 +31,7 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
     const zPart = last4 ? `Z${codigoZ} ${last4}` : `Z${codigoZ}`;
     
     // Zap Emprego, Conecta Jovem, Empregador, DI: sem nome do solicitante
-    if (["Zap Emprego", "Conecta Jovem", "Empregador", "DI"].includes(origem || "")) {
+    if (["Conecta Jovem", "Empregador", "DI"].includes(origem || "")) {
       return `${numPart} ${zPart}`;
     }
     
