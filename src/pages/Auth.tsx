@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import logoFabao from "@/assets/logo-fabao-oficial.svg";
+import logoSolar from "@/assets/logo-solar.png";
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
