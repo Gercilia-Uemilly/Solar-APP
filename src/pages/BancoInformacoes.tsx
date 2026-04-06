@@ -1205,6 +1205,11 @@ export default function BancoInformacoes() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ═══════════ TAB: CONTATOS ═══════════ */}
+        <TabsContent value="contatos" className="space-y-4">
+          <ContatosTable scripts={scripts as any} loading={scriptsLoading} />
+        </TabsContent>
       </Tabs>
 
       {/* Script Dialog */}
