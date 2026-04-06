@@ -37,6 +37,7 @@ const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
 const Modelos = lazy(() => import("./pages/Modelos"));
 const VerificarSMS = lazy(() => import("./pages/VerificarSMS"));
 const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
+const Lembretes = lazy(() => import("./pages/Lembretes"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -137,6 +138,7 @@ const AppRoutes = () => {
         <Route path="/clipping" element={<ProtectedRoute><AppLayout><Clipping /></AppLayout></ProtectedRoute>} />
         <Route path="/sobre" element={<ProtectedRoute><AppLayout><Sobre /></AppLayout></ProtectedRoute>} />
         <Route path="/numeracao" element={<ProtectedRoute><AppLayout><PainelNumeracao /></AppLayout></ProtectedRoute>} />
+        <Route path="/lembretes" element={<ProtectedRoute><AppLayout><Lembretes /></AppLayout></ProtectedRoute>} />
         <Route path="/lixeira" element={<ProtectedRoute><AppLayout><Lixeira /></AppLayout></ProtectedRoute>} />
         <Route path="/backups" element={<AdminRoute><AppLayout><Backups /></AppLayout></AdminRoute>} />
         <Route path="/whatsapp" element={<AdminRoute><AppLayout><WhatsAppConectar /></AppLayout></AdminRoute>} />

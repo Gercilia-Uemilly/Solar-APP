@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import NotificationBell from "@/components/NotificationBell";
+import LembreteBell from "@/components/LembreteBell";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -128,6 +129,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       "/lixeira": "Lixeira",
       "/backups": "Backups",
       "/configuracoes": "Configurações",
+      "/lembretes": "Lembretes",
       "/sobre": "Sobre",
     };
     return pathMap[location.pathname] || "Solar";
@@ -182,6 +184,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            <LembreteBell />
             <NotificationBell />
             <ThemeToggle />
             <div className="text-right hidden sm:block">

@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
   Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
-  Smartphone, MessagesSquare, BookOpen, Hash, Trash2, DatabaseBackup
+  Smartphone, MessagesSquare, BookOpen, Hash, Trash2, DatabaseBackup, Bell
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +27,7 @@ const menuSections = [
       { label: "Respostas", icon: Heart, path: "/respostas", adminOnly: false },
       { label: "Chat Interno", icon: MessageSquare, path: "/chat", adminOnly: false },
       { label: "Banco de Info", icon: Library, path: "/banco-informacoes", adminOnly: false },
+      { label: "Lembretes", icon: Bell, path: "/lembretes", adminOnly: false },
     ],
   },
   {
