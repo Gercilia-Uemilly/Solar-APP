@@ -217,6 +217,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         setLocalDestinatario(externalValues.destinatario);
         setLocalAssunto(externalValues.assunto);
         setLocalData(externalValues.data);
+        setLocalVocativo(vocativoDefault);
         prevExternalValuesRef.current = externalValues;
         initialFieldSyncDoneRef.current = true;
         return;
