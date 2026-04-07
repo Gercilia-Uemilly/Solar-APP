@@ -428,7 +428,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* ATENCIOSAMENTE */}
         <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt", lineHeight: "1.5" }}>
-          {!isHidden && editable && onFechamentoChange ? (
+          {!isHidden && !isReadOnlyCopy && editable && onFechamentoChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onFechamentoChange(e.currentTarget.textContent || "")}>
               {fechamento || "Atenciosamente,"}
             </span>
