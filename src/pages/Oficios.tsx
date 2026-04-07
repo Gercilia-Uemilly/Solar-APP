@@ -857,10 +857,16 @@ export default function Oficios() {
       let uploadFileName: string;
 
       try {
-        uploadBlob = await buildMergedPdfBlob(exportData);
+        // Try PDF first with a 30s timeout to avoid "Failed to fetch"
+        const pdfPromise = buildMergedPdfBlob(exportData);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("PDF timeout")), 30000)
+        );
+        uploadBlob = await Promise.race([pdfPromise, timeoutPromise]);
         uploadFileName = `${baseFileName}.pdf`;
-      } catch {
-        // Fallback to Word if PDF conversion fails
+      } catch (pdfErr) {
+        console.warn("PDF conversion failed, uploading Word:", pdfErr);
+        // Fallback to Word if PDF conversion fails or times out
         uploadBlob = await buildWordBlobForExport(exportData);
         uploadFileName = `${baseFileName}.docx`;
       }
