@@ -20,6 +20,7 @@ interface TipTapOficioEditorProps {
   fontFamily?: string;
   fontSize?: number;
   lineSpacing?: number;
+  showToolbar?: boolean;
 }
 
 export default function TipTapOficioEditor({
@@ -28,6 +29,7 @@ export default function TipTapOficioEditor({
   fontFamily = "Arial",
   fontSize = 10,
   lineSpacing = 1.5,
+  showToolbar = true,
 }: TipTapOficioEditorProps) {
   const isInternalChange = useRef(false);
 
@@ -65,7 +67,6 @@ export default function TipTapOficioEditor({
     },
   });
 
-  // Sync external content changes (but not internal ones)
   useEffect(() => {
     if (!editor) return;
     if (isInternalChange.current) {
@@ -75,7 +76,7 @@ export default function TipTapOficioEditor({
     if (editor.isFocused) return;
     const currentHtml = editor.getHTML();
     if (currentHtml !== content) {
-      editor.commands.setContent(content);
+      editor.commands.setContent(content || "<p></p>");
     }
   }, [content, editor]);
 
@@ -83,7 +84,7 @@ export default function TipTapOficioEditor({
 
   return (
     <div>
-      <EditorToolbar editor={editor} />
+      {showToolbar ? <EditorToolbar editor={editor} /> : null}
       <EditorContent
         editor={editor}
         className="tiptap-oficio-editor"
