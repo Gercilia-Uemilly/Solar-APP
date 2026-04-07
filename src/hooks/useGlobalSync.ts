@@ -57,11 +57,12 @@ export function useGlobalSync() {
 
       .subscribe();
 
-    // Fallback: refresh every 30s
+    // Fallback: refresh every 15s for critical tables
     const fallback = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ["oficios"] });
       queryClient.invalidateQueries({ queryKey: ["numeracao"] });
-    }, 30000);
+      queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
+    }, 15000);
 
     // Online/offline detection
     const handleOnline = () => {
