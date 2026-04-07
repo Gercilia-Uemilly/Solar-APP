@@ -603,18 +603,18 @@ export default function MeusOficios() {
     setCurrentPage(1);
   };
 
-  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados">("rascunhos");
+  const [abaAtiva, setAbaAtiva] = useState<"todos" | "rascunhos" | "finalizados">("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
-  const handleAbaChange = (aba: "rascunhos" | "finalizados") => {
+  const handleAbaChange = (aba: "todos" | "rascunhos" | "finalizados") => {
     setAbaAtiva(aba);
     setCurrentPage(1);
   };
 
   const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido", "Impresso"].includes(o.status));
   const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido", "Impresso"].includes(o.status));
-  const listaCompleta = abaAtiva === "rascunhos" ? rascunhos : finalizados;
+  const listaCompleta = abaAtiva === "todos" ? filtered : abaAtiva === "rascunhos" ? rascunhos : finalizados;
   const totalPages = Math.max(1, Math.ceil(listaCompleta.length / ITEMS_PER_PAGE));
   const listaExibida = listaCompleta.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
@@ -632,14 +632,20 @@ export default function MeusOficios() {
 
       <div className="flex items-center gap-2">
         <button
+          onClick={() => { setAbaAtiva("todos"); setCurrentPage(1); }}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "todos" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+        >
+          📋 Todos ({filtered.length})
+        </button>
+        <button
           onClick={() => { setAbaAtiva("rascunhos"); setCurrentPage(1); }}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-yellow-500 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📝 Rascunhos ({rascunhos.length})
         </button>
         <button
           onClick={() => { setAbaAtiva("finalizados"); setCurrentPage(1); }}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "finalizados" ? "bg-purple-600 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "finalizados" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📬 Finalizados ({finalizados.length})
         </button>
