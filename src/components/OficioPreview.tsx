@@ -381,7 +381,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* ASSUNTO */}
-        {!isHidden && editable && onAssuntoChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onAssuntoChange ? (
           <div
             ref={assuntoElRef}
             contentEditable
