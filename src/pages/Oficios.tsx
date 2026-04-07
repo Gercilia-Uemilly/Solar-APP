@@ -83,6 +83,7 @@ export default function Oficios() {
   const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
   const [fechamento, setFechamento] = useState("Atenciosamente,");
+  const [vocativoCustom, setVocativoCustom] = useState("");
   const [userPhones, setUserPhones] = useState<string[]>([]);
   const [profileName, setProfileName] = useState<string>("");
 
