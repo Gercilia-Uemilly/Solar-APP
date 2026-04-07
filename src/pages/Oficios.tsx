@@ -432,20 +432,21 @@ export default function Oficios() {
     setDescSaveStatus("● Editando...");
     const timer = setTimeout(async () => {
       try {
-        // Build template from description if no AI content yet
-        const vocativo = getVocativo(secretaria || "");
+        // Build template from description
         const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
         const artigo = nomeOrgao.startsWith("Departamento") || nomeOrgao.startsWith("Instituto") ? "o" : "a";
         const conteudoFormatado = `<p>${descricao.split("\n").filter((l: string) => l.trim()).join("</p><p>")}</p><p>Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
 
-        // Only auto-update conteudo if no AI-generated content exists
+        // Always update conteudo from description unless user manually edited in preview
         const updatePayload: Record<string, any> = {
           updated_at: new Date().toISOString(),
         };
-        if (!editedOficio && !oficioEditedManuallyRef.current) {
+        if (!oficioEditedManuallyRef.current) {
           updatePayload.conteudo = conteudoFormatado;
           setEditedOficio(conteudoFormatado);
           setOriginalOficio(conteudoFormatado);
+          setOficioHistory([conteudoFormatado]);
+          setHistoryIndex(0);
         }
 
         await supabase.from("oficios").update(updatePayload).eq("id", editingOficioId);
