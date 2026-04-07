@@ -1099,6 +1099,7 @@ export default function Oficios() {
       assinaturaUrl: assinaturaFabao,
       formatOptions,
       fechamento: fechamento !== "Atenciosamente," ? fechamento : undefined,
+      vocativo: vocativoCustom || undefined,
       descricaoAnexos: descricaoAnexos || undefined,
       imagens: await getImageFilesFromAnexos(),
     };
