@@ -324,7 +324,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     }, [recalcPages, conteudo, anexoImageUrls, anexoDocuments]);
 
     // ── Shared document content renderer ─────────────────────────
-    const renderDocumentContent = (isHidden: boolean) => (
+    const renderDocumentContent = (isHidden: boolean, isReadOnlyCopy = false) => (
       <>
         {/* CABEÇALHO */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", marginBottom: "0" }}>
@@ -333,7 +333,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* DATA */}
-        {!isHidden && editable && onDataChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onDataChange ? (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
             <span ref={dataElRef} contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => {
               const val = e.currentTarget.textContent || "";
@@ -347,7 +347,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* OFÍCIO GVF n° */}
-        {!isHidden && editable && onNumeroChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onNumeroChange ? (
           <div
             ref={numeroElRef}
             contentEditable
@@ -364,7 +364,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* DESTINATÁRIO */}
-        {!isHidden && editable && onCargoDestinatarioChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onCargoDestinatarioChange ? (
           <div
             ref={destElRef}
             contentEditable
@@ -381,7 +381,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* ASSUNTO */}
-        {!isHidden && editable && onAssuntoChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onAssuntoChange ? (
           <div
             ref={assuntoElRef}
             contentEditable
@@ -403,7 +403,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* CORPO */}
-        {!isHidden && editable && onContentChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onContentChange ? (
           <TipTapOficioEditor
             content={buildEditorContent(conteudo)}
             onChange={onContentChange}
@@ -428,7 +428,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* ATENCIOSAMENTE */}
         <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt", lineHeight: "1.5" }}>
-          {!isHidden && editable && onFechamentoChange ? (
+          {!isHidden && !isReadOnlyCopy && editable && onFechamentoChange ? (
             <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onFechamentoChange(e.currentTarget.textContent || "")}>
               {fechamento || "Atenciosamente,"}
             </span>
@@ -588,7 +588,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                 color: "#000",
                 transform: `translateY(-${pageIdx * CONTENT_H}px)`,
               }}>
-                {renderDocumentContent(false)}
+                {renderDocumentContent(false, pageIdx > 0)}
               </div>
             </div>
           </div>
