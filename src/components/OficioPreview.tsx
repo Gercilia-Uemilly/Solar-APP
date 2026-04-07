@@ -253,6 +253,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       onNumeroChange?.(rawValue.trim());
     }, [onNumeroChange]);
 
+    const syncVocativo = useCallback((rawValue: string) => {
+      userEditedRef.current.vocativo = true;
+      setLocalVocativo(rawValue);
+      onVocativoChange?.(rawValue.trim());
+    }, [onVocativoChange]);
+
     const editableStyle = editable ? {
       cursor: "text" as const,
       borderBottom: "1px dashed rgba(0,0,0,0.2)",
