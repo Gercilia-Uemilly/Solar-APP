@@ -277,6 +277,7 @@ export default function Oficios() {
   }, [historyIndex]);
 
   const handleOficioChange = useCallback((text: string) => {
+    oficioEditedManuallyRef.current = true;
     setEditedOficio(text);
     pushToHistory(text);
   }, [pushToHistory]);
