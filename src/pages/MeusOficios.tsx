@@ -305,6 +305,12 @@ export default function MeusOficios() {
     return Array.from(names).sort();
   }, [oficios]);
 
+  const assuntos = useMemo(() => {
+    const set = new Set<string>();
+    oficios.forEach(o => { if (o.assunto) set.add(o.assunto); });
+    return Array.from(set).sort();
+  }, [oficios]);
+
   const canEditOrDelete = (o: OficioRow) => {
     if (!user) return false;
     return isAdmin || o.author_id === user.id;
