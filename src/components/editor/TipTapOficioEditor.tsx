@@ -33,7 +33,7 @@ export default function TipTapOficioEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ history: { depth: 100 } }),
+      StarterKit.configure({ heading: false }),
       Underline,
       TextStyle,
       Color,
