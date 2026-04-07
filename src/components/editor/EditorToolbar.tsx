@@ -31,7 +31,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
   const recognitionRef = useRef<any>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  const ToolBtn = ({ onClick, active, children, title }: {
+  const ToolBtn = useCallback(({ onClick, active, children, title }: {
     onClick: () => void; active?: boolean; children: React.ReactNode; title: string;
   }) => (
     <button
@@ -44,7 +44,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
     >
       {children}
     </button>
-  );
+  ), []);
 
   const Sep = () => <div className="w-px h-4 bg-border mx-0.5" />;
 
@@ -58,7 +58,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
     }
     const reader = new FileReader();
     reader.onload = () => {
-      editor.chain().focus().setImage({ src: reader.result as string }).run();
+      (editor.chain().focus() as any).setImage({ src: reader.result as string }).run();
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -69,10 +69,10 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
     const url = window.prompt("URL do link:", previousUrl || "https://");
     if (url === null) return;
     if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      (editor.chain().focus().extendMarkRange("link") as any).unsetLink().run();
       return;
     }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    (editor.chain().focus().extendMarkRange("link") as any).setLink({ href: url }).run();
   }, [editor]);
 
   const toggleDictation = useCallback(() => {
@@ -111,28 +111,31 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
   const currentFontSizeRaw = editor.getAttributes("textStyle").fontSize;
   const currentFontSize = currentFontSizeRaw ? parseInt(currentFontSizeRaw) : 10;
 
+  // Use `as any` to bypass TS chain issues with TipTap extensions
+  const cmd = (fn: string, ...args: any[]) => {
+    const chain = editor.chain().focus() as any;
+    if (typeof chain[fn] === "function") {
+      chain[fn](...args).run();
+    }
+  };
+
   return (
-    <div className="space-y-1">
+    <div className="space-y-0">
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageInsert} />
 
       {/* Line 1: History, Font, Styles */}
-      <div className="flex flex-wrap items-center gap-1 p-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-t-lg">
-        <ToolBtn onClick={() => editor.chain().focus().undo().run()} title="Desfazer (Ctrl+Z)"><Undo size={14} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().redo().run()} title="Refazer (Ctrl+Y)"><Redo size={14} /></ToolBtn>
-
+      <div className="flex flex-wrap items-center gap-1 p-1.5 bg-secondary/50 border border-border rounded-t-lg">
+        <ToolBtn onClick={() => cmd("undo")} title="Desfazer (Ctrl+Z)"><Undo size={14} /></ToolBtn>
+        <ToolBtn onClick={() => cmd("redo")} title="Refazer (Ctrl+Y)"><Redo size={14} /></ToolBtn>
         <Sep />
-
-        {/* Font Family */}
         <select
           value={currentFontFamily}
-          onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
+          onChange={(e) => cmd("setFontFamily", e.target.value)}
           className="h-7 text-xs border border-border rounded bg-background px-1 text-foreground"
           title="Fonte"
         >
           {FONT_FAMILIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
         </select>
-
-        {/* Font Size */}
         <select
           value={currentFontSize}
           onChange={(e) => {
@@ -141,23 +144,18 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
               toast.info("Selecione o texto primeiro para alterar o tamanho.");
               return;
             }
-            editor.chain().focus().setFontSize(`${e.target.value}pt`).run();
+            cmd("setFontSize", `${e.target.value}pt`);
           }}
           className="h-7 text-xs border border-border rounded bg-background px-1 w-16 text-foreground"
           title="Tamanho da fonte"
         >
           {FONT_SIZES.map(n => <option key={n} value={n}>{n}pt</option>)}
         </select>
-
         <Sep />
-
-        <ToolBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Negrito (Ctrl+B)"><Bold size={14} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Itálico (Ctrl+I)"><Italic size={14} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Sublinhado (Ctrl+U)"><UnderlineIcon size={14} /></ToolBtn>
-
+        <ToolBtn onClick={() => cmd("toggleBold")} active={editor.isActive("bold")} title="Negrito (Ctrl+B)"><Bold size={14} /></ToolBtn>
+        <ToolBtn onClick={() => cmd("toggleItalic")} active={editor.isActive("italic")} title="Itálico (Ctrl+I)"><Italic size={14} /></ToolBtn>
+        <ToolBtn onClick={() => cmd("toggleUnderline")} active={editor.isActive("underline")} title="Sublinhado (Ctrl+U)"><UnderlineIcon size={14} /></ToolBtn>
         <Sep />
-
-        {/* Text Color */}
         <div className="relative group">
           <ToolBtn onClick={() => {}} title="Cor do texto">
             <Type size={14} />
@@ -167,7 +165,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
             {COLORS.map(c => (
               <button
                 key={c}
-                onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().setColor(c).run(); }}
+                onMouseDown={(e) => { e.preventDefault(); cmd("setColor", c); }}
                 className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform"
                 style={{ background: c }}
                 title={c}
@@ -175,36 +173,26 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
             ))}
           </div>
         </div>
-
-        {/* Highlight */}
-        <ToolBtn onClick={() => editor.chain().focus().toggleHighlight({ color: "#fef08a" }).run()} active={editor.isActive("highlight")} title="Realce">
+        <ToolBtn onClick={() => cmd("toggleHighlight", { color: "#fef08a" })} active={editor.isActive("highlight")} title="Realce">
           <Highlighter size={14} />
         </ToolBtn>
       </div>
 
       {/* Line 2: Alignment, Lists, Insert */}
-      <div className="flex flex-wrap items-center gap-1 p-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-b-lg">
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Alinhar à esquerda"><AlignLeft size={14} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Centralizar"><AlignCenter size={14} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Alinhar à direita"><AlignRight size={14} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("justify").run()} active={editor.isActive({ textAlign: "justify" })} title="Justificar"><AlignJustify size={14} /></ToolBtn>
-
+      <div className="flex flex-wrap items-center gap-1 p-1.5 bg-secondary/50 border border-border border-t-0 rounded-b-lg">
+        <ToolBtn onClick={() => cmd("setTextAlign", "left")} active={editor.isActive({ textAlign: "left" })} title="Alinhar à esquerda"><AlignLeft size={14} /></ToolBtn>
+        <ToolBtn onClick={() => cmd("setTextAlign", "center")} active={editor.isActive({ textAlign: "center" })} title="Centralizar"><AlignCenter size={14} /></ToolBtn>
+        <ToolBtn onClick={() => cmd("setTextAlign", "right")} active={editor.isActive({ textAlign: "right" })} title="Alinhar à direita"><AlignRight size={14} /></ToolBtn>
+        <ToolBtn onClick={() => cmd("setTextAlign", "justify")} active={editor.isActive({ textAlign: "justify" })} title="Justificar"><AlignJustify size={14} /></ToolBtn>
         <Sep />
-
-        <ToolBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Lista com marcadores"><List size={14} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Lista numerada"><ListOrdered size={14} /></ToolBtn>
-
+        <ToolBtn onClick={() => cmd("toggleBulletList")} active={editor.isActive("bulletList")} title="Lista com marcadores"><List size={14} /></ToolBtn>
+        <ToolBtn onClick={() => cmd("toggleOrderedList")} active={editor.isActive("orderedList")} title="Lista numerada"><ListOrdered size={14} /></ToolBtn>
         <Sep />
-
         <ToolBtn onClick={() => imageInputRef.current?.click()} title="Inserir imagem"><ImagePlus size={14} /></ToolBtn>
         <ToolBtn onClick={handleLink} active={editor.isActive("link")} title="Inserir/editar link"><LinkIcon size={14} /></ToolBtn>
-
         <Sep />
-
-        <ToolBtn onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} title="Limpar formatação"><Eraser size={14} /></ToolBtn>
-
+        <ToolBtn onClick={() => { cmd("unsetAllMarks"); cmd("clearNodes"); }} title="Limpar formatação"><Eraser size={14} /></ToolBtn>
         <Sep />
-
         <ToolBtn onClick={toggleDictation} active={isDictating} title={isDictating ? "Parar ditado" : "Ditar texto (pt-BR)"}>
           {isDictating ? <MicOff size={14} className="text-destructive" /> : <Mic size={14} />}
           <span className="text-[10px] ml-0.5">{isDictating ? "Parar" : "Ditar"}</span>
