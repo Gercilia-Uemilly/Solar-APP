@@ -364,7 +364,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* DESTINATÁRIO */}
-        {!isHidden && editable && onCargoDestinatarioChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onCargoDestinatarioChange ? (
           <div
             ref={destElRef}
             contentEditable
