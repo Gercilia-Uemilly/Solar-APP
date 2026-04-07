@@ -992,6 +992,7 @@ export default function MeusOficios() {
                 onDestinatarioChange={(val) => handleInlineFieldChange("destinatario", val)}
                 onDataChange={undefined}
                 onFechamentoChange={(val) => handleInlineFieldChange("fechamento_text", val)}
+                onVocativoChange={(val) => handleInlineFieldChange("vocativo", val)}
                 onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
                 onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
                 initialConteudo={originalContent}

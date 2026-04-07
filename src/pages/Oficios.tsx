@@ -1728,6 +1728,8 @@ export default function Oficios() {
                   formatOptions={formatOptions}
                   fechamento={fechamento}
                   onFechamentoChange={setFechamento}
+                  vocativoOverride={vocativoCustom || undefined}
+                  onVocativoChange={setVocativoCustom}
                 />
               </div>
             </TabsContent>
