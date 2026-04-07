@@ -1208,7 +1208,7 @@ export default function BancoInformacoes() {
 
         {/* ═══════════ TAB: CONTATOS ═══════════ */}
         <TabsContent value="contatos" className="space-y-4">
-          <ContatosTable scripts={scripts as any} loading={scriptsLoading} />
+          <ContatosTable scripts={scripts as any} knowledgeEntries={entries as any} loading={scriptsLoading || loading} />
         </TabsContent>
       </Tabs>
 

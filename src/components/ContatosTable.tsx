@@ -106,12 +106,12 @@ interface Props {
   loading: boolean;
 }
 
-export default function ContatosTable({ scripts, loading }: Props) {
+export default function ContatosTable({ scripts, knowledgeEntries = [], loading }: Props) {
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("Todas");
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
-  const contatos = useMemo(() => extrairContatos(scripts), [scripts]);
+  const contatos = useMemo(() => extrairContatos(scripts, knowledgeEntries), [scripts, knowledgeEntries]);
 
   const categorias = useMemo(() => {
     const s = new Set(contatos.map((c) => c.categoria));
