@@ -606,6 +606,11 @@ export default function MeusOficios() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
+  const handleAbaChange = (aba: "rascunhos" | "finalizados") => {
+    setAbaAtiva(aba);
+    setCurrentPage(1);
+  };
+
   const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido", "Impresso"].includes(o.status));
   const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido", "Impresso"].includes(o.status));
   const listaCompleta = abaAtiva === "rascunhos" ? rascunhos : finalizados;
