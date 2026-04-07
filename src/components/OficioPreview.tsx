@@ -399,7 +399,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         )}
 
-        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5" }}>{vocativo}</p>
+        {editable ? (
+          <p
+            ref={vocativoElRef}
+            contentEditable
+            suppressContentEditableWarning
+            data-preview-field="vocativo"
+            style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5", ...editableStyle }}
+            onInput={(e) => syncVocativo(e.currentTarget.textContent || "")}
+            onBlur={(e) => syncVocativo(e.currentTarget.textContent || "")}
+          >
+            {localVocativo}
+          </p>
+        ) : (
+          <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5" }}>{localVocativo}</p>
+        )}
       </>
     );
 
