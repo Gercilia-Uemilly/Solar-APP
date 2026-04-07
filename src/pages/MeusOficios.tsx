@@ -57,6 +57,7 @@ export default function MeusOficios() {
   const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
+  const [filtroAssunto, setFiltroAssunto] = useState("Todos");
   const [filtroOperador, setFiltroOperador] = useState("Todos");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
@@ -302,6 +303,12 @@ export default function MeusOficios() {
     const names = new Set<string>();
     oficios.forEach(o => { if (o.operador_nome) names.add(o.operador_nome); });
     return Array.from(names).sort();
+  }, [oficios]);
+
+  const assuntos = useMemo(() => {
+    const set = new Set<string>();
+    oficios.forEach(o => { if (o.assunto) set.add(o.assunto); });
+    return Array.from(set).sort();
   }, [oficios]);
 
   const canEditOrDelete = (o: OficioRow) => {
@@ -563,6 +570,7 @@ export default function MeusOficios() {
   const filtered = oficios.filter(o => {
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
     if (filtroOperador !== "Todos" && o.operador_nome !== filtroOperador) return false;
+    if (filtroAssunto !== "Todos" && o.assunto !== filtroAssunto) return false;
     if (dateFrom && new Date(o.created_at) < dateFrom) return false;
     if (dateTo) {
       const end = new Date(dateTo);
@@ -584,11 +592,12 @@ export default function MeusOficios() {
     return true;
   });
 
-  const hasActiveFilters = filtroStatus !== "Todos" || filtroOperador !== "Todos" || !!dateFrom || !!dateTo || !!search;
+  const hasActiveFilters = filtroStatus !== "Todos" || filtroOperador !== "Todos" || filtroAssunto !== "Todos" || !!dateFrom || !!dateTo || !!search;
   const clearFilters = () => {
     setSearch("");
     setFiltroStatus("Todos");
     setFiltroOperador("Todos");
+    setFiltroAssunto("Todos");
     setDateFrom(undefined);
     setDateTo(undefined);
   };
@@ -647,6 +656,13 @@ export default function MeusOficios() {
           <SelectContent>
             <SelectItem value="Todos">Todos Operadores</SelectItem>
             {operadores.map(op => <SelectItem key={op} value={op}>{op}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filtroAssunto} onValueChange={setFiltroAssunto}>
+          <SelectTrigger className="w-48 bg-card border-border"><SelectValue placeholder="Assunto" /></SelectTrigger>
+          <SelectContent className="max-h-60">
+            <SelectItem value="Todos">Todos Assuntos</SelectItem>
+            {assuntos.map(a => <SelectItem key={a} value={a} className="truncate">{a.length > 40 ? a.slice(0, 40) + "…" : a}</SelectItem>)}
           </SelectContent>
         </Select>
         <Popover>
