@@ -1665,7 +1665,7 @@ export default function Oficios() {
                     numero: snap.numero || numero || null,
                     assunto: snap.assunto || assunto || "",
                     destinatario: snap.destinatario || destinatario || "",
-                    status: "Rascunho",
+                    status: "Rascunho" as string,
                     conteudo: editedOficio,
                     resposta_cidadao: null,
                     author_id: user?.id || "",
