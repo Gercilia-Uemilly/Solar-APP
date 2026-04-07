@@ -492,7 +492,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     return (
       <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
-        {/* Page count indicator */}
         <div style={{
           background: "#1B3A6B",
           color: "white",
@@ -504,9 +503,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           gap: "8px",
           fontFamily: "sans-serif",
         }}>
-          📄 Este documento terá{" "}
-          <strong>{totalPagesForExport}</strong>{" "}
-          {totalPagesForExport === 1 ? "página" : "páginas"}
+          📄 Este documento terá <strong>{totalPagesForExport}</strong> {totalPagesForExport === 1 ? "página" : "páginas"}
           {pdfPagesFromDocuments > 0 && (
             <span style={{ opacity: 0.8, fontSize: "11px" }}>
               (inclui {pdfPagesFromDocuments} pág. de anexo PDF)
@@ -519,85 +516,29 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </div>
 
-        {/* Hidden measurement removed — we measure the visible first page's content div directly */}
-
-        {/* ── Visible paginated preview ─────────────────────────────── */}
-        {Array.from({ length: totalPages }, (_, pageIdx) => (
-          <div key={pageIdx} style={{ position: "relative" }}>
-            {/* Page separator */}
-            {pageIdx > 0 && (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                margin: "8px 0 24px",
-                color: "#bbb",
-                fontSize: "11px",
-                fontFamily: "sans-serif",
-              }}>
-                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
-                ✂ Quebra de página
-                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
-              </div>
-            )}
+        {editable ? (
+          <div
+            className="preview-pagina-a4"
+            style={{
+              width: `${PAGE_W_PX}px`,
+              minHeight: `${PAGE_H_PX}px`,
+              background: "#fff",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+              borderRadius: "4px",
+              overflow: "visible",
+              flexShrink: 0,
+              boxSizing: "border-box",
+              fontFamily: "Arial, sans-serif",
+              fontSize: "10pt",
+              lineHeight: "1.5",
+              position: "relative",
+            }}
+          >
             <div
-              className="preview-pagina-a4"
+              ref={contentRef}
               style={{
-                width: `${PAGE_W_PX}px`,
-                height: `${PAGE_H_PX}px`,
-                background: "#fff",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                borderRadius: "4px",
-                overflow: "hidden",
-                flexShrink: 0,
-                boxSizing: "border-box",
-                fontFamily: "Arial, sans-serif",
-                fontSize: "10pt",
-                lineHeight: "1.5",
-              }}
-            >
-              {/* Header on pages 2+ */}
-              {pageIdx > 0 && (
-                <div style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  paddingTop: `${MARGIN_TOP - 30}px`,
-                  paddingLeft: `${MARGIN_LEFT}px`,
-                  paddingRight: `${MARGIN_RIGHT}px`,
-                  boxSizing: "border-box",
-                  zIndex: 3,
-                  background: "#fff",
-                }}>
-                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px" }}>
-                    <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "50px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
-                    <img src={logoFabao} alt="Vereador Fabão" style={{ height: "50px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
-                  </div>
-                </div>
-              )}
-
-              {/* Page number label */}
-              <div style={{
-                position: "absolute",
-                top: "40px",
-                right: "40px",
-                fontSize: "9pt",
-                color: "#999",
-                fontFamily: "Arial, sans-serif",
-                zIndex: 4,
-              }}>
-                Página {pageIdx + 1} de {totalPagesForExport}
-              </div>
-
-              {/* Content window — shifts up for each page */}
-              <div
-                ref={pageIdx === 0 ? contentRef : undefined}
-                style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
                 width: "100%",
+                minHeight: `${PAGE_H_PX}px`,
                 paddingTop: `${MARGIN_TOP}px`,
                 paddingRight: `${MARGIN_RIGHT}px`,
                 paddingBottom: `${MARGIN_BOT}px`,
@@ -607,13 +548,102 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                 fontSize: `${effectiveFontSize}pt`,
                 lineHeight: String(effectiveLineSpacing),
                 color: "#000",
-                transform: `translateY(-${pageIdx * CONTENT_H}px)`,
-              }}>
-                {renderDocumentContent(false, pageIdx > 0)}
-              </div>
+              }}
+            >
+              {renderDocumentContent(false, false)}
             </div>
           </div>
-        ))}
+        ) : (
+          Array.from({ length: totalPages }, (_, pageIdx) => (
+            <div key={pageIdx} style={{ position: "relative" }}>
+              {pageIdx > 0 && (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  margin: "8px 0 24px",
+                  color: "#bbb",
+                  fontSize: "11px",
+                  fontFamily: "sans-serif",
+                }}>
+                  <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
+                  ✂ Quebra de página
+                  <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
+                </div>
+              )}
+              <div
+                className="preview-pagina-a4"
+                style={{
+                  width: `${PAGE_W_PX}px`,
+                  height: `${PAGE_H_PX}px`,
+                  background: "#fff",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  boxSizing: "border-box",
+                  fontFamily: "Arial, sans-serif",
+                  fontSize: "10pt",
+                  lineHeight: "1.5",
+                  position: "relative",
+                }}
+              >
+                {pageIdx > 0 && (
+                  <div style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    paddingTop: `${MARGIN_TOP - 30}px`,
+                    paddingLeft: `${MARGIN_LEFT}px`,
+                    paddingRight: `${MARGIN_RIGHT}px`,
+                    boxSizing: "border-box",
+                    zIndex: 3,
+                    background: "#fff",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px" }}>
+                      <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "50px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
+                      <img src={logoFabao} alt="Vereador Fabão" style={{ height: "50px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
+                    </div>
+                  </div>
+                )}
+
+                <div style={{
+                  position: "absolute",
+                  top: "40px",
+                  right: "40px",
+                  fontSize: "9pt",
+                  color: "#999",
+                  fontFamily: "Arial, sans-serif",
+                  zIndex: 4,
+                }}>
+                  Página {pageIdx + 1} de {totalPagesForExport}
+                </div>
+
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    paddingTop: `${MARGIN_TOP}px`,
+                    paddingRight: `${MARGIN_RIGHT}px`,
+                    paddingBottom: `${MARGIN_BOT}px`,
+                    paddingLeft: `${MARGIN_LEFT}px`,
+                    boxSizing: "border-box",
+                    fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
+                    fontSize: `${effectiveFontSize}pt`,
+                    lineHeight: String(effectiveLineSpacing),
+                    color: "#000",
+                    transform: `translateY(-${pageIdx * CONTENT_H}px)`,
+                  }}
+                >
+                  {renderDocumentContent(false, true)}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
 
         {/* ── Image attachment pages (each chunk = 1 page, matching PDF export) ── */}
         {imageChunks.map((chunk, chunkIdx) => {
