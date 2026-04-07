@@ -342,6 +342,40 @@ async function removeGoogleDriveFile(accessToken: string, fileId: string): Promi
   }
 }
 
+// Clean up old temporary conversion files from Drive to free quota
+async function cleanupOldTempFiles(accessToken: string): Promise<void> {
+  try {
+    const query = encodeURIComponent("name contains 'tmp_convert_' and trashed = false");
+    const resp = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,createdTime)&pageSize=100&orderBy=createdTime`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const files = data.files || [];
+    if (files.length === 0) return;
+    console.log(`[cleanup] Found ${files.length} temp files in Drive, deleting...`);
+    for (const file of files) {
+      await removeGoogleDriveFile(accessToken, file.id);
+    }
+    console.log(`[cleanup] Deleted ${files.length} temp files`);
+  } catch (e) {
+    console.error("[cleanup] Failed to clean temp files:", e);
+  }
+}
+
+// Also empty trash to actually free quota
+async function emptyDriveTrash(accessToken: string): Promise<void> {
+  try {
+    await fetch("https://www.googleapis.com/drive/v3/files/trash", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  } catch (_) {
+    // ignore
+  }
+}
+
 async function convertWithGoogleDrive(
   docxBytes: Uint8Array,
   filename: string,
@@ -351,6 +385,22 @@ async function convertWithGoogleDrive(
   try {
     tempFileId = await uploadDocxAsGoogleDoc(accessToken, docxBytes, filename);
     return await exportGoogleDocToPdf(accessToken, tempFileId);
+  } catch (e) {
+    // If quota exceeded, try cleanup and retry once
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("storageQuotaExceeded") || msg.includes("quota")) {
+      console.log("[convertWithGoogleDrive] Quota exceeded, cleaning up and retrying...");
+      if (tempFileId) {
+        await removeGoogleDriveFile(accessToken, tempFileId);
+        tempFileId = null;
+      }
+      await cleanupOldTempFiles(accessToken);
+      await emptyDriveTrash(accessToken);
+      // Retry
+      tempFileId = await uploadDocxAsGoogleDoc(accessToken, docxBytes, filename);
+      return await exportGoogleDocToPdf(accessToken, tempFileId);
+    }
+    throw e;
   } finally {
     if (tempFileId) {
       await removeGoogleDriveFile(accessToken, tempFileId);
