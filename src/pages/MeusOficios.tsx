@@ -600,11 +600,17 @@ export default function MeusOficios() {
     setFiltroAssunto("Todos");
     setDateFrom(undefined);
     setDateTo(undefined);
+    setCurrentPage(1);
   };
 
   const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados">("rascunhos");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
+
+  const handleAbaChange = (aba: "rascunhos" | "finalizados") => {
+    setAbaAtiva(aba);
+    setCurrentPage(1);
+  };
 
   const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido", "Impresso"].includes(o.status));
   const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido", "Impresso"].includes(o.status));
@@ -853,18 +859,22 @@ export default function MeusOficios() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-2">
-          <p className="text-sm text-muted-foreground">
-            Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, listaCompleta.length)} de {listaCompleta.length}
-          </p>
+      <div className="flex items-center justify-between px-2">
+        <p className="text-sm text-muted-foreground">
+          {listaCompleta.length === 0
+            ? "Nenhum ofício"
+            : totalPages > 1
+              ? `Mostrando ${((currentPage - 1) * ITEMS_PER_PAGE) + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, listaCompleta.length)} de ${listaCompleta.length} ofício(s)`
+              : `${listaCompleta.length} ofício(s)`}
+        </p>
+        {totalPages > 1 && (
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>← Anterior</Button>
             <span className="text-sm text-muted-foreground px-2">Pág. {currentPage}/{totalPages}</span>
             <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>Próxima →</Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Export Confirmation Dialog */}
       <Dialog open={!!exportConfirmOficio} onOpenChange={(open) => !open && setExportConfirmOficio(null)}>
