@@ -373,6 +373,8 @@ export default function MeusOficios() {
       logoFabaoUrl: logoFabao,
       assinaturaUrl: assinaturaFabao,
       formatOptions,
+      vocativo: (merged as any).vocativo || undefined,
+      fechamento: (merged as any).fechamento_text || undefined,
     };
   };
 

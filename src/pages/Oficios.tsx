@@ -970,6 +970,7 @@ export default function Oficios() {
     logoFabaoUrl: logoFabao,
     assinaturaUrl: assinaturaFabao,
     formatOptions,
+    vocativo: vocativoCustom || undefined,
   });
 
   // Helper to get image/PDF File objects from unified anexos
