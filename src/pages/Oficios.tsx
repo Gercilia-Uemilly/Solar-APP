@@ -112,6 +112,7 @@ export default function Oficios() {
   const [oficioHistory, setOficioHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const historyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const oficioEditedManuallyRef = useRef(false);
 
   // Smart suggestions state
   const [suggestions, setSuggestions] = useState<OficioRow[]>([]);
@@ -276,6 +277,7 @@ export default function Oficios() {
   }, [historyIndex]);
 
   const handleOficioChange = useCallback((text: string) => {
+    oficioEditedManuallyRef.current = true;
     setEditedOficio(text);
     pushToHistory(text);
   }, [pushToHistory]);
@@ -440,7 +442,7 @@ export default function Oficios() {
         const updatePayload: Record<string, any> = {
           updated_at: new Date().toISOString(),
         };
-        if (!editedOficio) {
+        if (!editedOficio && !oficioEditedManuallyRef.current) {
           updatePayload.conteudo = conteudoFormatado;
           setEditedOficio(conteudoFormatado);
           setOriginalOficio(conteudoFormatado);
@@ -480,6 +482,7 @@ export default function Oficios() {
       if (error) throw error;
       setAiResult(data);
       const oficioText = data.oficio || "";
+      oficioEditedManuallyRef.current = false;
       setEditedOficio(oficioText);
       setOriginalOficio(oficioText);
       setOficioHistory([oficioText]);
@@ -555,6 +558,7 @@ export default function Oficios() {
     const savedSecretaria = (o as any).secretaria_identificada || "";
     setSecretaria(savedSecretaria);
     const content = o.conteudo || "";
+    oficioEditedManuallyRef.current = false;
     setEditedOficio(content);
     setOriginalOficio(content);
     setOficioHistory(content ? [content] : []);
@@ -770,6 +774,7 @@ export default function Oficios() {
     setLinhaTelefonica("");
     setFormTab("dados");
     setAiResult(null);
+    oficioEditedManuallyRef.current = false;
     setEditedOficio("");
     setOriginalOficio("");
     setEditedResposta("");
@@ -1533,6 +1538,7 @@ export default function Oficios() {
                     const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
                     const artigo = nomeOrgao.startsWith("Departamento") || nomeOrgao.startsWith("Instituto") ? "o" : "a";
                     const template = `<p>${descricao.split("\n").filter(l => l.trim()).join("</p><p>")}</p><p>Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
+                    oficioEditedManuallyRef.current = false;
                     setEditedOficio(template);
                     setOriginalOficio(template);
                     setOficioHistory([template]);
