@@ -5,7 +5,7 @@ import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
-import OficioPreviewEditor from "./OficioPreviewEditor";
+import TipTapOficioEditor from "./editor/TipTapOficioEditor";
 
 type AnexoDocumento = {
   nome: string;
@@ -404,14 +404,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* CORPO */}
         {!isHidden && editable && onContentChange ? (
-          <OficioPreviewEditor
+          <TipTapOficioEditor
             content={buildEditorContent(conteudo)}
             onChange={onContentChange}
             fontFamily={fmt.fontFamily}
             fontSize={effectiveFontSize}
             lineSpacing={effectiveLineSpacing}
-            onIncreaseFontSize={onIncreaseFontSize}
-            onDecreaseFontSize={onDecreaseFontSize}
           />
         ) : isHtml ? (
           <div
