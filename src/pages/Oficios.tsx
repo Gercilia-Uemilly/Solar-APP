@@ -602,7 +602,7 @@ export default function Oficios() {
       numero: fullNumero,
       assunto: previewSnapshot.assunto || aiResult?.tipo_demanda || "Sem assunto",
       destinatario: previewSnapshot.destinatario || "",
-      ...(editingOficioId && ["Exportado", "Salvo no Drive", "Protocolado", "Feito", "Respondido", "Impresso"].includes(oficios.find(o => o.id === editingOficioId)?.status || "") ? {} : { status: "Salvo" }),
+      
       conteudo: editedOficio || null,
       resposta_cidadao: null,
       secretaria_identificada: secretaria || aiResult?.secretaria_identificada || null,
