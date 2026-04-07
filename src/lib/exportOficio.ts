@@ -67,6 +67,7 @@ export interface OficioData {
   contatoSolicitante?: string;
   origem?: string;
   descricaoAnexos?: string;
+  vocativo?: string;
   fechamento?: string;
   oficioId?: string;
   formatOptions?: {
@@ -471,7 +472,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Use assunto exactly as provided — bairro is already included by the AI or user
   const assuntoFormatado = stripHtml(assunto) || "___";
 
-  const vocativo = data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
+  const vocativo = data.vocativo || (data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),");
 
   const styledParagraphs = parseHtmlToParagraphs(conteudo);
 
