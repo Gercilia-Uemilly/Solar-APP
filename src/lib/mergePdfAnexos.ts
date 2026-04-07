@@ -5,8 +5,8 @@ const A4_WIDTH = 595.28;
 const A4_HEIGHT = 841.89;
 
 // Margins in points (1cm ≈ 28.35pt)
-const MARGIN_TOP = 141.73;    // 5cm
-const MARGIN_BOTTOM = 113.39; // 4cm
+const MARGIN_TOP = 85.04;     // 3cm
+const MARGIN_BOTTOM = 56.69;  // 2cm
 const MARGIN_LEFT = 85.04;    // 3cm
 const MARGIN_RIGHT = 56.69;   // 2cm
 
@@ -81,7 +81,7 @@ async function embedImage(doc: PDFDocument, file: File) {
   }
 }
 
-// ── Layout slot definition ──────────────────────────────────────────────────
+// ── Layout types ──────────────────────────────────────────────────
 interface Slot {
   x: number;
   y: number; // bottom-left y in PDF coords
@@ -89,13 +89,24 @@ interface Slot {
   h: number;
 }
 
+function isLandscape(w: number, h: number): boolean {
+  return w >= h;
+}
+
 /**
- * Calculate slots for N images on the current page.
- * Returns array of {x, y, w, h} in PDF coordinate space.
+ * Calculate slots for N images based on their orientations.
+ * - 1 image: full page
+ * - 2 landscape: stacked vertically (full width, half height each)
+ * - 2 portrait: side by side (half width, full height)
+ * - 2 mixed: stacked vertically
+ * - 3-4: 2x2 grid
  */
-function calculateSlots(count: number): Slot[] {
+function calculateSlots(
+  images: { width: number; height: number }[]
+): Slot[] {
+  const count = images.length;
+
   if (count === 1) {
-    // Single image: centered in full content area
     return [{
       x: MARGIN_LEFT,
       y: MARGIN_BOTTOM,
@@ -105,16 +116,26 @@ function calculateSlots(count: number): Slot[] {
   }
 
   if (count === 2) {
-    // 2 images: stacked vertically, full width, equal height
-    const slotH = (CONTENT_HEIGHT - GAP) / 2;
-    return [
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH },
-    ];
+    const landscapeCount = images.filter(i => isLandscape(i.width, i.height)).length;
+
+    if (landscapeCount === 0) {
+      // Both portrait → side by side
+      const slotW = (CONTENT_WIDTH - GAP) / 2;
+      return [
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT },
+        { x: MARGIN_LEFT + slotW + GAP, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT },
+      ];
+    } else {
+      // Both landscape or mixed → stacked vertically
+      const slotH = (CONTENT_HEIGHT - GAP) / 2;
+      return [
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH },
+      ];
+    }
   }
 
   if (count === 3) {
-    // 3 images: uniform 2x2 grid layout (one slot empty for consistency)
     const cellW = (CONTENT_WIDTH - GAP) / 2;
     const cellH = (CONTENT_HEIGHT - GAP) / 2;
     return [
@@ -125,7 +146,7 @@ function calculateSlots(count: number): Slot[] {
     ];
   }
 
-  // 4 images — 2x2 grid, all cells identical
+  // 4 images — 2x2 grid
   const cellW = (CONTENT_WIDTH - GAP) / 2;
   const cellH = (CONTENT_HEIGHT - GAP) / 2;
   return [
@@ -137,19 +158,14 @@ function calculateSlots(count: number): Slot[] {
 }
 
 /**
- * Draw an image filling the slot uniformly.
- * Uses "cover" behavior: scale to fill, then center-crop any overflow.
- * Since pdf-lib doesn't support clipping, we draw the visible portion
- * by scaling to fill and positioning so the center is visible.
- * For most photos, a slight stretch to fill the exact slot is acceptable
- * and ensures all images are exactly the same size.
+ * Draw an image filling the slot uniformly (cover behavior).
+ * Scale to fill, center-crop overflow.
  */
 function drawImageCover(
   page: ReturnType<PDFDocument["addPage"]>,
   img: Awaited<ReturnType<PDFDocument["embedJpg"]>>,
   slot: Slot
 ) {
-  // Scale to FILL the slot (cover behavior) — use the LARGER scale factor
   const scaleX = slot.w / img.width;
   const scaleY = slot.h / img.height;
   const scale = Math.max(scaleX, scaleY);
@@ -157,7 +173,6 @@ function drawImageCover(
   const drawW = img.width * scale;
   const drawH = img.height * scale;
 
-  // Center the scaled image in the slot (overflow is outside margins/page edge)
   const drawX = slot.x + (slot.w - drawW) / 2;
   const drawY = slot.y + (slot.h - drawH) / 2;
 
@@ -170,15 +185,9 @@ function drawImageCover(
 }
 
 /**
- * Add images to the PDF with dynamic grid layout.
- * - 1 image: full page
- * - 2 images: stacked vertically
- * - 3 images: 1 top + 2 bottom
- * - 4 images: 2x2 grid
- * - 5+ images: 4 per page, continuing on next pages
+ * Add images to the PDF with orientation-aware grid layout.
  */
 async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
-  // Embed all images first
   const embeddedImages: Awaited<ReturnType<typeof embedImage>>[] = [];
   for (const file of imageFiles) {
     try {
@@ -194,9 +203,10 @@ async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
   const total = embeddedImages.length;
 
   if (total <= 4) {
-    // Single page with appropriate layout
+    // Single page with orientation-aware layout
     const page = doc.addPage([A4_WIDTH, A4_HEIGHT]);
-    const slots = calculateSlots(total);
+    const imgDims = embeddedImages.map(img => ({ width: img.width, height: img.height }));
+    const slots = calculateSlots(imgDims);
     for (let i = 0; i < total; i++) {
       drawImageCover(page, embeddedImages[i], slots[i]);
     }
@@ -206,10 +216,12 @@ async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
     while (idx < total) {
       const remaining = total - idx;
       const onThisPage = Math.min(4, remaining);
+      const pageImages = embeddedImages.slice(idx, idx + onThisPage);
       const page = doc.addPage([A4_WIDTH, A4_HEIGHT]);
-      const slots = calculateSlots(onThisPage);
+      const imgDims = pageImages.map(img => ({ width: img.width, height: img.height }));
+      const slots = calculateSlots(imgDims);
       for (let i = 0; i < onThisPage; i++) {
-        drawImageCover(page, embeddedImages[idx + i], slots[i]);
+        drawImageCover(page, pageImages[i], slots[i]);
       }
       idx += onThisPage;
     }
