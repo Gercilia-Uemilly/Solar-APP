@@ -556,6 +556,27 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                 lineHeight: "1.5",
               }}
             >
+              {/* Header on pages 2+ */}
+              {pageIdx > 0 && (
+                <div style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  paddingTop: `${MARGIN_TOP - 30}px`,
+                  paddingLeft: `${MARGIN_LEFT}px`,
+                  paddingRight: `${MARGIN_RIGHT}px`,
+                  boxSizing: "border-box",
+                  zIndex: 3,
+                  background: "#fff",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px" }}>
+                    <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "50px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
+                    <img src={logoFabao} alt="Vereador Fabão" style={{ height: "50px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
+                  </div>
+                </div>
+              )}
+
               {/* Page number label */}
               <div style={{
                 position: "absolute",
@@ -564,7 +585,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                 fontSize: "9pt",
                 color: "#999",
                 fontFamily: "Arial, sans-serif",
-                zIndex: 2,
+                zIndex: 4,
               }}>
                 Página {pageIdx + 1} de {totalPagesForExport}
               </div>
