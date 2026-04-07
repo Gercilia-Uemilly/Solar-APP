@@ -570,6 +570,7 @@ export default function MeusOficios() {
   const filtered = oficios.filter(o => {
     if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
     if (filtroOperador !== "Todos" && o.operador_nome !== filtroOperador) return false;
+    if (filtroAssunto !== "Todos" && o.assunto !== filtroAssunto) return false;
     if (dateFrom && new Date(o.created_at) < dateFrom) return false;
     if (dateTo) {
       const end = new Date(dateTo);
