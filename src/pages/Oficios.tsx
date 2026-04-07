@@ -774,6 +774,7 @@ export default function Oficios() {
     setLinhaTelefonica("");
     setFormTab("dados");
     setAiResult(null);
+    oficioEditedManuallyRef.current = false;
     setEditedOficio("");
     setOriginalOficio("");
     setEditedResposta("");
