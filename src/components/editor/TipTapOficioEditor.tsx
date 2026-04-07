@@ -75,7 +75,7 @@ export default function TipTapOficioEditor({
     if (editor.isFocused) return;
     const currentHtml = editor.getHTML();
     if (currentHtml !== content) {
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content);
     }
   }, [content, editor]);
 
