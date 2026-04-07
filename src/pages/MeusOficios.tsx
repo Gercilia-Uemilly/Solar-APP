@@ -592,11 +592,12 @@ export default function MeusOficios() {
     return true;
   });
 
-  const hasActiveFilters = filtroStatus !== "Todos" || filtroOperador !== "Todos" || !!dateFrom || !!dateTo || !!search;
+  const hasActiveFilters = filtroStatus !== "Todos" || filtroOperador !== "Todos" || filtroAssunto !== "Todos" || !!dateFrom || !!dateTo || !!search;
   const clearFilters = () => {
     setSearch("");
     setFiltroStatus("Todos");
     setFiltroOperador("Todos");
+    setFiltroAssunto("Todos");
     setDateFrom(undefined);
     setDateTo(undefined);
   };
