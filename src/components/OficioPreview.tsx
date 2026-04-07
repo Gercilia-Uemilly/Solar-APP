@@ -6,6 +6,7 @@ import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
 import TipTapOficioEditor from "./editor/TipTapOficioEditor";
+import { cleanNumero, getDestinatario, getVocativo } from "@/lib/oficioUtils";
 
 type AnexoDocumento = {
   nome: string;
@@ -42,18 +43,14 @@ interface Props {
   anexoDocuments?: AnexoDocumento[];
 }
 
-import { cleanNumero, getDestinatario, getVocativo } from "@/lib/oficioUtils";
-
-// A4 at 96dpi
 const PAGE_W_PX = 794;
 const PAGE_H_PX = 1123;
-// Margins: top 3cm=113px, bottom 2cm=76px, left 3cm=113px, right 2cm=76px
 const MARGIN_TOP = 113;
 const MARGIN_BOT = 76;
 const MARGIN_LEFT = 113;
 const MARGIN_RIGHT = 76;
 const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
-
+const CONTENT_W = PAGE_W_PX - MARGIN_LEFT - MARGIN_RIGHT;
 const LABELED_LINE_PATTERN = /^[^:\n]{2,32}:\s*\S+/;
 
 function formatInlineField(label: string, value: string) {
@@ -70,15 +67,15 @@ function formatInlineField(label: string, value: string) {
   return `${label}: ${trimmed}`;
 }
 
-/** Render image grid for a chunk of images with dynamic layout */
 function ImageGrid({ urls }: { urls: string[] }) {
   const count = urls.length;
-  const qtdClass = count === 1 ? 'qtd-1'
-    : count === 2 ? 'qtd-2'
-    : count === 3 ? 'qtd-3'
-    : count === 4 ? 'qtd-4'
+  const qtdClass = count === 1 ? "qtd-1"
+    : count === 2 ? "qtd-2"
+    : count === 3 ? "qtd-3"
+    : count === 4 ? "qtd-4"
     : count <= 6 ? `qtd-${count}`
-    : 'qtd-7plus';
+    : "qtd-7plus";
+
   return (
     <div className={`grade-imagens ${qtdClass}`}>
       {urls.map((url, i) => (
@@ -88,8 +85,55 @@ function ImageGrid({ urls }: { urls: string[] }) {
   );
 }
 
+function splitHtmlIntoBlocks(html: string) {
+  if (!html.trim()) return ["<p></p>"];
+
+  const root = document.createElement("div");
+  root.innerHTML = html;
+
+  const blocks: string[] = [];
+  const blockTags = new Set(["p", "ul", "ol", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "table", "figure"]);
+
+  Array.from(root.childNodes).forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text) blocks.push(`<p>${text}</p>`);
+      return;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+
+    if (blockTags.has(tag)) {
+      blocks.push(el.outerHTML);
+      return;
+    }
+
+    if (tag === "div") {
+      const childElements = Array.from(el.children);
+      if (childElements.length > 0 && childElements.every((child) => blockTags.has(child.tagName.toLowerCase()))) {
+        childElements.forEach((child) => blocks.push((child as HTMLElement).outerHTML));
+      } else {
+        blocks.push(el.outerHTML);
+      }
+      return;
+    }
+
+    if (tag === "img") {
+      blocks.push(`<p>${el.outerHTML}</p>`);
+      return;
+    }
+
+    blocks.push(`<p>${el.outerHTML}</p>`);
+  });
+
+  return blocks.length > 0 ? blocks : [html];
+}
+
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, bairro, logradouro, numeroEnd, cargoDestinatario, operadorNome, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, fechamento, onFechamentoChange, onIncreaseFontSize, onDecreaseFontSize, dataGeracao, initialConteudo, anexoImageUrls, anexoDocuments }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, cargoDestinatario, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, fechamento, onFechamentoChange, dataGeracao, anexoImageUrls, anexoDocuments }, ref) => {
     const rawFmt = formatOptions || defaultFormatOptions;
     const fmt = useMemo(() => ({
       ...rawFmt,
@@ -110,16 +154,16 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const effectiveLineSpacing = fmt.lineSpacing && fmt.lineSpacing !== 1.5 ? fmt.lineSpacing : autoCalc.lineSpacing;
 
     const numeroCleaned = cleanNumero(numero);
-    const hoje = dataGeracao ? new Date(dataGeracao + "T12:00:00") : new Date();
-    const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+    const hoje = dataGeracao ? new Date(`${dataGeracao}T12:00:00`) : new Date();
+    const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
     const defaultDataFormatada = `Uberlândia, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
     const defaultNumeroFormatado = numeroCleaned
       ? (numeroCleaned.includes("/") ? numeroCleaned : `${numeroCleaned}/${hoje.getFullYear()}`)
       : "___";
     const defaultDestinatarioCompleto = destinatario || cargoDestinatario || (secretaria ? getDestinatario(secretaria) : "___");
     const defaultAssuntoFormatado = assunto || "___";
+    const vocativo = secretaria ? getVocativo(secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
 
-    // ── Local state for editable fields ──────────────────────────
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
       numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
@@ -133,6 +177,28 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
     const [localDestinatario, setLocalDestinatario] = useState(formatInlineField("Destinatário", defaultDestinatarioCompleto));
     const [localAssunto, setLocalAssunto] = useState(formatInlineField("Assunto", defaultAssuntoFormatado));
+    const [bodyPageSegments, setBodyPageSegments] = useState<string[]>([conteudo.startsWith("<") ? conteudo : "<p></p>"]);
+
+    const destElRef = useRef<HTMLDivElement>(null);
+    const assuntoElRef = useRef<HTMLDivElement>(null);
+    const numeroElRef = useRef<HTMLDivElement>(null);
+    const dataElRef = useRef<HTMLSpanElement>(null);
+
+    const measureBodyRef = useRef<HTMLDivElement>(null);
+    const measureFirstChromeRef = useRef<HTMLDivElement>(null);
+    const measureContinuationChromeRef = useRef<HTMLDivElement>(null);
+    const measureEndingRef = useRef<HTMLDivElement>(null);
+
+    const buildEditorContent = useCallback((text: string) => {
+      if (!text) return "<p></p>";
+      if (text.startsWith("<")) return text;
+      const paras = text
+        .split("\n")
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .filter((p) => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
+      return paras.length > 0 ? paras.map((p) => `<p>${p}</p>`).join("") : "<p></p>";
+    }, []);
 
     useEffect(() => {
       const externalValues = {
@@ -154,21 +220,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
       const prev = prevExternalValuesRef.current;
 
-      if (externalValues.data !== prev.data && !userEditedRef.current.data) {
-        setLocalData(externalValues.data);
-      }
-      if (externalValues.numero !== prev.numero && !userEditedRef.current.numero) {
-        setLocalNumero(externalValues.numero);
-      }
-      if (externalValues.destinatario !== prev.destinatario && !userEditedRef.current.destinatario) {
-        setLocalDestinatario(externalValues.destinatario);
-      }
-      if (externalValues.assunto !== prev.assunto && !userEditedRef.current.assunto) {
-        setLocalAssunto(externalValues.assunto);
-      }
+      if (externalValues.data !== prev.data && !userEditedRef.current.data) setLocalData(externalValues.data);
+      if (externalValues.numero !== prev.numero && !userEditedRef.current.numero) setLocalNumero(externalValues.numero);
+      if (externalValues.destinatario !== prev.destinatario && !userEditedRef.current.destinatario) setLocalDestinatario(externalValues.destinatario);
+      if (externalValues.assunto !== prev.assunto && !userEditedRef.current.assunto) setLocalAssunto(externalValues.assunto);
 
       prevExternalValuesRef.current = externalValues;
-    }, [numero, destinatario, assunto, cargoDestinatario, dataGeracao, secretaria]);
+    }, [defaultNumeroFormatado, defaultDestinatarioCompleto, defaultAssuntoFormatado, defaultDataFormatada]);
 
     const syncDestinatario = useCallback((rawValue: string) => {
       userEditedRef.current.destinatario = true;
@@ -198,14 +256,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       minWidth: "40px",
     } : {};
 
-    // Refs for contentEditable DOM elements — prevents React from resetting text
-    const destElRef = useRef<HTMLDivElement>(null);
-    const assuntoElRef = useRef<HTMLDivElement>(null);
-    const numeroElRef = useRef<HTMLDivElement>(null);
-    const dataElRef = useRef<HTMLSpanElement>(null);
-
-    // Imperatively sync DOM when local state changes from external props only
-    // Initial mount: set DOM text content once refs are attached
     const initialDomSyncDone = useRef(false);
     useEffect(() => {
       if (initialDomSyncDone.current) return;
@@ -240,29 +290,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       }
     }, [localData]);
 
-    const isHtml = conteudo.startsWith("<");
-    const paragraphs = isHtml ? [] : conteudo
-      .split("\n").map(p => p.trim()).filter(Boolean)
-      .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
-
-    const numeroFormatado = defaultNumeroFormatado;
-    const assuntoFormatado = defaultAssuntoFormatado;
-    const destinatarioCompleto = defaultDestinatarioCompleto;
-    const vocativo = secretaria ? getVocativo(secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
-
-    const buildEditorContent = (text: string) => {
-      if (text.startsWith("<")) return text;
-      const paras = text.split("\n").map(p => p.trim()).filter(Boolean)
-        .filter(p => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i));
-      return paras.map(p => `<p>${p}</p>`).join("");
-    };
-
-    // Image chunks — group by page capacity based on count
     const imageChunks = useMemo(() => {
       if (!anexoImageUrls || anexoImageUrls.length === 0) return [];
-      // For <= 6 images, fit them all on one page
       if (anexoImageUrls.length <= 6) return [anexoImageUrls];
-      // For 7+, group in pages of up to 8 (4 per row, 2 rows)
       const chunks: string[][] = [];
       for (let i = 0; i < anexoImageUrls.length; i += 8) {
         chunks.push(anexoImageUrls.slice(i, i + 8));
@@ -288,148 +318,93 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       }, 0);
     }, [anexoDocuments]);
 
-    // ── Page calculation ─────────────────────────────────────────
-    const contentRef = useRef<HTMLDivElement>(null);
-    const [totalPages, setTotalPages] = useState(1);
+    const renderHeader = () => (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", marginBottom: 0 }}>
+        <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
+        <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
+      </div>
+    );
 
-    const recalcPages = useCallback(() => {
-      if (!contentRef.current) return;
-      const scrollH = contentRef.current.scrollHeight;
-      const contentH = scrollH - MARGIN_TOP - MARGIN_BOT;
-      // Avoid near-empty trailing pages (less than 5% content)
-      const raw = contentH / CONTENT_H;
-      const pages = raw % 1 < 0.05 ? Math.floor(raw) : Math.ceil(raw);
-      setTotalPages(Math.max(1, pages));
-    }, []);
-
-    const totalPagesForExport = totalPages + imagePages + pdfPagesFromDocuments;
-
-    useEffect(() => {
-      recalcPages();
-      const timer = setInterval(recalcPages, 500);
-
-      // Also recalc when images inside the content finish loading
-      const el = contentRef.current;
-      if (el) {
-        const imgs = el.querySelectorAll("img");
-        const handler = () => recalcPages();
-        imgs.forEach(img => img.addEventListener("load", handler));
-        return () => {
-          clearInterval(timer);
-          imgs.forEach(img => img.removeEventListener("load", handler));
-        };
-      }
-
-      return () => clearInterval(timer);
-    }, [recalcPages, conteudo, anexoImageUrls, anexoDocuments]);
-
-    // ── Shared document content renderer ─────────────────────────
-    const renderDocumentContent = (isHidden: boolean, isReadOnlyCopy = false) => (
+    const renderFirstPageIntro = () => (
       <>
-        {/* CABEÇALHO */}
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", marginBottom: "0" }}>
-          <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
-          <img src={logoFabao} alt="Vereador Fabão" style={{ height: "70px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
-        </div>
-
-        {/* DATA */}
-        {!isHidden && !isReadOnlyCopy && editable && onDataChange ? (
-          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
-            <span ref={dataElRef} contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => {
-              const val = e.currentTarget.textContent || "";
-              userEditedRef.current.data = true;
-              setLocalData(val);
-              onDataChange(val);
-            }} />
-          </p>
-        ) : (
+        {renderHeader()}
+        {!editable || !onDataChange ? (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{localData}</p>
+        ) : (
+          <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
+            <span
+              ref={dataElRef}
+              contentEditable
+              suppressContentEditableWarning
+              style={editableStyle}
+              onBlur={(e) => {
+                const val = e.currentTarget.textContent || "";
+                userEditedRef.current.data = true;
+                setLocalData(val);
+                onDataChange(val);
+              }}
+            />
+          </p>
         )}
 
-        {/* OFÍCIO GVF n° */}
-        {!isHidden && !isReadOnlyCopy && editable && onNumeroChange ? (
+        {!editable || !onNumeroChange ? (
+          <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: 0, lineHeight: "1.5" }}>Ofício GVF n° {defaultNumeroFormatado}</p>
+        ) : (
           <div
             ref={numeroElRef}
             contentEditable
             suppressContentEditableWarning
             data-preview-field="numero"
-            style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5", ...editableStyle }}
-            onInput={e => syncNumero(e.currentTarget.textContent || "")}
-            onBlur={e => syncNumero(e.currentTarget.textContent || "")}
+            style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: 0, lineHeight: "1.5", ...editableStyle }}
+            onInput={(e) => syncNumero(e.currentTarget.textContent || "")}
+            onBlur={(e) => syncNumero(e.currentTarget.textContent || "")}
           />
-        ) : (
-          <p style={{ fontWeight: "bold", fontSize: "11pt", marginBottom: "16px", marginTop: "0", lineHeight: "1.5" }}>
-            Ofício GVF n° {numeroFormatado}
-          </p>
         )}
 
-        {/* DESTINATÁRIO */}
-        {!isHidden && !isReadOnlyCopy && editable && onCargoDestinatarioChange ? (
+        {!editable || !onCargoDestinatarioChange ? (
+          <p style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>{localDestinatario}</p>
+        ) : (
           <div
             ref={destElRef}
             contentEditable
             suppressContentEditableWarning
             data-preview-field="destinatario"
-            style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={e => syncDestinatario(e.currentTarget.textContent || "")}
-            onBlur={e => syncDestinatario(e.currentTarget.textContent || "")}
+            style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
+            onInput={(e) => syncDestinatario(e.currentTarget.textContent || "")}
+            onBlur={(e) => syncDestinatario(e.currentTarget.textContent || "")}
           />
-        ) : (
-          <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-            {localDestinatario}
-          </p>
         )}
 
-        {/* ASSUNTO */}
-        {!isHidden && !isReadOnlyCopy && editable && onAssuntoChange ? (
+        {!editable || !onAssuntoChange ? (
+          <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>{localAssunto}</p>
+        ) : (
           <div
             ref={assuntoElRef}
             contentEditable
             suppressContentEditableWarning
             data-preview-field="assunto"
-            style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={e => syncAssunto(e.currentTarget.textContent || "")}
-            onBlur={e => syncAssunto(e.currentTarget.textContent || "")}
+            style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
+            onInput={(e) => syncAssunto(e.currentTarget.textContent || "")}
+            onBlur={(e) => syncAssunto(e.currentTarget.textContent || "")}
           />
-        ) : (
-          <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: "0", lineHeight: "1.5", fontWeight: "bold" }}>
-            {localAssunto}
-          </p>
         )}
 
-        {/* VOCATIVO */}
-        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: "0", textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5", fontWeight: "normal" }}>
-          {vocativo}
-        </p>
+        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5" }}>{vocativo}</p>
+      </>
+    );
 
-        {/* CORPO */}
-        {!isHidden && !isReadOnlyCopy && editable && onContentChange ? (
-          <TipTapOficioEditor
-            content={buildEditorContent(conteudo)}
-            onChange={onContentChange}
-            fontFamily={fmt.fontFamily}
-            fontSize={effectiveFontSize}
-            lineSpacing={effectiveLineSpacing}
-          />
-        ) : isHtml ? (
-          <div
-            style={{ textAlign: "justify", fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing) }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(conteudo) }}
-          />
-        ) : (
-          <div style={{ textAlign: "justify" }}>
-            {paragraphs.map((p, i) => (
-              <p key={i} style={{ textIndent: "1.25cm", marginBottom: "0", marginTop: "0", fontSize: "11pt", lineHeight: "1.5" }}
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(p) }}
-              />
-            ))}
-          </div>
-        )}
+    const renderContinuationChrome = () => renderHeader();
 
-        {/* ATENCIOSAMENTE */}
+    const renderEnding = (readOnly = false) => (
+      <>
         <p style={{ textIndent: "1.25cm", marginTop: "16px", marginBottom: "32px", fontSize: "11pt", lineHeight: "1.5" }}>
-          {!isHidden && !isReadOnlyCopy && editable && onFechamentoChange ? (
-            <span contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => onFechamentoChange(e.currentTarget.textContent || "")}>
+          {!readOnly && editable && onFechamentoChange ? (
+            <span
+              contentEditable
+              suppressContentEditableWarning
+              style={editableStyle}
+              onBlur={(e) => onFechamentoChange(e.currentTarget.textContent || "")}
+            >
               {fechamento || "Atenciosamente,"}
             </span>
           ) : (
@@ -437,7 +412,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           )}
         </p>
 
-        {/* BLOCO ASSINATURA */}
         <div style={{
           textAlign: "center",
           display: "flex",
@@ -446,132 +420,158 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           pageBreakInside: "avoid",
           breakInside: "avoid",
           lineHeight: "1.0",
-          border: "none",
         }}>
           <img
             src={assinaturaFabao}
             alt="Assinatura Fabão"
-            style={{
-              width: "227px", height: "auto", objectFit: "contain",
-              marginBottom: "0", display: "block",
-              border: "0 none transparent", outline: "0 none transparent",
-              boxShadow: "none", borderRadius: "0", padding: "0",
-            }}
+            style={{ width: "227px", height: "auto", objectFit: "contain", marginBottom: 0, display: "block", boxShadow: "none", borderRadius: 0, padding: 0 }}
           />
-          <p style={{ fontSize: "11pt", marginBottom: "0", marginTop: "0", fontWeight: "bold", lineHeight: "1.0", border: "none" }}>FABÃO</p>
-          <p style={{ fontSize: "11pt", marginTop: "0", marginBottom: "0", lineHeight: "1.0", border: "none" }}>Vereador</p>
-        </div>
-
-        {/* Images are rendered as separate pages below, not inline */}
-
-        {/* ANEXO DE DOCUMENTOS */}
-        {anexoDocuments && anexoDocuments.length > 0 && (
-          <div style={{ marginTop: "20px", pageBreakInside: "avoid" }}>
-            <p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold", lineHeight: "1.4" }}>
-              Documentos anexados
-            </p>
-            <ul style={{ margin: "8px 0 0", paddingLeft: "20px", fontSize: "10pt", lineHeight: "1.5" }}>
-              {anexoDocuments.map((doc, i) => {
-                const label = doc.tipo.includes("pdf") ? "PDF" : "Arquivo";
-                return <li key={`${doc.nome}-${i}`}>{label}: {doc.nome}</li>;
-              })}
-            </ul>
-          </div>
-        )}
-
-        {/* RODAPÉ */}
-        <div style={{
-          marginTop: "24px", fontSize: "9pt", color: "#444",
-          textAlign: "center", paddingTop: "6px", paddingBottom: "6px",
-          fontFamily: "Arial, Helvetica, sans-serif",
-        }}>
-          Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
+          <p style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, fontWeight: "bold", lineHeight: "1.0" }}>FABÃO</p>
+          <p style={{ fontSize: "11pt", marginTop: 0, marginBottom: 0, lineHeight: "1.0" }}>Vereador</p>
         </div>
       </>
     );
 
+    useEffect(() => {
+      const measureRoot = measureBodyRef.current;
+      const firstChrome = measureFirstChromeRef.current;
+      const continuationChrome = measureContinuationChromeRef.current;
+      const ending = measureEndingRef.current;
+      if (!measureRoot || !firstChrome || !continuationChrome || !ending) return;
+
+      const fullHtml = buildEditorContent(conteudo);
+      const blocks = splitHtmlIntoBlocks(fullHtml);
+      const cache = new Map<string, number>();
+
+      const measureBlockHeight = (html: string) => {
+        const cacheKey = `${effectiveFontSize}|${effectiveLineSpacing}|${fmt.fontFamily}|${html}`;
+        if (cache.has(cacheKey)) return cache.get(cacheKey) || 0;
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = html;
+        measureRoot.appendChild(wrapper);
+        const height = wrapper.offsetHeight;
+        measureRoot.removeChild(wrapper);
+        cache.set(cacheKey, height);
+        return height;
+      };
+
+      const firstCap = Math.max(120, CONTENT_H - firstChrome.offsetHeight);
+      const continuationCap = Math.max(120, CONTENT_H - continuationChrome.offsetHeight);
+      const endingHeight = ending.offsetHeight;
+
+      const nextPages: string[][] = [[]];
+      const usedHeights: number[] = [0];
+
+      blocks.forEach((block) => {
+        const blockHeight = measureBlockHeight(block);
+        const currentIndex = nextPages.length - 1;
+        const currentCap = currentIndex === 0 ? firstCap : continuationCap;
+
+        if (nextPages[currentIndex].length > 0 && usedHeights[currentIndex] + blockHeight > currentCap) {
+          nextPages.push([block]);
+          usedHeights.push(blockHeight);
+        } else {
+          nextPages[currentIndex].push(block);
+          usedHeights[currentIndex] += blockHeight;
+        }
+      });
+
+      let lastIndex = nextPages.length - 1;
+      while (usedHeights[lastIndex] + endingHeight > (lastIndex === 0 ? firstCap : continuationCap) && nextPages[lastIndex].length > 0) {
+        const overflowBlocks: string[] = [];
+        let overflowHeight = 0;
+
+        while (usedHeights[lastIndex] + endingHeight > (lastIndex === 0 ? firstCap : continuationCap) && nextPages[lastIndex].length > 1) {
+          const moved = nextPages[lastIndex].pop();
+          if (!moved) break;
+          const movedHeight = measureBlockHeight(moved);
+          overflowBlocks.unshift(moved);
+          overflowHeight += movedHeight;
+          usedHeights[lastIndex] -= movedHeight;
+        }
+
+        if (overflowBlocks.length === 0) {
+          nextPages.push([]);
+          usedHeights.push(0);
+          lastIndex = nextPages.length - 1;
+          break;
+        }
+
+        nextPages.push(overflowBlocks);
+        usedHeights.push(overflowHeight);
+        lastIndex = nextPages.length - 1;
+      }
+
+      const normalizedPages = nextPages.map((page) => page.join(""));
+      const resolvedPages = normalizedPages.length > 0 ? normalizedPages : ["<p></p>"];
+
+      setBodyPageSegments((prev) => {
+        if (prev.length === resolvedPages.length && prev.every((segment, index) => segment === resolvedPages[index])) {
+          return prev;
+        }
+        return resolvedPages;
+      });
+    }, [conteudo, buildEditorContent, effectiveFontSize, effectiveLineSpacing, fmt.fontFamily, localData, localNumero, localDestinatario, localAssunto, fechamento]);
+
+    const handlePageContentChange = useCallback((pageIndex: number, newPageHtml: string) => {
+      setBodyPageSegments((prev) => {
+        const next = [...prev];
+        next[pageIndex] = newPageHtml;
+        onContentChange?.(next.join(""));
+        return next;
+      });
+    }, [onContentChange]);
+
+    const documentPageCount = Math.max(1, bodyPageSegments.length);
+    const totalPagesForExport = documentPageCount + imagePages + pdfPagesFromDocuments;
+
     return (
-      <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
-        <div style={{
-          background: "#1B3A6B",
-          color: "white",
-          padding: "8px 16px",
-          borderRadius: "6px",
-          fontSize: "12px",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          fontFamily: "sans-serif",
-        }}>
-          📄 Este documento terá <strong>{totalPagesForExport}</strong> {totalPagesForExport === 1 ? "página" : "páginas"}
-          {pdfPagesFromDocuments > 0 && (
-            <span style={{ opacity: 0.8, fontSize: "11px" }}>
-              (inclui {pdfPagesFromDocuments} pág. de anexo PDF)
-            </span>
-          )}
-          {totalPagesForExport > 1 && (
-            <span style={{ opacity: 0.8, fontSize: "11px" }}>
-              — role para ver todas
-            </span>
-          )}
+      <>
+        <style>{`
+          .oficio-preview-page-body p,
+          .oficio-preview-measure p {
+            text-indent: 1.25cm;
+            margin: 0;
+            font-size: ${effectiveFontSize}pt;
+            line-height: ${effectiveLineSpacing};
+            text-align: justify;
+          }
+          .oficio-preview-page-body ul,
+          .oficio-preview-page-body ol,
+          .oficio-preview-measure ul,
+          .oficio-preview-measure ol {
+            padding-left: 2cm;
+            margin: 0 0 10px 0;
+            font-size: ${effectiveFontSize}pt;
+            line-height: ${effectiveLineSpacing};
+          }
+          .oficio-preview-page-body img,
+          .oficio-preview-measure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 8px auto;
+          }
+        `}</style>
+
+        <div aria-hidden style={{ position: "absolute", left: "-99999px", top: 0, visibility: "hidden", pointerEvents: "none", width: `${CONTENT_W}px`, fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`, fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing), color: "#000" }}>
+          <div ref={measureFirstChromeRef}>{renderFirstPageIntro()}</div>
+          <div ref={measureContinuationChromeRef}>{renderContinuationChrome()}</div>
+          <div ref={measureBodyRef} className="oficio-preview-measure" />
+          <div ref={measureEndingRef}>{renderEnding(true)}</div>
         </div>
 
-        {editable ? (
-          <div
-            className="preview-pagina-a4"
-            style={{
-              width: `${PAGE_W_PX}px`,
-              minHeight: `${PAGE_H_PX}px`,
-              background: "#fff",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-              borderRadius: "4px",
-              overflow: "visible",
-              flexShrink: 0,
-              boxSizing: "border-box",
-              fontFamily: "Arial, sans-serif",
-              fontSize: "10pt",
-              lineHeight: "1.5",
-              position: "relative",
-            }}
-          >
-            <div
-              ref={contentRef}
-              style={{
-                width: "100%",
-                minHeight: `${PAGE_H_PX}px`,
-                paddingTop: `${MARGIN_TOP}px`,
-                paddingRight: `${MARGIN_RIGHT}px`,
-                paddingBottom: `${MARGIN_BOT}px`,
-                paddingLeft: `${MARGIN_LEFT}px`,
-                boxSizing: "border-box",
-                fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-                fontSize: `${effectiveFontSize}pt`,
-                lineHeight: String(effectiveLineSpacing),
-                color: "#000",
-              }}
-            >
-              {renderDocumentContent(false, false)}
-            </div>
+        <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
+          <div style={{ background: "#1B3A6B", color: "white", padding: "8px 16px", borderRadius: "6px", fontSize: "12px", display: "flex", alignItems: "center", gap: "8px", fontFamily: "sans-serif" }}>
+            📄 Este documento terá <strong>{totalPagesForExport}</strong> {totalPagesForExport === 1 ? "página" : "páginas"}
+            {pdfPagesFromDocuments > 0 && <span style={{ opacity: 0.8, fontSize: "11px" }}>(inclui {pdfPagesFromDocuments} pág. de anexo PDF)</span>}
           </div>
-        ) : (
-          Array.from({ length: totalPages }, (_, pageIdx) => (
-            <div key={pageIdx} style={{ position: "relative" }}>
-              {pageIdx > 0 && (
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  margin: "8px 0 24px",
-                  color: "#bbb",
-                  fontSize: "11px",
-                  fontFamily: "sans-serif",
-                }}>
-                  <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
-                  ✂ Quebra de página
-                  <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
-                </div>
-              )}
+
+          {bodyPageSegments.map((segment, pageIdx) => {
+            const isLastDocumentPage = pageIdx === bodyPageSegments.length - 1;
+            return (
               <div
+                key={`doc-page-${pageIdx}`}
                 className="preview-pagina-a4"
                 style={{
                   width: `${PAGE_W_PX}px`,
@@ -583,87 +583,59 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                   flexShrink: 0,
                   boxSizing: "border-box",
                   fontFamily: "Arial, sans-serif",
-                  fontSize: "10pt",
-                  lineHeight: "1.5",
                   position: "relative",
                 }}
               >
-                {pageIdx > 0 && (
-                  <div style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    paddingTop: `${MARGIN_TOP - 30}px`,
-                    paddingLeft: `${MARGIN_LEFT}px`,
-                    paddingRight: `${MARGIN_RIGHT}px`,
-                    boxSizing: "border-box",
-                    zIndex: 3,
-                    background: "#fff",
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px" }}>
-                      <img src={logoCamara} alt="Câmara Municipal de Uberlândia" style={{ height: "50px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
-                      <img src={logoFabao} alt="Vereador Fabão" style={{ height: "50px", width: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
-                    </div>
-                  </div>
-                )}
-
-                <div style={{
-                  position: "absolute",
-                  top: "40px",
-                  right: "40px",
-                  fontSize: "9pt",
-                  color: "#999",
-                  fontFamily: "Arial, sans-serif",
-                  zIndex: 4,
-                }}>
-                  Página {pageIdx + 1} de {totalPagesForExport}
+                <div style={{ position: "absolute", top: "40px", right: "40px", fontSize: "9pt", color: "#000", fontFamily: "Arial, sans-serif", zIndex: 3 }}>
+                  {pageIdx + 1}
                 </div>
 
                 <div
                   style={{
                     position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
+                    inset: 0,
                     paddingTop: `${MARGIN_TOP}px`,
                     paddingRight: `${MARGIN_RIGHT}px`,
                     paddingBottom: `${MARGIN_BOT}px`,
                     paddingLeft: `${MARGIN_LEFT}px`,
                     boxSizing: "border-box",
                     fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`,
-                    fontSize: `${effectiveFontSize}pt`,
-                    lineHeight: String(effectiveLineSpacing),
                     color: "#000",
-                    transform: `translateY(-${pageIdx * CONTENT_H}px)`,
+                    overflow: "hidden",
                   }}
                 >
-                  {renderDocumentContent(false, true)}
+                  {pageIdx === 0 ? renderFirstPageIntro() : renderContinuationChrome()}
+
+                  <div className="oficio-preview-page-body" style={{ textAlign: "justify", fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing) }}>
+                    {editable ? (
+                      <TipTapOficioEditor
+                        content={segment || "<p></p>"}
+                        onChange={(html) => handlePageContentChange(pageIdx, html)}
+                        fontFamily={fmt.fontFamily}
+                        fontSize={effectiveFontSize}
+                        lineSpacing={effectiveLineSpacing}
+                        showToolbar={pageIdx === 0}
+                      />
+                    ) : (
+                      <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(segment || "<p></p>") }} />
+                    )}
+                  </div>
+
+                  {isLastDocumentPage ? renderEnding(!editable) : null}
+                </div>
+
+                <div style={{ position: "absolute", left: `${MARGIN_LEFT}px`, right: `${MARGIN_RIGHT}px`, bottom: "22px", fontSize: "9pt", color: "#444", textAlign: "center", fontFamily: "Arial, Helvetica, sans-serif" }}>
+                  Av. João Naves de Ávila, n° 1.617, Gabinete n° 30, bairro Santa Mônica, CEP: 38408-144, Uberlândia -MG
                 </div>
               </div>
-            </div>
-          ))
-        )}
+            );
+          })}
 
-        {/* ── Image attachment pages (each chunk = 1 page, matching PDF export) ── */}
-        {imageChunks.map((chunk, chunkIdx) => {
-          const pageNum = totalPages + chunkIdx + 1;
-          return (
-            <div key={`img-page-${chunkIdx}`} style={{ position: "relative" }}>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                margin: "8px 0 24px",
-                color: "#bbb",
-                fontSize: "11px",
-                fontFamily: "sans-serif",
-              }}>
-                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
-                ✂ Página {pageNum} — Anexos
-                <div style={{ flex: 1, height: "1px", background: "#ddd" }} />
-              </div>
+          {imageChunks.map((chunk, chunkIdx) => {
+            const pageNum = documentPageCount + chunkIdx + 1;
+            return (
               <div
+                key={`img-page-${chunkIdx}`}
                 className="preview-pagina-a4"
                 style={{
                   width: `${PAGE_W_PX}px`,
@@ -674,41 +646,20 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                   overflow: "hidden",
                   flexShrink: 0,
                   boxSizing: "border-box",
+                  position: "relative",
                 }}
               >
-                <div style={{
-                  position: "absolute",
-                  top: "40px",
-                  right: "40px",
-                  fontSize: "9pt",
-                  color: "#999",
-                  fontFamily: "Arial, sans-serif",
-                  zIndex: 2,
-                }}>
-                  Página {pageNum} de {totalPagesForExport}
+                <div style={{ position: "absolute", top: "40px", right: "40px", fontSize: "9pt", color: "#000", fontFamily: "Arial, sans-serif", zIndex: 2 }}>
+                  {pageNum}
                 </div>
-                <div style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  paddingTop: `${MARGIN_TOP}px`,
-                  paddingRight: `${MARGIN_RIGHT}px`,
-                  paddingBottom: `${MARGIN_BOT}px`,
-                  paddingLeft: `${MARGIN_LEFT}px`,
-                  boxSizing: "border-box",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
+                <div style={{ position: "absolute", inset: 0, paddingTop: `${MARGIN_TOP}px`, paddingRight: `${MARGIN_RIGHT}px`, paddingBottom: `${MARGIN_BOT}px`, paddingLeft: `${MARGIN_LEFT}px`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <ImageGrid urls={chunk} />
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </>
     );
   }
 );
