@@ -558,6 +558,7 @@ export default function Oficios() {
     const savedSecretaria = (o as any).secretaria_identificada || "";
     setSecretaria(savedSecretaria);
     const content = o.conteudo || "";
+    oficioEditedManuallyRef.current = false;
     setEditedOficio(content);
     setOriginalOficio(content);
     setOficioHistory(content ? [content] : []);
