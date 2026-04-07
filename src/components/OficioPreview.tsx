@@ -135,7 +135,7 @@ function splitHtmlIntoBlocks(html: string) {
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, cargoDestinatario, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, fechamento, onFechamentoChange, dataGeracao, anexoImageUrls, anexoDocuments }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, cargoDestinatario, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, fechamento, onFechamentoChange, dataGeracao, anexoImageUrls, anexoDocuments, vocativoOverride, onVocativoChange }, ref) => {
     const rawFmt = formatOptions || defaultFormatOptions;
     const fmt = useMemo(() => ({
       ...rawFmt,
