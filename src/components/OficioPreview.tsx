@@ -164,7 +164,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       : "___";
     const defaultDestinatarioCompleto = destinatario || cargoDestinatario || (secretaria ? getDestinatario(secretaria) : "___");
     const defaultAssuntoFormatado = assunto || "___";
-    const vocativo = secretaria ? getVocativo(secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
+    const vocativoDefault = vocativoOverride || (secretaria ? getVocativo(secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),");
+    const [localVocativo, setLocalVocativo] = useState(vocativoDefault);
+    const vocativoElRef = useRef<HTMLParagraphElement>(null);
 
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
