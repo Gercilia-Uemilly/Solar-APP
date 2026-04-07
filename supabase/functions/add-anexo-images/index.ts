@@ -279,18 +279,32 @@ function getUniformSlotSize(count: number): { cx: number; cy: number; cols: numb
 }
 
 /**
- * Fit image to a uniform box while maintaining aspect ratio.
- * The box size is FIXED - the image scales to fit inside it.
+ * Calculate crop percentages to fill a box uniformly (cover behavior).
+ * Returns srcRect values in 1/1000th of percent (OOXML format).
+ * Crops equally from both sides of the longer dimension.
  */
-function fitToUniformBox(widthPx: number, heightPx: number, boxCx: number, boxCy: number): { cx: number; cy: number } {
-  const pxToEmu = 9525;
-  const rawCx = Math.max(1, widthPx) * pxToEmu;
-  const rawCy = Math.max(1, heightPx) * pxToEmu;
-  const scale = Math.min(boxCx / rawCx, boxCy / rawCy, 1);
-  return {
-    cx: Math.max(700000, Math.round(rawCx * scale)),
-    cy: Math.max(700000, Math.round(rawCy * scale)),
-  };
+function calcCropForFill(widthPx: number, heightPx: number, boxCx: number, boxCy: number): { l: number; t: number; r: number; b: number } {
+  const imgRatio = widthPx / heightPx;
+  const boxRatio = boxCx / boxCy;
+
+  if (Math.abs(imgRatio - boxRatio) < 0.05) {
+    // Close enough, no crop needed
+    return { l: 0, t: 0, r: 0, b: 0 };
+  }
+
+  if (imgRatio > boxRatio) {
+    // Image is wider than box → crop left/right
+    const visibleFraction = boxRatio / imgRatio;
+    const cropTotal = Math.round((1 - visibleFraction) * 100000); // in 1/1000th %
+    const cropEach = Math.floor(cropTotal / 2);
+    return { l: cropEach, t: 0, r: cropTotal - cropEach, b: 0 };
+  } else {
+    // Image is taller than box → crop top/bottom
+    const visibleFraction = imgRatio / boxRatio;
+    const cropTotal = Math.round((1 - visibleFraction) * 100000);
+    const cropEach = Math.floor(cropTotal / 2);
+    return { l: 0, t: cropEach, r: 0, b: cropTotal - cropEach };
+  }
 }
 
 function buildImagePageXml(
@@ -304,26 +318,27 @@ function buildImagePageXml(
   const slot = getUniformSlotSize(images.length);
 
   if (images.length === 1) {
-    const fit = fitToUniformBox(images[0].width, images[0].height, slot.cx, slot.cy);
-    rows.push(makeImageRowXml([makeImageRunXml(images[0].rId, fit.cx, fit.cy, images[0].idx, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
+    // Single image: fit to box (no crop for single full-page image)
+    const crop = calcCropForFill(images[0].width, images[0].height, slot.cx, slot.cy);
+    rows.push(makeImageRowXml([makeImageRunXml(images[0].rId, slot.cx, slot.cy, images[0].idx, crop, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
     return rows;
   }
 
   if (images.length === 2) {
-    // Stacked: each image on its own row, same uniform box
+    // Stacked: each image on its own row, SAME fixed size
     for (const img of images) {
-      const fit = fitToUniformBox(img.width, img.height, slot.cx, slot.cy);
-      rows.push(makeImageRowXml([makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
+      const crop = calcCropForFill(img.width, img.height, slot.cx, slot.cy);
+      rows.push(makeImageRowXml([makeImageRunXml(img.rId, slot.cx, slot.cy, img.idx, crop, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
     }
     return rows;
   }
 
-  // 3 or 4 images: pairs per row, uniform sizing
+  // 3 or 4 images: pairs per row, ALL same fixed size
   for (let i = 0; i < images.length; i += slot.cols) {
     const pair = images.slice(i, i + slot.cols);
     const runs = pair.map((img) => {
-      const fit = fitToUniformBox(img.width, img.height, slot.cx, slot.cy);
-      return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
+      const crop = calcCropForFill(img.width, img.height, slot.cx, slot.cy);
+      return makeImageRunXml(img.rId, slot.cx, slot.cy, img.idx, crop, A_NS, PIC_NS);
     });
     rows.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
   }
@@ -343,7 +358,20 @@ function makeImageRowXml(runs: string[], W: string, WP: string, A_NS: string, PI
 </w:p>`;
 }
 
-function makeImageRunXml(rId: string, cx: number, cy: number, idx: number, A_NS: string, PIC_NS: string): string {
+function makeImageRunXml(
+  rId: string,
+  cx: number,
+  cy: number,
+  idx: number,
+  crop: { l: number; t: number; r: number; b: number },
+  A_NS: string,
+  PIC_NS: string,
+): string {
+  const hasCrop = crop.l > 0 || crop.t > 0 || crop.r > 0 || crop.b > 0;
+  const srcRect = hasCrop
+    ? `<a:srcRect l="${crop.l}" t="${crop.t}" r="${crop.r}" b="${crop.b}"/>`
+    : "";
+
   return `
 <w:r>
   <w:drawing>
@@ -352,17 +380,18 @@ function makeImageRunXml(rId: string, cx: number, cy: number, idx: number, A_NS:
       <wp:effectExtent l="0" t="0" r="0" b="0"/>
       <wp:docPr id="${idx + 100}" name="Imagem${idx}"/>
       <wp:cNvGraphicFramePr>
-        <a:graphicFrameLocks xmlns:a="${A_NS}" noChangeAspect="1"/>
+        <a:graphicFrameLocks xmlns:a="${A_NS}" noChangeAspect="0"/>
       </wp:cNvGraphicFramePr>
       <a:graphic xmlns:a="${A_NS}">
         <a:graphicData uri="${PIC_NS}">
           <pic:pic xmlns:pic="${PIC_NS}">
             <pic:nvPicPr>
               <pic:cNvPr id="${idx + 100}" name="Imagem${idx}"/>
-              <pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr>
+              <pic:cNvPicPr><a:picLocks noChangeAspect="0"/></pic:cNvPicPr>
             </pic:nvPicPr>
             <pic:blipFill>
               <a:blip r:embed="${rId}"/>
+              ${srcRect}
               <a:stretch><a:fillRect/></a:stretch>
             </pic:blipFill>
             <pic:spPr>
