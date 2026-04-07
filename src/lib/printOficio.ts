@@ -52,7 +52,7 @@ export async function printOficio(data: PrintData) {
 
   const destinatarioCompleto = data.cargoDestinatario || (data.secretaria ? getDestinatario(data.secretaria) : data.destinatario || "___");
 
-  const vocativo = data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
+  const vocativo = data.vocativo || (data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),");
 
   const isHtml = data.conteudo.startsWith("<");
   let bodyHtml: string;
