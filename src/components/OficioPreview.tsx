@@ -5,7 +5,7 @@ import logoFabao from "@/assets/logo-fabao-docx.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
-import OficioPreviewEditor from "./OficioPreviewEditor";
+import TipTapOficioEditor from "./editor/TipTapOficioEditor";
 
 type AnexoDocumento = {
   nome: string;
