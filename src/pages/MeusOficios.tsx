@@ -600,6 +600,7 @@ export default function MeusOficios() {
     setFiltroAssunto("Todos");
     setDateFrom(undefined);
     setDateTo(undefined);
+    setCurrentPage(1);
   };
 
   const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados">("rascunhos");
