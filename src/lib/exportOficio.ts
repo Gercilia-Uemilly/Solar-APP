@@ -67,6 +67,7 @@ export interface OficioData {
   contatoSolicitante?: string;
   origem?: string;
   descricaoAnexos?: string;
+  vocativo?: string;
   fechamento?: string;
   oficioId?: string;
   formatOptions?: {
