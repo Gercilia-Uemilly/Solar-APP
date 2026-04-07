@@ -347,7 +347,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {/* OFÍCIO GVF n° */}
-        {!isHidden && editable && onNumeroChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onNumeroChange ? (
           <div
             ref={numeroElRef}
             contentEditable
