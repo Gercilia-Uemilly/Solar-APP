@@ -112,6 +112,7 @@ export default function Oficios() {
   const [oficioHistory, setOficioHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const historyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const oficioEditedManuallyRef = useRef(false);
 
   // Smart suggestions state
   const [suggestions, setSuggestions] = useState<OficioRow[]>([]);
