@@ -57,6 +57,7 @@ export default function MeusOficios() {
   const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
+  const [filtroAssunto, setFiltroAssunto] = useState("Todos");
   const [filtroOperador, setFiltroOperador] = useState("Todos");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
