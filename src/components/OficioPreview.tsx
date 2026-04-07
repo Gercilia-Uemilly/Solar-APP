@@ -588,7 +588,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                 color: "#000",
                 transform: `translateY(-${pageIdx * CONTENT_H}px)`,
               }}>
-                {renderDocumentContent(false)}
+                {renderDocumentContent(false, pageIdx > 0)}
               </div>
             </div>
           </div>
