@@ -658,6 +658,13 @@ export default function MeusOficios() {
             {operadores.map(op => <SelectItem key={op} value={op}>{op}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filtroAssunto} onValueChange={setFiltroAssunto}>
+          <SelectTrigger className="w-48 bg-card border-border"><SelectValue placeholder="Assunto" /></SelectTrigger>
+          <SelectContent className="max-h-60">
+            <SelectItem value="Todos">Todos Assuntos</SelectItem>
+            {assuntos.map(a => <SelectItem key={a} value={a} className="truncate">{a.length > 40 ? a.slice(0, 40) + "…" : a}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal bg-card border-border", !dateFrom && "text-muted-foreground")}>
