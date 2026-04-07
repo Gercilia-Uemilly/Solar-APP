@@ -404,14 +404,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         {/* CORPO */}
         {!isHidden && editable && onContentChange ? (
-          <OficioPreviewEditor
+          <TipTapOficioEditor
             content={buildEditorContent(conteudo)}
             onChange={onContentChange}
             fontFamily={fmt.fontFamily}
             fontSize={effectiveFontSize}
             lineSpacing={effectiveLineSpacing}
-            onIncreaseFontSize={onIncreaseFontSize}
-            onDecreaseFontSize={onDecreaseFontSize}
           />
         ) : isHtml ? (
           <div
