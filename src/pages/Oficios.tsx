@@ -1538,6 +1538,7 @@ export default function Oficios() {
                     const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
                     const artigo = nomeOrgao.startsWith("Departamento") || nomeOrgao.startsWith("Instituto") ? "o" : "a";
                     const template = `<p>${descricao.split("\n").filter(l => l.trim()).join("</p><p>")}</p><p>Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
+                    oficioEditedManuallyRef.current = false;
                     setEditedOficio(template);
                     setOriginalOficio(template);
                     setOficioHistory([template]);
