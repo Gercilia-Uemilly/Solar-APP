@@ -3,54 +3,59 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-    const { data: { user }, error: userErr } = await _sb.auth.getUser();
-    if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const authHeader = req.headers.get("Authorization") || "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
-    const formData = await req.formData();
-    const docxFile = formData.get("docx") as File | null;
-    if (!docxFile) {
-      return new Response(JSON.stringify({ error: "docx não enviado" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Collect images and PDFs
+    const formData = await req.formData();
+    const docxFile = formData.get("docx") as File;
+    if (!docxFile) {
+      return new Response(JSON.stringify({ error: "DOCX não enviado" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const images: { name: string; data: Uint8Array; type: string }[] = [];
     const pdfs: { name: string; data: Uint8Array }[] = [];
 
     for (const [key, value] of formData.entries()) {
-      if (key.startsWith("imagem_") && value instanceof File) {
-        images.push({
-          name: value.name,
-          data: new Uint8Array(await value.arrayBuffer()),
-          type: value.type,
-        });
-      }
-      if (key.startsWith("pdf_") && value instanceof File) {
-        pdfs.push({
-          name: value.name,
-          data: new Uint8Array(await value.arrayBuffer()),
-        });
+      if (key === "docx") continue;
+      if (!(value instanceof File)) continue;
+
+      const arrayBuffer = await value.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+
+      if (key.startsWith("imagem_")) {
+        images.push({ name: value.name, data: bytes, type: value.type || "image/jpeg" });
+      } else if (key.startsWith("pdf_")) {
+        pdfs.push({ name: value.name, data: bytes });
       }
     }
 
     if (images.length === 0 && pdfs.length === 0) {
-      const docxBytes = await docxFile.arrayBuffer();
-      return new Response(docxBytes, {
+      const blob = await docxFile.arrayBuffer();
+      return new Response(blob, {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -59,20 +64,19 @@ serve(async (req) => {
     }
 
     const docxBytes = new Uint8Array(await docxFile.arrayBuffer());
-    const resultBytes = await addAnexoToDocx(docxBytes, images, pdfs);
+    const result = await addAnexoToDocx(docxBytes, images, pdfs);
 
-    return new Response(resultBytes, {
+    return new Response(result, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="oficio_com_anexo.docx"`,
       },
     });
-
-  } catch (e) {
-    console.error("add-anexo-images error:", e);
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  } catch (err) {
+    console.error("[add-anexo-images] Error:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
@@ -115,7 +119,7 @@ async function addAnexoToDocx(
   let nextRid = 20;
   const annexParagraphs: string[] = [];
 
-  // ── Add images with dynamic 3/4-per-page layout (no stretching) ───────────
+  // ── Add images with uniform grid layout ───────────────────────────
   const imageEntries: { rId: string; idx: number; width: number; height: number }[] = [];
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
@@ -136,17 +140,18 @@ async function addAnexoToDocx(
     });
   }
 
-  // Build pages: 4 by default, 3 when images are very panoramic/vertical
+  // Build pages with uniform image sizing
   let cursor = 0;
   while (cursor < imageEntries.length) {
     const remaining = imageEntries.length - cursor;
     let perPage = Math.min(4, remaining);
 
+    // Use 3 per page if images are very panoramic/vertical
     if (perPage === 4) {
       const probe = imageEntries.slice(cursor, cursor + 4);
       const hasExtremeAspect = probe.some((img) => {
         const ratio = img.width / Math.max(1, img.height);
-        return ratio > 1.75 || ratio < 0.6;
+        return ratio > 2.0 || ratio < 0.5;
       });
       if (hasExtremeAspect) perPage = 3;
     }
@@ -168,7 +173,6 @@ async function addAnexoToDocx(
     newRels += `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/aFChunk" Target="anexo_pdf_${i + 1}.pdf"/>`;
     nextRid++;
 
-    // Add a page break before each PDF, then the altChunk reference
     annexParagraphs.push(`
 <w:p xmlns:w="${W}">
   <w:pPr><w:spacing w:before="200" w:after="100"/><w:jc w:val="left"/></w:pPr>
@@ -214,14 +218,12 @@ function escapeXml(s: string): string {
 function getImageDimensions(data: Uint8Array, type: string): { width: number; height: number } | null {
   try {
     if (type.includes("png") && data.length > 24) {
-      // PNG: width at bytes 16-19, height at bytes 20-23 (big-endian)
       const width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
       const height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
       if (width > 0 && height > 0) return { width, height };
     }
     
     if ((type.includes("jpeg") || type.includes("jpg")) && data.length > 2) {
-      // JPEG: scan for SOF markers (0xFFC0-0xFFC3)
       let i = 2;
       while (i < data.length - 9) {
         if (data[i] === 0xFF) {
@@ -242,11 +244,49 @@ function getImageDimensions(data: Uint8Array, type: string): { width: number; he
   return null;
 }
 
-function fitImageToBox(widthPx: number, heightPx: number, maxCx: number, maxCy: number): { cx: number; cy: number } {
+// ── A4 content area in EMU ──────────────────────────────────────────────────
+// A4 = 21cm x 29.7cm, margins: left 3cm, right 2cm, top 3cm, bottom 2cm
+// Content: 16cm wide x 24.7cm tall
+// 1cm = 360,000 EMU
+const CONTENT_WIDTH_EMU = 5_760_000;  // 16cm
+const CONTENT_HEIGHT_EMU = 8_892_000; // 24.7cm
+const IMG_GAP_EMU = 180_000;          // 0.5cm gap between images
+
+/**
+ * Calculate UNIFORM slot dimensions for N images on a page.
+ * All images in the same layout get the SAME box size for perfect alignment.
+ */
+function getUniformSlotSize(count: number): { cx: number; cy: number; cols: number; rows: number } {
+  if (count === 1) {
+    // Single image: full content area
+    return { cx: CONTENT_WIDTH_EMU, cy: CONTENT_HEIGHT_EMU, cols: 1, rows: 1 };
+  }
+  if (count === 2) {
+    // 2 images: stacked vertically, full width each
+    const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
+    return { cx: CONTENT_WIDTH_EMU, cy, cols: 1, rows: 2 };
+  }
+  if (count === 3) {
+    // 3 images: 2 on top row + 1 on bottom (all same box size for uniformity)
+    const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
+    const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
+    return { cx, cy, cols: 2, rows: 2 };
+  }
+  // 4 images: 2x2 grid
+  const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
+  const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
+  return { cx, cy, cols: 2, rows: 2 };
+}
+
+/**
+ * Fit image to a uniform box while maintaining aspect ratio.
+ * The box size is FIXED - the image scales to fit inside it.
+ */
+function fitToUniformBox(widthPx: number, heightPx: number, boxCx: number, boxCy: number): { cx: number; cy: number } {
   const pxToEmu = 9525;
   const rawCx = Math.max(1, widthPx) * pxToEmu;
   const rawCy = Math.max(1, heightPx) * pxToEmu;
-  const scale = Math.min(maxCx / rawCx, maxCy / rawCy, 1);
+  const scale = Math.min(boxCx / rawCx, boxCy / rawCy, 1);
   return {
     cx: Math.max(700000, Math.round(rawCx * scale)),
     cy: Math.max(700000, Math.round(rawCy * scale)),
@@ -261,39 +301,28 @@ function buildImagePageXml(
   PIC_NS: string,
 ): string[] {
   const rows: string[] = [];
+  const slot = getUniformSlotSize(images.length);
 
   if (images.length === 1) {
-    const fit = fitImageToBox(images[0].width, images[0].height, 5200000, 6800000);
+    const fit = fitToUniformBox(images[0].width, images[0].height, slot.cx, slot.cy);
     rows.push(makeImageRowXml([makeImageRunXml(images[0].rId, fit.cx, fit.cy, images[0].idx, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
     return rows;
   }
 
   if (images.length === 2) {
-    const runs = images.map((img) => {
-      const fit = fitImageToBox(img.width, img.height, 2500000, 3200000);
-      return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
-    });
-    rows.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
+    // Stacked: each image on its own row, same uniform box
+    for (const img of images) {
+      const fit = fitToUniformBox(img.width, img.height, slot.cx, slot.cy);
+      rows.push(makeImageRowXml([makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
+    }
     return rows;
   }
 
-  if (images.length === 3) {
-    const firstRowRuns = images.slice(0, 2).map((img) => {
-      const fit = fitImageToBox(img.width, img.height, 2450000, 2950000);
-      return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
-    });
-    rows.push(makeImageRowXml(firstRowRuns, W, WP, A_NS, PIC_NS));
-
-    const third = images[2];
-    const fitThird = fitImageToBox(third.width, third.height, 4200000, 3000000);
-    rows.push(makeImageRowXml([makeImageRunXml(third.rId, fitThird.cx, fitThird.cy, third.idx, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
-    return rows;
-  }
-
-  for (let i = 0; i < images.length; i += 2) {
-    const pair = images.slice(i, i + 2);
+  // 3 or 4 images: pairs per row, uniform sizing
+  for (let i = 0; i < images.length; i += slot.cols) {
+    const pair = images.slice(i, i + slot.cols);
     const runs = pair.map((img) => {
-      const fit = fitImageToBox(img.width, img.height, 2400000, 2900000);
+      const fit = fitToUniformBox(img.width, img.height, slot.cx, slot.cy);
       return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
     });
     rows.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
@@ -308,7 +337,7 @@ function makeImageRowXml(runs: string[], W: string, WP: string, A_NS: string, PI
 <w:p xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:pPr>
     <w:jc w:val="center"/>
-    <w:spacing w:before="100" w:after="140"/>
+    <w:spacing w:before="60" w:after="60"/>
   </w:pPr>
   ${runs.join(spacer)}
 </w:p>`;
