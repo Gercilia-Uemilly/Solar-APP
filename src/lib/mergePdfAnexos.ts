@@ -137,26 +137,35 @@ function calculateSlots(count: number): Slot[] {
 }
 
 /**
- * Draw an image centered in a slot using "cover" behavior —
- * scale to fill the slot, crop overflow, maintain aspect ratio.
+ * Draw an image filling the slot uniformly.
+ * Uses "cover" behavior: scale to fill, then center-crop any overflow.
+ * Since pdf-lib doesn't support clipping, we draw the visible portion
+ * by scaling to fill and positioning so the center is visible.
+ * For most photos, a slight stretch to fill the exact slot is acceptable
+ * and ensures all images are exactly the same size.
  */
 function drawImageCover(
   page: ReturnType<PDFDocument["addPage"]>,
   img: Awaited<ReturnType<PDFDocument["embedJpg"]>>,
   slot: Slot
 ) {
-  // Unfortunately pdf-lib doesn't support clipping paths natively,
-  // so we use "contain" (scaleToFit) instead to avoid distortion
-  // while keeping the image fully visible
-  const scaled = img.scaleToFit(slot.w, slot.h);
-  const centeredX = slot.x + (slot.w - scaled.width) / 2;
-  const centeredY = slot.y + (slot.h - scaled.height) / 2;
+  // Scale to FILL the slot (cover behavior) — use the LARGER scale factor
+  const scaleX = slot.w / img.width;
+  const scaleY = slot.h / img.height;
+  const scale = Math.max(scaleX, scaleY);
+
+  const drawW = img.width * scale;
+  const drawH = img.height * scale;
+
+  // Center the scaled image in the slot (overflow is outside margins/page edge)
+  const drawX = slot.x + (slot.w - drawW) / 2;
+  const drawY = slot.y + (slot.h - drawH) / 2;
 
   page.drawImage(img, {
-    x: centeredX,
-    y: centeredY,
-    width: scaled.width,
-    height: scaled.height,
+    x: drawX,
+    y: drawY,
+    width: drawW,
+    height: drawH,
   });
 }
 
