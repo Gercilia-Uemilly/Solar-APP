@@ -632,14 +632,20 @@ export default function MeusOficios() {
 
       <div className="flex items-center gap-2">
         <button
+          onClick={() => { setAbaAtiva("todos"); setCurrentPage(1); }}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "todos" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+        >
+          📋 Todos ({filtered.length})
+        </button>
+        <button
           onClick={() => { setAbaAtiva("rascunhos"); setCurrentPage(1); }}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-yellow-500 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "rascunhos" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📝 Rascunhos ({rascunhos.length})
         </button>
         <button
           onClick={() => { setAbaAtiva("finalizados"); setCurrentPage(1); }}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "finalizados" ? "bg-purple-600 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "finalizados" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📬 Finalizados ({finalizados.length})
         </button>
