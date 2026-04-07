@@ -119,7 +119,7 @@ async function addAnexoToDocx(
   let nextRid = 20;
   const annexParagraphs: string[] = [];
 
-  // ── Add images with uniform grid layout ───────────────────────────
+  // ── Add images with orientation-aware grid layout ───────────────────────
   const imageEntries: { rId: string; idx: number; width: number; height: number }[] = [];
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
@@ -140,22 +140,11 @@ async function addAnexoToDocx(
     });
   }
 
-  // Build pages with uniform image sizing
+  // Build pages — up to 4 per page
   let cursor = 0;
   while (cursor < imageEntries.length) {
     const remaining = imageEntries.length - cursor;
-    let perPage = Math.min(4, remaining);
-
-    // Use 3 per page if images are very panoramic/vertical
-    if (perPage === 4) {
-      const probe = imageEntries.slice(cursor, cursor + 4);
-      const hasExtremeAspect = probe.some((img) => {
-        const ratio = img.width / Math.max(1, img.height);
-        return ratio > 2.0 || ratio < 0.5;
-      });
-      if (hasExtremeAspect) perPage = 3;
-    }
-
+    const perPage = Math.min(4, remaining);
     const pageGroup = imageEntries.slice(cursor, cursor + perPage);
     cursor += perPage;
 
@@ -163,7 +152,7 @@ async function addAnexoToDocx(
     annexParagraphs.push(...buildImagePageXml(pageGroup, W, WP, A_NS, PIC_NS));
   }
 
-  // ── Add PDFs as altChunk (embedded sub-documents) ─────────────────────
+  // ── Add PDFs as altChunk ─────────────────────
   for (let i = 0; i < pdfs.length; i++) {
     const pdf = pdfs[i];
     const chunkPath = `word/anexo_pdf_${i + 1}.pdf`;
@@ -249,57 +238,75 @@ function getImageDimensions(data: Uint8Array, type: string): { width: number; he
 // Content: 16cm wide x 24.7cm tall
 // 1cm = 360,000 EMU
 const CONTENT_WIDTH_EMU = 5_760_000;  // 16cm
-const CONTENT_HEIGHT_EMU = 8_892_000; // 24.7cm
-const IMG_GAP_EMU = 180_000;          // 0.5cm gap between images
+const CONTENT_HEIGHT_EMU = 8_532_000; // ~23.7cm (leave margin for Word spacing)
+const IMG_GAP_EMU = 144_000;          // 0.4cm gap
 
 /**
- * Calculate UNIFORM slot dimensions for N images on a page.
- * All images in the same layout get the SAME box size for perfect alignment.
+ * Detect if an image is landscape (wider than tall).
  */
-function getUniformSlotSize(count: number): { cx: number; cy: number; cols: number; rows: number } {
+function isLandscape(w: number, h: number): boolean {
+  return w >= h;
+}
+
+/**
+ * Determine the best layout for a group of images based on their orientations.
+ * Returns slots with {cx, cy} dimensions and positioning info.
+ */
+function getOrientationAwareSlots(
+  images: { width: number; height: number }[]
+): { cx: number; cy: number; layout: "single" | "stack" | "side" | "grid22" } {
+  const count = images.length;
+
   if (count === 1) {
-    // Single image: full content area
-    return { cx: CONTENT_WIDTH_EMU, cy: CONTENT_HEIGHT_EMU, cols: 1, rows: 1 };
+    return { cx: CONTENT_WIDTH_EMU, cy: CONTENT_HEIGHT_EMU, layout: "single" };
   }
+
   if (count === 2) {
-    // 2 images: stacked vertically, full width each
-    const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
-    return { cx: CONTENT_WIDTH_EMU, cy, cols: 1, rows: 2 };
+    const landscapeCount = images.filter(i => isLandscape(i.width, i.height)).length;
+    
+    if (landscapeCount >= 2) {
+      // Both landscape → stack vertically (full width, half height each)
+      const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
+      return { cx: CONTENT_WIDTH_EMU, cy, layout: "stack" };
+    } else if (landscapeCount === 0) {
+      // Both portrait → side by side (half width, full height)
+      const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
+      return { cx, cy: CONTENT_HEIGHT_EMU, layout: "side" };
+    } else {
+      // Mixed → stack vertically (safest for mixed)
+      const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
+      return { cx: CONTENT_WIDTH_EMU, cy, layout: "stack" };
+    }
   }
-  if (count === 3) {
-    // 3 images: 2 on top row + 1 on bottom (all same box size for uniformity)
-    const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
-    const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
-    return { cx, cy, cols: 2, rows: 2 };
-  }
-  // 4 images: 2x2 grid
+
+  // 3 or 4 images: always 2x2 grid
   const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
   const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
-  return { cx, cy, cols: 2, rows: 2 };
+  return { cx, cy, layout: "grid22" };
 }
 
 /**
  * Calculate crop percentages to fill a box uniformly (cover behavior).
  * Returns srcRect values in 1/1000th of percent (OOXML format).
- * Crops equally from both sides of the longer dimension.
  */
-function calcCropForFill(widthPx: number, heightPx: number, boxCx: number, boxCy: number): { l: number; t: number; r: number; b: number } {
+function calcCropForFill(
+  widthPx: number, heightPx: number, boxCx: number, boxCy: number
+): { l: number; t: number; r: number; b: number } {
   const imgRatio = widthPx / heightPx;
   const boxRatio = boxCx / boxCy;
 
   if (Math.abs(imgRatio - boxRatio) < 0.05) {
-    // Close enough, no crop needed
     return { l: 0, t: 0, r: 0, b: 0 };
   }
 
   if (imgRatio > boxRatio) {
-    // Image is wider than box → crop left/right
+    // Image wider → crop left/right
     const visibleFraction = boxRatio / imgRatio;
-    const cropTotal = Math.round((1 - visibleFraction) * 100000); // in 1/1000th %
+    const cropTotal = Math.round((1 - visibleFraction) * 100000);
     const cropEach = Math.floor(cropTotal / 2);
     return { l: cropEach, t: 0, r: cropTotal - cropEach, b: 0 };
   } else {
-    // Image is taller than box → crop top/bottom
+    // Image taller → crop top/bottom
     const visibleFraction = imgRatio / boxRatio;
     const cropTotal = Math.round((1 - visibleFraction) * 100000);
     const cropEach = Math.floor(cropTotal / 2);
@@ -314,45 +321,55 @@ function buildImagePageXml(
   A_NS: string,
   PIC_NS: string,
 ): string[] {
-  const rows: string[] = [];
-  const slot = getUniformSlotSize(images.length);
+  const paragraphs: string[] = [];
+  const slotInfo = getOrientationAwareSlots(images);
+  const { cx, cy, layout } = slotInfo;
 
-  if (images.length === 1) {
-    // Single image: fit to box (no crop for single full-page image)
-    const crop = calcCropForFill(images[0].width, images[0].height, slot.cx, slot.cy);
-    rows.push(makeImageRowXml([makeImageRunXml(images[0].rId, slot.cx, slot.cy, images[0].idx, crop, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
-    return rows;
-  }
-
-  if (images.length === 2) {
-    // Stacked: each image on its own row, SAME fixed size
+  if (layout === "single") {
+    const img = images[0];
+    const crop = calcCropForFill(img.width, img.height, cx, cy);
+    paragraphs.push(makeImageRowXml(
+      [makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS)],
+      W, WP, A_NS, PIC_NS
+    ));
+  } else if (layout === "stack") {
+    // Each image on its own centered paragraph, full width
     for (const img of images) {
-      const crop = calcCropForFill(img.width, img.height, slot.cx, slot.cy);
-      rows.push(makeImageRowXml([makeImageRunXml(img.rId, slot.cx, slot.cy, img.idx, crop, A_NS, PIC_NS)], W, WP, A_NS, PIC_NS));
+      const crop = calcCropForFill(img.width, img.height, cx, cy);
+      paragraphs.push(makeImageRowXml(
+        [makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS)],
+        W, WP, A_NS, PIC_NS
+      ));
     }
-    return rows;
-  }
-
-  // 3 or 4 images: pairs per row, ALL same fixed size
-  for (let i = 0; i < images.length; i += slot.cols) {
-    const pair = images.slice(i, i + slot.cols);
-    const runs = pair.map((img) => {
-      const crop = calcCropForFill(img.width, img.height, slot.cx, slot.cy);
-      return makeImageRunXml(img.rId, slot.cx, slot.cy, img.idx, crop, A_NS, PIC_NS);
+  } else if (layout === "side") {
+    // Both images side by side in one paragraph
+    const runs = images.map(img => {
+      const crop = calcCropForFill(img.width, img.height, cx, cy);
+      return makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS);
     });
-    rows.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
+    paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
+  } else {
+    // grid22: rows of 2
+    for (let i = 0; i < images.length; i += 2) {
+      const pair = images.slice(i, i + 2);
+      const runs = pair.map(img => {
+        const crop = calcCropForFill(img.width, img.height, cx, cy);
+        return makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS);
+      });
+      paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
+    }
   }
 
-  return rows;
+  return paragraphs;
 }
 
 function makeImageRowXml(runs: string[], W: string, WP: string, A_NS: string, PIC_NS: string): string {
-  const spacer = '<w:r><w:t xml:space="preserve">   </w:t></w:r>';
+  const spacer = '<w:r><w:t xml:space="preserve"> </w:t></w:r>';
   return `
 <w:p xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:pPr>
     <w:jc w:val="center"/>
-    <w:spacing w:before="60" w:after="60"/>
+    <w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>
   </w:pPr>
   ${runs.join(spacer)}
 </w:p>`;
