@@ -482,6 +482,7 @@ export default function Oficios() {
       if (error) throw error;
       setAiResult(data);
       const oficioText = data.oficio || "";
+      oficioEditedManuallyRef.current = false;
       setEditedOficio(oficioText);
       setOriginalOficio(oficioText);
       setOficioHistory([oficioText]);
