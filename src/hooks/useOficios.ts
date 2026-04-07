@@ -74,9 +74,16 @@ export function useOficios() {
       )
       .subscribe();
 
+    // Refetch on window focus for cross-device sync
+    const handleFocus = () => {
+      if (isMounted.current) fetchOficios();
+    };
+    window.addEventListener("focus", handleFocus);
+
     return () => {
       isMounted.current = false;
       supabase.removeChannel(channel);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [fetchOficios]);
 
