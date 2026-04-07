@@ -792,6 +792,7 @@ export default function Oficios() {
     setShowSuggestions(false);
     setAppliedSuggestionId(null);
     setDescSaveStatus("");
+    setVocativoCustom("");
 
     // Force release focus and body scroll
     if (document.activeElement instanceof HTMLElement) {
