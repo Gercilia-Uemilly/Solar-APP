@@ -324,7 +324,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     }, [recalcPages, conteudo, anexoImageUrls, anexoDocuments]);
 
     // ── Shared document content renderer ─────────────────────────
-    const renderDocumentContent = (isHidden: boolean) => (
+    const renderDocumentContent = (isHidden: boolean, isReadOnlyCopy = false) => (
       <>
         {/* CABEÇALHO */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", marginBottom: "0" }}>
