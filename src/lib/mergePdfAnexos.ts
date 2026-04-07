@@ -95,6 +95,7 @@ interface Slot {
  */
 function calculateSlots(count: number): Slot[] {
   if (count === 1) {
+    // Single image: centered in full content area
     return [{
       x: MARGIN_LEFT,
       y: MARGIN_BOTTOM,
@@ -104,6 +105,7 @@ function calculateSlots(count: number): Slot[] {
   }
 
   if (count === 2) {
+    // 2 images: stacked vertically, full width, equal height
     const slotH = (CONTENT_HEIGHT - GAP) / 2;
     return [
       { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
@@ -112,17 +114,18 @@ function calculateSlots(count: number): Slot[] {
   }
 
   if (count === 3) {
-    const topH = (CONTENT_HEIGHT - GAP) / 2;
-    const bottomH = topH;
-    const bottomW = (CONTENT_WIDTH - GAP) / 2;
+    // 3 images: uniform 2x2 grid layout (one slot empty for consistency)
+    const cellW = (CONTENT_WIDTH - GAP) / 2;
+    const cellH = (CONTENT_HEIGHT - GAP) / 2;
     return [
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + bottomH + GAP, w: CONTENT_WIDTH, h: topH },
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: bottomW, h: bottomH },
-      { x: MARGIN_LEFT + bottomW + GAP, y: MARGIN_BOTTOM, w: bottomW, h: bottomH },
+      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
+      { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
+      // Third image centered on bottom row
+      { x: MARGIN_LEFT + (CONTENT_WIDTH - cellW) / 2, y: MARGIN_BOTTOM, w: cellW, h: cellH },
     ];
   }
 
-  // 4 images — 2x2 grid
+  // 4 images — 2x2 grid, all cells identical
   const cellW = (CONTENT_WIDTH - GAP) / 2;
   const cellH = (CONTENT_HEIGHT - GAP) / 2;
   return [

@@ -544,16 +544,17 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     }
   });
   
-  // Group inline images with dynamic grid layout
+  // Group inline images with uniform grid layout
+  // Content width ~16cm = ~604px at 96dpi
   if (inlineImages.length > 0) {
     const totalImgs = inlineImages.length;
     const calcDims = (count: number) => {
-      if (count === 1) return { w: 454, h: 340, cols: 1 };
-      if (count === 2) return { w: 284, h: 213, cols: 2 };
-      if (count === 3) return { w: 182, h: 137, cols: 3 };
-      if (count === 4) return { w: 284, h: 213, cols: 2 };
-      if (count <= 6) return { w: 182, h: 150, cols: 3 };
-      return { w: 136, h: 120, cols: 4 };
+      // Uniform sizing: all images in a layout get the same box
+      if (count === 1) return { w: 560, h: 420, cols: 1 };
+      if (count === 2) return { w: 560, h: 300, cols: 1 }; // stacked vertically
+      if (count <= 4) return { w: 280, h: 210, cols: 2 };  // 2x2 grid
+      if (count <= 6) return { w: 280, h: 180, cols: 2 };  // 2 per row
+      return { w: 190, h: 142, cols: 3 };                   // 3 per row
     };
     const dims = calcDims(totalImgs);
 
