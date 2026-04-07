@@ -403,7 +403,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </p>
 
         {/* CORPO */}
-        {!isHidden && editable && onContentChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onContentChange ? (
           <TipTapOficioEditor
             content={buildEditorContent(conteudo)}
             onChange={onContentChange}
