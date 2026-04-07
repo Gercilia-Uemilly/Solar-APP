@@ -1134,7 +1134,7 @@ export default function Oficios() {
         numero: saveNumero || null,
         assunto: assunto || "Sem assunto",
         destinatario: destinatario || "",
-        status: "Rascunho",
+        ...(editingOficioId ? {} : { status: "Rascunho" }),
         conteudo: editedOficio || null,
         resposta_cidadao: null,
         secretaria_identificada: secretaria || null,
