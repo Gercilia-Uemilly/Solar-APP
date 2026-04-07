@@ -14,6 +14,7 @@ interface PrintData {
   operadorEmail?: string;
   telefone?: string;
   secretaria?: string;
+  vocativo?: string;
   fechamento?: string;
 }
 
