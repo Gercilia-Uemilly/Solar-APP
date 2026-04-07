@@ -83,6 +83,7 @@ export default function Oficios() {
   const [linhaTelefonica, setLinhaTelefonica] = useState("");
   const [formTab, setFormTab] = useState("dados");
   const [fechamento, setFechamento] = useState("Atenciosamente,");
+  const [vocativoCustom, setVocativoCustom] = useState("");
   const [userPhones, setUserPhones] = useState<string[]>([]);
   const [profileName, setProfileName] = useState<string>("");
 
@@ -791,6 +792,7 @@ export default function Oficios() {
     setShowSuggestions(false);
     setAppliedSuggestionId(null);
     setDescSaveStatus("");
+    setVocativoCustom("");
 
     // Force release focus and body scroll
     if (document.activeElement instanceof HTMLElement) {
@@ -1727,6 +1729,8 @@ export default function Oficios() {
                   formatOptions={formatOptions}
                   fechamento={fechamento}
                   onFechamentoChange={setFechamento}
+                  vocativoOverride={vocativoCustom || undefined}
+                  onVocativoChange={setVocativoCustom}
                 />
               </div>
             </TabsContent>
