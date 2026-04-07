@@ -33,6 +33,8 @@ interface Props {
   onCargoDestinatarioChange?: (val: string) => void;
   onNumeroChange?: (val: string) => void;
   onDataChange?: (val: string) => void;
+  vocativoOverride?: string;
+  onVocativoChange?: (val: string) => void;
   fechamento?: string;
   onFechamentoChange?: (val: string) => void;
   onIncreaseFontSize?: () => void;
@@ -133,7 +135,7 @@ function splitHtmlIntoBlocks(html: string) {
 }
 
 const OficioPreview = forwardRef<HTMLDivElement, Props>(
-  ({ numero, destinatario, assunto, conteudo, cargoDestinatario, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, fechamento, onFechamentoChange, dataGeracao, anexoImageUrls, anexoDocuments }, ref) => {
+  ({ numero, destinatario, assunto, conteudo, cargoDestinatario, secretaria, formatOptions, editable, onContentChange, onAssuntoChange, onDestinatarioChange, onCargoDestinatarioChange, onNumeroChange, onDataChange, fechamento, onFechamentoChange, dataGeracao, anexoImageUrls, anexoDocuments, vocativoOverride, onVocativoChange }, ref) => {
     const rawFmt = formatOptions || defaultFormatOptions;
     const fmt = useMemo(() => ({
       ...rawFmt,
@@ -162,7 +164,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       : "___";
     const defaultDestinatarioCompleto = destinatario || cargoDestinatario || (secretaria ? getDestinatario(secretaria) : "___");
     const defaultAssuntoFormatado = assunto || "___";
-    const vocativo = secretaria ? getVocativo(secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),";
+    const vocativoDefault = vocativoOverride || (secretaria ? getVocativo(secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),");
+    const [localVocativo, setLocalVocativo] = useState(vocativoDefault);
+    const vocativoElRef = useRef<HTMLParagraphElement>(null);
 
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
@@ -213,6 +217,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         setLocalDestinatario(externalValues.destinatario);
         setLocalAssunto(externalValues.assunto);
         setLocalData(externalValues.data);
+        setLocalVocativo(vocativoDefault);
         prevExternalValuesRef.current = externalValues;
         initialFieldSyncDoneRef.current = true;
         return;
@@ -248,6 +253,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       setLocalNumero(rawValue);
       onNumeroChange?.(rawValue.trim());
     }, [onNumeroChange]);
+
+    const syncVocativo = useCallback((rawValue: string) => {
+      userEditedRef.current.vocativo = true;
+      setLocalVocativo(rawValue);
+      onVocativoChange?.(rawValue.trim());
+    }, [onVocativoChange]);
 
     const editableStyle = editable ? {
       cursor: "text" as const,
@@ -389,7 +400,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           />
         )}
 
-        <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5" }}>{vocativo}</p>
+        {editable ? (
+          <p
+            ref={vocativoElRef}
+            contentEditable
+            suppressContentEditableWarning
+            data-preview-field="vocativo"
+            style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5", ...editableStyle }}
+            onInput={(e) => syncVocativo(e.currentTarget.textContent || "")}
+            onBlur={(e) => syncVocativo(e.currentTarget.textContent || "")}
+          >
+            {localVocativo}
+          </p>
+        ) : (
+          <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5" }}>{localVocativo}</p>
+        )}
       </>
     );
 
