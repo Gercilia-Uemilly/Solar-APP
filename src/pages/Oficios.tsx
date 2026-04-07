@@ -442,7 +442,7 @@ export default function Oficios() {
         const updatePayload: Record<string, any> = {
           updated_at: new Date().toISOString(),
         };
-        if (!editedOficio) {
+        if (!editedOficio && !oficioEditedManuallyRef.current) {
           updatePayload.conteudo = conteudoFormatado;
           setEditedOficio(conteudoFormatado);
           setOriginalOficio(conteudoFormatado);
