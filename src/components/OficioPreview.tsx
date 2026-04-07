@@ -33,6 +33,8 @@ interface Props {
   onCargoDestinatarioChange?: (val: string) => void;
   onNumeroChange?: (val: string) => void;
   onDataChange?: (val: string) => void;
+  vocativoOverride?: string;
+  onVocativoChange?: (val: string) => void;
   fechamento?: string;
   onFechamentoChange?: (val: string) => void;
   onIncreaseFontSize?: () => void;
