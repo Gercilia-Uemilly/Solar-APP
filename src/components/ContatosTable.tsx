@@ -14,6 +14,13 @@ interface ScriptRow {
   categoria: string;
 }
 
+interface KnowledgeRow {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  categoria: string | null;
+}
+
 interface ContatoExtraido {
   nome: string;
   telefone: string;
@@ -22,11 +29,12 @@ interface ContatoExtraido {
   scriptTitulo: string;
 }
 
-function extrairContatos(scripts: ScriptRow[]): ContatoExtraido[] {
+function extrairContatos(scripts: ScriptRow[], knowledgeEntries: KnowledgeRow[]): ContatoExtraido[] {
   const phoneRegex = /\(?\d{2}\)?\s?\d{4,5}[\s-]?\d{4}/g;
   const contatos: ContatoExtraido[] = [];
   const seen = new Set<string>();
 
+  // Extract from scripts
   for (const script of scripts) {
     const matches = script.conteudo.match(phoneRegex);
     if (!matches) continue;
@@ -39,7 +47,6 @@ function extrairContatos(scripts: ScriptRow[]): ContatoExtraido[] {
       const isWhats = /whats|zap|wpp/i.test(script.conteudo);
       const isTel = /telefone|ligar|ligue|plantão|fone/i.test(script.conteudo);
 
-      // Derive a friendly name from script title
       const nome = script.titulo
         .replace(/^(Animais|Social|Saúde|Educação|Jurídico|Esporte|DMAE|CEMIG|Transporte)\.\s*/i, "")
         .replace(/\.\s*$/, "")
@@ -55,11 +62,47 @@ function extrairContatos(scripts: ScriptRow[]): ContatoExtraido[] {
     }
   }
 
+  // Extract from knowledge base entries (e.g. ZAPs e REQs)
+  for (const entry of knowledgeEntries) {
+    const text = entry.descricao || "";
+    const matches = text.match(phoneRegex);
+    if (!matches) continue;
+
+    for (const raw of matches) {
+      const cleaned = raw.replace(/\s+/g, "").replace(/-/g, "");
+      if (seen.has(cleaned + entry.id)) continue;
+      seen.add(cleaned + entry.id);
+
+      const isWhats = /whats|zap|wpp/i.test(text) || /whats|zap|wpp/i.test(entry.titulo);
+      const isTel = /telefone|ligar|ligue|plantão|fone|req/i.test(text) || /telefone|req/i.test(entry.titulo);
+
+      // Try to find a label near the phone number
+      const idx = text.indexOf(raw.trim());
+      let nome = entry.titulo;
+      if (idx > 0) {
+        const before = text.substring(Math.max(0, idx - 80), idx);
+        const lineMatch = before.match(/(?:^|\n)([^\n]{3,}?)[\s:–—-]*$/);
+        if (lineMatch) {
+          nome = lineMatch[1].replace(/^[-–—•*\s]+/, "").trim();
+        }
+      }
+
+      contatos.push({
+        nome,
+        telefone: raw.trim(),
+        tipo: isWhats && isTel ? "Ambos" : isWhats ? "WhatsApp" : "Telefone",
+        categoria: entry.categoria || "Base",
+        scriptTitulo: entry.titulo,
+      });
+    }
+  }
+
   return contatos.sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
 }
 
 interface Props {
   scripts: ScriptRow[];
+  knowledgeEntries?: KnowledgeRow[];
   loading: boolean;
 }
 
