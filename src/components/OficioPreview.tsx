@@ -333,7 +333,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* DATA */}
-        {!isHidden && editable && onDataChange ? (
+        {!isHidden && !isReadOnlyCopy && editable && onDataChange ? (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>
             <span ref={dataElRef} contentEditable suppressContentEditableWarning style={editableStyle} onBlur={e => {
               const val = e.currentTarget.textContent || "";
