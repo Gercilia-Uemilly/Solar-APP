@@ -1812,7 +1812,8 @@ export default function Oficios() {
                   conteudo={viewingOficio.conteudo || ""}
                   bairro={viewingOficio.bairro || undefined}
                   cargoDestinatario={viewingOficio.cargo_destinatario || undefined}
-                  operadorNome={viewingOficio.operador_nome || undefined}
+                  operadorNome={viewingOficio.operador_nome || profileName || user?.email || undefined}
+                  secretaria={(viewingOficio as any).secretaria_identificada || undefined}
                   dataGeracao={viewingOficio.data_geracao || undefined}
                   formatOptions={formatOptions}
                   anexoImageUrls={viewingAnexoUrls}
