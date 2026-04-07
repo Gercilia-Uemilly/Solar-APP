@@ -981,7 +981,8 @@ export default function MeusOficios() {
                 conteudo={editedContent}
                 bairro={viewOficio.bairro || undefined}
                 cargoDestinatario={viewOficio.cargo_destinatario || undefined}
-                operadorNome={viewOficio.operador_nome || undefined}
+                operadorNome={viewOficio.operador_nome || user?.email || undefined}
+                secretaria={(viewOficio as any).secretaria_identificada || undefined}
                 dataGeracao={viewOficio.data_geracao || undefined}
                 formatOptions={formatOptions}
                 editable
