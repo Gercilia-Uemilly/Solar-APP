@@ -235,17 +235,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const syncDestinatario = useCallback((rawValue: string) => {
       userEditedRef.current.destinatario = true;
-      setLocalDestinatario(rawValue);
-      const trimmed = rawValue.trim();
-      const cleaned = trimmed.replace(/^Destinat[aá]rio:\s*/i, "").trim();
+      const cleaned = rawValue.trim().replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim();
+      setLocalDestinatario(cleaned);
       onCargoDestinatarioChange?.(cleaned);
-      onDestinatarioChange?.(trimmed);
+      onDestinatarioChange?.(cleaned);
     }, [onCargoDestinatarioChange, onDestinatarioChange]);
 
     const syncAssunto = useCallback((rawValue: string) => {
       userEditedRef.current.assunto = true;
-      setLocalAssunto(rawValue);
-      onAssuntoChange?.(rawValue.trim());
+      const cleaned = rawValue.trim().replace(/^ASSUNTO:\s*/i, "").trim();
+      setLocalAssunto(cleaned);
+      onAssuntoChange?.(cleaned);
     }, [onAssuntoChange]);
 
     const syncNumero = useCallback((rawValue: string) => {
