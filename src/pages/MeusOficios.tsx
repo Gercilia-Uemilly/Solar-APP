@@ -37,7 +37,7 @@ const marcadorOptions: { value: string; emoji: string; label: string; className:
   { value: "ok", emoji: "🟢", label: "OK", className: "bg-green-500/20 text-green-700 dark:text-green-400" },
 ];
 
-const statusOptions = ["Rascunho", "Salvo", "Exportado", "Impresso", "Protocolado", "Feito", "Salvo no Drive", "Cancelado"];
+const statusOptions = ["Rascunho", "Salvo", "Exportado", "Impresso", "Protocolado", "Feito", "Respondido", "Salvo no Drive", "Cancelado"];
 
 const statusConfig: Record<string, { emoji: string; className: string }> = {
   "Rascunho": { emoji: "🟡", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" },
@@ -46,6 +46,7 @@ const statusConfig: Record<string, { emoji: string; className: string }> = {
   "Impresso": { emoji: "🔵", className: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
   "Protocolado": { emoji: "🟣", className: "bg-purple-500/20 text-purple-700 dark:text-purple-400" },
   "Feito": { emoji: "✅", className: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" },
+  "Respondido": { emoji: "💬", className: "bg-teal-500/20 text-teal-700 dark:text-teal-400" },
   "Salvo no Drive": { emoji: "☁️", className: "bg-sky-500/20 text-sky-700 dark:text-sky-400" },
   "Cancelado": { emoji: "🔴", className: "bg-red-500/20 text-red-700 dark:text-red-400" },
 };
