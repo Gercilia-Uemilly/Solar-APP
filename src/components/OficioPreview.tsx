@@ -6,7 +6,7 @@ import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
 import TipTapOficioEditor from "./editor/TipTapOficioEditor";
-import { cleanNumero, getDestinatario, getVocativo } from "@/lib/oficioUtils";
+import { cleanNumero, getDestinatario, getVocativo, LISTA_VOCATIVOS, gerarEncerramentoDinamico } from "@/lib/oficioUtils";
 
 type AnexoDocumento = {
   nome: string;
