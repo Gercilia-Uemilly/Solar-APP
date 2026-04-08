@@ -410,7 +410,7 @@ export default function Oficios() {
       ?.trim();
 
     const nextNumero = readField("numero") || numero;
-    const nextAssunto = (readField("assunto") || assunto).trim();
+    const nextAssunto = (readField("assunto") || assunto).trim().replace(/^ASSUNTO:\s*/i, "").trim();
     const nextDestinatario = (readField("destinatario") || destinatario || cargoDestinatario).trim();
     const nextCargoDestinatario = nextDestinatario.replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim();
 

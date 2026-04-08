@@ -470,7 +470,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     : "";
 
   // Use assunto exactly as provided — bairro is already included by the AI or user
-  const assuntoFormatado = stripHtml(assunto) || "___";
+  const assuntoFormatado = stripHtml(assunto).replace(/^ASSUNTO:\s*/i, "").trim() || "___";
 
   const vocativo = data.vocativo || (data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),");
 
