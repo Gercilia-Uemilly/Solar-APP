@@ -561,7 +561,7 @@ async function getAuthToken(): Promise<string> {
 
 async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Sanitizar conteúdo para remover duplicatas antes de montar o documento
-  const conteudoSanitizado = sanitizeConteudoParaExport(data.conteudo || "", data);
+  const conteudoSanitizado = sanitizeConteudoParaExport(normalizarConteudoOficio(data.conteudo || ""), data);
   
   const {
     numero, destinatario, assunto,

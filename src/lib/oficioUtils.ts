@@ -191,6 +191,21 @@ const normalizeSecretariaNome = (secretaria: string): string => {
     .trim();
 };
 
+export const normalizarNomeOrgao = (nome: string): string => {
+  return nome
+    .replace(/Secretaria Municipal de\s+Secretaria Municipal de\s+/gi, "Secretaria Municipal de ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+};
+
+export const normalizarConteudoOficio = (conteudo: string): string => {
+  if (!conteudo) return conteudo;
+  return conteudo.replace(
+    /Secretaria Municipal de\s+Secretaria Municipal de\s+/gi,
+    "Secretaria Municipal de ",
+  );
+};
+
 export const getDestinatario = (secretaria: string): string => {
   const normalized = normalizeSecretariaNome(secretaria);
   return SECRETARIAS_CONFIG[secretaria]?.destinatario ||
@@ -210,9 +225,9 @@ export const getNomeOrgao = (secretaria: string): string => {
   const normalized = normalizeSecretariaNome(secretaria);
   const dest = SECRETARIAS_CONFIG[secretaria]?.destinatario || SECRETARIAS_CONFIG[normalized]?.destinatario || '';
   if (dest.includes('Municipal de ')) {
-    return 'Secretaria Municipal de ' + dest.split('Municipal de ')[1];
+    return normalizarNomeOrgao('Secretaria Municipal de ' + dest.split('Municipal de ')[1]);
   }
-  return normalized;
+  return normalizarNomeOrgao(normalized);
 };
 
 /**
@@ -220,14 +235,12 @@ export const getNomeOrgao = (secretaria: string): string => {
  * Usado para gerar o encerramento dinâmico do ofício.
  */
 export const VOCATIVO_ORGAO_MAP: Record<string, { nomeOrgao: string; artigo: string }> = {
-  // Secretarias municipais — vocativo padrão
-  'Excelentíssimo(a) Senhor(a) Secretário(a),': { nomeOrgao: '', artigo: 'a' }, // será preenchido pela secretaria selecionada
-  // Órgãos com vocativo próprio
+  'Excelentíssimo(a) Senhor(a) Secretário(a),': { nomeOrgao: '', artigo: 'a' },
   'Excelentíssimo(a) Senhor(a) Diretor(a) Presidente,': { nomeOrgao: 'Agência de Regulação dos Serviços de Saneamento Básico de Uberlândia (ARESAN)', artigo: 'a' },
-  'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,': { nomeOrgao: '', artigo: 'o' }, // varia: DMAE, FUTEL, IPREMU, EMAM
-  'Excelentíssimo(a) Senhor(a) Diretor(a),': { nomeOrgao: '', artigo: 'a' }, // FERUB, PRODAUB, DETRAN
+  'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,': { nomeOrgao: '', artigo: 'o' },
+  'Excelentíssimo(a) Senhor(a) Diretor(a),': { nomeOrgao: '', artigo: 'a' },
   'Senhor(a) Comandante,': { nomeOrgao: 'Batalhão da Polícia Militar de Minas Gerais (PMMG)', artigo: 'o' },
-  'Prezado(a) Senhor(a),': { nomeOrgao: '', artigo: 'a' }, // CEMIG, DNIT, Superintendência
+  'Prezado(a) Senhor(a),': { nomeOrgao: '', artigo: 'a' },
   'Prezados(as) Senhores(as),': { nomeOrgao: 'Hospital de Clínicas da Universidade Federal de Uberlândia (HC/UFU)', artigo: 'o' },
   'Prezados(a) Senhores(a) Coordenador(a),': { nomeOrgao: 'Departamento de Estradas de Rodagem de Minas Gerais (DER-MG)', artigo: 'o' },
   'Excelentíssimo(a) Senhor(a) Superintendente,': { nomeOrgao: 'PROCON', artigo: 'o' },
@@ -238,20 +251,14 @@ export const VOCATIVO_ORGAO_MAP: Record<string, { nomeOrgao: string; artigo: str
   'Superintendência Regional de Saúde': { nomeOrgao: 'Superintendência Regional de Saúde', artigo: 'a' },
 };
 
-/**
- * Gera o texto de encerramento dinâmico baseado na secretaria e vocativo.
- * Ex: "Assim, encaminha-se o presente para apreciação da Secretaria Municipal de Educação..."
- */
 export function gerarEncerramentoDinamico(secretaria?: string, vocativo?: string): string {
   let nomeOrgao = '';
   let artigo = 'a';
 
-  // Tenta resolver pelo config da secretaria primeiro
   if (secretaria) {
     const config = SECRETARIAS_CONFIG[secretaria] || SECRETARIAS_CONFIG[normalizeSecretariaNome(secretaria)];
     if (config) {
-      nomeOrgao = getNomeOrgao(secretaria);
-      // Determinar artigo pelo nome do órgão
+      nomeOrgao = normalizarNomeOrgao(getNomeOrgao(secretaria));
       if (nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Instituto') || nomeOrgao.startsWith('PROCON') || nomeOrgao.startsWith('Ministério') || nomeOrgao.startsWith('Hospital') || nomeOrgao.startsWith('Batalhão')) {
         artigo = 'o';
       } else {
@@ -260,18 +267,16 @@ export function gerarEncerramentoDinamico(secretaria?: string, vocativo?: string
     }
   }
 
-  // Se não encontrou pelo config, tenta pelo vocativo
   if (!nomeOrgao && vocativo) {
     const mapped = VOCATIVO_ORGAO_MAP[vocativo];
     if (mapped && mapped.nomeOrgao) {
-      nomeOrgao = mapped.nomeOrgao;
+      nomeOrgao = normalizarNomeOrgao(mapped.nomeOrgao);
       artigo = mapped.artigo;
     }
   }
 
-  // Fallback
   if (!nomeOrgao) {
-    nomeOrgao = secretaria ? `Secretaria Municipal de ${normalizeSecretariaNome(secretaria)}` : 'Secretaria';
+    nomeOrgao = secretaria ? normalizarNomeOrgao(`Secretaria Municipal de ${normalizeSecretariaNome(secretaria)}`) : 'Secretaria';
     artigo = 'a';
   }
 

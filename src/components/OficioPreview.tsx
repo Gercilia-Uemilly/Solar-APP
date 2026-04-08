@@ -179,9 +179,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const measureEndingRef = useRef<HTMLDivElement>(null);
 
     const buildEditorContent = useCallback((text: string) => {
-      if (!text) return "<p></p>";
-      if (text.startsWith("<")) return text;
-      const paras = text
+      const normalizedText = normalizarConteudoOficio(text || "");
+      if (!normalizedText) return "<p></p>";
+      if (normalizedText.startsWith("<")) return normalizedText;
+      const paras = normalizedText
         .split("\n")
         .map((p) => p.trim())
         .filter(Boolean)

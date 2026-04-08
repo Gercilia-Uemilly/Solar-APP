@@ -76,7 +76,9 @@ serve(async (req) => {
   try {
     const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
     const textoCompleto = `${descricao || ""} ${assunto || ""} ${bairro || ""} ${local || ""}`;
-    const secretariaDetectada = tipo || detectSecretaria(textoCompleto) || "Serviços Urbanos";
+    const tipoNormalizado = typeof tipo === "string" ? tipo.trim() : "";
+    const tipoValidoComoSecretaria = tipoNormalizado && !["solicitação", "reclamação", "requerimento"].includes(tipoNormalizado.toLowerCase());
+    const secretariaDetectada = (tipoValidoComoSecretaria ? tipoNormalizado : "") || detectSecretaria(textoCompleto) || "Serviços Urbanos";
     const nomeOrgao = getNomeOrgaoForSecretaria(secretariaDetectada);
     const vocativo = getVocativoForSecretaria(secretariaDetectada);
     const artigo = nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Instituto') || nomeOrgao.startsWith('PROCON') || nomeOrgao.startsWith('Ministério') || nomeOrgao.startsWith('Batalhão') || nomeOrgao.startsWith('Hospital') ? 'o' : 'a';
