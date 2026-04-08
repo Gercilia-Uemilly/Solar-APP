@@ -242,9 +242,9 @@ export default function MeusOficios() {
 
     const updatePayload: Record<string, any> = {
       conteudo: contentToSave,
-      destinatario: latestViewOficio.destinatario,
-      cargo_destinatario: latestViewOficio.cargo_destinatario,
-      assunto: latestViewOficio.assunto,
+      destinatario: (latestViewOficio.destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
+      cargo_destinatario: (latestViewOficio.cargo_destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
+      assunto: cleanAssuntoPrefix(latestViewOficio.assunto || ""),
       numero: latestViewOficio.numero,
       data_geracao: validDataGeracao,
       
@@ -371,11 +371,11 @@ export default function MeusOficios() {
     return {
       oficioId: merged.id,
       numero: merged.numero || "",
-      destinatario: merged.destinatario,
-      assunto: merged.assunto,
+      destinatario: (merged.destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
+      assunto: cleanAssuntoPrefix(merged.assunto || ""),
       conteudo: merged.conteudo || "",
       bairro: merged.bairro || "",
-      cargoDestinatario: merged.cargo_destinatario || "",
+      cargoDestinatario: (merged.cargo_destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
       dataGeracao: merged.data_geracao || undefined,
       operadorNome: merged.operador_nome || profileName || user?.email || undefined,
       telefone: merged.linha_telefonica || undefined,

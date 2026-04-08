@@ -610,8 +610,8 @@ export default function Oficios() {
     const fullNumero = previewSnapshot.numero || numero || null;
     const payload: Record<string, any> = {
       numero: fullNumero,
-      assunto: previewSnapshot.assunto || aiResult?.tipo_demanda || "Sem assunto",
-      destinatario: previewSnapshot.destinatario || "",
+      assunto: cleanAssuntoPrefix(previewSnapshot.assunto || aiResult?.tipo_demanda || "Sem assunto"),
+      destinatario: (previewSnapshot.destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
       
       conteudo: editedOficio || null,
       resposta_cidadao: null,
@@ -622,7 +622,7 @@ export default function Oficios() {
       codigo_z: ["Zap", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
       origem: origemOficio || "Outros",
       ...(editingOficioId ? {} : { operador_nome: profileName || user.user_metadata?.full_name || user.email || null }),
-      cargo_destinatario: previewSnapshot.cargoDestinatario || null,
+      cargo_destinatario: (previewSnapshot.cargoDestinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim() || null,
       local_demanda: localDemanda || null,
       bairro: enderecoCompleto || bairro || null,
       endereco_completo: enderecoCompleto || null,
