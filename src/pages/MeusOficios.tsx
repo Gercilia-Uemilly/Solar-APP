@@ -666,9 +666,22 @@ export default function MeusOficios() {
           <h1 className="text-2xl font-bold text-foreground">Todos os Ofícios</h1>
           <p className="text-sm text-muted-foreground">{oficios.length} ofício(s) encontrado(s)</p>
         </div>
-        <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
-          <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              disabled={isBatchUploading}
+              onClick={handleBatchUploadToDrive}
+              className="gap-1"
+            >
+              {isBatchUploading ? <Loader2 size={14} className="animate-spin" /> : <CloudUpload size={14} />}
+              Enviar {selectedIds.size} ao Drive
+            </Button>
+          )}
+          <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
+            <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
