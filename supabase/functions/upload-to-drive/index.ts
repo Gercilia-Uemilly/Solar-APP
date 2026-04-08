@@ -278,16 +278,18 @@ serve(async (req) => {
     if (lastError) {
       throw new Error(`Todas as tentativas de upload falharam. Último erro: ${lastError}`);
     }
-    console.log(`Uploaded! File ID: ${driveResult.id}`);
+    console.log(`Uploaded! File ID: ${driveResult!.id}, modo: ${uploadMode}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        driveFileId: driveResult.id,
-        driveLink: driveResult.webViewLink,
-        uploadMode: "gabinete",
+        driveFileId: driveResult!.id,
+        driveLink: driveResult!.webViewLink,
+        uploadMode,
         googleEmail: userToken.googleEmail,
-        message: `Arquivo salvo na pasta do gabinete com a conta de ${userToken.googleEmail}!`,
+        message: uploadMode === "raiz"
+          ? `Arquivo salvo no Google Drive (raiz) com a conta de ${userToken.googleEmail}!`
+          : `Arquivo salvo na pasta do ${uploadMode} com a conta de ${userToken.googleEmail}!`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
