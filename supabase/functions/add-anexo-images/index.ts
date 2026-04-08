@@ -173,9 +173,14 @@ async function addAnexoToDocx(
   newRels += "</Relationships>";
   fileMap.set("word/_rels/document.xml.rels", new TextEncoder().encode(newRels));
 
-  // ── Insert annexes before </w:body> ───────────
+  // ── Insert annexes before final section properties ─────────────────────
+  // Word expects <w:sectPr> to remain the last child of <w:body>.
+  // Appending annex paragraphs after it can create phantom blank pages.
   const anexoBlock = annexParagraphs.join("\n");
-  const newDocXml = docXml.replace("</w:body>", `${anexoBlock}</w:body>`);
+  const sectPrMatch = docXml.match(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/);
+  const newDocXml = sectPrMatch
+    ? docXml.replace(sectPrMatch[0], `${anexoBlock}\n${sectPrMatch[0]}`)
+    : docXml.replace("</w:body>", `${anexoBlock}</w:body>`);
   fileMap.set("word/document.xml", new TextEncoder().encode(newDocXml));
 
   // ── Update Content_Types ─────────────────────────
@@ -238,7 +243,7 @@ function getImageDimensions(data: Uint8Array, type: string): { width: number; he
 // Content: 16cm wide x 24.7cm tall
 // 1cm = 360,000 EMU
 const CONTENT_WIDTH_EMU = 5_760_000;  // 16cm
-const CONTENT_HEIGHT_EMU = 8_532_000; // ~23.7cm (leave margin for Word spacing)
+const CONTENT_HEIGHT_EMU = 7_920_000; // ~22cm to avoid Word pushing image blocks to a new blank page
 const IMG_GAP_EMU = 144_000;          // 0.4cm gap
 
 /**
