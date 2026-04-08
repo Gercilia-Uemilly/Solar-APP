@@ -373,31 +373,41 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {!editable || !onCargoDestinatarioChange ? (
-          <p style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>{localDestinatario}</p>
+          <p style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>
+            <span style={{ textTransform: "uppercase" }}>DESTINATÁRIO:</span> {localDestinatario}
+          </p>
         ) : (
-          <div
-            ref={destElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="destinatario"
-            style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={(e) => syncDestinatario(e.currentTarget.textContent || "")}
-            onBlur={(e) => syncDestinatario(e.currentTarget.textContent || "")}
-          />
+          <div style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold", display: "flex", gap: "4px" }}>
+            <span style={{ textTransform: "uppercase", flexShrink: 0 }}>DESTINATÁRIO:</span>
+            <span
+              ref={destElRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-preview-field="destinatario"
+              style={{ ...editableStyle, flex: 1, minWidth: "40px" }}
+              onInput={(e) => syncDestinatario(e.currentTarget.textContent || "")}
+              onBlur={(e) => syncDestinatario(e.currentTarget.textContent || "")}
+            />
+          </div>
         )}
 
         {!editable || !onAssuntoChange ? (
-          <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>{localAssunto}</p>
+          <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>
+            <span style={{ textTransform: "uppercase" }}>ASSUNTO:</span> {localAssunto}
+          </p>
         ) : (
-          <div
-            ref={assuntoElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="assunto"
-            style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={(e) => syncAssunto(e.currentTarget.textContent || "")}
-            onBlur={(e) => syncAssunto(e.currentTarget.textContent || "")}
-          />
+          <div style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold", display: "flex", gap: "4px" }}>
+            <span style={{ textTransform: "uppercase", flexShrink: 0 }}>ASSUNTO:</span>
+            <span
+              ref={assuntoElRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-preview-field="assunto"
+              style={{ ...editableStyle, flex: 1, minWidth: "40px" }}
+              onInput={(e) => syncAssunto(e.currentTarget.textContent || "")}
+              onBlur={(e) => syncAssunto(e.currentTarget.textContent || "")}
+            />
+          </div>
         )}
 
         {editable ? (
