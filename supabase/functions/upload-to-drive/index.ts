@@ -194,8 +194,17 @@ serve(async (req) => {
 
     console.log(`Usando conta Google de ${userToken.googleEmail} para usuário ${userEmail} (${userId})`);
 
-    // Always upload to gabinete folder
+    // Use user's configured folder, fallback to gabinete folder, then Drive root
     const PASTA_GABINETE = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
+
+    // Check if user has a personal folder configured
+    const { data: tokenRow } = await supabaseAdmin
+      .from("user_drive_tokens")
+      .select("drive_folder_id")
+      .eq("user_id", userId)
+      .single();
+
+    const targetFolder = tokenRow?.drive_folder_id || null;
 
     // 3. Parse request body
     const contentType = req.headers.get("content-type") || "";
@@ -233,28 +242,54 @@ serve(async (req) => {
     const operadorEmail = metadata.operadorEmail || userEmail || "";
     const description = `Criado por: ${operadorNome || userEmail}${operadorEmail ? ` (${operadorEmail})` : ""}`;
 
-    // 4. Upload with the CORRECT user's token
-    console.log(`Uploading ${fileName} to gabinete folder with Google account ${userToken.googleEmail}`);
-    const driveResult = await uploadToDrive(
-      userToken.accessToken,
-      fileBytes,
-      fileName,
-      mimeType,
-      PASTA_GABINETE,
-      description,
-      operadorNome,
-      operadorEmail,
-    );
-    console.log(`Uploaded! File ID: ${driveResult.id}`);
+    // 4. Upload with the CORRECT user's token — try target folder, fallback to gabinete, then root
+    let driveResult: { id: string; webViewLink: string };
+    let uploadMode = "pasta_usuario";
+
+    const foldersToTry = [
+      ...(targetFolder ? [{ id: targetFolder, label: "pasta_usuario" }] : []),
+      { id: PASTA_GABINETE, label: "gabinete" },
+      { id: null, label: "raiz" },
+    ];
+
+    let lastError: string = "";
+    for (const folder of foldersToTry) {
+      try {
+        console.log(`Tentando upload de ${fileName} para ${folder.label} (${folder.id || "raiz"}) com ${userToken.googleEmail}`);
+        driveResult = await uploadToDrive(
+          userToken.accessToken,
+          fileBytes,
+          fileName,
+          mimeType,
+          folder.id,
+          description,
+          operadorNome,
+          operadorEmail,
+        );
+        uploadMode = folder.label;
+        lastError = "";
+        break;
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e);
+        console.warn(`Falha no upload para ${folder.label}: ${lastError}`);
+      }
+    }
+
+    if (lastError) {
+      throw new Error(`Todas as tentativas de upload falharam. Último erro: ${lastError}`);
+    }
+    console.log(`Uploaded! File ID: ${driveResult!.id}, modo: ${uploadMode}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        driveFileId: driveResult.id,
-        driveLink: driveResult.webViewLink,
-        uploadMode: "gabinete",
+        driveFileId: driveResult!.id,
+        driveLink: driveResult!.webViewLink,
+        uploadMode,
         googleEmail: userToken.googleEmail,
-        message: `Arquivo salvo na pasta do gabinete com a conta de ${userToken.googleEmail}!`,
+        message: uploadMode === "raiz"
+          ? `Arquivo salvo no Google Drive (raiz) com a conta de ${userToken.googleEmail}!`
+          : `Arquivo salvo na pasta do ${uploadMode} com a conta de ${userToken.googleEmail}!`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
