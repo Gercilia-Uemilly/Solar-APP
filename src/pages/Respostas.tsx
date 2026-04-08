@@ -181,7 +181,7 @@ export default function Respostas() {
       const { error } = await supabase.from("atendimentos").insert({
         user_id: user.id,
         cidadao_nome: cidadaoNome || "Não identificado",
-        canal,
+        canal: "WhatsApp",
         descricao_original: descricao || null,
         resumo_demanda: resumo || null,
         resposta_gerada: resposta || null,
