@@ -764,6 +764,14 @@ export default function MeusOficios() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <input
+                  type="checkbox"
+                  checked={listaExibida.length > 0 && selectedIds.size === listaExibida.length}
+                  onChange={toggleSelectAll}
+                  className="accent-primary h-4 w-4 cursor-pointer"
+                />
+              </TableHead>
               <TableHead>Nº</TableHead>
               <TableHead>🔖</TableHead>
               <TableHead>Assunto</TableHead>
@@ -778,15 +786,23 @@ export default function MeusOficios() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skel-${i}`}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 9 }).map((_, j) => (
                     <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : listaExibida.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
             ) : listaExibida.map(o => (
-              <TableRow key={o.id}>
+              <TableRow key={o.id} className={cn(selectedIds.has(o.id) && "bg-primary/5")}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(o.id)}
+                    onChange={() => toggleSelect(o.id)}
+                    className="accent-primary h-4 w-4 cursor-pointer"
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{o.numero ? cleanNumero(o.numero) : "-"}</TableCell>
                 <TableCell>
                   <DropdownMenu>
