@@ -72,8 +72,8 @@ serve(async (req) => {
     const secretariaDetectada = tipo || detectSecretaria(textoCompleto) || "Serviços Urbanos";
     const nomeOrgao = getNomeOrgaoForSecretaria(secretariaDetectada);
     const vocativo = getVocativoForSecretaria(secretariaDetectada);
-    const artigo = nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Instituto') ? 'o' : 'a';
-    const conclusao = `Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
+    const artigo = nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Instituto') || nomeOrgao.startsWith('PROCON') || nomeOrgao.startsWith('Ministério') || nomeOrgao.startsWith('Batalhão') || nomeOrgao.startsWith('Hospital') ? 'o' : 'a';
+    const conclusao = `Assim, encaminha-se o presente para apreciação d${artigo} ${nomeOrgao}, solicitando-se a análise do pleito e a manifestação quanto à sua viabilidade, bem como a indicação de eventual previsão para execução do serviço.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
 
     const SYSTEM_PROMPT = `Redator parlamentar do Vereador Fabão, Uberlândia-MG. Redija o CORPO de ofícios formais.
 

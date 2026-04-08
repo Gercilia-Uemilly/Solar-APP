@@ -867,7 +867,7 @@ export default function MeusOficios() {
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <VersionHistoryDialog oficioId={o.id} oficioNumero={o.numero} onRestored={fetchOficios} />
-                    <button onClick={() => handleOpenPreview(o)} className="p-2 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
+                    
                     <button
                       onClick={async () => {
                         if (!o.conteudo) return;
