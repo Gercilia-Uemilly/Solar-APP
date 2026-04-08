@@ -560,11 +560,15 @@ async function getAuthToken(): Promise<string> {
 // cleanNumero imported from oficioUtils
 
 async function buildWordBlob(data: OficioData): Promise<Blob> {
+  // Sanitizar conteúdo para remover duplicatas antes de montar o documento
+  const conteudoSanitizado = sanitizeConteudoParaExport(data.conteudo || "", data);
+  
   const {
-    numero, destinatario, assunto, conteudo,
+    numero, destinatario, assunto,
     bairro, cargoDestinatario, dataGeracao,
     operadorNome, operadorEmail,
   } = data;
+  const conteudo = conteudoSanitizado;
 
   const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
     fetchImageBytes(logoCamaraSrc),
