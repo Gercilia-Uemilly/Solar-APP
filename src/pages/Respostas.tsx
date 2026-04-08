@@ -294,7 +294,7 @@ export default function Respostas() {
 
           <AnimatePresence mode="wait">
             {/* ──── PASSO 1: Demanda ──── */}
-            {step === 2 && (
+            {step === 1 && (
               <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
                 <Card>
                   <CardHeader className="pb-3">
