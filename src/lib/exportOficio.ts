@@ -31,7 +31,7 @@ export interface DuplicataInfo {
 export function detectConteudoDuplicado(conteudo: string, data: Partial<OficioData>): DuplicataInfo[] {
   if (!conteudo) return [];
   const found: DuplicataInfo[] = [];
-  const plain = conteudo.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  const plain = normalizarConteudoOficio(conteudo).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 
   // Vocativo duplicado no corpo
   const vocativo = data.vocativo || (data.secretaria ? getVocativo(data.secretaria) : "");
