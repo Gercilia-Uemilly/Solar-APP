@@ -148,8 +148,7 @@ async function addAnexoToDocx(
     const pageGroup = imageEntries.slice(cursor, cursor + perPage);
     cursor += perPage;
 
-    annexParagraphs.push(`<w:p xmlns:w="${W}"><w:r><w:br w:type="page"/></w:r></w:p>`);
-    annexParagraphs.push(...buildImagePageXml(pageGroup, W, WP, A_NS, PIC_NS));
+    annexParagraphs.push(...buildImagePageXml(pageGroup, W, WP, A_NS, PIC_NS, true));
   }
 
   // ── Add PDFs as altChunk ─────────────────────
@@ -325,6 +324,7 @@ function buildImagePageXml(
   WP: string,
   A_NS: string,
   PIC_NS: string,
+  pageBreakBeforeFirst = false,
 ): string[] {
   const paragraphs: string[] = [];
   const slotInfo = getOrientationAwareSlots(images);
@@ -335,15 +335,15 @@ function buildImagePageXml(
     const crop = calcCropForFill(img.width, img.height, cx, cy);
     paragraphs.push(makeImageRowXml(
       [makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS)],
-      W, WP, A_NS, PIC_NS
+        W, WP, A_NS, PIC_NS, pageBreakBeforeFirst
     ));
   } else if (layout === "stack") {
     // Each image on its own centered paragraph, full width
-    for (const img of images) {
+    for (const [index, img] of images.entries()) {
       const crop = calcCropForFill(img.width, img.height, cx, cy);
       paragraphs.push(makeImageRowXml(
         [makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS)],
-        W, WP, A_NS, PIC_NS
+        W, WP, A_NS, PIC_NS, pageBreakBeforeFirst && index === 0
       ));
     }
   } else if (layout === "side") {
@@ -352,7 +352,7 @@ function buildImagePageXml(
       const crop = calcCropForFill(img.width, img.height, cx, cy);
       return makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS);
     });
-    paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
+    paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst));
   } else {
     // grid22: rows of 2
     for (let i = 0; i < images.length; i += 2) {
@@ -361,18 +361,19 @@ function buildImagePageXml(
         const crop = calcCropForFill(img.width, img.height, cx, cy);
         return makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS);
       });
-      paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS));
+      paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst && i === 0));
     }
   }
 
   return paragraphs;
 }
 
-function makeImageRowXml(runs: string[], W: string, WP: string, A_NS: string, PIC_NS: string): string {
+function makeImageRowXml(runs: string[], W: string, WP: string, A_NS: string, PIC_NS: string, pageBreakBefore = false): string {
   const spacer = '<w:r><w:t xml:space="preserve"> </w:t></w:r>';
   return `
 <w:p xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:pPr>
+    ${pageBreakBefore ? '<w:pageBreakBefore/>' : ''}
     <w:jc w:val="center"/>
     <w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>
   </w:pPr>
