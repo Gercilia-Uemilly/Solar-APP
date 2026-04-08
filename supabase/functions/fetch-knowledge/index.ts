@@ -156,7 +156,7 @@ serve(async (req) => {
 
     // Admin-only: check role before allowing knowledge base writes
     const adminCheckClient = createClient(supabaseUrl, supabaseKey);
-    const { data: isAdmin } = await adminCheckClient.rpc("is_admin", { _user_id: claimsData.user.id });
+    const { data: isAdmin } = await adminCheckClient.rpc("is_admin", { _user_id: user.id });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Apenas administradores podem acessar esta função" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
