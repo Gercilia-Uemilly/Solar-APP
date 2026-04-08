@@ -300,7 +300,7 @@ export default function Respostas() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Mic size={16} className="text-primary" />
-                      Passo 2 — Demanda do Cidadão
+                      Passo 1 — Demanda do Cidadão
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
