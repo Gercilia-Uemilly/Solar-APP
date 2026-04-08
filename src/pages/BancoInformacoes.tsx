@@ -381,6 +381,58 @@ export default function BancoInformacoes() {
     setInstaPreview(null); setInstaEditing(false); setInstaUrl(""); await refreshKnowledgeViews();
   };
 
+  const getInstagramClassificationToken = async (forceRefresh = false) => {
+    const loadSession = forceRefresh
+      ? supabase.auth.refreshSession()
+      : supabase.auth.getSession();
+
+    const { data, error } = await loadSession;
+    const activeSession = data.session;
+    const expiresAtMs = activeSession?.expires_at ? activeSession.expires_at * 1000 : 0;
+    const isExpiredOrNearExpiry = !forceRefresh && (!activeSession?.access_token || (expiresAtMs > 0 && expiresAtMs - Date.now() < 60_000));
+
+    if (error || isExpiredOrNearExpiry) {
+      const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshedData.session?.access_token) {
+        throw new Error("Sua sessão expirou. Entre novamente para classificar os posts.");
+      }
+      return refreshedData.session.access_token;
+    }
+
+    if (!activeSession?.access_token) {
+      throw new Error("Faça login novamente para classificar os posts.");
+    }
+
+    return activeSession.access_token;
+  };
+
+  const classifyInstagramBatch = async (limit: number, accessToken: string) => {
+    const { data, error } = await supabase.functions.invoke("classify-instagram", {
+      body: { limit },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!error) return { data, accessToken };
+
+    const shouldRetryWithFreshSession = /401|jwt|token|autenticado|authorization/i.test(error.message || "");
+    if (!shouldRetryWithFreshSession) {
+      throw error;
+    }
+
+    const refreshedToken = await getInstagramClassificationToken(true);
+    const retry = await supabase.functions.invoke("classify-instagram", {
+      body: { limit },
+      headers: {
+        Authorization: `Bearer ${refreshedToken}`,
+      },
+    });
+
+    if (retry.error) throw retry.error;
+    return { data: retry.data, accessToken: refreshedToken };
+  };
+
   const handleInstagramClassify = async () => {
     setInstaClassifying(true);
     setInstaClassifyProgress(null);
@@ -389,15 +441,14 @@ export default function BancoInformacoes() {
       let processed = 0;
       let updated = 0;
       let totalEstimate = Math.max(pendingInstagramEntries.length, batchLimit);
+      let accessToken = await getInstagramClassificationToken();
 
       setInstaClassifyProgress({ processed: 0, total: totalEstimate });
 
       for (let batch = 0; batch < 60; batch++) {
-        const { data, error } = await supabase.functions.invoke("classify-instagram", {
-          body: { limit: batchLimit },
-        });
-
-        if (error) throw error;
+        const result = await classifyInstagramBatch(batchLimit, accessToken);
+        const data = result.data;
+        accessToken = result.accessToken;
 
         const processedBatch = Number(data?.processed || 0);
         const updatedBatch = Number(data?.updated || 0);
