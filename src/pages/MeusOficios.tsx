@@ -66,6 +66,8 @@ export default function MeusOficios() {
   const [profileName, setProfileName] = useState<string>("");
   const [exportConfirmOficio, setExportConfirmOficio] = useState<OficioRow | null>(null);
   const [isExportingAll, setIsExportingAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchUploading, setIsBatchUploading] = useState(false);
   const TIPOS_ESPECIAIS = ["Requerimento", "Outro", "Zap"];
   const isEspecial = (o: OficioRow) => TIPOS_ESPECIAIS.some(t => (o.assunto || "").toLowerCase().includes(t.toLowerCase()) || ((o as any).tipo_demanda || "").toLowerCase().includes(t.toLowerCase()));
   const { revisaoResult, revisaoLoading, revisaoOpen, setRevisaoOpen, revisarOficio, resetRevisao } = useRevisaoOficio();
