@@ -214,7 +214,6 @@ export default function Respostas() {
   const handleReset = () => {
     setStep(1);
     setCidadaoNome("");
-    setCanal("WhatsApp");
     setDescricao("");
     setResumo("");
     setResposta("");
