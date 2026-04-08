@@ -316,6 +316,7 @@ export default function Respostas() {
 
                     {/* File upload */}
                     <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
                         <Upload size={12} /> Áudio ou vídeo (opcional)
                       </label>
                       <div className="flex items-center gap-2">
@@ -371,11 +372,8 @@ export default function Respostas() {
                       </div>
                     )}
 
-                    <div className="flex justify-between pt-2">
-                      <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
-                        <ChevronLeft size={16} /> Voltar
-                      </Button>
-                      <Button onClick={() => setStep(3)} disabled={!descricao.trim()} className="gap-2">
+                    <div className="flex justify-end pt-2">
+                      <Button onClick={() => setStep(2)} disabled={!descricao.trim()} className="gap-2">
                         Próximo <ChevronRight size={16} />
                       </Button>
                     </div>
@@ -384,21 +382,20 @@ export default function Respostas() {
               </motion.div>
             )}
 
-            {/* ──── PASSO 3: Resposta ──── */}
-            {step === 3 && (
-              <motion.div key="step3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+            {/* ──── PASSO 2: Resposta ──── */}
+            {step === 2 && (
+              <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <MessageSquare size={16} className="text-primary" />
-                      Passo 3 — Resposta ao Cidadão
+                      Passo 2 — Resposta ao Cidadão
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Context summary */}
                     <div className="rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
-                      <p><span className="font-semibold text-foreground">Cidadão:</span> {cidadaoNome || "Não identificado"}</p>
-                      <p><span className="font-semibold text-foreground">Canal:</span> {canal}</p>
+                      {cidadaoNome && <p><span className="font-semibold text-foreground">Cidadão:</span> {cidadaoNome}</p>}
                       {resumo && <p><span className="font-semibold text-foreground">Resumo:</span> {resumo}</p>}
                     </div>
 
@@ -469,7 +466,7 @@ export default function Respostas() {
                     )}
 
                     <div className="flex justify-between pt-2">
-                      <Button variant="outline" onClick={() => setStep(2)} className="gap-2">
+                      <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
                         <ChevronLeft size={16} /> Voltar
                       </Button>
                       <Button variant="ghost" onClick={handleReset} className="gap-2 text-muted-foreground">
