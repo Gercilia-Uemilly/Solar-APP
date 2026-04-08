@@ -103,7 +103,7 @@ export default function Respostas() {
       const formData = new FormData();
       formData.append("file", selectedFile);
       const fileType = selectedFile.type.startsWith("audio") ? "audio" : "video";
-      formData.append("fileType", fileType);
+      formData.append("type", fileType);
 
       const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
       if (error) throw error;
