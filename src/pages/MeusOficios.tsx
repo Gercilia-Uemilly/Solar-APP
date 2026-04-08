@@ -242,9 +242,9 @@ export default function MeusOficios() {
 
     const updatePayload: Record<string, any> = {
       conteudo: contentToSave,
-      destinatario: latestViewOficio.destinatario,
-      cargo_destinatario: latestViewOficio.cargo_destinatario,
-      assunto: latestViewOficio.assunto,
+      destinatario: (latestViewOficio.destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
+      cargo_destinatario: (latestViewOficio.cargo_destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
+      assunto: cleanAssuntoPrefix(latestViewOficio.assunto || ""),
       numero: latestViewOficio.numero,
       data_geracao: validDataGeracao,
       
