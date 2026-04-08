@@ -304,9 +304,18 @@ export default function Respostas() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Nome do cidadão (opcional) */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome do cidadão (opcional)</label>
+                      <Input
+                        placeholder="Ex: Maria da Silva"
+                        value={cidadaoNome}
+                        onChange={e => setCidadaoNome(e.target.value)}
+                      />
+                    </div>
+
                     {/* File upload */}
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
                         <Upload size={12} /> Áudio ou vídeo (opcional)
                       </label>
                       <div className="flex items-center gap-2">
