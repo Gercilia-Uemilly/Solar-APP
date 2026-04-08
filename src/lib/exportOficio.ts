@@ -463,14 +463,14 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
   // Priority: manual edit (cargoDestinatario) > direct destinatario > secretaria auto-fill
   const rawDestinatario = stripHtml(cargoDestinatario || destinatario || (data.secretaria ? getDestinatario(data.secretaria) : "___"));
-  const destinatarioCompleto = rawDestinatario || "___";
+  const destinatarioCompleto = rawDestinatario.replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim() || "___";
   const bairroExtraido = bairro ? (extrairBairro(bairro) || bairro) : "";
   const bairroFormatado = bairroExtraido
     ? (bairroExtraido.toLowerCase().startsWith("bairro") || bairroExtraido.toLowerCase().includes("bairro ") ? bairroExtraido : `Bairro ${bairroExtraido}`)
     : "";
 
-  // Use assunto exactly as provided — bairro is already included by the AI or user
-  const assuntoFormatado = stripHtml(assunto).replace(/^ASSUNTO:\s*/i, "").trim() || "___";
+  // Strip any residual "Assunto:" prefix — the label is added separately by the export engine
+  const assuntoFormatado = stripHtml(assunto).replace(/^(?:ASSUNTO\s*:\s*)+/i, "").trim() || "___";
 
   const vocativo = data.vocativo || (data.secretaria ? getVocativo(data.secretaria) : "Excelentíssimo(a) Senhor(a) Secretário(a),");
 
