@@ -127,8 +127,10 @@ export default function Respostas() {
     }
     setSummarizing(true);
     try {
+      const formData = new FormData();
+      formData.append("text", descricao);
       const { data, error } = await supabase.functions.invoke("analyze-demanda", {
-        body: { descricao },
+        body: formData,
       });
       if (error) throw error;
       if (data?.resumo) {
