@@ -6,7 +6,7 @@ import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
 import TipTapOficioEditor from "./editor/TipTapOficioEditor";
-import { cleanNumero, getDestinatario, getVocativo } from "@/lib/oficioUtils";
+import { cleanNumero, getDestinatario, getVocativo, LISTA_VOCATIVOS, gerarEncerramentoDinamico } from "@/lib/oficioUtils";
 
 type AnexoDocumento = {
   nome: string;
@@ -396,17 +396,39 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {editable ? (
-          <p
-            ref={vocativoElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="vocativo"
-            style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5", ...editableStyle }}
-            onInput={(e) => syncVocativo(e.currentTarget.textContent || "")}
-            onBlur={(e) => syncVocativo(e.currentTarget.textContent || "")}
-          >
-            {localVocativo}
-          </p>
+          <div style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5", position: "relative" }}>
+            <select
+              value={localVocativo}
+              onChange={(e) => {
+                const val = e.target.value;
+                setLocalVocativo(val);
+                onVocativoChange?.(val);
+              }}
+              data-preview-field="vocativo"
+              style={{
+                fontSize: "11pt",
+                fontFamily: "inherit",
+                background: "transparent",
+                border: "none",
+                borderBottom: "1px dashed rgba(0,0,0,0.2)",
+                outline: "none",
+                cursor: "pointer",
+                padding: "2px 4px",
+                width: "auto",
+                minWidth: "200px",
+                maxWidth: "100%",
+                appearance: "auto" as any,
+              }}
+            >
+              {LISTA_VOCATIVOS.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+              {/* Se o vocativo atual não estiver na lista, adicionar como opção */}
+              {!LISTA_VOCATIVOS.includes(localVocativo) && localVocativo && (
+                <option value={localVocativo}>{localVocativo}</option>
+              )}
+            </select>
+          </div>
         ) : (
           <p style={{ fontSize: "11pt", marginBottom: "16px", marginTop: 0, textIndent: "1.25cm", textAlign: "left", lineHeight: "1.5" }}>{localVocativo}</p>
         )}
