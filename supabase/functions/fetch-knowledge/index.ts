@@ -144,8 +144,17 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-    const { data: claimsData, error: claimsErr } = await _sb.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (claimsErr || !claimsData?.user) {
+    const token = authHeader.replace("Bearer ", "");
+    let userId: string;
+    try {
+      const { data: claimsData, error: claimsErr } = await _sb.auth.getClaims(token);
+      if (claimsErr || !claimsData?.claims?.sub) {
+        console.error("getClaims failed:", claimsErr?.message, JSON.stringify(claimsData));
+        return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      userId = claimsData.claims.sub as string;
+    } catch (authErr: any) {
+      console.error("Auth error:", authErr?.message);
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -154,7 +163,7 @@ serve(async (req) => {
 
     // Admin-only: check role before allowing knowledge base writes
     const adminCheckClient = createClient(supabaseUrl, supabaseKey);
-    const { data: isAdmin } = await adminCheckClient.rpc("is_admin", { _user_id: claimsData.user.id });
+    const { data: isAdmin } = await adminCheckClient.rpc("is_admin", { _user_id: userId });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Apenas administradores podem acessar esta função" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
