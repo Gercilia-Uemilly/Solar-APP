@@ -854,6 +854,8 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 const PDF_EXTENSIONS = new Set(["pdf"]);
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "gif", "bmp"]);
 
+type ExportAttachmentMode = "all" | "images-only";
+
 function getFileExtension(fileName: string): string {
   const parts = fileName.toLowerCase().split(".");
   return parts.length > 1 ? parts[parts.length - 1] : "";
@@ -879,6 +881,25 @@ function normalizeAttachmentMime(fileName: string, ...candidates: Array<string |
   }
 
   return normalizedCandidates[0] || "application/octet-stream";
+}
+
+function filterAttachmentsForMode(files: File[] | undefined, mode: ExportAttachmentMode): File[] {
+  if (!files?.length) return [];
+
+  return files.filter((file) => {
+    const mimeType = normalizeAttachmentMime(file.name, file.type);
+    if (mode === "images-only") {
+      return mimeType.startsWith("image/");
+    }
+
+    return mimeType.startsWith("image/") || mimeType === "application/pdf";
+  });
+}
+
+function getPdfAttachments(files: File[] | undefined): File[] {
+  if (!files?.length) return [];
+
+  return files.filter((file) => normalizeAttachmentMime(file.name, file.type) === "application/pdf");
 }
 
 // ── Enviar docx + anexos para edge function add-anexo-images ───────────────
@@ -980,11 +1001,17 @@ export async function fetchSavedImages(oficioId: string): Promise<File[]> {
 }
 
 // ── Build Word blob without saving (for external use) ───────────────────────
-export async function buildWordBlobForExport(data: OficioData): Promise<Blob> {
+export async function buildWordBlobForExport(
+  data: OficioData,
+  attachmentMode: ExportAttachmentMode = "all"
+): Promise<Blob> {
   let blob = await buildWordBlob(data);
-  if (data.imagens && data.imagens.length > 0) {
-    blob = await addAnexoImages(blob, data.imagens);
+  const attachments = filterAttachmentsForMode(data.imagens, attachmentMode);
+
+  if (attachments.length > 0) {
+    blob = await addAnexoImages(blob, attachments);
   }
+
   return blob;
 }
 
@@ -1038,16 +1065,13 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
 
   // Build Word WITH images embedded via edge function
-  const wordBlob = await buildWordBlobForExport(data);
+  const wordBlob = await buildWordBlobForExport(data, "images-only");
 
   try {
     const pdfBlob = await convertWordToPdf(wordBlob, `${fileName}.docx`);
 
     // Only merge PDF attachments (images are already embedded in the Word)
-    const pdfAnexos = (data.imagens || []).filter(f => {
-      const mime = normalizeAttachmentMime(f.name, f.type);
-      return mime === "application/pdf";
-    });
+    const pdfAnexos = getPdfAttachments(data.imagens);
 
     if (pdfAnexos.length > 0) {
       const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
@@ -1103,14 +1127,11 @@ async function convertWordToPdf(docxBlob: Blob, filename: string): Promise<Blob>
 
 // ── Build merged PDF blob (for Drive upload) ───────────────────────────────
 export async function buildMergedPdfBlob(data: OficioData): Promise<Blob> {
-  const wordBlob = await buildWordBlobForExport(data);
+  const wordBlob = await buildWordBlobForExport(data, "images-only");
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
 
   // Only merge PDF attachments (images already embedded in Word)
-  const pdfAnexos = (data.imagens || []).filter(f => {
-    const mime = normalizeAttachmentMime(f.name, f.type);
-    return mime === "application/pdf";
-  });
+  const pdfAnexos = getPdfAttachments(data.imagens);
 
   if (pdfAnexos.length > 0) {
     const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
@@ -1123,14 +1144,11 @@ export async function buildMergedPdfBlob(data: OficioData): Promise<Blob> {
 
 // ── Print via Word→PDF conversion ───────────────────────────────────────────
 export async function printOficioViaPdf(data: OficioData): Promise<void> {
-  const wordBlob = await buildWordBlobForExport(data);
+  const wordBlob = await buildWordBlobForExport(data, "images-only");
   const pdfBlob = await convertWordToPdf(wordBlob, "oficio.docx");
 
   // Only merge PDF attachments (images already embedded in Word)
-  const pdfAnexos = (data.imagens || []).filter(f => {
-    const mime = normalizeAttachmentMime(f.name, f.type);
-    return mime === "application/pdf";
-  });
+  const pdfAnexos = getPdfAttachments(data.imagens);
 
   let finalBlob = pdfBlob;
   if (pdfAnexos.length > 0) {
