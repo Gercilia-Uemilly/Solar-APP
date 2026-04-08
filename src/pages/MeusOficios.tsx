@@ -37,7 +37,7 @@ const marcadorOptions: { value: string; emoji: string; label: string; className:
   { value: "ok", emoji: "🟢", label: "OK", className: "bg-green-500/20 text-green-700 dark:text-green-400" },
 ];
 
-const statusOptions = ["Rascunho", "Salvo", "Exportado", "Impresso", "Protocolado", "Feito", "Respondido", "Atendido", "Salvo no Drive", "Cancelado"];
+const statusOptions = ["Rascunho", "Salvo", "Exportado", "Impresso", "Protocolado", "Respondido", "Atendido", "Salvo no Drive", "Cancelado"];
 
 const statusConfig: Record<string, { emoji: string; className: string }> = {
   "Rascunho": { emoji: "🟡", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" },
@@ -45,7 +45,6 @@ const statusConfig: Record<string, { emoji: string; className: string }> = {
   "Exportado": { emoji: "🔵", className: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
   "Impresso": { emoji: "🔵", className: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
   "Protocolado": { emoji: "🟣", className: "bg-purple-500/20 text-purple-700 dark:text-purple-400" },
-  "Feito": { emoji: "✅", className: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" },
   "Respondido": { emoji: "💬", className: "bg-teal-500/20 text-teal-700 dark:text-teal-400" },
   "Atendido": { emoji: "✔️", className: "bg-lime-500/20 text-lime-700 dark:text-lime-400" },
   "Salvo no Drive": { emoji: "☁️", className: "bg-sky-500/20 text-sky-700 dark:text-sky-400" },
@@ -614,8 +613,8 @@ export default function MeusOficios() {
     setCurrentPage(1);
   };
 
-  const finalizados = filtered.filter(o => ["Protocolado", "Feito", "Respondido", "Atendido", "Impresso"].includes(o.status));
-  const rascunhos = filtered.filter(o => !["Protocolado", "Feito", "Respondido", "Atendido", "Impresso"].includes(o.status));
+  const finalizados = filtered.filter(o => ["Protocolado", "Respondido", "Atendido", "Impresso"].includes(o.status));
+  const rascunhos = filtered.filter(o => !["Protocolado", "Respondido", "Atendido", "Impresso"].includes(o.status));
   const listaCompleta = abaAtiva === "todos" ? filtered : abaAtiva === "rascunhos" ? rascunhos : finalizados;
   const totalPages = Math.max(1, Math.ceil(listaCompleta.length / ITEMS_PER_PAGE));
   const listaExibida = listaCompleta.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
