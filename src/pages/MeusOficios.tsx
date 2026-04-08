@@ -477,7 +477,45 @@ export default function MeusOficios() {
     }
   };
 
-  const handleExportAll = async (oficio: OficioRow) => {
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === listaExibida.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(listaExibida.map(o => o.id)));
+    }
+  };
+
+  const handleBatchUploadToDrive = async () => {
+    const selected = oficios.filter(o => selectedIds.has(o.id) && o.conteudo);
+    if (selected.length === 0) {
+      toast({ title: "Nenhum ofício válido selecionado", description: "Selecione ofícios com conteúdo gerado.", variant: "destructive" });
+      return;
+    }
+    setIsBatchUploading(true);
+    let ok = 0;
+    let fail = 0;
+    for (const oficio of selected) {
+      try {
+        await handleUploadToDrive(oficio);
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setIsBatchUploading(false);
+    setSelectedIds(new Set());
+    toast({ title: `Lote concluído`, description: `${ok} enviado(s)${fail > 0 ? `, ${fail} erro(s)` : ""}` });
+  };
+
+
     if (!oficio.conteudo) {
       toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de exportar.", variant: "destructive" });
       return;
