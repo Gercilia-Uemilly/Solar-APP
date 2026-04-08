@@ -34,11 +34,17 @@ const VOCATIVO_MAP: Record<string, string> = {
   'CEMIG': 'Prezado(a) Senhor(a),',
 };
 
+function normalizeSecretariaInput(s: string): string {
+  return (s || '').replace(/^Secretaria Municipal de\s+/i, '').trim();
+}
+
 function getVocativoForSecretaria(s: string): string {
-  return VOCATIVO_MAP[s] || 'Excelentíssimo(a) Senhor(a) Secretário(a),';
+  const normalized = normalizeSecretariaInput(s);
+  return VOCATIVO_MAP[s] || VOCATIVO_MAP[normalized] || 'Excelentíssimo(a) Senhor(a) Secretário(a),';
 }
 
 function getNomeOrgaoForSecretaria(s: string): string {
+  const normalized = normalizeSecretariaInput(s);
   const m: Record<string, string> = {
     'DMAE': 'Departamento Municipal de Água e Esgoto',
     'ARESAN': 'Agência de Regulação dos Serviços de Saneamento Básico de Uberlândia',
@@ -48,8 +54,9 @@ function getNomeOrgaoForSecretaria(s: string): string {
     'FERUB': 'Fundação de Excelência Rural de Uberlândia',
   };
   if (m[s]) return m[s];
-  if (!s.includes('(') && !s.includes('–')) return `Secretaria Municipal de ${s}`;
-  return s;
+  if (m[normalized]) return m[normalized];
+  if (!normalized.includes('(') && !normalized.includes('–')) return `Secretaria Municipal de ${normalized}`;
+  return normalized;
 }
 
 function detectSecretaria(text: string): string | null {
@@ -69,7 +76,9 @@ serve(async (req) => {
   try {
     const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
     const textoCompleto = `${descricao || ""} ${assunto || ""} ${bairro || ""} ${local || ""}`;
-    const secretariaDetectada = tipo || detectSecretaria(textoCompleto) || "Serviços Urbanos";
+    const tipoNormalizado = typeof tipo === "string" ? tipo.trim() : "";
+    const tipoValidoComoSecretaria = tipoNormalizado && !["solicitação", "reclamação", "requerimento"].includes(tipoNormalizado.toLowerCase());
+    const secretariaDetectada = (tipoValidoComoSecretaria ? tipoNormalizado : "") || detectSecretaria(textoCompleto) || "Serviços Urbanos";
     const nomeOrgao = getNomeOrgaoForSecretaria(secretariaDetectada);
     const vocativo = getVocativoForSecretaria(secretariaDetectada);
     const artigo = nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Instituto') || nomeOrgao.startsWith('PROCON') || nomeOrgao.startsWith('Ministério') || nomeOrgao.startsWith('Batalhão') || nomeOrgao.startsWith('Hospital') ? 'o' : 'a';

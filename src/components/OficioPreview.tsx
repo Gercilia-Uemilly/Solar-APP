@@ -6,7 +6,7 @@ import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import type { FormatOptions } from "./PreviewFormatToolbar";
 import { defaultFormatOptions } from "./PreviewFormatToolbar";
 import TipTapOficioEditor from "./editor/TipTapOficioEditor";
-import { cleanNumero, getDestinatario, getVocativo, gerarEncerramentoDinamico } from "@/lib/oficioUtils";
+import { cleanNumero, getDestinatario, getVocativo, gerarEncerramentoDinamico, normalizarConteudoOficio } from "@/lib/oficioUtils";
 
 type AnexoDocumento = {
   nome: string;
@@ -179,9 +179,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const measureEndingRef = useRef<HTMLDivElement>(null);
 
     const buildEditorContent = useCallback((text: string) => {
-      if (!text) return "<p></p>";
-      if (text.startsWith("<")) return text;
-      const paras = text
+      const normalizedText = normalizarConteudoOficio(text || "");
+      if (!normalizedText) return "<p></p>";
+      if (normalizedText.startsWith("<")) return normalizedText;
+      const paras = normalizedText
         .split("\n")
         .map((p) => p.trim())
         .filter(Boolean)

@@ -15,7 +15,7 @@ import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi
 const ASSINATURA_ALTURA = 113;  // ~3cm proportional
 
-import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, getDestinatario, getVocativo, extrairBairro } from "@/lib/oficioUtils";
+import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, getDestinatario, getVocativo, extrairBairro, normalizarConteudoOficio } from "@/lib/oficioUtils";
 export { generateOperatorCode };
 
 // ── Detecção e remoção de conteúdo duplicado ────────────────────────────────
@@ -31,7 +31,7 @@ export interface DuplicataInfo {
 export function detectConteudoDuplicado(conteudo: string, data: Partial<OficioData>): DuplicataInfo[] {
   if (!conteudo) return [];
   const found: DuplicataInfo[] = [];
-  const plain = conteudo.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  const plain = normalizarConteudoOficio(conteudo).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 
   // Vocativo duplicado no corpo
   const vocativo = data.vocativo || (data.secretaria ? getVocativo(data.secretaria) : "");
@@ -561,7 +561,7 @@ async function getAuthToken(): Promise<string> {
 
 async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Sanitizar conteúdo para remover duplicatas antes de montar o documento
-  const conteudoSanitizado = sanitizeConteudoParaExport(data.conteudo || "", data);
+  const conteudoSanitizado = sanitizeConteudoParaExport(normalizarConteudoOficio(data.conteudo || ""), data);
   
   const {
     numero, destinatario, assunto,
