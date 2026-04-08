@@ -827,7 +827,7 @@ export default function Oficios() {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleUploadToDrive = async (oficio: OficioRow) => {
-    if (!oficio.conteudo) {
+    if (!editedOficio && !oficio.conteudo) {
       toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de enviar.", variant: "destructive" });
       return;
     }
@@ -843,17 +843,13 @@ export default function Oficios() {
       }
 
       const authToken = accessToken;
-      const imgs = await fetchSavedImages(oficio.id);
-      const data = buildExportData(oficio);
+      // Use buildFormExportData to capture exactly what's in the preview
+      const data = await buildFormExportData();
       const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
-      // Build merged PDF (ofício + all attachments) for Drive upload
-      const exportData = {
-        ...data,
-        conteudo: oficio.conteudo || "",
-        imagens: imgs.length > 0 ? imgs : (await getImageFilesFromAnexos()),
-      };
+      // Ensure saved attachments are included
+      const exportData = await withSavedAttachments(data);
 
       let uploadBlob: Blob;
       let uploadFileName: string;

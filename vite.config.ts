@@ -23,23 +23,28 @@ export default defineConfig(({ mode }) => ({
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/ipsmcagnhrtnhuekzcny\.supabase\.co\/rest\/v1\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 },
-              networkTimeoutSeconds: 3,
-            },
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: /^https:\/\/ipsmcagnhrtnhuekzcny\.supabase\.co\/realtime\/.*/i,
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: /^https:\/\/ipsmcagnhrtnhuekzcny\.supabase\.co\/functions\/.*/i,
+            handler: "NetworkOnly",
           },
           {
             urlPattern: /^https:\/\/ipsmcagnhrtnhuekzcny\.supabase\.co\/storage\/.*/i,
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "storage-cache",
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 },
             },
           },
         ],
         navigateFallbackDenylist: [/^\/~oauth/, /^\/auth\/google\/callback/],
+        skipWaiting: true,
+        clientsClaim: true,
       },
       manifest: {
         name: "Solar IA - Gabinete Digital",
