@@ -53,21 +53,6 @@ const MARGIN_LEFT = 113;
 const MARGIN_RIGHT = 76;
 const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
 const CONTENT_W = PAGE_W_PX - MARGIN_LEFT - MARGIN_RIGHT;
-const LABELED_LINE_PATTERN = /^[^:\n]{2,32}:\s*\S+/;
-
-function formatInlineField(label: string, value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed || trimmed === "___") {
-    return `${label}: ___`;
-  }
-
-  if (LABELED_LINE_PATTERN.test(trimmed)) {
-    return trimmed;
-  }
-
-  return `${label}: ${trimmed}`;
-}
 
 function ImageGrid({ urls }: { urls: string[] }) {
   const count = urls.length;
