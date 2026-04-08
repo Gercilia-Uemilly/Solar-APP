@@ -32,6 +32,48 @@ export type Database = {
         }
         Relationships: []
       }
+      atendimentos: {
+        Row: {
+          canal: string
+          cidadao_nome: string
+          created_at: string
+          descricao_original: string | null
+          fontes: Json | null
+          id: string
+          resposta_editada: string | null
+          resposta_gerada: string | null
+          resumo_demanda: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          canal?: string
+          cidadao_nome?: string
+          created_at?: string
+          descricao_original?: string | null
+          fontes?: Json | null
+          id?: string
+          resposta_editada?: string | null
+          resposta_gerada?: string | null
+          resumo_demanda?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          canal?: string
+          cidadao_nome?: string
+          created_at?: string
+          descricao_original?: string | null
+          fontes?: Json | null
+          id?: string
+          resposta_editada?: string | null
+          resposta_gerada?: string | null
+          resumo_demanda?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           acao: string
