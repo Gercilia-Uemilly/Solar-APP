@@ -245,9 +245,8 @@ export default function Respostas() {
 
   // === Step indicators ===
   const steps = [
-    { num: 1, label: "Identificação", icon: User },
-    { num: 2, label: "Demanda", icon: Mic },
-    { num: 3, label: "Resposta", icon: MessageSquare },
+    { num: 1, label: "Demanda", icon: Mic },
+    { num: 2, label: "Resposta", icon: MessageSquare },
   ];
 
   return (
