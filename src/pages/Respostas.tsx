@@ -2,8 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import {
   Heart, Copy, Sparkles, Loader2, Send, RefreshCw, Check,
   Mic, MessageSquare, Database, AlertTriangle, ChevronRight,
-  ChevronLeft, User, Phone, FileText, Search, Clock, Trash2,
-  Upload
+  ChevronLeft, User, Search, Clock, Trash2, Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
