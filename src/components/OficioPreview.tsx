@@ -171,16 +171,16 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
       numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-      destinatario: formatInlineField("Destinatário", defaultDestinatarioCompleto),
-      assunto: formatInlineField("Assunto", defaultAssuntoFormatado),
+      destinatario: defaultDestinatarioCompleto,
+      assunto: defaultAssuntoFormatado,
       data: defaultDataFormatada,
     });
     const userEditedRef = useRef<Record<string, boolean>>({});
 
     const [localData, setLocalData] = useState(defaultDataFormatada);
     const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
-    const [localDestinatario, setLocalDestinatario] = useState(formatInlineField("Destinatário", defaultDestinatarioCompleto));
-    const [localAssunto, setLocalAssunto] = useState(formatInlineField("Assunto", defaultAssuntoFormatado));
+    const [localDestinatario, setLocalDestinatario] = useState(defaultDestinatarioCompleto);
+    const [localAssunto, setLocalAssunto] = useState(defaultAssuntoFormatado);
     const [bodyPageSegments, setBodyPageSegments] = useState<string[]>([conteudo.startsWith("<") ? conteudo : "<p></p>"]);
 
     const destElRef = useRef<HTMLDivElement>(null);
