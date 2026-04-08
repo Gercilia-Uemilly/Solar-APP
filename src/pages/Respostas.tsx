@@ -258,7 +258,7 @@ export default function Respostas() {
         </div>
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-foreground">Respostas ao Cidadão</h1>
-          <p className="text-sm text-muted-foreground">Atendimento em 3 passos com IA do gabinete</p>
+          <p className="text-sm text-muted-foreground">Atendimento em 2 passos com IA do gabinete</p>
         </div>
       </div>
 
