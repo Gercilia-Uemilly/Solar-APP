@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, TrendingDown, Minus, MapPin, UserCheck, Trophy, Circle } from "lucide-react";
+import { FileText, MessageSquare, FolderOpen, Users, BarChart3, TrendingUp, TrendingDown, Minus, MapPin, UserCheck, Trophy, Circle, AlertTriangle, X } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -124,8 +124,29 @@ export default function Dashboard() {
     { to: "/relatorios", icon: BarChart3, label: "Relatórios", desc: "Estatísticas completas" },
   ];
 
+  const AVISO_KEY = "aviso_encerramento_v1_dispensado";
+  const [avisoVisible, setAvisoVisible] = useState(() => !localStorage.getItem(AVISO_KEY));
+  const dismissAviso = () => { localStorage.setItem(AVISO_KEY, "1"); setAvisoVisible(false); };
+
   return (
     <div className="space-y-6">
+      {avisoVisible && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative rounded-lg border border-yellow-400/50 bg-yellow-50 dark:bg-yellow-900/20 p-4 pr-10 shadow-sm"
+        >
+          <button onClick={dismissAviso} className="absolute top-3 right-3 p-1 rounded hover:bg-yellow-200/60 dark:hover:bg-yellow-800/40 transition-colors" title="Dispensar aviso">
+            <X size={16} className="text-yellow-700 dark:text-yellow-400" />
+          </button>
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={20} className="text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+            <p className="text-sm text-yellow-800 dark:text-yellow-200 leading-relaxed">
+              <strong>⚠️ Atenção:</strong> O encerramento dos ofícios foi atualizado a pedido do Fábio. A partir de agora, o parágrafo final seguirá o modelo: <em>"Assim, encaminha-se o presente para apreciação do [órgão], solicitando-se a análise do pleito e a manifestação quanto à sua viabilidade, bem como a indicação de eventual previsão para execução do serviço. Na certeza de contar com o vosso pronto atendimento, desde já agradeço."</em> Esse novo encerramento já está aplicado automaticamente em todos os ofícios. Acompanhem como os textos de vocês ficarão daqui pra frente.
+            </p>
+          </div>
+        </motion.div>
+      )}
       {/* Header */}
       <motion.div
         className="bg-card rounded-lg p-6 border border-border border-t-[3px] border-t-primary shadow-card"
