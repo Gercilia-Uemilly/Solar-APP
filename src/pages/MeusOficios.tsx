@@ -515,7 +515,7 @@ export default function MeusOficios() {
     toast({ title: `Lote concluído`, description: `${ok} enviado(s)${fail > 0 ? `, ${fail} erro(s)` : ""}` });
   };
 
-
+  const handleExportAll = async (oficio: OficioRow) => {
     if (!oficio.conteudo) {
       toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de exportar.", variant: "destructive" });
       return;
