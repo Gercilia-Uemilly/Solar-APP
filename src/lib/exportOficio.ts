@@ -1034,6 +1034,7 @@ async function autoUpdateStatus(oficioId?: string, newStatus = "Exportado") {
 
 // ── Export PDF ───────────────────────────────────────────────────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
+  notifyDuplicatas(data);
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
 
   // Build Word WITH images embedded via edge function
