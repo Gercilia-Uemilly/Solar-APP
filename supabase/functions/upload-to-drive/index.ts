@@ -242,18 +242,42 @@ serve(async (req) => {
     const operadorEmail = metadata.operadorEmail || userEmail || "";
     const description = `Criado por: ${operadorNome || userEmail}${operadorEmail ? ` (${operadorEmail})` : ""}`;
 
-    // 4. Upload with the CORRECT user's token
-    console.log(`Uploading ${fileName} to gabinete folder with Google account ${userToken.googleEmail}`);
-    const driveResult = await uploadToDrive(
-      userToken.accessToken,
-      fileBytes,
-      fileName,
-      mimeType,
-      PASTA_GABINETE,
-      description,
-      operadorNome,
-      operadorEmail,
-    );
+    // 4. Upload with the CORRECT user's token — try target folder, fallback to gabinete, then root
+    let driveResult: { id: string; webViewLink: string };
+    let uploadMode = "pasta_usuario";
+
+    const foldersToTry = [
+      ...(targetFolder ? [{ id: targetFolder, label: "pasta_usuario" }] : []),
+      { id: PASTA_GABINETE, label: "gabinete" },
+      { id: null, label: "raiz" },
+    ];
+
+    let lastError: string = "";
+    for (const folder of foldersToTry) {
+      try {
+        console.log(`Tentando upload de ${fileName} para ${folder.label} (${folder.id || "raiz"}) com ${userToken.googleEmail}`);
+        driveResult = await uploadToDrive(
+          userToken.accessToken,
+          fileBytes,
+          fileName,
+          mimeType,
+          folder.id,
+          description,
+          operadorNome,
+          operadorEmail,
+        );
+        uploadMode = folder.label;
+        lastError = "";
+        break;
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e);
+        console.warn(`Falha no upload para ${folder.label}: ${lastError}`);
+      }
+    }
+
+    if (lastError) {
+      throw new Error(`Todas as tentativas de upload falharam. Último erro: ${lastError}`);
+    }
     console.log(`Uploaded! File ID: ${driveResult.id}`);
 
     return new Response(
