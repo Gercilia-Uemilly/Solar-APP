@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const CANAIS = ["WhatsApp", "Presencial", "E-mail", "Telefone", "Instagram", "Outro"] as const;
+
 
 interface Atendimento {
   id: string;
