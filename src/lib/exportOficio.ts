@@ -992,7 +992,21 @@ export async function buildWordBlobForExport(data: OficioData): Promise<Blob> {
 export { buildFileName };
 
 
+// ── Callback para avisar operador sobre duplicatas ──────────────────────────
+let _onDuplicataDetected: ((items: DuplicataInfo[]) => void) | null = null;
+export function setOnDuplicataDetected(cb: ((items: DuplicataInfo[]) => void) | null) {
+  _onDuplicataDetected = cb;
+}
+
+function notifyDuplicatas(data: OficioData) {
+  const dups = detectConteudoDuplicado(data.conteudo || "", data);
+  if (dups.length > 0 && _onDuplicataDetected) {
+    _onDuplicataDetected(dups);
+  }
+}
+
 export async function exportToWord(data: OficioData): Promise<Blob> {
+  notifyDuplicatas(data);
   let blob = await buildWordBlob(data);
 
   if (data.imagens && data.imagens.length > 0) {
