@@ -41,7 +41,6 @@ export default function Respostas() {
   // === Step wizard state ===
   const [step, setStep] = useState(1);
   const [cidadaoNome, setCidadaoNome] = useState("");
-  const [canal, setCanal] = useState<string>("WhatsApp");
   const [descricao, setDescricao] = useState("");
   const [resumo, setResumo] = useState("");
   const [resposta, setResposta] = useState("");
