@@ -292,14 +292,14 @@ export default function MeusOficios() {
   }, [viewOficio, user, profileName, setOficios]);
 
   const handleInlineFieldChange = useCallback((field: string, value: string) => {
-    inlineFieldsRef.current = { ...inlineFieldsRef.current, [field]: value };
-    setViewOficio(prev => prev ? { ...prev, [field]: value } : prev);
+    const normalizedValue = field === "assunto" ? cleanAssuntoPrefix(value) : value;
+    inlineFieldsRef.current = { ...inlineFieldsRef.current, [field]: normalizedValue };
+    setViewOficio(prev => prev ? { ...prev, [field]: normalizedValue } : prev);
     setSaveStatus("idle");
 
-    // Persist immediately on blur (no debounce)
     if (inlineFieldSaveTimerRef.current) clearTimeout(inlineFieldSaveTimerRef.current);
-    saveFieldToDb({ [field]: value });
-  }, [saveFieldToDb]);
+    saveFieldToDb({ [field]: normalizedValue });
+  }, [saveFieldToDb, cleanAssuntoPrefix]);
 
   const handleEditForm = (o: OficioRow) => {
     navigate("/oficios", { state: { editOficio: o } });

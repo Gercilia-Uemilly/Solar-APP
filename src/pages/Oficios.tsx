@@ -63,8 +63,8 @@ export default function Oficios() {
   const destinatarioManualmenteEditadoRef = useRef(false);
   const cargoManualmenteEditadoRef = useRef(false);
 
-  // Helper to strip "Assunto:" prefix from values
-  const cleanAssuntoPrefix = (val: string) => val.replace(/^assunto:\s*/i, "").trim();
+  // Helper to strip any repeated "Assunto:" prefix from values
+  const cleanAssuntoPrefix = (val: string) => val.replace(/^(?:assunto\s*:\s*)+/i, "").trim();
 
   // Form state
   const [numero, setNumero] = useState("");
