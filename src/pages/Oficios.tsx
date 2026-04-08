@@ -872,9 +872,9 @@ export default function Oficios() {
       const driveFormData = new FormData();
       driveFormData.append("file", uploadBlob, uploadFileName);
       driveFormData.append("metadata", JSON.stringify({
-        numero: oficio.numero || "",
-        assunto: oficio.assunto,
-        destinatario: oficio.destinatario,
+        numero: data.numero || "",
+        assunto: data.assunto,
+        destinatario: data.destinatario,
         operadorNome: profileName || user?.email || "",
         operadorEmail: user?.email || "",
         description: `Criado por: ${profileName || user?.email || ""}${user?.email ? ` (${user.email})` : ""}`,
