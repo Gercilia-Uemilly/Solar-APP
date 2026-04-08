@@ -187,13 +187,18 @@ export default function MeusOficios() {
       });
   };
 
+  const cleanAssuntoPrefix = useCallback((value: string) => value.replace(/^(?:assunto\s*:\s*)+/i, "").trim(), []);
+
   const saveFieldToDb = useCallback(async (fields: Record<string, any>) => {
     if (!viewOficio) return;
     setSaveStatus("saving");
-    // Auto-save backup before editing
     await saveBackupBeforeEdit(viewOficio.id);
+    const normalizedFields = { ...fields };
+    if (typeof normalizedFields.assunto === "string") {
+      normalizedFields.assunto = cleanAssuntoPrefix(normalizedFields.assunto);
+    }
     const updatePayload: Record<string, any> = {
-      ...fields,
+      ...normalizedFields,
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
       last_edited_at: new Date().toISOString(),
@@ -205,10 +210,10 @@ export default function MeusOficios() {
       toast({ title: "Erro ao salvar", description: msg, variant: "destructive" });
     } else {
       setSaveStatus("saved");
-      setViewOficio(prev => prev ? { ...prev, ...fields } : prev);
-      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...fields } : o));
+      setViewOficio(prev => prev ? { ...prev, ...normalizedFields } : prev);
+      setOficios(prev => prev.map(o => o.id === viewOficio.id ? { ...o, ...normalizedFields } : o));
     }
-  }, [viewOficio, user, profileName, toast, setOficios]);
+  }, [viewOficio, user, profileName, toast, setOficios, cleanAssuntoPrefix]);
 
   const getLatestPreviewState = useCallback(() => {
     if (!viewOficio) return null;
