@@ -63,11 +63,15 @@ export default function Oficios() {
   const destinatarioManualmenteEditadoRef = useRef(false);
   const cargoManualmenteEditadoRef = useRef(false);
 
+  // Helper to strip "Assunto:" prefix from values
+  const cleanAssuntoPrefix = (val: string) => val.replace(/^assunto:\s*/i, "").trim();
+
   // Form state
   const [numero, setNumero] = useState("");
   const [dataGeracao, setDataGeracao] = useState(new Date().toISOString().split("T")[0]);
   const [enderecoCompleto, setEnderecoCompleto] = useState("");
-  const [assunto, setAssunto] = useState("");
+  const [assunto, setAssuntoRaw] = useState("");
+  const setAssunto = useCallback((val: string) => setAssuntoRaw(cleanAssuntoPrefix(val)), []);
   const [assuntoEditedInPreview, setAssuntoEditedInPreview] = useState(false);
   const [secretaria, setSecretaria] = useState("");
   const [destinatario, setDestinatario] = useState("");
