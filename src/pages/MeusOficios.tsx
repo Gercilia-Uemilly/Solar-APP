@@ -66,6 +66,8 @@ export default function MeusOficios() {
   const [profileName, setProfileName] = useState<string>("");
   const [exportConfirmOficio, setExportConfirmOficio] = useState<OficioRow | null>(null);
   const [isExportingAll, setIsExportingAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchUploading, setIsBatchUploading] = useState(false);
   const TIPOS_ESPECIAIS = ["Requerimento", "Outro", "Zap"];
   const isEspecial = (o: OficioRow) => TIPOS_ESPECIAIS.some(t => (o.assunto || "").toLowerCase().includes(t.toLowerCase()) || ((o as any).tipo_demanda || "").toLowerCase().includes(t.toLowerCase()));
   const { revisaoResult, revisaoLoading, revisaoOpen, setRevisaoOpen, revisarOficio, resetRevisao } = useRevisaoOficio();
@@ -475,6 +477,44 @@ export default function MeusOficios() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === listaExibida.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(listaExibida.map(o => o.id)));
+    }
+  };
+
+  const handleBatchUploadToDrive = async () => {
+    const selected = oficios.filter(o => selectedIds.has(o.id) && o.conteudo);
+    if (selected.length === 0) {
+      toast({ title: "Nenhum ofício válido selecionado", description: "Selecione ofícios com conteúdo gerado.", variant: "destructive" });
+      return;
+    }
+    setIsBatchUploading(true);
+    let ok = 0;
+    let fail = 0;
+    for (const oficio of selected) {
+      try {
+        await handleUploadToDrive(oficio);
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setIsBatchUploading(false);
+    setSelectedIds(new Set());
+    toast({ title: `Lote concluído`, description: `${ok} enviado(s)${fail > 0 ? `, ${fail} erro(s)` : ""}` });
+  };
+
   const handleExportAll = async (oficio: OficioRow) => {
     if (!oficio.conteudo) {
       toast({ title: "Sem conteúdo", description: "Gere o texto do ofício antes de exportar.", variant: "destructive" });
@@ -626,9 +666,22 @@ export default function MeusOficios() {
           <h1 className="text-2xl font-bold text-foreground">Todos os Ofícios</h1>
           <p className="text-sm text-muted-foreground">{oficios.length} ofício(s) encontrado(s)</p>
         </div>
-        <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
-          <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              disabled={isBatchUploading}
+              onClick={handleBatchUploadToDrive}
+              className="gap-1"
+            >
+              {isBatchUploading ? <Loader2 size={14} className="animate-spin" /> : <CloudUpload size={14} />}
+              Enviar {selectedIds.size} ao Drive
+            </Button>
+          )}
+          <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
+            <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -711,6 +764,14 @@ export default function MeusOficios() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <input
+                  type="checkbox"
+                  checked={listaExibida.length > 0 && selectedIds.size === listaExibida.length}
+                  onChange={toggleSelectAll}
+                  className="accent-primary h-4 w-4 cursor-pointer"
+                />
+              </TableHead>
               <TableHead>Nº</TableHead>
               <TableHead>🔖</TableHead>
               <TableHead>Assunto</TableHead>
@@ -725,15 +786,23 @@ export default function MeusOficios() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skel-${i}`}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 9 }).map((_, j) => (
                     <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : listaExibida.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhum ofício encontrado.</TableCell></TableRow>
             ) : listaExibida.map(o => (
-              <TableRow key={o.id}>
+              <TableRow key={o.id} className={cn(selectedIds.has(o.id) && "bg-primary/5")}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(o.id)}
+                    onChange={() => toggleSelect(o.id)}
+                    className="accent-primary h-4 w-4 cursor-pointer"
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{o.numero ? cleanNumero(o.numero) : "-"}</TableCell>
                 <TableCell>
                   <DropdownMenu>

@@ -53,21 +53,6 @@ const MARGIN_LEFT = 113;
 const MARGIN_RIGHT = 76;
 const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
 const CONTENT_W = PAGE_W_PX - MARGIN_LEFT - MARGIN_RIGHT;
-const LABELED_LINE_PATTERN = /^[^:\n]{2,32}:\s*\S+/;
-
-function formatInlineField(label: string, value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed || trimmed === "___") {
-    return `${label}: ___`;
-  }
-
-  if (LABELED_LINE_PATTERN.test(trimmed)) {
-    return trimmed;
-  }
-
-  return `${label}: ${trimmed}`;
-}
 
 function ImageGrid({ urls }: { urls: string[] }) {
   const count = urls.length;
@@ -171,16 +156,16 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const initialFieldSyncDoneRef = useRef(false);
     const prevExternalValuesRef = useRef({
       numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-      destinatario: formatInlineField("Destinatário", defaultDestinatarioCompleto),
-      assunto: formatInlineField("Assunto", defaultAssuntoFormatado),
+      destinatario: defaultDestinatarioCompleto,
+      assunto: defaultAssuntoFormatado,
       data: defaultDataFormatada,
     });
     const userEditedRef = useRef<Record<string, boolean>>({});
 
     const [localData, setLocalData] = useState(defaultDataFormatada);
     const [localNumero, setLocalNumero] = useState(`Ofício GVF n° ${defaultNumeroFormatado}`);
-    const [localDestinatario, setLocalDestinatario] = useState(formatInlineField("Destinatário", defaultDestinatarioCompleto));
-    const [localAssunto, setLocalAssunto] = useState(formatInlineField("Assunto", defaultAssuntoFormatado));
+    const [localDestinatario, setLocalDestinatario] = useState(defaultDestinatarioCompleto);
+    const [localAssunto, setLocalAssunto] = useState(defaultAssuntoFormatado);
     const [bodyPageSegments, setBodyPageSegments] = useState<string[]>([conteudo.startsWith("<") ? conteudo : "<p></p>"]);
 
     const destElRef = useRef<HTMLDivElement>(null);
@@ -207,8 +192,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     useEffect(() => {
       const externalValues = {
         numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-        destinatario: formatInlineField("Destinatário", defaultDestinatarioCompleto),
-        assunto: formatInlineField("Assunto", defaultAssuntoFormatado),
+        destinatario: defaultDestinatarioCompleto,
+        assunto: defaultAssuntoFormatado,
         data: defaultDataFormatada,
       };
 
@@ -235,17 +220,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const syncDestinatario = useCallback((rawValue: string) => {
       userEditedRef.current.destinatario = true;
-      setLocalDestinatario(rawValue);
-      const trimmed = rawValue.trim();
-      const cleaned = trimmed.replace(/^Destinat[aá]rio:\s*/i, "").trim();
+      const cleaned = rawValue.trim().replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim();
+      setLocalDestinatario(cleaned);
       onCargoDestinatarioChange?.(cleaned);
-      onDestinatarioChange?.(trimmed);
+      onDestinatarioChange?.(cleaned);
     }, [onCargoDestinatarioChange, onDestinatarioChange]);
 
     const syncAssunto = useCallback((rawValue: string) => {
       userEditedRef.current.assunto = true;
-      setLocalAssunto(rawValue);
-      onAssuntoChange?.(rawValue.trim());
+      const cleaned = rawValue.trim().replace(/^ASSUNTO:\s*/i, "").trim();
+      setLocalAssunto(cleaned);
+      onAssuntoChange?.(cleaned);
     }, [onAssuntoChange]);
 
     const syncNumero = useCallback((rawValue: string) => {
@@ -373,31 +358,41 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         )}
 
         {!editable || !onCargoDestinatarioChange ? (
-          <p style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>{localDestinatario}</p>
+          <p style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>
+            <span style={{ textTransform: "uppercase" }}>DESTINATÁRIO:</span> {localDestinatario}
+          </p>
         ) : (
-          <div
-            ref={destElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="destinatario"
-            style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={(e) => syncDestinatario(e.currentTarget.textContent || "")}
-            onBlur={(e) => syncDestinatario(e.currentTarget.textContent || "")}
-          />
+          <div style={{ fontSize: "11pt", marginBottom: 0, marginTop: 0, lineHeight: "1.5", fontWeight: "bold", display: "flex", gap: "4px" }}>
+            <span style={{ textTransform: "uppercase", flexShrink: 0 }}>DESTINATÁRIO:</span>
+            <span
+              ref={destElRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-preview-field="destinatario"
+              style={{ ...editableStyle, flex: 1, minWidth: "40px" }}
+              onInput={(e) => syncDestinatario(e.currentTarget.textContent || "")}
+              onBlur={(e) => syncDestinatario(e.currentTarget.textContent || "")}
+            />
+          </div>
         )}
 
         {!editable || !onAssuntoChange ? (
-          <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>{localAssunto}</p>
+          <p style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold" }}>
+            <span style={{ textTransform: "uppercase" }}>ASSUNTO:</span> {localAssunto}
+          </p>
         ) : (
-          <div
-            ref={assuntoElRef}
-            contentEditable
-            suppressContentEditableWarning
-            data-preview-field="assunto"
-            style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold", ...editableStyle }}
-            onInput={(e) => syncAssunto(e.currentTarget.textContent || "")}
-            onBlur={(e) => syncAssunto(e.currentTarget.textContent || "")}
-          />
+          <div style={{ fontSize: "11pt", marginBottom: "24px", marginTop: 0, lineHeight: "1.5", fontWeight: "bold", display: "flex", gap: "4px" }}>
+            <span style={{ textTransform: "uppercase", flexShrink: 0 }}>ASSUNTO:</span>
+            <span
+              ref={assuntoElRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-preview-field="assunto"
+              style={{ ...editableStyle, flex: 1, minWidth: "40px" }}
+              onInput={(e) => syncAssunto(e.currentTarget.textContent || "")}
+              onBlur={(e) => syncAssunto(e.currentTarget.textContent || "")}
+            />
+          </div>
         )}
 
         {editable ? (
