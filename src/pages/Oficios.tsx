@@ -438,9 +438,8 @@ export default function Oficios() {
     const timer = setTimeout(async () => {
       try {
         // Build template from description
-        const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
-        const artigo = nomeOrgao.startsWith("Departamento") || nomeOrgao.startsWith("Instituto") ? "o" : "a";
-        const conteudoFormatado = `<p>${descricao.split("\n").filter((l: string) => l.trim()).join("</p><p>")}</p><p>Espero que ${artigo} ${nomeOrgao} considere favoravelmente nosso pedido e nos informe sobre a viabilidade de atendimento, bem como acerca da previsão para execução do serviço.</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
+        const encerramentoTexto = gerarEncerramentoDinamico(secretaria, vocativoCustom || getVocativo(secretaria || ''));
+        const conteudoFormatado = `<p>${descricao.split("\n").filter((l: string) => l.trim()).join("</p><p>")}</p><p>${encerramentoTexto}</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
 
         // Always update conteudo from description unless user manually edited in preview
         const updatePayload: Record<string, any> = {
