@@ -15,7 +15,7 @@ import assinaturaClean from "@/assets/assinatura-fabao-clean.png";
 const ASSINATURA_LARGURA = 227; // ~6cm at 96dpi
 const ASSINATURA_ALTURA = 113;  // ~3cm proportional
 
-import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, getDestinatario, getVocativo, extrairBairro } from "@/lib/oficioUtils";
+import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, getDestinatario, getVocativo, extrairBairro, normalizarConteudoOficio } from "@/lib/oficioUtils";
 export { generateOperatorCode };
 
 // ── Detecção e remoção de conteúdo duplicado ────────────────────────────────
