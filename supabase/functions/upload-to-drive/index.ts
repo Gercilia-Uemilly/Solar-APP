@@ -194,8 +194,17 @@ serve(async (req) => {
 
     console.log(`Usando conta Google de ${userToken.googleEmail} para usuário ${userEmail} (${userId})`);
 
-    // Always upload to gabinete folder
+    // Use user's configured folder, fallback to gabinete folder, then Drive root
     const PASTA_GABINETE = "1cdmdMwU9VV5aMosW9z03AUDXqidr-LvD";
+
+    // Check if user has a personal folder configured
+    const { data: tokenRow } = await supabaseAdmin
+      .from("user_drive_tokens")
+      .select("drive_folder_id")
+      .eq("user_id", userId)
+      .single();
+
+    const targetFolder = tokenRow?.drive_folder_id || null;
 
     // 3. Parse request body
     const contentType = req.headers.get("content-type") || "";
