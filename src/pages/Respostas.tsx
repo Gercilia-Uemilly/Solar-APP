@@ -293,49 +293,7 @@ export default function Respostas() {
           </div>
 
           <AnimatePresence mode="wait">
-            {/* ──── PASSO 1: Identificação ──── */}
-            {step === 1 && (
-              <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <User size={16} className="text-primary" />
-                      Passo 1 — Identificação do Cidadão
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome do cidadão</label>
-                      <Input
-                        placeholder="Ex: Maria da Silva"
-                        value={cidadaoNome}
-                        onChange={e => setCidadaoNome(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Canal de atendimento</label>
-                      <Select value={canal} onValueChange={setCanal}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CANAIS.map(c => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex justify-end pt-2">
-                      <Button onClick={() => setStep(2)} className="gap-2">
-                        Próximo <ChevronRight size={16} />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* ──── PASSO 2: Demanda ──── */}
+            {/* ──── PASSO 1: Demanda ──── */}
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
                 <Card>
