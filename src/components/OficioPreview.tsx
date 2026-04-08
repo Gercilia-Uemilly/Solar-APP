@@ -207,8 +207,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     useEffect(() => {
       const externalValues = {
         numero: `Ofício GVF n° ${defaultNumeroFormatado}`,
-        destinatario: formatInlineField("Destinatário", defaultDestinatarioCompleto),
-        assunto: formatInlineField("Assunto", defaultAssuntoFormatado),
+        destinatario: defaultDestinatarioCompleto,
+        assunto: defaultAssuntoFormatado,
         data: defaultDataFormatada,
       };
 
