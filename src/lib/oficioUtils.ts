@@ -215,6 +215,74 @@ export const getNomeOrgao = (secretaria: string): string => {
   return normalized;
 };
 
+/**
+ * Mapeamento completo vocativo → nome do órgão + artigo (do/da).
+ * Usado para gerar o encerramento dinâmico do ofício.
+ */
+export const VOCATIVO_ORGAO_MAP: Record<string, { nomeOrgao: string; artigo: string }> = {
+  // Secretarias municipais — vocativo padrão
+  'Excelentíssimo(a) Senhor(a) Secretário(a),': { nomeOrgao: '', artigo: 'a' }, // será preenchido pela secretaria selecionada
+  // Órgãos com vocativo próprio
+  'Excelentíssimo(a) Senhor(a) Diretor(a) Presidente,': { nomeOrgao: 'Agência de Regulação dos Serviços de Saneamento Básico de Uberlândia (ARESAN)', artigo: 'a' },
+  'Excelentíssimo(a) Senhor(a) Diretor(a) Geral,': { nomeOrgao: '', artigo: 'o' }, // varia: DMAE, FUTEL, IPREMU, EMAM
+  'Excelentíssimo(a) Senhor(a) Diretor(a),': { nomeOrgao: '', artigo: 'a' }, // FERUB, PRODAUB, DETRAN
+  'Senhor(a) Comandante,': { nomeOrgao: 'Batalhão da Polícia Militar de Minas Gerais (PMMG)', artigo: 'o' },
+  'Prezado(a) Senhor(a),': { nomeOrgao: '', artigo: 'a' }, // CEMIG, DNIT, Superintendência
+  'Prezados(as) Senhores(as),': { nomeOrgao: 'Hospital de Clínicas da Universidade Federal de Uberlândia (HC/UFU)', artigo: 'o' },
+  'Prezados(a) Senhores(a) Coordenador(a),': { nomeOrgao: 'Departamento de Estradas de Rodagem de Minas Gerais (DER-MG)', artigo: 'o' },
+  'Excelentíssimo(a) Senhor(a) Superintendente,': { nomeOrgao: 'PROCON', artigo: 'o' },
+  'Senhor(a) Diretor(a),': { nomeOrgao: 'Superintendência Regional de Ensino', artigo: 'a' },
+  'Excelentíssimo(a) Senhor(a) Promotor(a) de Justiça,': { nomeOrgao: 'Ministério Público de Minas Gerais', artigo: 'o' },
+  'Excelentíssimo Senhor Prefeito,': { nomeOrgao: 'Prefeitura Municipal de Uberlândia', artigo: 'a' },
+  'Excelentíssimo(a) Senhor(a) Vereador(a),': { nomeOrgao: 'Câmara Municipal de Uberlândia', artigo: 'a' },
+  'Superintendência Regional de Saúde': { nomeOrgao: 'Superintendência Regional de Saúde', artigo: 'a' },
+};
+
+/**
+ * Gera o texto de encerramento dinâmico baseado na secretaria e vocativo.
+ * Ex: "Assim, encaminha-se o presente para apreciação da Secretaria Municipal de Educação..."
+ */
+export function gerarEncerramentoDinamico(secretaria?: string, vocativo?: string): string {
+  let nomeOrgao = '';
+  let artigo = 'a';
+
+  // Tenta resolver pelo config da secretaria primeiro
+  if (secretaria) {
+    const config = SECRETARIAS_CONFIG[secretaria] || SECRETARIAS_CONFIG[normalizeSecretariaNome(secretaria)];
+    if (config) {
+      nomeOrgao = getNomeOrgao(secretaria);
+      // Determinar artigo pelo nome do órgão
+      if (nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Instituto') || nomeOrgao.startsWith('PROCON') || nomeOrgao.startsWith('Ministério') || nomeOrgao.startsWith('Hospital') || nomeOrgao.startsWith('Batalhão')) {
+        artigo = 'o';
+      } else {
+        artigo = 'a';
+      }
+    }
+  }
+
+  // Se não encontrou pelo config, tenta pelo vocativo
+  if (!nomeOrgao && vocativo) {
+    const mapped = VOCATIVO_ORGAO_MAP[vocativo];
+    if (mapped && mapped.nomeOrgao) {
+      nomeOrgao = mapped.nomeOrgao;
+      artigo = mapped.artigo;
+    }
+  }
+
+  // Fallback
+  if (!nomeOrgao) {
+    nomeOrgao = secretaria ? `Secretaria Municipal de ${normalizeSecretariaNome(secretaria)}` : 'Secretaria';
+    artigo = 'a';
+  }
+
+  return `Assim, encaminha-se o presente para apreciação d${artigo} ${nomeOrgao}, solicitando-se a análise do pleito e a manifestação quanto à sua viabilidade, bem como a indicação de eventual previsão para execução do serviço.`;
+}
+
+/** Lista de todos os vocativos únicos disponíveis no sistema */
+export const LISTA_VOCATIVOS: string[] = Array.from(
+  new Set(Object.values(SECRETARIAS_CONFIG).map(c => c.vocativo))
+).sort();
+
 // ═══════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════
