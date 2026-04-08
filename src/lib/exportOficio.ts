@@ -18,6 +18,126 @@ const ASSINATURA_ALTURA = 113;  // ~3cm proportional
 import { generateOperatorCode, formatDateOficio as formatDate, cleanNumero, getDestinatario, getVocativo, extrairBairro } from "@/lib/oficioUtils";
 export { generateOperatorCode };
 
+// ── Detecção e remoção de conteúdo duplicado ────────────────────────────────
+export interface DuplicataInfo {
+  campo: string;
+  trecho: string;
+}
+
+/**
+ * Detecta trechos no corpo do ofício que seriam duplicados pela exportação
+ * (vocativo, destinatário, assunto, encerramento, "Atenciosamente").
+ */
+export function detectConteudoDuplicado(conteudo: string, data: Partial<OficioData>): DuplicataInfo[] {
+  if (!conteudo) return [];
+  const found: DuplicataInfo[] = [];
+  const plain = conteudo.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+  // Vocativo duplicado no corpo
+  const vocativo = data.vocativo || (data.secretaria ? getVocativo(data.secretaria) : "");
+  if (vocativo) {
+    const vocClean = vocativo.replace(/[(),]/g, "").trim().split(/\s+/).slice(0, 3).join(" ");
+    if (vocClean.length > 5 && plain.includes(vocClean)) {
+      found.push({ campo: "Vocativo", trecho: vocativo });
+    }
+  }
+
+  // Destinatário duplicado
+  const dest = (data.cargoDestinatario || data.destinatario || "").replace(/<[^>]*>/g, "").trim();
+  if (dest.length > 10) {
+    const destWords = dest.split(/\s+/).slice(0, 4).join(" ");
+    if (plain.includes(destWords)) {
+      found.push({ campo: "Destinatário", trecho: dest.substring(0, 80) });
+    }
+  }
+
+  // Assunto duplicado
+  const assunto = (data.assunto || "").replace(/<[^>]*>/g, "").trim();
+  if (assunto.length > 15) {
+    const assuntoWords = assunto.split(/\s+/).slice(0, 5).join(" ");
+    if (plain.includes(assuntoWords)) {
+      found.push({ campo: "Assunto", trecho: assunto.substring(0, 80) });
+    }
+  }
+
+  // Encerramento / fechamento duplicado
+  const fechamento = data.fechamento || "Atenciosamente,";
+  if (plain.includes("Atenciosamente") || plain.includes("atenciosamente")) {
+    found.push({ campo: "Fechamento", trecho: "Atenciosamente" });
+  }
+  if (plain.includes("FABÃO") || plain.includes("Fabão")) {
+    found.push({ campo: "Assinatura", trecho: "FABÃO / Vereador" });
+  }
+
+  // "Ofício GVF" reference in body
+  if (/Of[ií]cio\s+GVF/i.test(plain)) {
+    found.push({ campo: "Número do Ofício", trecho: "Ofício GVF n°..." });
+  }
+
+  return found;
+}
+
+/**
+ * Remove do HTML do corpo trechos que seriam duplicados pela exportação.
+ */
+function sanitizeConteudoParaExport(html: string, data: Partial<OficioData>): string {
+  if (!html) return html;
+
+  const root = document.createElement("div");
+  root.innerHTML = html;
+  const paragraphs = root.querySelectorAll("p, div, li, h1, h2, h3, h4, h5, h6, blockquote");
+
+  const vocativo = data.vocativo || (data.secretaria ? getVocativo(data.secretaria) : "");
+  const vocClean = vocativo ? vocativo.replace(/[(),]/g, "").trim().split(/\s+/).slice(0, 3).join(" ") : "";
+
+  const toRemove: Element[] = [];
+
+  paragraphs.forEach((p) => {
+    const text = (p.textContent || "").replace(/\s+/g, " ").trim();
+    if (!text) return;
+
+    // Remove vocativo duplicado
+    if (vocClean.length > 5 && text.includes(vocClean) && text.length < vocativo.length + 30) {
+      toRemove.push(p);
+      return;
+    }
+
+    // Remove "Atenciosamente" e variações no corpo
+    if (/^Atenciosamente[,.]?\s*$/i.test(text)) {
+      toRemove.push(p);
+      return;
+    }
+
+    // Remove "FABÃO" / "Vereador" standalone lines
+    if (/^FAB[AÃ]O$/i.test(text) || /^Vereador$/i.test(text)) {
+      toRemove.push(p);
+      return;
+    }
+
+    // Remove "Ofício GVF n°..." standalone
+    if (/^Of[ií]cio\s+GVF\s+n[°º]/i.test(text) && text.length < 40) {
+      toRemove.push(p);
+      return;
+    }
+
+    // Remove "DESTINATÁRIO:" standalone
+    if (/^DESTINAT[AÁ]RIO\s*:/i.test(text) && text.length < 120) {
+      toRemove.push(p);
+      return;
+    }
+
+    // Remove "ASSUNTO:" standalone
+    if (/^ASSUNTO\s*:/i.test(text) && text.length < 120) {
+      toRemove.push(p);
+      return;
+    }
+  });
+
+  toRemove.forEach((el) => el.remove());
+
+  return root.innerHTML;
+}
+
 function buildFileName(numero: string, solicitante?: string, codigoZ?: string, contatoSolicitante?: string, origem?: string): string {
   const cleanedNumero = cleanNumero(numero || "");
   const numPart = cleanedNumero.replace(/\//, '-').replace(/[^0-9a-zA-Z\-\s]/g, '').trim() || 'rascunho';
@@ -440,11 +560,15 @@ async function getAuthToken(): Promise<string> {
 // cleanNumero imported from oficioUtils
 
 async function buildWordBlob(data: OficioData): Promise<Blob> {
+  // Sanitizar conteúdo para remover duplicatas antes de montar o documento
+  const conteudoSanitizado = sanitizeConteudoParaExport(data.conteudo || "", data);
+  
   const {
-    numero, destinatario, assunto, conteudo,
+    numero, destinatario, assunto,
     bairro, cargoDestinatario, dataGeracao,
     operadorNome, operadorEmail,
   } = data;
+  const conteudo = conteudoSanitizado;
 
   const [logoCamaraBytes, logoFabaoBytes, assinaturaBytes] = await Promise.all([
     fetchImageBytes(logoCamaraSrc),
@@ -868,7 +992,21 @@ export async function buildWordBlobForExport(data: OficioData): Promise<Blob> {
 export { buildFileName };
 
 
+// ── Callback para avisar operador sobre duplicatas ──────────────────────────
+let _onDuplicataDetected: ((items: DuplicataInfo[]) => void) | null = null;
+export function setOnDuplicataDetected(cb: ((items: DuplicataInfo[]) => void) | null) {
+  _onDuplicataDetected = cb;
+}
+
+function notifyDuplicatas(data: OficioData) {
+  const dups = detectConteudoDuplicado(data.conteudo || "", data);
+  if (dups.length > 0 && _onDuplicataDetected) {
+    _onDuplicataDetected(dups);
+  }
+}
+
 export async function exportToWord(data: OficioData): Promise<Blob> {
+  notifyDuplicatas(data);
   let blob = await buildWordBlob(data);
 
   if (data.imagens && data.imagens.length > 0) {
@@ -896,6 +1034,7 @@ async function autoUpdateStatus(oficioId?: string, newStatus = "Exportado") {
 
 // ── Export PDF ───────────────────────────────────────────────────────────────
 export async function exportToPDF(data: OficioData): Promise<void> {
+  notifyDuplicatas(data);
   const fileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
 
   // Build Word WITH images embedded via edge function

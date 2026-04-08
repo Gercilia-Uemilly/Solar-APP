@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import NotificationBell from "@/components/NotificationBell";
 import LembreteBell from "@/components/LembreteBell";
+import { setOnDuplicataDetected, type DuplicataInfo } from "@/lib/exportOficio";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -50,6 +51,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isMobile) setMobileOpen(false);
   }, [children]);
+
+  // Registrar callback global para avisar sobre duplicatas na exportação
+  useEffect(() => {
+    setOnDuplicataDetected((dups: DuplicataInfo[]) => {
+      const campos = dups.map(d => d.campo).join(", ");
+      toast.warning("Duplicatas removidas automaticamente", {
+        description: `Os seguintes campos estavam duplicados no corpo e foram removidos da exportação: ${campos}. Revise o conteúdo do ofício para evitar repetições.`,
+        duration: 8000,
+      });
+    });
+    return () => setOnDuplicataDetected(null);
+  }, []);
 
   // Cache profiles for notification names
   const [notifProfiles, setNotifProfiles] = useState<Record<string, string>>({});
