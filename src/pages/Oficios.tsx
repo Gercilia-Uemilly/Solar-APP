@@ -610,8 +610,8 @@ export default function Oficios() {
     const fullNumero = previewSnapshot.numero || numero || null;
     const payload: Record<string, any> = {
       numero: fullNumero,
-      assunto: previewSnapshot.assunto || aiResult?.tipo_demanda || "Sem assunto",
-      destinatario: previewSnapshot.destinatario || "",
+      assunto: cleanAssuntoPrefix(previewSnapshot.assunto || aiResult?.tipo_demanda || "Sem assunto"),
+      destinatario: (previewSnapshot.destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
       
       conteudo: editedOficio || null,
       resposta_cidadao: null,
