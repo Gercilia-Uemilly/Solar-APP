@@ -109,6 +109,7 @@ Responda APENAS o JSON array, sem markdown.`;
         .from("base_conhecimento")
         .update({
           titulo: (cls.titulo || "").slice(0, 200),
+          descricao: (cls.descricao || "").slice(0, 500) || undefined,
           categoria: cls.tema || "Outro",
           palavras_chave: cls.tags || [],
         })
