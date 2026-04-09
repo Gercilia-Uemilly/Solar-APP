@@ -67,15 +67,20 @@ Deno.serve(async (req) => {
 
     const linksData = entries.map((e: any, i: number) => {
       const tipo = e.link?.includes("/reel/") ? "Reel" : "Post";
-      return `${i + 1}. [${tipo}] ${e.link}`;
+      const desc = e.descricao ? ` | Legenda: "${e.descricao.slice(0, 300)}"` : "";
+      return `${i + 1}. [${tipo}] ${e.link}${desc}`;
     }).join("\n");
 
     const systemPrompt = `Você classifica posts do Instagram do vereador Fabão (Uberlândia/MG).
-Para cada link, gere um título descritivo com emoji e classifique o tema e tags.
+Para cada link, gere:
+- Um título curto e descritivo com emoji (max 100 chars)
+- Uma descrição/legenda resumida do conteúdo do post (max 300 chars). Se já houver legenda, resuma-a. Se não houver, crie uma descrição baseada no link e tipo.
+- O tema principal
+- Tags relevantes
 
 Temas possíveis: Saúde, Educação, Transporte, Segurança, Infraestrutura, Meio Ambiente, Social, Cultura, Esporte, Político, Comunicado, Agradecimento, Evento, Conquista, Outro.
 
-Responda com um JSON array. Cada item: {"index": N, "titulo": "...", "tema": "...", "tags": ["...", "..."]}
+Responda com um JSON array. Cada item: {"index": N, "titulo": "...", "descricao": "...", "tema": "...", "tags": ["...", "..."]}
 Responda APENAS o JSON array, sem markdown.`;
 
     const { systemInstruction, messages } = toGeminiMessages(systemPrompt, `Classifique estes ${entries.length} posts:\n${linksData}`);
@@ -104,6 +109,7 @@ Responda APENAS o JSON array, sem markdown.`;
         .from("base_conhecimento")
         .update({
           titulo: (cls.titulo || "").slice(0, 200),
+          descricao: (cls.descricao || "").slice(0, 500) || undefined,
           categoria: cls.tema || "Outro",
           palavras_chave: cls.tags || [],
         })
