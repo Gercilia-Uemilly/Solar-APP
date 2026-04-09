@@ -340,7 +340,12 @@ serve(async (req) => {
 
         if (!scrapeResp.ok) {
           const err = await scrapeResp.text();
-          throw new Error(`Firecrawl scrape failed: ${err}`);
+          console.error("Firecrawl single post error:", err);
+          // Instagram not supported by Firecrawl - return fallback
+          return new Response(
+            JSON.stringify({ success: false, error: "Instagram não é suportado pelo Firecrawl. Use a importação manual de links na aba Clipping.", fallback: true }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
 
         const scrapeData = await scrapeResp.json();
@@ -379,7 +384,11 @@ serve(async (req) => {
 
       if (!scrapeResp.ok) {
         const err = await scrapeResp.text();
-        throw new Error(`Firecrawl scrape failed: ${err}`);
+        console.error("Firecrawl profile error:", err);
+        return new Response(
+          JSON.stringify({ success: false, error: "Instagram não é suportado pelo Firecrawl. Use a importação manual de links na aba Clipping.", fallback: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       const scrapeData = await scrapeResp.json();
