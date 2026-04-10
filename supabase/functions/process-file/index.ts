@@ -7,19 +7,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// OpenAI Vision for images only
-async function callOpenAIVision(base64: string, mimeType: string, prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+// Vision via Lovable AI Gateway (Gemini supports more image formats)
+async function callVision(base64: string, mimeType: string, prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+
+  const response = await fetch(LOVABLE_AI_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "google/gemini-2.5-flash",
       messages: [
         {
           role: "user",
@@ -35,16 +37,17 @@ async function callOpenAIVision(base64: string, mimeType: string, prompt: string
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error("OpenAI Vision error:", response.status, errText);
+    console.error("Vision error:", response.status, errText);
     if (response.status === 429) throw Object.assign(new Error("Limite de requisições excedido."), { status: 429 });
-    throw Object.assign(new Error(`Erro OpenAI Vision: ${response.status}`), { status: response.status });
+    if (response.status === 402) throw Object.assign(new Error("Créditos insuficientes."), { status: 402 });
+    throw Object.assign(new Error(`Erro Vision: ${response.status}`), { status: response.status });
   }
 
   const data = await response.json();
   return data.choices?.[0]?.message?.content || "";
 }
 
-// OpenAI Whisper for audio transcription
+// Whisper for audio transcription (stays with OpenAI)
 async function callWhisper(file: File): Promise<string> {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
@@ -71,19 +74,19 @@ async function callWhisper(file: File): Promise<string> {
   return await response.text();
 }
 
-// After Whisper transcription, use GPT to organize for ofício
+// Organize transcription with Lovable AI
 async function organizeTranscription(transcription: string, mediaType: string): Promise<string> {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) return transcription;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch(LOVABLE_AI_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "google/gemini-2.5-flash-lite",
       messages: [
         {
           role: "system",
@@ -91,20 +94,7 @@ async function organizeTranscription(transcription: string, mediaType: string): 
         },
         {
           role: "user",
-          content: `Organize esta transcrição de ${mediaType} para criar um ofício legislativo municipal.
-
-TRANSCRIÇÃO:
-${transcription}
-
-Retorne no formato:
-TRANSCRIÇÃO:
-[transcrição limpa e organizada]
-
-RESUMO PARA OFÍCIO:
-- Demanda/problema relatado
-- Localização mencionada (ruas, bairros)
-- Nome do solicitante (se mencionado)
-- Detalhes específicos do problema`,
+          content: `Organize esta transcrição de ${mediaType} para criar um ofício legislativo municipal.\n\nTRANSCRIÇÃO:\n${transcription}\n\nRetorne no formato:\nTRANSCRIÇÃO:\n[transcrição limpa e organizada]\n\nRESUMO PARA OFÍCIO:\n- Demanda/problema relatado\n- Localização mencionada (ruas, bairros)\n- Nome do solicitante (se mencionado)\n- Detalhes específicos do problema`,
         },
       ],
       max_tokens: 4096,
@@ -112,9 +102,7 @@ RESUMO PARA OFÍCIO:
   });
 
   if (!response.ok) {
-    const errText = await response.text();
-    console.error("GPT organize error:", response.status, errText);
-    // Fallback: return raw transcription
+    console.error("Organize error:", response.status);
     return `TRANSCRIÇÃO:\n${transcription}`;
   }
 
@@ -133,14 +121,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-    let userId: string;
     try {
       const token = authHeader.replace("Bearer ", "");
       const { data: claimsData, error: claimsErr } = await _sb.auth.getClaims(token);
       if (claimsErr || !claimsData?.claims?.sub) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      userId = claimsData.claims.sub as string;
     } catch {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -164,13 +150,10 @@ serve(async (req) => {
     let resultText: string;
 
     if (fileType === "audio" || fileType === "video") {
-      // Use Whisper API for audio/video transcription
       try {
         const transcription = await callWhisper(file);
-        // Then organize with GPT
         resultText = await organizeTranscription(transcription, fileType === "video" ? "vídeo" : "áudio");
       } catch (err: any) {
-        // Friendly fallback for media types not accepted by Whisper
         if (fileType === "video") {
           const msg = err?.message || "Não foi possível transcrever o vídeo automaticamente.";
           resultText = `Não foi possível transcrever este vídeo automaticamente (${msg}).\n\nDica: envie o áudio extraído do vídeo (mp3/m4a/wav) para melhor resultado.`;
@@ -179,7 +162,7 @@ serve(async (req) => {
         }
       }
     } else {
-      // Images: use OpenAI Vision
+      // Images: use Lovable AI Gateway (Gemini) — supports HEIC, AVIF, etc.
       const bytes = new Uint8Array(await file.arrayBuffer());
       let binary = "";
       const chunkSize = 8192;
@@ -187,7 +170,7 @@ serve(async (req) => {
         binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
       }
       const base64 = btoa(binary);
-      const mimeType = file.type?.startsWith("image/") ? file.type : "image/jpeg";
+      const mimeType = file.type || "image/jpeg";
 
       const prompt = `Analise esta imagem e extraia TODAS as informações relevantes para a criação de um ofício legislativo municipal.
 
@@ -199,7 +182,7 @@ Foque em:
 
 Retorne um texto descritivo claro e objetivo com todas as informações extraídas. Se houver texto legível na imagem, transcreva-o integralmente.`;
 
-      resultText = await callOpenAIVision(base64, mimeType, prompt);
+      resultText = await callVision(base64, mimeType, prompt);
     }
 
     return new Response(
