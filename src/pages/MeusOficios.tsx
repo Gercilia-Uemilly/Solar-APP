@@ -658,7 +658,7 @@ export default function MeusOficios() {
     setCurrentPage(1);
   };
 
-  const statusFinalizados = ["Protocolado", "Respondido", "Atendido", "Impresso", "Exportado", "Salvo no Drive"];
+  const statusFinalizados = ["Protocolado", "Respondido", "Atendido", "Impresso"];
   const finalizados = filtered.filter(o => statusFinalizados.includes(o.status));
   const rascunhos = filtered.filter(o => !statusFinalizados.includes(o.status));
   const listaCompleta = abaAtiva === "todos" ? filtered : abaAtiva === "rascunhos" ? rascunhos : finalizados;
