@@ -850,7 +850,7 @@ export default function Oficios() {
             linha_telefonica: linhaTelefonica || null,
             codigo_z: codigoZ || null,
           };
-          await supabase.from("oficios").insert(payload);
+          await supabase.from("oficios").insert([payload] as any);
           toast({ title: "📝 Rascunho salvo automaticamente", description: `Ofício ${numero} salvo como rascunho.` });
         } catch {
           // Silent fail
