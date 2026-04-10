@@ -517,17 +517,51 @@ export default function BancoInformacoes() {
           if (!upErr) { const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath); audioUrl = urlData.publicUrl; }
           await supabase.from("base_conhecimento" as any).insert({ titulo: `🎤 ${file.name.replace(/\.[^.]+$/, "")}`, descricao: extractedText.substring(0, 2000), fonte: "Upload", categoria: "Áudio", link: audioUrl || null, modelo: true });
           toast({ title: `Áudio "${file.name}" transcrito!` }); continue;
+        } else if (["txt", "md"].includes(ext)) {
+          extractedText = await file.text();
         }
-        if (extractedText) {
-          const titulo = extractedText.substring(0, 80).replace(/\n/g, " ").trim() || file.name;
-          await supabase.from("base_conhecimento" as any).insert({ titulo, descricao: extractedText.substring(0, 2000), fonte: "Upload", categoria: `Upload ${ext.toUpperCase()}`, link: null });
-          toast({ title: `Arquivo "${file.name}" processado!` });
+        if (extractedText && user) {
+          // Use AI to classify and generate title/category, then save as script
+          let titulo = file.name.replace(/\.[^.]+$/, "");
+          let categoria = "Geral";
+          let tags: string[] = [];
+          let conteudo = extractedText.substring(0, 5000);
+          try {
+            const { data: classData } = await supabase.functions.invoke("classificar-conteudo", {
+              body: { conteudo: extractedText.substring(0, 3000), tipo: `arquivo ${ext.toUpperCase()}` },
+            });
+            if (classData) {
+              titulo = classData.assunto || classData.titulo || titulo;
+              categoria = classData.categoria || categoria;
+              tags = classData.tags || tags;
+            }
+          } catch {
+            // fallback: use file name as title
+          }
+          // Save as script
+          const { error: scriptErr } = await supabase.from("scripts").insert({
+            titulo,
+            conteudo,
+            categoria,
+            tags,
+            author_id: user.id,
+          });
+          if (scriptErr) throw scriptErr;
+          // Also save to base_conhecimento for reference
+          await supabase.from("base_conhecimento" as any).insert({
+            titulo,
+            descricao: extractedText.substring(0, 2000),
+            fonte: "Upload",
+            categoria: `Upload ${ext.toUpperCase()}`,
+            link: null,
+          });
+          toast({ title: `"${file.name}" classificado e salvo como script!`, description: `Categoria: ${categoria}` });
         }
       } catch (err: any) {
         toast({ title: `Erro em "${file.name}"`, description: err.message, variant: "destructive" });
       }
     }
-    setUploadingFile(false); await refreshKnowledgeViews();
+    setUploadingFile(false); await refreshKnowledgeViews(); await fetchScripts();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
