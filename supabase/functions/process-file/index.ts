@@ -149,18 +149,70 @@ serve(async (req) => {
 
     let resultText: string;
 
-    if (fileType === "audio" || fileType === "video") {
-      try {
-        const transcription = await callWhisper(file);
-        resultText = await organizeTranscription(transcription, fileType === "video" ? "vídeo" : "áudio");
-      } catch (err: any) {
-        if (fileType === "video") {
-          const msg = err?.message || "Não foi possível transcrever o vídeo automaticamente.";
-          resultText = `Não foi possível transcrever este vídeo automaticamente (${msg}).\n\nDica: envie o áudio extraído do vídeo (mp3/m4a/wav) para melhor resultado.`;
-        } else {
-          throw err;
-        }
+    if (fileType === "video") {
+      // Use Gemini for video transcription — avoids Whisper 413 payload limit
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
       }
+      const base64 = btoa(binary);
+      const mimeType = file.type || "video/mp4";
+
+      const apiKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+
+      const response = await fetch(LOVABLE_AI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
+                {
+                  type: "text",
+                  text: `Transcreva TODO o áudio/fala deste vídeo em português. Depois, descreva o que aparece visualmente.
+
+Retorne no formato:
+TRANSCRIÇÃO:
+[transcrição completa da fala]
+
+DESCRIÇÃO VISUAL:
+- Problemas urbanos visíveis (buracos, lixo, esgoto, iluminação, etc.)
+- Localização (ruas, bairros, referências)
+- Condições gerais da situação filmada
+
+RESUMO PARA OFÍCIO:
+- Demanda/problema relatado
+- Localização mencionada
+- Nome do solicitante (se mencionado)
+- Detalhes específicos`,
+                },
+              ],
+            },
+          ],
+          max_tokens: 8192,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Gemini video error:", response.status, errText);
+        throw Object.assign(new Error(`Erro ao processar vídeo: ${response.status}`), { status: response.status });
+      }
+
+      const data = await response.json();
+      resultText = data.choices?.[0]?.message?.content || "Não foi possível processar o vídeo.";
+    } else if (fileType === "audio") {
+      const transcription = await callWhisper(file);
+      resultText = await organizeTranscription(transcription, "áudio");
     } else {
       // Images: use Lovable AI Gateway (Gemini) — supports HEIC, AVIF, etc.
       const bytes = new Uint8Array(await file.arrayBuffer());
