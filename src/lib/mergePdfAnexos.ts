@@ -158,17 +158,19 @@ function calculateSlots(
 }
 
 /**
- * Draw an image filling the slot uniformly (cover behavior).
- * Scale to fill, center-crop overflow.
+ * Draw an image in a slot.
+ * - contain mode: fit entirely (no crop), preserving aspect ratio
+ * - cover mode: fill the slot, center-cropping overflow
  */
-function drawImageCover(
+function drawImageInSlot(
   page: ReturnType<PDFDocument["addPage"]>,
   img: Awaited<ReturnType<PDFDocument["embedJpg"]>>,
-  slot: Slot
+  slot: Slot,
+  mode: "contain" | "cover" = "cover"
 ) {
   const scaleX = slot.w / img.width;
   const scaleY = slot.h / img.height;
-  const scale = Math.max(scaleX, scaleY);
+  const scale = mode === "contain" ? Math.min(scaleX, scaleY) : Math.max(scaleX, scaleY);
 
   const drawW = img.width * scale;
   const drawH = img.height * scale;
@@ -208,7 +210,7 @@ async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
     const imgDims = embeddedImages.map(img => ({ width: img.width, height: img.height }));
     const slots = calculateSlots(imgDims);
     for (let i = 0; i < total; i++) {
-      drawImageCover(page, embeddedImages[i], slots[i]);
+      drawImageInSlot(page, embeddedImages[i], slots[i], total === 1 ? "contain" : "cover");
     }
   } else {
     // Multiple pages, 4 images per page
@@ -221,7 +223,7 @@ async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
       const imgDims = pageImages.map(img => ({ width: img.width, height: img.height }));
       const slots = calculateSlots(imgDims);
       for (let i = 0; i < onThisPage; i++) {
-        drawImageCover(page, pageImages[i], slots[i]);
+        drawImageInSlot(page, pageImages[i], slots[i], "cover");
       }
       idx += onThisPage;
     }
