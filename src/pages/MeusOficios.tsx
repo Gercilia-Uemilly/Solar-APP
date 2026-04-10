@@ -939,6 +939,7 @@ export default function MeusOficios() {
                             {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
                           </button>
                         )}
+                        <button onClick={() => { setUploadPreSelectedId(o.id); setShowUploadModal(true); }} className="p-2 text-muted-foreground hover:text-primary" title="Subir versão editada"><Upload size={16} /></button>
                         <button onClick={() => handleDelete(o.id)} className="p-2 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
                       </>
                     )}
