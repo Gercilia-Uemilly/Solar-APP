@@ -158,17 +158,19 @@ function calculateSlots(
 }
 
 /**
- * Draw an image filling the slot uniformly (cover behavior).
- * Scale to fill, center-crop overflow.
+ * Draw an image in a slot.
+ * - contain mode: fit entirely (no crop), preserving aspect ratio
+ * - cover mode: fill the slot, center-cropping overflow
  */
-function drawImageCover(
+function drawImageInSlot(
   page: ReturnType<PDFDocument["addPage"]>,
   img: Awaited<ReturnType<PDFDocument["embedJpg"]>>,
-  slot: Slot
+  slot: Slot,
+  mode: "contain" | "cover" = "cover"
 ) {
   const scaleX = slot.w / img.width;
   const scaleY = slot.h / img.height;
-  const scale = Math.max(scaleX, scaleY);
+  const scale = mode === "contain" ? Math.min(scaleX, scaleY) : Math.max(scaleX, scaleY);
 
   const drawW = img.width * scale;
   const drawH = img.height * scale;
