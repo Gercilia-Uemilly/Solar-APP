@@ -692,6 +692,9 @@ export default function MeusOficios() {
           <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
             <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
           </Button>
+          <Button className="gap-1" onClick={() => { setUploadPreSelectedId(null); setShowUploadModal(true); }}>
+            <Upload size={16} /> Subir Ofício
+          </Button>
         </div>
       </div>
 
