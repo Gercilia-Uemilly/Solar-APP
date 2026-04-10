@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ptBR } from "date-fns/locale";
 import { PDFDocument } from "pdf-lib";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown, Package, SearchCheck } from "lucide-react";
+import { Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown, Package, SearchCheck, Upload } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
@@ -26,6 +26,7 @@ import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import VersionHistoryDialog from "@/components/VersionHistoryDialog";
 import { saveBackupBeforeEdit } from "@/lib/oficioBackup";
+import UploadOficioModal from "@/components/UploadOficioModal";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -55,6 +56,7 @@ export default function MeusOficios() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
@@ -72,6 +74,8 @@ export default function MeusOficios() {
   const isEspecial = (o: OficioRow) => TIPOS_ESPECIAIS.some(t => (o.assunto || "").toLowerCase().includes(t.toLowerCase()) || ((o as any).tipo_demanda || "").toLowerCase().includes(t.toLowerCase()));
   const { revisaoResult, revisaoLoading, revisaoOpen, setRevisaoOpen, revisarOficio, resetRevisao } = useRevisaoOficio();
   const [pendingExportAction, setPendingExportAction] = useState<(() => void) | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadPreSelectedId, setUploadPreSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -117,6 +121,14 @@ export default function MeusOficios() {
       if (inlineFieldSaveTimerRef.current) clearTimeout(inlineFieldSaveTimerRef.current);
     };
   }, []);
+
+  // Auto-open upload modal from sidebar link
+  useEffect(() => {
+    if (searchParams.get("upload") === "1") {
+      setShowUploadModal(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     return () => {
@@ -689,6 +701,9 @@ export default function MeusOficios() {
           <Button variant="outline" className="border-border text-foreground" onClick={() => exportToCSV(filtered as any)}>
             <FileSpreadsheet size={16} className="mr-2" /> Exportar Lista CSV
           </Button>
+          <Button className="gap-1" onClick={() => { setUploadPreSelectedId(null); setShowUploadModal(true); }}>
+            <Upload size={16} /> Subir Ofício
+          </Button>
         </div>
       </div>
 
@@ -826,7 +841,15 @@ export default function MeusOficios() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
-                <TableCell>{o.assunto || "-"}</TableCell>
+                <TableCell>
+                  <span>{o.assunto || "-"}</span>
+                  {(o as any).versao === "externo" && (
+                    <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30">📄 Externo</span>
+                  )}
+                  {(o as any).versao === "misto" && (
+                    <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-700 dark:text-sky-400 border border-sky-500/30">🔄 Versões</span>
+                  )}
+                </TableCell>
                 <TableCell>{o.destinatario}</TableCell>
                 <TableCell>
                   <div>
@@ -925,6 +948,7 @@ export default function MeusOficios() {
                             {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
                           </button>
                         )}
+                        <button onClick={() => { setUploadPreSelectedId(o.id); setShowUploadModal(true); }} className="p-2 text-muted-foreground hover:text-primary" title="Subir versão editada"><Upload size={16} /></button>
                         <button onClick={() => handleDelete(o.id)} className="p-2 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
                       </>
                     )}
@@ -1157,6 +1181,14 @@ export default function MeusOficios() {
             setPendingExportAction(null);
           }
         }}
+      />
+
+      <UploadOficioModal
+        open={showUploadModal}
+        onOpenChange={setShowUploadModal}
+        oficios={oficios.map(o => ({ id: o.id, numero: o.numero, assunto: o.assunto, destinatario: o.destinatario }))}
+        preSelectedOficioId={uploadPreSelectedId}
+        onSuccess={fetchOficios}
       />
     </div>
   );

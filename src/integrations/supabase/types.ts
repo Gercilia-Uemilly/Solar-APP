@@ -465,6 +465,11 @@ export type Database = {
       oficios: {
         Row: {
           ano: number | null
+          arquivo_externo_at: string | null
+          arquivo_externo_nome: string | null
+          arquivo_externo_por: string | null
+          arquivo_externo_tipo: string | null
+          arquivo_externo_url: string | null
           assunto: string
           author_id: string
           bairro: string | null
@@ -502,9 +507,15 @@ export type Database = {
           uploaded_by_email: string | null
           uploaded_by_name: string | null
           urgencia: string | null
+          versao: string | null
         }
         Insert: {
           ano?: number | null
+          arquivo_externo_at?: string | null
+          arquivo_externo_nome?: string | null
+          arquivo_externo_por?: string | null
+          arquivo_externo_tipo?: string | null
+          arquivo_externo_url?: string | null
           assunto?: string
           author_id: string
           bairro?: string | null
@@ -542,9 +553,15 @@ export type Database = {
           uploaded_by_email?: string | null
           uploaded_by_name?: string | null
           urgencia?: string | null
+          versao?: string | null
         }
         Update: {
           ano?: number | null
+          arquivo_externo_at?: string | null
+          arquivo_externo_nome?: string | null
+          arquivo_externo_por?: string | null
+          arquivo_externo_tipo?: string | null
+          arquivo_externo_url?: string | null
           assunto?: string
           author_id?: string
           bairro?: string | null
@@ -582,6 +599,7 @@ export type Database = {
           uploaded_by_email?: string | null
           uploaded_by_name?: string | null
           urgencia?: string | null
+          versao?: string | null
         }
         Relationships: []
       }
@@ -881,6 +899,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      versoes_oficio: {
+        Row: {
+          arquivo_nome: string
+          arquivo_tipo: string | null
+          arquivo_url: string
+          criado_em: string
+          criado_por: string
+          criado_por_nome: string | null
+          descricao: string | null
+          id: string
+          oficio_id: string
+        }
+        Insert: {
+          arquivo_nome: string
+          arquivo_tipo?: string | null
+          arquivo_url: string
+          criado_em?: string
+          criado_por: string
+          criado_por_nome?: string | null
+          descricao?: string | null
+          id?: string
+          oficio_id: string
+        }
+        Update: {
+          arquivo_nome?: string
+          arquivo_tipo?: string | null
+          arquivo_url?: string
+          criado_em?: string
+          criado_por?: string
+          criado_por_nome?: string | null
+          descricao?: string | null
+          id?: string
+          oficio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "versoes_oficio_oficio_id_fkey"
+            columns: ["oficio_id"]
+            isOneToOne: false
+            referencedRelation: "oficios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_connections: {
         Row: {

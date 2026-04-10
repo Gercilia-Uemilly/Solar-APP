@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
   Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
-  Smartphone, MessagesSquare, BookOpen, Hash, Trash2, DatabaseBackup, Bell
+  Smartphone, MessagesSquare, BookOpen, Hash, Trash2, DatabaseBackup, Bell, Upload
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,7 @@ const menuSections = [
       { label: "Painel", icon: LayoutDashboard, path: "/", adminOnly: false },
       { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false, action: "openNew" },
       { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
+      { label: "Subir Ofício", icon: Upload, path: "/meus-oficios?upload=1", adminOnly: false },
       { label: "Modelos", icon: BookOpen, path: "/modelos", adminOnly: false },
       { label: "Numeração", icon: Hash, path: "/numeracao", adminOnly: false },
     ],
