@@ -819,6 +819,60 @@ export default function Oficios() {
     void registrarAuditoria("deletar", { tabela: "oficios", id, numero: numLabel });
     toast({ title: "Ofício movido para a lixeira" });
   };
+  // ── Auto-save as draft or release number on dialog close ──────────────
+  const handleDialogClose = async () => {
+    const hasContent = !!(editedOficio?.trim() || descricao?.trim() || assunto?.trim() || solicitante?.trim());
+
+    if (!editingOficioId && numero && user) {
+      if (hasContent) {
+        // Auto-save as draft
+        try {
+          const previewSnapshot = getPreviewEditableSnapshot();
+          const payload: Record<string, any> = {
+            numero: previewSnapshot.numero || numero || null,
+            assunto: cleanAssuntoPrefix(previewSnapshot.assunto || assunto || "Rascunho"),
+            destinatario: (previewSnapshot.destinatario || destinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim(),
+            conteudo: editedOficio || null,
+            secretaria_identificada: secretaria || null,
+            tipo_demanda: secretaria || null,
+            urgencia: prioridade === "Urgente" ? "urgente" : "normal",
+            cargo_destinatario: (previewSnapshot.cargoDestinatario || cargoDestinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim() || null,
+            local_demanda: localDemanda || null,
+            bairro: enderecoCompleto || bairro || null,
+            endereco_completo: enderecoCompleto || null,
+            solicitante: solicitante || null,
+            contato_solicitante: contatoSolicitante || null,
+            data_geracao: dataGeracao || null,
+            operador_nome: profileName || user.user_metadata?.full_name || user.email || null,
+            author_id: user.id,
+            status: "Rascunho",
+            origem: origemOficio || "Outros",
+            linha_telefonica: linhaTelefonica || null,
+            codigo_z: codigoZ || null,
+          };
+          await supabase.from("oficios").insert([payload] as any);
+          toast({ title: "📝 Rascunho salvo automaticamente", description: `Ofício ${numero} salvo como rascunho.` });
+        } catch {
+          // Silent fail
+        }
+      } else {
+        // No content — release the reserved number
+        try {
+          const numMatch = numero.match(/^(\d+)/);
+          if (numMatch) {
+            const numInt = parseInt(numMatch[1], 10);
+            const ano = new Date().getFullYear();
+            await supabase.rpc("liberar_numero", { p_numero: numInt, p_ano: ano, p_user_id: user.id });
+          }
+        } catch {
+          // Silent fail
+        }
+      }
+    }
+
+    resetForm();
+    fetchOficios();
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -1187,7 +1241,7 @@ export default function Oficios() {
       </div>
 
       {/* Create Dialog with Tabs */}
-      <Dialog open={showDialog} onOpenChange={open => { if (!open) resetForm(); else setShowDialog(true); }}>
+      <Dialog open={showDialog} onOpenChange={open => { if (!open) handleDialogClose(); else setShowDialog(true); }}>
         <DialogContent className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-3 sm:p-6">
           <DialogHeader className="flex flex-row items-center justify-between">
             <div>
