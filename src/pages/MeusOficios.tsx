@@ -122,6 +122,14 @@ export default function MeusOficios() {
     };
   }, []);
 
+  // Auto-open upload modal from sidebar link
+  useEffect(() => {
+    if (searchParams.get("upload") === "1") {
+      setShowUploadModal(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   useEffect(() => {
     return () => {
       previewAnexoUrls.forEach((url) => {
