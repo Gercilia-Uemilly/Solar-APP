@@ -661,7 +661,9 @@ export default function MeusOficios() {
   const statusFinalizados = ["Protocolado", "Respondido", "Atendido", "Impresso"];
   const finalizados = filtered.filter(o => statusFinalizados.includes(o.status));
   const rascunhos = filtered.filter(o => !statusFinalizados.includes(o.status));
-  const listaCompleta = abaAtiva === "rascunhos" ? rascunhos : finalizados;
+  // Se há busca ativa, mostra todos os resultados independente da aba
+  const hasBusca = search.trim().length > 0;
+  const listaCompleta = hasBusca ? filtered : (abaAtiva === "rascunhos" ? rascunhos : finalizados);
   const totalPages = Math.max(1, Math.ceil(listaCompleta.length / ITEMS_PER_PAGE));
   const listaExibida = listaCompleta.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
