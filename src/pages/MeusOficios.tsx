@@ -832,7 +832,15 @@ export default function MeusOficios() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
-                <TableCell>{o.assunto || "-"}</TableCell>
+                <TableCell>
+                  <span>{o.assunto || "-"}</span>
+                  {(o as any).versao === "externo" && (
+                    <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30">📄 Externo</span>
+                  )}
+                  {(o as any).versao === "misto" && (
+                    <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-700 dark:text-sky-400 border border-sky-500/30">🔄 Versões</span>
+                  )}
+                </TableCell>
                 <TableCell>{o.destinatario}</TableCell>
                 <TableCell>
                   <div>
