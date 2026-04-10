@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ptBR } from "date-fns/locale";
 import { PDFDocument } from "pdf-lib";
 import { supabase } from "@/integrations/supabase/client";
