@@ -87,7 +87,7 @@ export default function UploadOficioModal({
 
     try {
       const ext = file.name.split(".").pop() || "pdf";
-      const caminho = `oficios-externos/${user.id}/${Date.now()}.${ext}`;
+      const caminho = `${user.id}/oficios-externos/${Date.now()}.${ext}`;
 
       const { error: storageError } = await supabase.storage
         .from("midias")
