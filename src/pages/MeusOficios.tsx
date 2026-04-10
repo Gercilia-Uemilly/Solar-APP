@@ -73,6 +73,8 @@ export default function MeusOficios() {
   const isEspecial = (o: OficioRow) => TIPOS_ESPECIAIS.some(t => (o.assunto || "").toLowerCase().includes(t.toLowerCase()) || ((o as any).tipo_demanda || "").toLowerCase().includes(t.toLowerCase()));
   const { revisaoResult, revisaoLoading, revisaoOpen, setRevisaoOpen, revisarOficio, resetRevisao } = useRevisaoOficio();
   const [pendingExportAction, setPendingExportAction] = useState<(() => void) | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadPreSelectedId, setUploadPreSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
