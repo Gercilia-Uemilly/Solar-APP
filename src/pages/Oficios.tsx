@@ -1187,7 +1187,7 @@ export default function Oficios() {
       </div>
 
       {/* Create Dialog with Tabs */}
-      <Dialog open={showDialog} onOpenChange={open => { if (!open) resetForm(); else setShowDialog(true); }}>
+      <Dialog open={showDialog} onOpenChange={open => { if (!open) handleDialogClose(); else setShowDialog(true); }}>
         <DialogContent className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-3 sm:p-6">
           <DialogHeader className="flex flex-row items-center justify-between">
             <div>
