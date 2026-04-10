@@ -1173,6 +1173,14 @@ export default function MeusOficios() {
           }
         }}
       />
+
+      <UploadOficioModal
+        open={showUploadModal}
+        onOpenChange={setShowUploadModal}
+        oficios={oficios.map(o => ({ id: o.id, numero: o.numero, assunto: o.assunto, destinatario: o.destinatario }))}
+        preSelectedOficioId={uploadPreSelectedId}
+        onSuccess={fetchOficios}
+      />
     </div>
   );
 }
