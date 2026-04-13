@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Hash, Loader2, RefreshCw, Grid3X3, List, CloudCog, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Hash, Loader2, RefreshCw, Grid3X3, List, CheckCircle2 } from "lucide-react";
 
 interface NumRow {
   id: string;
@@ -67,8 +67,6 @@ export default function PainelNumeracao() {
   const [selected, setSelected] = useState<NumRow | null>(null);
   const [ano] = useState(new Date().getFullYear());
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [syncStatus, setSyncStatus] = useState<null | "checking" | "ok" | "warning">(null);
-  const [syncInfo, setSyncInfo] = useState<string>("");
 
   const fetchNumeros = useCallback(async () => {
     setLoading(true);
@@ -106,48 +104,6 @@ export default function PainelNumeracao() {
     supabase.rpc("liberar_reservas_expiradas" as any).then(() => {});
   }, []);
 
-  // Check sync with Google Docs
-  const handleCheckSync = async () => {
-    setSyncStatus("checking");
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) {
-        setSyncStatus("warning");
-        setSyncInfo("Sessão não encontrada. Faça login novamente.");
-        return;
-      }
-
-      const resp = await supabase.functions.invoke("reservar-numero-hibrido", {
-        body: { ano, user_nome: "", check_only: true },
-      });
-
-      if (resp.error) {
-        setSyncStatus("warning");
-        setSyncInfo("Erro ao verificar: " + (resp.error.message || "desconhecido"));
-        return;
-      }
-
-      const data = resp.data as any;
-      const maxDb = numeros.filter(n => n.status !== "disponivel").sort((a, b) => b.numero - a.numero)[0]?.numero || 0;
-      const maxDocs = data?.max_from_docs || 0;
-      const docsSynced = data?.docs_sync;
-
-      if (!docsSynced) {
-        setSyncStatus("warning");
-        setSyncInfo("Google Docs não está configurado ou sem token. Usando apenas o banco de dados.");
-      } else if (maxDocs <= maxDb) {
-        setSyncStatus("ok");
-        setSyncInfo(`✅ Sincronizado! Banco: ${maxDb} · Google Docs: ${maxDocs}`);
-      } else {
-        setSyncStatus("warning");
-        setSyncInfo(`⚠️ Google Docs tem número maior (${maxDocs}) que o banco (${maxDb}). Ao criar o próximo ofício, o sistema ajustará automaticamente.`);
-      }
-    } catch (e: any) {
-      setSyncStatus("warning");
-      setSyncInfo("Erro: " + (e?.message || "desconhecido"));
-    }
-  };
 
   const handleMarkUsed = async (num: NumRow) => {
     if (!user) return;
@@ -236,16 +192,6 @@ export default function PainelNumeracao() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCheckSync}
-            disabled={syncStatus === "checking"}
-            className="gap-1.5"
-          >
-            <CloudCog size={14} className={syncStatus === "checking" ? "animate-spin" : ""} />
-            Verificar Sync
-          </Button>
           <div className="flex items-center bg-muted rounded-lg p-0.5">
             <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="h-7 px-2">
               <List size={14} />
@@ -260,20 +206,6 @@ export default function PainelNumeracao() {
         </div>
       </div>
 
-      {/* Sync status banner */}
-      {syncStatus && syncStatus !== "checking" && (
-        <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
-          syncStatus === "ok"
-            ? "bg-primary/10 text-primary border border-primary/20"
-            : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border border-yellow-500/20"
-        }`}>
-          {syncStatus === "ok" ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
-          {syncInfo}
-          <Button variant="ghost" size="sm" className="ml-auto h-6 text-xs" onClick={() => setSyncStatus(null)}>
-            Fechar
-          </Button>
-        </div>
-      )}
 
       {/* Legend */}
       <div className="flex items-center gap-4 flex-wrap">
