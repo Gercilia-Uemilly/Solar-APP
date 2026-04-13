@@ -460,14 +460,20 @@ export default function Oficios() {
   // Auto-save description after 2 seconds of inactivity
   useEffect(() => {
     if (!descricao.trim() || !editingOficioId || !showDialog) return;
+    // Don't auto-save while AI is generating — it would overwrite AI results
+    if (isGenerating) return;
     setDescSaveStatus("● Editando...");
     const timer = setTimeout(async () => {
+      // Double-check: don't overwrite if AI generated or user edited in preview
+      if (oficioEditedManuallyRef.current || isGenerating) {
+        setDescSaveStatus("");
+        return;
+      }
       try {
         // Build template from description
         const encerramentoTexto = gerarEncerramentoDinamico(secretaria, vocativoCustom || getVocativo(secretaria || ''));
         const conteudoFormatado = `<p>${descricao.split("\n").filter((l: string) => l.trim()).join("</p><p>")}</p><p>${encerramentoTexto}</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
 
-        // Always update conteudo from description unless user manually edited in preview
         const updatePayload: Record<string, any> = {
           updated_at: new Date().toISOString(),
         };
@@ -486,7 +492,7 @@ export default function Oficios() {
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [descricao, editingOficioId, showDialog, secretaria]);
+  }, [descricao, editingOficioId, showDialog, secretaria, isGenerating]);
 
 
     const filtered = oficios.filter(o => {
@@ -513,7 +519,8 @@ export default function Oficios() {
       if (error) throw error;
       setAiResult(data);
       const oficioText = data.oficio || "";
-      oficioEditedManuallyRef.current = false;
+      // Mark as manually edited so auto-save doesn't overwrite AI content
+      oficioEditedManuallyRef.current = true;
       setEditedOficio(oficioText);
       setOriginalOficio(oficioText);
       setOficioHistory([oficioText]);
