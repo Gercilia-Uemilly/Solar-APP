@@ -320,30 +320,30 @@ function buildImagePageXml(
   pageBreakBeforeFirst = false,
 ): string[] {
   const paragraphs: string[] = [];
-  const slotInfo = getOrientationAwareSlots(images);
-  const { cx, cy, layout } = slotInfo;
+  const layoutInfo = getOrientationAwareLayout(images);
+  const { maxCx, maxCy, layout } = layoutInfo;
 
   if (layout === "single") {
     const img = images[0];
-    const crop = calcCropForFill(img.width, img.height, cx, cy);
+    const fit = containFit(img.width, img.height, maxCx, maxCy);
     paragraphs.push(makeImageRowXml(
-      [makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS)],
+      [makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS)],
         W, WP, A_NS, PIC_NS, pageBreakBeforeFirst
     ));
   } else if (layout === "stack") {
-    // Each image on its own centered paragraph, full width
+    // Each image on its own centered paragraph
     for (const [index, img] of images.entries()) {
-      const crop = calcCropForFill(img.width, img.height, cx, cy);
+      const fit = containFit(img.width, img.height, maxCx, maxCy);
       paragraphs.push(makeImageRowXml(
-        [makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS)],
+        [makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS)],
         W, WP, A_NS, PIC_NS, pageBreakBeforeFirst && index === 0
       ));
     }
   } else if (layout === "side") {
     // Both images side by side in one paragraph
     const runs = images.map(img => {
-      const crop = calcCropForFill(img.width, img.height, cx, cy);
-      return makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS);
+      const fit = containFit(img.width, img.height, maxCx, maxCy);
+      return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
     });
     paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst));
   } else {
@@ -351,8 +351,8 @@ function buildImagePageXml(
     for (let i = 0; i < images.length; i += 2) {
       const pair = images.slice(i, i + 2);
       const runs = pair.map(img => {
-        const crop = calcCropForFill(img.width, img.height, cx, cy);
-        return makeImageRunXml(img.rId, cx, cy, img.idx, crop, A_NS, PIC_NS);
+        const fit = containFit(img.width, img.height, maxCx, maxCy);
+        return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
       });
       paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst && i === 0));
     }
