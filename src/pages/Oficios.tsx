@@ -361,7 +361,7 @@ export default function Oficios() {
       const ano = new Date().getFullYear();
       const userName = profileName || user.user_metadata?.full_name || user.email || "";
 
-      // Call hybrid edge function that checks Google Sheets + DB
+      // Reserve next available number from DB
       const { data, error } = await supabase.functions.invoke("reservar-numero-hibrido", {
         body: { ano, user_nome: userName },
       });
