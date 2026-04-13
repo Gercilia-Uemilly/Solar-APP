@@ -673,12 +673,12 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   if (inlineImages.length > 0) {
     const totalImgs = inlineImages.length;
     const calcDims = (count: number) => {
-      // Uniform sizing: all images in a layout get the same box
-      if (count === 1) return { w: 560, h: 420, cols: 1 };
-      if (count === 2) return { w: 560, h: 300, cols: 1 }; // stacked vertically
-      if (count <= 4) return { w: 280, h: 210, cols: 2 };  // 2x2 grid
-      if (count <= 6) return { w: 280, h: 180, cols: 2 };  // 2 per row
-      return { w: 190, h: 142, cols: 3 };                   // 3 per row
+      // Contain-style: reasonable sizes that don't stretch
+      if (count === 1) return { w: 480, h: 360, cols: 1 };
+      if (count === 2) return { w: 420, h: 280, cols: 1 }; // stacked vertically
+      if (count <= 4) return { w: 260, h: 195, cols: 2 };  // 2x2 grid
+      if (count <= 6) return { w: 260, h: 170, cols: 2 };  // 2 per row
+      return { w: 180, h: 135, cols: 3 };                   // 3 per row
     };
     const dims = calcDims(totalImgs);
 
