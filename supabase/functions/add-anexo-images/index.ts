@@ -242,7 +242,11 @@ function getImageDimensions(data: Uint8Array, type: string): { width: number; he
 // Content: 16cm wide x 24.7cm tall
 // 1cm = 360,000 EMU
 const CONTENT_WIDTH_EMU = 5_760_000;  // 16cm
-const CONTENT_HEIGHT_EMU = 7_920_000; // ~22cm to avoid Word pushing image blocks to a new blank page
+const MAX_SINGLE_HEIGHT = 5_400_000;  // ~15cm max for single image (not full page)
+const MAX_STACK_HEIGHT = 3_600_000;   // ~10cm max per image when stacked (2 images)
+const MAX_SIDE_WIDTH = 2_700_000;     // ~7.5cm per image side by side
+const MAX_SIDE_HEIGHT = 5_400_000;    // ~15cm max height for side by side
+const MAX_GRID_HEIGHT = 3_240_000;    // ~9cm max per image in grid
 const IMG_GAP_EMU = 144_000;          // 0.4cm gap
 
 /**
@@ -253,69 +257,58 @@ function isLandscape(w: number, h: number): boolean {
 }
 
 /**
- * Determine the best layout for a group of images based on their orientations.
- * Returns slots with {cx, cy} dimensions and positioning info.
+ * Scale image to fit within a box while maintaining aspect ratio (contain behavior).
+ * Returns the actual cx, cy to use.
  */
-function getOrientationAwareSlots(
+function containFit(
+  imgW: number, imgH: number, maxCx: number, maxCy: number
+): { cx: number; cy: number } {
+  const imgRatio = imgW / imgH;
+  const boxRatio = maxCx / maxCy;
+  
+  if (imgRatio > boxRatio) {
+    // Image is wider relative to box → fit to width
+    const cx = maxCx;
+    const cy = Math.round(maxCx / imgRatio);
+    return { cx, cy };
+  } else {
+    // Image is taller relative to box → fit to height
+    const cy = maxCy;
+    const cx = Math.round(maxCy * imgRatio);
+    return { cx, cy };
+  }
+}
+
+/**
+ * Determine the best layout for a group of images based on their orientations.
+ */
+function getOrientationAwareLayout(
   images: { width: number; height: number }[]
-): { cx: number; cy: number; layout: "single" | "stack" | "side" | "grid22" } {
+): { maxCx: number; maxCy: number; layout: "single" | "stack" | "side" | "grid22" } {
   const count = images.length;
 
   if (count === 1) {
-    return { cx: CONTENT_WIDTH_EMU, cy: CONTENT_HEIGHT_EMU, layout: "single" };
+    return { maxCx: CONTENT_WIDTH_EMU, maxCy: MAX_SINGLE_HEIGHT, layout: "single" };
   }
 
   if (count === 2) {
     const landscapeCount = images.filter(i => isLandscape(i.width, i.height)).length;
     
     if (landscapeCount >= 2) {
-      // Both landscape → stack vertically (full width, half height each)
-      const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
-      return { cx: CONTENT_WIDTH_EMU, cy, layout: "stack" };
+      // Both landscape → stack vertically
+      return { maxCx: CONTENT_WIDTH_EMU, maxCy: MAX_STACK_HEIGHT, layout: "stack" };
     } else if (landscapeCount === 0) {
-      // Both portrait → side by side (half width, full height)
-      const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
-      return { cx, cy: CONTENT_HEIGHT_EMU, layout: "side" };
+      // Both portrait → side by side
+      return { maxCx: MAX_SIDE_WIDTH, maxCy: MAX_SIDE_HEIGHT, layout: "side" };
     } else {
-      // Mixed → stack vertically (safest for mixed)
-      const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
-      return { cx: CONTENT_WIDTH_EMU, cy, layout: "stack" };
+      // Mixed → stack vertically
+      return { maxCx: CONTENT_WIDTH_EMU, maxCy: MAX_STACK_HEIGHT, layout: "stack" };
     }
   }
 
-  // 3 or 4 images: always 2x2 grid
+  // 3 or 4 images: 2x2 grid
   const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
-  const cy = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU) / 2);
-  return { cx, cy, layout: "grid22" };
-}
-
-/**
- * Calculate crop percentages to fill a box uniformly (cover behavior).
- * Returns srcRect values in 1/1000th of percent (OOXML format).
- */
-function calcCropForFill(
-  widthPx: number, heightPx: number, boxCx: number, boxCy: number
-): { l: number; t: number; r: number; b: number } {
-  const imgRatio = widthPx / heightPx;
-  const boxRatio = boxCx / boxCy;
-
-  if (Math.abs(imgRatio - boxRatio) < 0.05) {
-    return { l: 0, t: 0, r: 0, b: 0 };
-  }
-
-  if (imgRatio > boxRatio) {
-    // Image wider → crop left/right
-    const visibleFraction = boxRatio / imgRatio;
-    const cropTotal = Math.round((1 - visibleFraction) * 100000);
-    const cropEach = Math.floor(cropTotal / 2);
-    return { l: cropEach, t: 0, r: cropTotal - cropEach, b: 0 };
-  } else {
-    // Image taller → crop top/bottom
-    const visibleFraction = imgRatio / boxRatio;
-    const cropTotal = Math.round((1 - visibleFraction) * 100000);
-    const cropEach = Math.floor(cropTotal / 2);
-    return { l: 0, t: cropEach, r: 0, b: cropTotal - cropEach };
-  }
+  return { maxCx: cx, maxCy: MAX_GRID_HEIGHT, layout: "grid22" };
 }
 
 function buildImagePageXml(
