@@ -41,93 +41,6 @@ function AuditLogSection() {
   );
 }
 
-function GoogleDocsNumeracaoConfig() {
-  const { toast } = useToast();
-  const [docId, setDocId] = useState("");
-  const [enabled, setEnabled] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("app_settings")
-        .select("key, value")
-        .in("key", ["numeracao_doc_id", "numeracao_doc_enabled"]);
-      const map: Record<string, string> = {};
-      (data || []).forEach((s: any) => { map[s.key] = s.value; });
-      setDocId(map["numeracao_doc_id"] || "");
-      setEnabled(map["numeracao_doc_enabled"] !== "false");
-      setLoading(false);
-    })();
-  }, []);
-
-  const handleSave = async () => {
-    setSaving(true);
-    const upsertSetting = async (key: string, value: string) => {
-      const { data: existing } = await supabase.from("app_settings").select("key").eq("key", key).maybeSingle();
-      if (existing) {
-        await supabase.from("app_settings").update({ value, updated_at: new Date().toISOString() }).eq("key", key);
-      } else {
-        await supabase.from("app_settings").insert({ key, value });
-      }
-    };
-    await upsertSetting("numeracao_doc_id", docId.trim());
-    await upsertSetting("numeracao_doc_enabled", enabled ? "true" : "false");
-    setSaving(false);
-    toast({ title: "Configuração de numeração salva!" });
-  };
-
-  // Extract doc ID from URL if user pastes a full URL
-  const handleDocIdChange = (val: string) => {
-    const urlMatch = val.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-    setDocId(urlMatch ? urlMatch[1] : val);
-  };
-
-  if (loading) return null;
-
-  return (
-    <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-      <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-        📋 Sincronização de Numeração — Google Docs
-      </h3>
-      <p className="text-xs text-muted-foreground">
-        Durante a transição, o sistema pode consultar um Google Docs para verificar o último número usado pela equipe. 
-        Quando a migração estiver completa, desative a sincronização.
-      </p>
-      <div className="space-y-3">
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">ID do Google Docs (ou URL completa)</label>
-          <Input
-            placeholder="Cole o link ou ID do Google Docs aqui"
-            value={docId}
-            onChange={e => handleDocIdChange(e.target.value)}
-            className="bg-muted border-border font-mono text-xs"
-          />
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Ex: https://docs.google.com/document/d/SEU_ID_AQUI/edit
-          </p>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Sincronização ativa</span>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="sr-only peer" />
-            <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
-          </label>
-        </div>
-        {!enabled && (
-          <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-            <span className="text-xs text-muted-foreground">⚠️ Sincronização desativada — o sistema usará apenas o banco como fonte oficial.</span>
-          </div>
-        )}
-        <Button onClick={handleSave} disabled={saving} size="sm" className="bg-primary text-primary-foreground">
-          {saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Save size={14} className="mr-1" />}
-          Salvar configuração
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 
 function TwoFactorSection() {
@@ -466,8 +379,6 @@ export default function Configuracoes() {
       {/* Audit Log (Admin only) */}
       {isAdmin && <AuditLogSection />}
 
-      {/* Google Docs Numeração Config (Admin only) */}
-      {isAdmin && <GoogleDocsNumeracaoConfig />}
 
       {/* Personalização de Interface */}
       <PreferenciasPanel />
