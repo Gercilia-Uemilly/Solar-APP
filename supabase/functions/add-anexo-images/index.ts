@@ -242,11 +242,11 @@ function getImageDimensions(data: Uint8Array, type: string): { width: number; he
 // Content: 16cm wide x 24.7cm tall
 // 1cm = 360,000 EMU
 const CONTENT_WIDTH_EMU = 5_760_000;  // 16cm
-const MAX_SINGLE_HEIGHT = 8_280_000;  // ~23cm — fills most of the page
-const MAX_STACK_HEIGHT = 4_320_000;   // ~12cm per image when stacked (2 images)
+const MAX_SINGLE_HEIGHT = 5_400_000;  // ~15cm max for single image (not full page)
+const MAX_STACK_HEIGHT = 3_600_000;   // ~10cm max per image when stacked (2 images)
 const MAX_SIDE_WIDTH = 2_700_000;     // ~7.5cm per image side by side
-const MAX_SIDE_HEIGHT = 8_280_000;    // ~23cm max height for side by side
-const MAX_GRID_HEIGHT = 4_140_000;    // ~11.5cm per image in grid
+const MAX_SIDE_HEIGHT = 5_400_000;    // ~15cm max height for side by side
+const MAX_GRID_HEIGHT = 3_240_000;    // ~9cm max per image in grid
 const IMG_GAP_EMU = 144_000;          // 0.4cm gap
 
 /**
