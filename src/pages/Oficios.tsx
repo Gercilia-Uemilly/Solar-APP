@@ -90,6 +90,7 @@ export default function Oficios() {
   const [vocativoCustom, setVocativoCustom] = useState("");
   const [userPhones, setUserPhones] = useState<string[]>([]);
   const [profileName, setProfileName] = useState<string>("");
+  const [reservedAt, setReservedAt] = useState<number | null>(null);
 
   // AI state
   const [isGenerating, setIsGenerating] = useState(false);
