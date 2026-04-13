@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Hash, Loader2, RefreshCw, Grid3X3, List, CloudCog, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Hash, Loader2, RefreshCw, Grid3X3, List, CheckCircle2 } from "lucide-react";
 
 interface NumRow {
   id: string;
