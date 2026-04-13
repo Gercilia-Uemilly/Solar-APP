@@ -379,15 +379,9 @@ function makeImageRunXml(
   cx: number,
   cy: number,
   idx: number,
-  crop: { l: number; t: number; r: number; b: number },
   A_NS: string,
   PIC_NS: string,
 ): string {
-  const hasCrop = crop.l > 0 || crop.t > 0 || crop.r > 0 || crop.b > 0;
-  const srcRect = hasCrop
-    ? `<a:srcRect l="${crop.l}" t="${crop.t}" r="${crop.r}" b="${crop.b}"/>`
-    : "";
-
   return `
 <w:r>
   <w:drawing>
@@ -396,18 +390,17 @@ function makeImageRunXml(
       <wp:effectExtent l="0" t="0" r="0" b="0"/>
       <wp:docPr id="${idx + 100}" name="Imagem${idx}"/>
       <wp:cNvGraphicFramePr>
-        <a:graphicFrameLocks xmlns:a="${A_NS}" noChangeAspect="0"/>
+        <a:graphicFrameLocks xmlns:a="${A_NS}" noChangeAspect="1"/>
       </wp:cNvGraphicFramePr>
       <a:graphic xmlns:a="${A_NS}">
         <a:graphicData uri="${PIC_NS}">
           <pic:pic xmlns:pic="${PIC_NS}">
             <pic:nvPicPr>
               <pic:cNvPr id="${idx + 100}" name="Imagem${idx}"/>
-              <pic:cNvPicPr><a:picLocks noChangeAspect="0"/></pic:cNvPicPr>
+              <pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr>
             </pic:nvPicPr>
             <pic:blipFill>
               <a:blip r:embed="${rId}"/>
-              ${srcRect}
               <a:stretch><a:fillRect/></a:stretch>
             </pic:blipFill>
             <pic:spPr>
