@@ -67,8 +67,6 @@ export default function PainelNumeracao() {
   const [selected, setSelected] = useState<NumRow | null>(null);
   const [ano] = useState(new Date().getFullYear());
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [syncStatus, setSyncStatus] = useState<null | "checking" | "ok" | "warning">(null);
-  const [syncInfo, setSyncInfo] = useState<string>("");
 
   const fetchNumeros = useCallback(async () => {
     setLoading(true);
