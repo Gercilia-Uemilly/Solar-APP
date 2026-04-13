@@ -90,6 +90,7 @@ export default function Oficios() {
   const [vocativoCustom, setVocativoCustom] = useState("");
   const [userPhones, setUserPhones] = useState<string[]>([]);
   const [profileName, setProfileName] = useState<string>("");
+  const [reservedAt, setReservedAt] = useState<number | null>(null);
 
   // AI state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -372,7 +373,8 @@ export default function Oficios() {
         return;
       }
       setNumero(data.numero_completo || `${data.numero}/${ano}`);
-      toast({ title: `Número ${data.numero_completo} reservado`, description: data.docs_sync ? "Sincronizado com Google Docs" : undefined });
+      setReservedAt(Date.now());
+      toast({ title: `Número ${data.numero_completo} reservado` });
     } catch (err) {
       toast({ title: "Erro ao reservar número", variant: "destructive" });
       setShowDialog(false);
@@ -394,7 +396,31 @@ export default function Oficios() {
     fetchProfile();
   }, [user]);
 
-  // When secretaria changes, auto-fill destinatario and cargo from centralized config
+  // 20-minute reminder: warn operator that the reserved number will expire soon
+  useEffect(() => {
+    if (!reservedAt || !showDialog || !numero) return;
+    const TWENTY_MIN = 20 * 60 * 1000;
+    const elapsed = Date.now() - reservedAt;
+    const remaining = TWENTY_MIN - elapsed;
+    if (remaining <= 0) {
+      toast({
+        title: "⏰ Número prestes a expirar",
+        description: `O número ${numero} será liberado em 10 minutos se não for finalizado.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const timer = setTimeout(() => {
+      toast({
+        title: "⏰ Número prestes a expirar",
+        description: `O número ${numero} será liberado em 10 minutos se não for finalizado. Salve ou finalize o ofício.`,
+        variant: "destructive",
+      });
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [reservedAt, showDialog, numero]);
+
+
   useEffect(() => {
     if (secretaria) {
       const destinatarioGerado = getDestinatario(secretaria);
@@ -762,6 +788,7 @@ export default function Oficios() {
     destinatarioManualmenteEditadoRef.current = false;
     cargoManualmenteEditadoRef.current = false;
     setNumero("");
+    setReservedAt(null);
     setDataGeracao(new Date().toISOString().split("T")[0]);
     setEnderecoCompleto("");
     setAssunto("");
