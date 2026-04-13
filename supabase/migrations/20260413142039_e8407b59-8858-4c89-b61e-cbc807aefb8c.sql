@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.reservar_proximo_numero(integer, uuid, text);
