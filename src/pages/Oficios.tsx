@@ -788,6 +788,7 @@ export default function Oficios() {
     destinatarioManualmenteEditadoRef.current = false;
     cargoManualmenteEditadoRef.current = false;
     setNumero("");
+    setReservedAt(null);
     setDataGeracao(new Date().toISOString().split("T")[0]);
     setEnderecoCompleto("");
     setAssunto("");
