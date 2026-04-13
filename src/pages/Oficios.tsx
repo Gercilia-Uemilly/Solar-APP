@@ -396,7 +396,31 @@ export default function Oficios() {
     fetchProfile();
   }, [user]);
 
-  // When secretaria changes, auto-fill destinatario and cargo from centralized config
+  // 20-minute reminder: warn operator that the reserved number will expire soon
+  useEffect(() => {
+    if (!reservedAt || !showDialog || !numero) return;
+    const TWENTY_MIN = 20 * 60 * 1000;
+    const elapsed = Date.now() - reservedAt;
+    const remaining = TWENTY_MIN - elapsed;
+    if (remaining <= 0) {
+      toast({
+        title: "⏰ Número prestes a expirar",
+        description: `O número ${numero} será liberado em 10 minutos se não for finalizado.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const timer = setTimeout(() => {
+      toast({
+        title: "⏰ Número prestes a expirar",
+        description: `O número ${numero} será liberado em 10 minutos se não for finalizado. Salve ou finalize o ofício.`,
+        variant: "destructive",
+      });
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [reservedAt, showDialog, numero]);
+
+
   useEffect(() => {
     if (secretaria) {
       const destinatarioGerado = getDestinatario(secretaria);
