@@ -52,10 +52,15 @@ function getNomeOrgaoForSecretaria(s: string): string {
     'IPREMU': 'Instituto de Previdência dos Servidores Públicos do Município de Uberlândia',
     'EMAM': 'Empresa Municipal de Apoio e Manutenção',
     'FERUB': 'Fundação de Excelência Rural de Uberlândia',
+    'HC/UFU': 'Hospital de Clínicas da Universidade Federal de Uberlândia',
+    'Trânsito e Transportes (SETTRAN)': 'Secretaria Municipal de Trânsito e Transportes',
+    'Gestão Ambiental e Sustentabilidade': 'Secretaria Municipal de Meio Ambiente e Sustentabilidade',
   };
   if (m[s]) return m[s];
   if (m[normalized]) return m[normalized];
-  if (!normalized.includes('(') && !normalized.includes('–')) return `Secretaria Municipal de ${normalized}`;
+  // Strip parenthetical abbreviations before building the full name
+  const cleanName = normalized.replace(/\s*\([^)]+\)\s*/g, '').trim();
+  if (cleanName) return `Secretaria Municipal de ${cleanName}`;
   return normalized;
 }
 
