@@ -1218,11 +1218,13 @@ export default function MeusOficios() {
           } else if (campo === "cargo_destinatario") {
             handleInlineFieldChange("cargo_destinatario", correcao);
           } else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
-            if (correcao) {
+            if (correcao && correcao.includes("<")) {
               setEditedContent(correcao);
               editedContentRef.current = correcao;
               setEditorKey(prev => prev + 1);
               handleSaveContent();
+            } else {
+              toast({ title: "⚠️ Corrija manualmente", description: correcao || "Verifique o texto no editor." });
             }
           }
         }}
