@@ -230,10 +230,12 @@ img[alt="Assinatura Fabão"] {
 }
 .grade-imagens.qtd-1 img { max-height: 340px; }
 .grade-imagens.qtd-2 {
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  max-width: 100%;
+  margin: 0 auto;
 }
-.grade-imagens.qtd-2 img { max-height: 212px; }
+.grade-imagens.qtd-2 img { max-height: 320px; }
 .grade-imagens.qtd-3 {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;

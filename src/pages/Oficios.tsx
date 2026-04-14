@@ -114,6 +114,7 @@ export default function Oficios() {
   const { anexos, setAnexos, addFile: persistAddFile, removeFile: persistRemoveFile, addLocalFile, uploadLocalFiles, reset: resetAnexos } = useAnexos(editingOficioId);
   const [descricaoAnexos, setDescricaoAnexos] = useState("");
   const { revisaoResult, revisaoLoading, revisaoOpen, setRevisaoOpen, revisarOficio } = useRevisaoOficio();
+  const [previewEditorKey, setPreviewEditorKey] = useState(0);
 
   // Version history for undo/redo
   const [oficioHistory, setOficioHistory] = useState<string[]>([]);
@@ -1782,6 +1783,7 @@ export default function Oficios() {
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
               <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
                 <OficioPreview
+                  key={previewEditorKey}
                   ref={previewRef}
                   numero={numero}
                   destinatario={destinatario}
@@ -1925,51 +1927,78 @@ export default function Oficios() {
         resultado={revisaoResult}
         loading={revisaoLoading}
         onCorrigirCampo={(campo, correcao) => {
-          if (campo === "assunto") setAssunto(correcao);
-          else if (campo === "destinatario") setDestinatario(correcao);
-          else if (campo === "vocativo") setCargoDestinatario(correcao);
-          else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
-            // Replace the editor content with the corrected version
-            if (correcao) {
-              setEditedOficio(correcao);
-            }
+          if (!correcao) return;
+
+          if (campo === "assunto") {
+            setAssunto(correcao);
+          } else if (campo === "destinatario") {
+            setDestinatario(correcao);
+            setCargoDestinatario(correcao);
+          } else if (campo === "vocativo") {
+            setVocativoCustom(correcao);
+          } else if (campo === "cargo_destinatario") {
+            setCargoDestinatario(correcao);
+          } else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
+            oficioEditedManuallyRef.current = true;
+            setEditedOficio(correcao);
+            setOriginalOficio(correcao);
+            setOficioHistory((prev) => [...prev.filter((item) => item !== correcao), correcao].slice(-50));
+            setHistoryIndex((prev) => Math.max(prev + 1, 0));
+            setPreviewEditorKey((prev) => prev + 1);
           }
-          // Persist correction to database
+
           if (editingOficioId) {
             const dbField = campo === "assunto" ? "assunto"
               : campo === "destinatario" ? "destinatario"
-              : campo === "vocativo" ? "cargo_destinatario"
+              : campo === "vocativo" ? null
+              : campo === "cargo_destinatario" ? "cargo_destinatario"
               : null;
             if (dbField) {
               supabase.from("oficios").update({ [dbField]: correcao }).eq("id", editingOficioId).then(() => {});
             }
           }
+
           toast({ title: "✅ Correção aplicada!" });
         }}
         onCorrigirTudo={() => {
           if (!revisaoResult?.erros) return;
+
+          let correctedBody = "";
+          const updates: Record<string, string> = {};
+
           for (const erro of revisaoResult.erros) {
             if (!erro.correcao) continue;
-            if (erro.campo === "assunto") setAssunto(erro.correcao);
-            else if (erro.campo === "destinatario") setDestinatario(erro.correcao);
-            else if (erro.campo === "vocativo") setCargoDestinatario(erro.correcao);
-            else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
-              setEditedOficio(erro.correcao);
+
+            if (erro.campo === "assunto") {
+              setAssunto(erro.correcao);
+              updates.assunto = erro.correcao;
+            } else if (erro.campo === "destinatario") {
+              setDestinatario(erro.correcao);
+              setCargoDestinatario(erro.correcao);
+              updates.destinatario = erro.correcao;
+            } else if (erro.campo === "vocativo") {
+              setVocativoCustom(erro.correcao);
+            } else if (erro.campo === "cargo_destinatario") {
+              setCargoDestinatario(erro.correcao);
+              updates.cargo_destinatario = erro.correcao;
+            } else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
+              correctedBody = erro.correcao;
             }
           }
-          // Persist all corrections
-          if (editingOficioId && revisaoResult.erros) {
-            const updates: Record<string, string> = {};
-            for (const erro of revisaoResult.erros) {
-              if (!erro.correcao) continue;
-              if (erro.campo === "assunto") updates.assunto = erro.correcao;
-              else if (erro.campo === "destinatario") updates.destinatario = erro.correcao;
-              else if (erro.campo === "vocativo") updates.cargo_destinatario = erro.correcao;
-            }
-            if (Object.keys(updates).length > 0) {
-              supabase.from("oficios").update(updates).eq("id", editingOficioId).then(() => {});
-            }
+
+          if (correctedBody) {
+            oficioEditedManuallyRef.current = true;
+            setEditedOficio(correctedBody);
+            setOriginalOficio(correctedBody);
+            setOficioHistory((prev) => [...prev.filter((item) => item !== correctedBody), correctedBody].slice(-50));
+            setHistoryIndex((prev) => Math.max(prev + 1, 0));
+            setPreviewEditorKey((prev) => prev + 1);
           }
+
+          if (editingOficioId && Object.keys(updates).length > 0) {
+            supabase.from("oficios").update(updates).eq("id", editingOficioId).then(() => {});
+          }
+
           toast({ title: "✅ Todas as correções aplicadas!" });
         }}
         onExportarMesmoAssim={() => setRevisaoOpen(false)}
