@@ -95,7 +95,10 @@ serve(async (req) => {
     const secretariaDetectada = (tipoValidoComoSecretaria ? tipoNormalizado : "") || detectSecretaria(textoCompleto) || "Serviços Urbanos";
     const nomeOrgao = getNomeOrgaoForSecretaria(secretariaDetectada);
     const vocativo = getVocativoForSecretaria(secretariaDetectada);
-    const artigo = nomeOrgao.startsWith('Departamento') || nomeOrgao.startsWith('Instituto') || nomeOrgao.startsWith('PROCON') || nomeOrgao.startsWith('Ministério') || nomeOrgao.startsWith('Batalhão') || nomeOrgao.startsWith('Hospital') ? 'o' : 'a';
+    // "do" for masculine nouns (Departamento, Instituto, Hospital, Processamento, PROCON, DNIT, Ministério, Batalhão)
+    // "da" for feminine nouns (Secretaria, Companhia, Agência, Fundação, Empresa, Polícia)
+    const masculineStarts = ['Departamento', 'Instituto', 'PROCON', 'Ministério', 'Batalhão', 'Hospital', 'Processamento', 'DNIT'];
+    const artigo = masculineStarts.some(p => nomeOrgao.startsWith(p)) ? 'o' : 'a';
     const conclusao = `Assim, encaminha-se o presente para apreciação d${artigo} ${nomeOrgao}, solicitando-se a análise do pleito e a manifestação quanto à sua viabilidade, bem como a indicação de eventual previsão para execução do serviço.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
 
     const SYSTEM_PROMPT = `Redator parlamentar do Vereador Fabão, Uberlândia-MG. Redija o CORPO de ofícios formais.
