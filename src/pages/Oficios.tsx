@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen, SearchCheck } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
