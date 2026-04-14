@@ -167,6 +167,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const [localDestinatario, setLocalDestinatario] = useState(defaultDestinatarioCompleto);
     const [localAssunto, setLocalAssunto] = useState(defaultAssuntoFormatado);
     const [bodyPageSegments, setBodyPageSegments] = useState<string[]>([conteudo.startsWith("<") ? conteudo : "<p></p>"]);
+    // Track when content changes come from the editor (user editing) vs external
+    const editorOriginatedChangeRef = useRef(false);
+    const lastConteudoForPaginationRef = useRef(conteudo);
 
     const destElRef = useRef<HTMLDivElement>(null);
     const assuntoElRef = useRef<HTMLDivElement>(null);
