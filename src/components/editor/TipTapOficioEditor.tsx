@@ -32,6 +32,8 @@ export default function TipTapOficioEditor({
   showToolbar = true,
 }: TipTapOficioEditorProps) {
   const isInternalChange = useRef(false);
+  const lastHtmlRef = useRef("");
+  const contentLoadedRef = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -62,10 +64,22 @@ export default function TipTapOficioEditor({
     content,
     editable: true,
     onUpdate: ({ editor: ed }) => {
+      const newHtml = ed.getHTML();
+      // Only propagate if content actually changed
+      if (newHtml === lastHtmlRef.current) return;
+      lastHtmlRef.current = newHtml;
       isInternalChange.current = true;
-      onChange(ed.getHTML());
+      onChange(newHtml);
     },
   });
+
+  // Track initial content load
+  useEffect(() => {
+    if (editor && content && !contentLoadedRef.current) {
+      contentLoadedRef.current = true;
+      lastHtmlRef.current = content;
+    }
+  }, [editor, content]);
 
   useEffect(() => {
     if (!editor) return;
@@ -76,9 +90,17 @@ export default function TipTapOficioEditor({
     if (editor.isFocused) return;
     const currentHtml = editor.getHTML();
     if (currentHtml !== content) {
+      lastHtmlRef.current = content;
       editor.commands.setContent(content || "<p></p>");
     }
   }, [content, editor]);
+
+  // Reset loaded flag when editor is destroyed/recreated
+  useEffect(() => {
+    return () => {
+      contentLoadedRef.current = false;
+    };
+  }, []);
 
   if (!editor) return null;
 

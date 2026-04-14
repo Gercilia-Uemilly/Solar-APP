@@ -39,6 +39,7 @@ export default function OficioPreviewEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const isInternalChange = useRef(false);
+  const insertingImageRef = useRef(false);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -70,16 +71,33 @@ export default function OficioPreviewEditor({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (insertingImageRef.current) {
+      e.target.value = "";
+      return;
+    }
+    insertingImageRef.current = true;
+
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Imagem muito grande. Máximo 5MB.");
       e.target.value = "";
+      insertingImageRef.current = false;
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
-      exec("insertImage", reader.result as string);
+      const base64 = reader.result as string;
+      // Check if image already exists
+      const currentHtml = editorRef.current?.innerHTML || "";
+      if (base64 && currentHtml.includes(base64.substring(0, 80))) {
+        toast.info("Imagem já inserida.");
+        insertingImageRef.current = false;
+        return;
+      }
+      exec("insertImage", base64);
+      insertingImageRef.current = false;
     };
+    reader.onerror = () => { insertingImageRef.current = false; };
     reader.readAsDataURL(file);
     e.target.value = "";
   }, [exec]);
