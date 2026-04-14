@@ -27,7 +27,30 @@ interface ContatoExtraido {
   tipo: "Telefone" | "WhatsApp" | "Ambos";
   categoria: string;
   scriptTitulo: string;
+  origem?: "Script" | "Planilha";
 }
+
+const CONTATOS_PLANILHA: ContatoExtraido[] = [
+  { nome: "ZAP 01 - Monyê", telefone: "(34) 98418-5325", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 02 - Joana", telefone: "(34) 98435-6242", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 03 - Monyê", telefone: "(34) 98431-5324", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 04 - Joana", telefone: "(34) 98431-1657", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 05 - Monyê", telefone: "(34) 98439-5505", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 06 - Joana", telefone: "(34) 98430-0587", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 07 - Gercilia", telefone: "(34) 98425-7665", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP Conecta Jovem - João", telefone: "(34) 99102-7957", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP Empregador - Georgeane", telefone: "(34) 98406-0364", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP Agenda - Gabriela", telefone: "(34) 98427-3897", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP Relações Políticas - Diego", telefone: "(34) 98441-9523", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 01 - Marielle", telefone: "(34) 98401-8068", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 02 - Kellen", telefone: "(34) 98440-0624", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 03 - Águeda", telefone: "(34) 98423-7647", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 04 - Maria", telefone: "(34) 97400-8012", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 05 - Kellen", telefone: "(34) 99974-5336", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 06 - Daiane", telefone: "(34) 98832-5694", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 07 - Águeda", telefone: "(34) 99725-3482", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 08 - Maria", telefone: "(34) 98433-2617", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+];
 
 function extrairContatos(scripts: ScriptRow[]): ContatoExtraido[] {
   const phoneRegex = /\(?\d{2}\)?\s?\d{4,5}[\s-]?\d{4}/g;
