@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen, SearchCheck } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
@@ -51,6 +51,7 @@ export default function Oficios() {
   const { user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticAdd, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
@@ -980,7 +981,8 @@ export default function Oficios() {
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
         if (err.needsAuth) {
-          toast({ title: "⚠️ Conta Google não conectada", description: "Conecte sua conta Google em Configurações para salvar no Drive.", variant: "destructive" });
+          toast({ title: "🔗 Google Drive não conectado", description: "Vá em Configurações → Google Drive → Conectar para vincular sua conta.", variant: "destructive", duration: 8000 });
+          navigate("/configuracoes");
           return;
         }
         throw new Error(err.error || "Erro ao enviar para o Drive");

@@ -7,29 +7,59 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Refresh a Google OAuth token ────────────────────────────────────
+// ── Refresh a Google OAuth token (with retry) ──────────────────────
 async function refreshGoogleToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
   const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
   const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
   if (!clientId || !clientSecret) throw new Error("GOOGLE_CLIENT_ID ou GOOGLE_CLIENT_SECRET não configurados.");
 
-  const resp = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
+  const MAX_RETRIES = 3;
+  let lastError = "";
 
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`Google OAuth refresh error: ${resp.status} ${errText}`);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: refreshToken,
+          grant_type: "refresh_token",
+        }),
+      });
+
+      if (resp.ok) {
+        return resp.json();
+      }
+
+      const errText = await resp.text();
+      lastError = `${resp.status} ${errText}`;
+
+      // Only throw immediately for permanent errors (invalid_grant = truly revoked)
+      if (resp.status === 400 && /invalid_grant/i.test(errText)) {
+        throw new Error(`Google OAuth refresh error: ${lastError}`);
+      }
+
+      // For transient errors (5xx, network), retry
+      if (attempt < MAX_RETRIES) {
+        console.warn(`Token refresh attempt ${attempt} failed (${resp.status}), retrying in ${attempt}s...`);
+        await new Promise(r => setTimeout(r, attempt * 1000));
+        continue;
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/invalid_grant/i.test(msg)) throw e;
+      lastError = msg;
+      if (attempt < MAX_RETRIES) {
+        console.warn(`Token refresh attempt ${attempt} error: ${msg}, retrying...`);
+        await new Promise(r => setTimeout(r, attempt * 1000));
+        continue;
+      }
+    }
   }
 
-  return resp.json();
+  throw new Error(`Google OAuth refresh error after ${MAX_RETRIES} attempts: ${lastError}`);
 }
 
 // ── Get access token for a specific user ────────────────────────────
@@ -64,14 +94,30 @@ async function getUserAccessToken(
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
 
-      // Token revogado/expirado permanentemente: trata como desconectado (não erro 500)
-      if (/invalid_grant|expired or revoked/i.test(message)) {
-        console.warn(`Google token inválido para user_id=${userId}. Marcando como desconectado.`);
-        await supabaseAdmin.from("user_drive_tokens").delete().eq("user_id", userId);
-        return null;
+      // Only remove tokens if TRULY revoked (invalid_grant confirmed)
+      if (/invalid_grant/i.test(message)) {
+        // Double-check: try one more time after a short delay to rule out transient Google errors
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const retryRefresh = await refreshGoogleToken(tokenData.refresh_token);
+          accessToken = retryRefresh.access_token;
+          const newExpiry = new Date(Date.now() + retryRefresh.expires_in * 1000).toISOString();
+          await supabaseAdmin
+            .from("user_drive_tokens")
+            .update({ access_token: accessToken, token_expiry: newExpiry, updated_at: new Date().toISOString() })
+            .eq("user_id", userId);
+          console.log(`Token refresh succeeded on retry for user_id=${userId}`);
+          return { accessToken, googleEmail: tokenData.google_email };
+        } catch (retryErr) {
+          console.warn(`Google token definitivamente inválido para user_id=${userId}. Removendo tokens.`);
+          await supabaseAdmin.from("user_drive_tokens").delete().eq("user_id", userId);
+          return null;
+        }
       }
 
-      throw e;
+      // For non-permanent errors, don't delete tokens — just use existing access_token
+      console.warn(`Token refresh failed (transient) for user_id=${userId}: ${message}. Using existing token.`);
+      return { accessToken: tokenData.access_token, googleEmail: tokenData.google_email };
     }
   }
 
