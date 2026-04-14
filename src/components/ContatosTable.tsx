@@ -75,7 +75,7 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
   const [catFilter, setCatFilter] = useState("Todas");
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
-  const contatos = useMemo(() => extrairContatos(scripts, knowledgeEntries), [scripts, knowledgeEntries]);
+  const contatos = useMemo(() => extrairContatos(scripts), [scripts]);
 
   const categorias = useMemo(() => {
     const s = new Set(contatos.map((c) => c.categoria));
