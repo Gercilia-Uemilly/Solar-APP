@@ -12,7 +12,7 @@ import Typography from "@tiptap/extension-typography";
 import CharacterCount from "@tiptap/extension-character-count";
 import FontSize from "./FontSizeExtension";
 import EditorToolbar from "./EditorToolbar";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 interface TipTapOficioEditorProps {
   content: string;
@@ -31,9 +31,14 @@ export default function TipTapOficioEditor({
   lineSpacing = 1.5,
   showToolbar = true,
 }: TipTapOficioEditorProps) {
-  const isInternalChange = useRef(false);
-  const lastHtmlRef = useRef("");
-  const contentLoadedRef = useRef(false);
+  // Track whether a change originated from user typing inside the editor
+  const userEditingRef = useRef(false);
+  // The last HTML we sent to onChange — prevents echo loops
+  const lastEmittedRef = useRef("");
+  // The last HTML we received via props — prevents unnecessary setContent
+  const lastPropContentRef = useRef("");
+  // Whether initial content has been loaded
+  const initializedRef = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -65,40 +70,54 @@ export default function TipTapOficioEditor({
     editable: true,
     onUpdate: ({ editor: ed }) => {
       const newHtml = ed.getHTML();
-      // Only propagate if content actually changed
-      if (newHtml === lastHtmlRef.current) return;
-      lastHtmlRef.current = newHtml;
-      isInternalChange.current = true;
+      // Only emit if content actually changed from what we last emitted
+      if (newHtml === lastEmittedRef.current) return;
+      lastEmittedRef.current = newHtml;
+      // Mark that this change came from user editing
+      userEditingRef.current = true;
       onChange(newHtml);
+      // Reset flag after a tick to allow external updates
+      requestAnimationFrame(() => {
+        userEditingRef.current = false;
+      });
     },
   });
 
-  // Track initial content load
+  // Initialize lastPropContentRef and lastEmittedRef on first render
   useEffect(() => {
-    if (editor && content && !contentLoadedRef.current) {
-      contentLoadedRef.current = true;
-      lastHtmlRef.current = content;
+    if (editor && content && !initializedRef.current) {
+      initializedRef.current = true;
+      lastPropContentRef.current = content;
+      lastEmittedRef.current = content;
     }
   }, [editor, content]);
 
+  // Sync external content changes into the editor
+  // ONLY when the change did NOT originate from user editing
   useEffect(() => {
     if (!editor) return;
-    if (isInternalChange.current) {
-      isInternalChange.current = false;
+    // If this update was triggered by the editor's own onChange, skip it
+    if (userEditingRef.current) return;
+    // If editor is focused, user is actively typing — don't disrupt
+    if (editor.isFocused) return;
+    // If the prop content is the same as what we last set, skip
+    if (content === lastPropContentRef.current) return;
+    // If the prop content matches what the editor already has, skip
+    if (content === editor.getHTML()) {
+      lastPropContentRef.current = content;
       return;
     }
-    if (editor.isFocused) return;
-    const currentHtml = editor.getHTML();
-    if (currentHtml !== content) {
-      lastHtmlRef.current = content;
-      editor.commands.setContent(content || "<p></p>");
-    }
+
+    lastPropContentRef.current = content;
+    lastEmittedRef.current = content;
+    editor.commands.setContent(content || "<p></p>", { emitUpdate: false });
   }, [content, editor]);
 
-  // Reset loaded flag when editor is destroyed/recreated
+  // Reset on unmount
   useEffect(() => {
     return () => {
-      contentLoadedRef.current = false;
+      initializedRef.current = false;
+      userEditingRef.current = false;
     };
   }, []);
 

@@ -167,6 +167,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const [localDestinatario, setLocalDestinatario] = useState(defaultDestinatarioCompleto);
     const [localAssunto, setLocalAssunto] = useState(defaultAssuntoFormatado);
     const [bodyPageSegments, setBodyPageSegments] = useState<string[]>([conteudo.startsWith("<") ? conteudo : "<p></p>"]);
+    // Track when content changes come from the editor (user editing) vs external
+    const editorOriginatedChangeRef = useRef(false);
+    const lastConteudoForPaginationRef = useRef(conteudo);
 
     const destElRef = useRef<HTMLDivElement>(null);
     const assuntoElRef = useRef<HTMLDivElement>(null);
@@ -460,6 +463,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     );
 
     useEffect(() => {
+      // If this conteudo change came from the editor (user typing), skip re-pagination
+      // to prevent the loop: edit → onContentChange → conteudo prop changes → re-paginate → setContent → duplicate
+      if (editorOriginatedChangeRef.current && conteudo === lastConteudoForPaginationRef.current) {
+        editorOriginatedChangeRef.current = false;
+        return;
+      }
+      editorOriginatedChangeRef.current = false;
+      lastConteudoForPaginationRef.current = conteudo;
+
       const measureRoot = measureBodyRef.current;
       const firstChrome = measureFirstChromeRef.current;
       const continuationChrome = measureContinuationChromeRef.current;
@@ -542,9 +554,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const handlePageContentChange = useCallback((pageIndex: number, newPageHtml: string) => {
       setBodyPageSegments((prev) => {
+        // Skip if content hasn't actually changed for this page
+        if (prev[pageIndex] === newPageHtml) return prev;
         const next = [...prev];
         next[pageIndex] = newPageHtml;
-        onContentChange?.(next.join(""));
+        const joined = next.join("");
+        // Flag that this content change originated from the editor
+        editorOriginatedChangeRef.current = true;
+        lastConteudoForPaginationRef.current = joined;
+        onContentChange?.(joined);
         return next;
       });
     }, [onContentChange]);
