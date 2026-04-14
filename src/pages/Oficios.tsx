@@ -510,15 +510,25 @@ export default function Oficios() {
       toast({ title: "Preencha a descrição", description: "A descrição é necessária para gerar o ofício.", variant: "destructive" });
       return;
     }
+    // Prevent double-click or stuck state
+    if (isGenerating) return;
     setIsGenerating(true);
     setAiResult(null);
+
+    // Safety timeout — never leave button stuck forever
+    const safetyTimeout = setTimeout(() => {
+      setIsGenerating(false);
+      toast({ title: "⏰ Demorou demais", description: "A geração excedeu o tempo limite. Tente novamente.", variant: "destructive" });
+    }, 45000);
+
     try {
       const { data, error } = await supabase.functions.invoke("generate-oficio", {
         body: { assunto, destinatario, descricao, tipo: secretaria || "Solicitação", solicitante, bairro: bairro, prioridade, local: enderecoCompleto || localDemanda },
       });
       if (error) throw error;
+      if (!data || (!data.oficio && !data.text)) throw new Error("Sem resposta da IA. Tente novamente.");
       setAiResult(data);
-      const oficioText = data.oficio || "";
+      const oficioText = data.oficio || data.text || "";
       // Mark as manually edited so auto-save doesn't overwrite AI content
       oficioEditedManuallyRef.current = true;
       setEditedOficio(oficioText);
@@ -535,8 +545,10 @@ export default function Oficios() {
       setFormTab("preview");
       toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
     } catch (e: any) {
+      console.error("Erro handleGenerateAI:", e);
       toast({ title: "Erro ao gerar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
+      clearTimeout(safetyTimeout);
       setIsGenerating(false);
     }
   };
