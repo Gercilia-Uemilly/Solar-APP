@@ -630,7 +630,8 @@ export default function MeusOficios() {
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
         if (err.needsAuth) {
-          toast({ title: "⚠️ Conta Google não conectada", description: "Conecte em Configurações para salvar no Drive.", variant: "destructive" });
+          toast({ title: "🔗 Google Drive não conectado", description: "Vá em Configurações → Google Drive → Conectar para vincular sua conta.", variant: "destructive", duration: 8000 });
+          navigate("/configuracoes");
         } else {
           toast({ title: "PDF e Word baixados, mas erro no Drive", description: err.error || "Tente enviar ao Drive separadamente.", variant: "destructive" });
         }
