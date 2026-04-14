@@ -497,7 +497,13 @@ export default function MeusOficios() {
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
         if (err.needsAuth) {
-          toast({ title: "⚠️ Conta Google não conectada", description: "Conecte sua conta Google em Configurações para salvar na pasta do gabinete com seu nome.", variant: "destructive" });
+          toast({
+            title: "🔗 Google Drive não conectado",
+            description: "Vá em Configurações → Google Drive → Conectar para vincular sua conta Google antes de enviar arquivos.",
+            variant: "destructive",
+            duration: 8000,
+          });
+          navigate("/configuracoes");
           return;
         }
         throw new Error(err.error || "Erro ao enviar para o Drive");
