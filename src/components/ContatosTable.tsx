@@ -98,7 +98,18 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
   const [catFilter, setCatFilter] = useState("Todas");
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
-  const contatos = useMemo(() => extrairContatos(scripts), [scripts]);
+  const contatos = useMemo(() => {
+    const fromScripts = extrairContatos(scripts).map(c => ({ ...c, origem: "Script" as const }));
+    // Merge planilha contacts, avoiding duplicates by phone
+    const seen = new Set(fromScripts.map(c => c.telefone.replace(/\s+/g, "").replace(/-/g, "")));
+    const fromPlanilha = CONTATOS_PLANILHA.filter(c => {
+      const cleaned = c.telefone.replace(/\s+/g, "").replace(/-/g, "");
+      if (seen.has(cleaned)) return false;
+      seen.add(cleaned);
+      return true;
+    });
+    return [...fromScripts, ...fromPlanilha].sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
+  }, [scripts]);
 
   const categorias = useMemo(() => {
     const s = new Set(contatos.map((c) => c.categoria));
