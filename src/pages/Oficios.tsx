@@ -694,28 +694,9 @@ export default function Oficios() {
       return;
     }
 
-    // Só marcar numeração como usada quando houver conteúdo real do ofício
-    const shouldMarkNumberAsUsed = Boolean(
-      fullNumero &&
-      oficioId &&
-      editedOficio?.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").trim()
-    );
+    // Rascunho/salvamento não deve protocolar a numeração.
+    // O número só é marcado como usado quando o operador altera o status para "Protocolado".
 
-    if (shouldMarkNumberAsUsed) {
-      const numMatch = fullNumero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().match(/^(\d+)/);
-      if (numMatch) {
-        const numInt = parseInt(numMatch[1], 10);
-        const ano = new Date().getFullYear();
-        const userName = profileName || user.user_metadata?.full_name || user.email || "";
-        await supabase.rpc("usar_numero", {
-          p_numero: numInt,
-          p_ano: ano,
-          p_user_id: user.id,
-          p_user_nome: userName,
-          p_oficio_id: oficioId,
-        });
-      }
-    }
 
     // Upload local-only attachments (for new ofícios)
     if (oficioId) {
