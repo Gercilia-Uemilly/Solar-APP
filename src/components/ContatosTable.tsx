@@ -185,13 +185,14 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
                 <TableHead>Telefone / ZAP</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Origem</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Nenhum contato encontrado.
                   </TableCell>
                 </TableRow>
@@ -219,6 +220,15 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
                     <TableCell>
                       <Badge variant="secondary" className="text-[10px]">
                         {c.categoria}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={
+                        c.origem === "Planilha"
+                          ? "border-orange-500/30 text-orange-600 bg-orange-500/10 text-[10px]"
+                          : "border-muted-foreground/30 text-[10px]"
+                      }>
+                        {c.origem || "Script"}
                       </Badge>
                     </TableCell>
                     <TableCell>
