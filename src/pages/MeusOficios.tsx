@@ -62,6 +62,7 @@ export default function MeusOficios() {
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [filtroAssunto, setFiltroAssunto] = useState("Todos");
   const [filtroOperador, setFiltroOperador] = useState("Todos");
+  const [sortMode, setSortMode] = useState<"num_asc" | "num_desc" | "date_asc" | "date_desc">("date_desc");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [isUploading, setIsUploading] = useState(false);
@@ -701,7 +702,27 @@ export default function MeusOficios() {
   const rascunhos = filtered.filter(o => !statusFinalizados.includes(o.status));
   // Se há busca ativa, mostra todos os resultados independente da aba
   const hasBusca = search.trim().length > 0;
-  const listaCompleta = hasBusca ? filtered : (abaAtiva === "rascunhos" ? rascunhos : finalizados);
+  const listaBase = hasBusca ? filtered : (abaAtiva === "rascunhos" ? rascunhos : finalizados);
+
+  const listaCompleta = useMemo(() => {
+    const arr = [...listaBase];
+    const extractNum = (o: OficioRow) => {
+      const m = (o.numero || "").match(/(\d+)/);
+      return m ? parseInt(m[1], 10) : 0;
+    };
+    switch (sortMode) {
+      case "num_asc":
+        return arr.sort((a, b) => extractNum(a) - extractNum(b));
+      case "num_desc":
+        return arr.sort((a, b) => extractNum(b) - extractNum(a));
+      case "date_asc":
+        return arr.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case "date_desc":
+      default:
+        return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [listaBase, sortMode]);
+
   const totalPages = Math.max(1, Math.ceil(listaCompleta.length / ITEMS_PER_PAGE));
   const listaExibida = listaCompleta.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
@@ -801,6 +822,17 @@ export default function MeusOficios() {
             <X size={14} className="mr-1" /> Limpar
           </Button>
         )}
+        <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
+          <SelectTrigger className="w-[180px] bg-card border-border text-xs h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date_desc">Data ↓ recente</SelectItem>
+            <SelectItem value="date_asc">Data ↑ antiga</SelectItem>
+            <SelectItem value="num_asc">Número ↑ crescente</SelectItem>
+            <SelectItem value="num_desc">Número ↓ decrescente</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="bg-card rounded-xl border border-border overflow-x-auto">
