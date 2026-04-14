@@ -1988,7 +1988,9 @@ export default function Oficios() {
               setCargoDestinatario(erro.correcao);
               updates.cargo_destinatario = erro.correcao;
             } else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
-              correctedBody = erro.correcao;
+              if (erro.correcao && erro.correcao.includes("<")) {
+                correctedBody = erro.correcao;
+              }
             }
           }
 
