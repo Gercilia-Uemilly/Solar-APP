@@ -694,8 +694,14 @@ export default function Oficios() {
       return;
     }
 
-    // Auto-mark number as "usado" in numeração table + update Google Docs/planilha
-    if (fullNumero && oficioId) {
+    // Só marcar numeração como usada quando houver conteúdo real do ofício
+    const shouldMarkNumberAsUsed = Boolean(
+      fullNumero &&
+      oficioId &&
+      editedOficio?.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").trim()
+    );
+
+    if (shouldMarkNumberAsUsed) {
       const numMatch = fullNumero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().match(/^(\d+)/);
       if (numMatch) {
         const numInt = parseInt(numMatch[1], 10);
@@ -708,10 +714,6 @@ export default function Oficios() {
           p_user_nome: userName,
           p_oficio_id: oficioId,
         });
-        // Also update Google Docs/planilha with the used number
-        supabase.functions.invoke("reservar-numero-hibrido", {
-          body: { ano, user_nome: userName, mark_used: true, used_numero: numInt },
-        }).catch(() => {});
       }
     }
 

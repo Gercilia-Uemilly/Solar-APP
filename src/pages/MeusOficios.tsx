@@ -338,14 +338,40 @@ export default function MeusOficios() {
 
   const handleStatusChange = async (oficioId: string, newStatus: string) => {
     await saveBackupBeforeEdit(oficioId);
-    const { error } = await supabase.from("oficios").update({ status: newStatus }).eq("id", oficioId);
+
+    const oficioAtual = oficios.find(o => o.id === oficioId);
+    const statusPayload: Record<string, any> = { status: newStatus };
+
+    if (newStatus === "Protocolado") {
+      statusPayload.protocolado_em = new Date().toISOString();
+    }
+
+    const { error } = await supabase.from("oficios").update(statusPayload).eq("id", oficioId);
     if (error) {
       const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
       toast({ title: "Erro ao alterar status", description: msg, variant: "destructive" });
-    } else {
-      setOficios(prev => prev.map(o => o.id === oficioId ? { ...o, status: newStatus } : o));
-      toast({ title: `Status alterado para "${newStatus}"` });
+      return;
     }
+
+    setOficios(prev => prev.map(o => o.id === oficioId ? { ...o, ...statusPayload } : o));
+
+    if (newStatus === "Protocolado" && oficioAtual?.numero) {
+      const numMatch = oficioAtual.numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().match(/^(\d+)/);
+      if (numMatch && user) {
+        const numInt = parseInt(numMatch[1], 10);
+        const ano = oficioAtual.ano || new Date().getFullYear();
+        const userName = profileName || user.user_metadata?.full_name || user.email || "";
+        await supabase.rpc("usar_numero", {
+          p_numero: numInt,
+          p_ano: ano,
+          p_user_id: user.id,
+          p_user_nome: userName,
+          p_oficio_id: oficioId,
+        });
+      }
+    }
+
+    toast({ title: `Status alterado para "${newStatus}"` });
   };
 
   const handleMarcadorChange = async (oficioId: string, marcador: string | null) => {
