@@ -48,13 +48,22 @@ function getNomeOrgaoForSecretaria(s: string): string {
   const m: Record<string, string> = {
     'DMAE': 'Departamento Municipal de Água e Esgoto',
     'ARESAN': 'Agência de Regulação dos Serviços de Saneamento Básico de Uberlândia',
-    'FUTEL': 'Fundação Uberlandense do Turismo',
+    'FUTEL': 'Fundação Uberlandense do Turismo, Esporte e Lazer',
     'IPREMU': 'Instituto de Previdência dos Servidores Públicos do Município de Uberlândia',
     'EMAM': 'Empresa Municipal de Apoio e Manutenção',
     'FERUB': 'Fundação de Excelência Rural de Uberlândia',
+    'PRODAUB': 'Processamento de Dados de Uberlândia',
     'HC/UFU': 'Hospital de Clínicas da Universidade Federal de Uberlândia',
+    'SETTRAN': 'Secretaria Municipal de Trânsito e Transportes',
     'Trânsito e Transportes (SETTRAN)': 'Secretaria Municipal de Trânsito e Transportes',
+    'Trânsito e Transportes': 'Secretaria Municipal de Trânsito e Transportes',
     'Gestão Ambiental e Sustentabilidade': 'Secretaria Municipal de Meio Ambiente e Sustentabilidade',
+    'PMMG': 'Polícia Militar de Minas Gerais',
+    'Polícia Militar (PMMG)': 'Polícia Militar de Minas Gerais',
+    'CEMIG': 'Companhia Energética de Minas Gerais',
+    'PROCON': 'PROCON Municipal de Uberlândia',
+    'DNIT': 'Departamento Nacional de Infraestrutura de Transportes',
+    'DER-MG': 'Departamento de Edificações e Estradas de Rodagem de Minas Gerais',
   };
   if (m[s]) return m[s];
   if (m[normalized]) return m[normalized];
