@@ -1939,12 +1939,18 @@ export default function Oficios() {
           } else if (campo === "cargo_destinatario") {
             setCargoDestinatario(correcao);
           } else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
-            oficioEditedManuallyRef.current = true;
-            setEditedOficio(correcao);
-            setOriginalOficio(correcao);
-            setOficioHistory((prev) => [...prev.filter((item) => item !== correcao), correcao].slice(-50));
-            setHistoryIndex((prev) => Math.max(prev + 1, 0));
-            setPreviewEditorKey((prev) => prev + 1);
+            // Only apply if correction contains HTML (full body), otherwise it's just a description
+            if (correcao && correcao.includes("<")) {
+              oficioEditedManuallyRef.current = true;
+              setEditedOficio(correcao);
+              setOriginalOficio(correcao);
+              setOficioHistory((prev) => [...prev.filter((item) => item !== correcao), correcao].slice(-50));
+              setHistoryIndex((prev) => Math.max(prev + 1, 0));
+              setPreviewEditorKey((prev) => prev + 1);
+            } else {
+              toast({ title: "⚠️ Corrija manualmente", description: correcao || "Verifique o texto no editor." });
+              return;
+            }
           }
 
           if (editingOficioId) {
@@ -1982,7 +1988,9 @@ export default function Oficios() {
               setCargoDestinatario(erro.correcao);
               updates.cargo_destinatario = erro.correcao;
             } else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
-              correctedBody = erro.correcao;
+              if (erro.correcao && erro.correcao.includes("<")) {
+                correctedBody = erro.correcao;
+              }
             }
           }
 

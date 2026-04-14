@@ -1218,11 +1218,13 @@ export default function MeusOficios() {
           } else if (campo === "cargo_destinatario") {
             handleInlineFieldChange("cargo_destinatario", correcao);
           } else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
-            if (correcao) {
+            if (correcao && correcao.includes("<")) {
               setEditedContent(correcao);
               editedContentRef.current = correcao;
               setEditorKey(prev => prev + 1);
               handleSaveContent();
+            } else {
+              toast({ title: "⚠️ Corrija manualmente", description: correcao || "Verifique o texto no editor." });
             }
           }
         }}
@@ -1235,9 +1237,11 @@ export default function MeusOficios() {
             else if (erro.campo === "vocativo") handleInlineFieldChange("vocativo", erro.correcao);
             else if (erro.campo === "cargo_destinatario") handleInlineFieldChange("cargo_destinatario", erro.correcao);
             else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
-              setEditedContent(erro.correcao);
-              editedContentRef.current = erro.correcao;
-              setEditorKey(prev => prev + 1);
+              if (erro.correcao && erro.correcao.includes("<")) {
+                setEditedContent(erro.correcao);
+                editedContentRef.current = erro.correcao;
+                setEditorKey(prev => prev + 1);
+              }
             }
           }
           toast({ title: "✅ Correções aplicadas!" });

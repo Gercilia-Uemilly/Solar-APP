@@ -30,9 +30,60 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = "Voce e revisor de oficios parlamentares do gabinete do Vereador Fabao em Uberlandia-MG. Analise o oficio e retorne APENAS JSON valido sem markdown. Verificar: 1) ASSUNTO: formato Solicitacao de X - Local Y, maximo 80 caracteres. 2) DESTINATARIO: bate com a secretaria? 3) VOCATIVO: Secretarias municipais use Excelentissimo(a) Senhor(a) Secretario(a), - DMAE use Excelentissimo(a) Senhor(a) Diretor(a) Geral, 4) ENDERECO: mencionado no primeiro paragrafo? 5) TEXTO: palavras repetidas? 6) GRAMATICA: erros obvios? 7) CAMPOS VAZIOS: assunto ou secretaria em branco? 8) NUMERO: formato XXX/2026? 9) CONCLUSAO: termina com frase padrao? 10) ORGAO: nome na conclusao bate com secretaria? Retornar JSON: {aprovado: true, erros: [{campo: string, gravidade: erro|aviso|sugestao, descricao: string, correcao: string}], resumo: string}. Se sem erros retornar erros como array vazio.";
+    const systemPrompt = `Você é um revisor profissional de ofícios parlamentares do gabinete do Vereador Fabão em Uberlândia-MG.
 
-    const userPrompt = "Revise este oficio:\nNUMERO: " + (oficio.numero || "nao informado") + "\nSECRETARIA: " + (oficio.secretaria || "nao informada") + "\nDESTINATARIO: " + (oficio.destinatario || "nao informado") + "\nASSUNTO: " + (oficio.assunto || "nao informado") + "\nENDERECO: " + (oficio.endereco_completo || "nao informado") + "\nVOCATIVO: " + (oficio.vocativo || "nao informado") + "\nTEXTO DO OFICIO:\n" + (oficio.conteudo || "vazio");
+Analise o ofício e retorne APENAS JSON válido (sem markdown, sem \`\`\`).
+
+## REGRAS DE REVISÃO:
+
+1. **ASSUNTO**: Formato "Solicitação de [serviço] na [Rua/Logradouro] - [Bairro]", máximo 80 caracteres.
+2. **DESTINATÁRIO**: Deve corresponder à secretaria/órgão correto.
+3. **VOCATIVO**: 
+   - Secretarias municipais: "Excelentíssimo(a) Senhor(a) Secretário(a),"
+   - DMAE: "Excelentíssimo(a) Senhor(a) Diretor(a) Geral,"
+   - Prefeito: "Excelentíssimo Senhor Prefeito,"
+   - Câmara: "Excelentíssimo(a) Senhor(a) Presidente,"
+4. **ENDEREÇO**: Deve ser mencionado no corpo do texto.
+5. **TEXTO**: Verificar palavras repetidas, frases mal construídas, coerência.
+6. **GRAMÁTICA**: Erros de ortografia, concordância, pontuação, acentuação.
+7. **NÚMERO**: Formato XXX/2026.
+8. **CONCLUSÃO**: Deve terminar com frase padrão "Assim, encaminha-se o presente para apreciação d[o/a] [órgão]...".
+9. **ORGÃO**: O nome do órgão na conclusão deve usar nome por extenso (nunca sigla isolada).
+
+## REGRAS CRÍTICAS PARA O CAMPO "correcao":
+
+- Para campos simples (assunto, destinatario, vocativo, numero): o campo "correcao" deve conter o valor correto final pronto para substituição direta.
+- Para campos de texto (texto, gramatica, conclusao): o campo "correcao" deve conter o TEXTO COMPLETO DO CORPO DO OFÍCIO já corrigido em HTML, preservando TODA a formatação HTML existente (tags <p>, <strong>, <br>, etc). NÃO retorne apenas a frase corrigida — retorne o corpo inteiro com a correção aplicada.
+- Se não souber como corrigir, deixe "correcao" como string vazia "".
+
+## FORMATO DE SAÍDA:
+
+{
+  "aprovado": boolean,
+  "erros": [
+    {
+      "campo": "assunto" | "destinatario" | "vocativo" | "texto" | "endereco" | "numero" | "conclusao" | "gramatica",
+      "gravidade": "erro" | "aviso" | "sugestao",
+      "descricao": "Explicação do problema encontrado",
+      "correcao": "Valor corrigido pronto para uso (corpo HTML completo para texto/gramatica/conclusao)"
+    }
+  ],
+  "resumo": "Resumo geral da análise"
+}
+
+Se não houver erros, retorne erros como array vazio e aprovado true.
+IMPORTANTE: Agrupe erros de gramática e texto em UMA ÚNICA entrada com o corpo completo corrigido. Não crie múltiplas entradas para o mesmo campo.`;
+
+    const userPrompt = `Revise este ofício:
+NÚMERO: ${oficio.numero || "não informado"}
+SECRETARIA: ${oficio.secretaria || "não informada"}
+DESTINATÁRIO: ${oficio.destinatario || "não informado"}
+ASSUNTO: ${oficio.assunto || "não informado"}
+ENDEREÇO: ${oficio.endereco_completo || "não informado"}
+VOCATIVO: ${oficio.vocativo || "não informado"}
+
+TEXTO COMPLETO DO CORPO (HTML):
+${oficio.conteudo || "vazio"}`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -42,7 +93,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-4o",
-        max_tokens: 1000,
+        max_tokens: 4000,
         temperature: 0,
         messages: [
           { role: "system", content: systemPrompt },
@@ -84,11 +135,25 @@ serve(async (req) => {
     try {
       resultado = JSON.parse(cleaned);
     } catch (e) {
+      console.error("Failed to parse AI response:", cleaned);
       resultado = {
         aprovado: true,
         erros: [],
-        resumo: "Nao foi possivel analisar. Verifique manualmente.",
+        resumo: "Não foi possível analisar. Verifique manualmente.",
       };
+    }
+
+    // Validate corrections for body fields - ensure they contain HTML
+    if (resultado.erros && Array.isArray(resultado.erros)) {
+      for (const erro of resultado.erros) {
+        if (["texto", "gramatica", "conclusao"].includes(erro.campo) && erro.correcao) {
+          // If correction doesn't contain HTML tags, it's just a description - clear it
+          if (!erro.correcao.includes("<") && oficio.conteudo?.includes("<")) {
+            erro.correcao = "";
+            erro.descricao += " (Corrija manualmente no editor)";
+          }
+        }
+      }
     }
 
     return new Response(JSON.stringify(resultado), {
@@ -101,10 +166,10 @@ serve(async (req) => {
       JSON.stringify({
         aprovado: true,
         erros: [],
-        resumo: "Erro interno. Voce pode exportar normalmente.",
+        resumo: "Erro interno. Você pode exportar normalmente.",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
-// deploy v3 - openai only
+// deploy v4 - full body corrections
