@@ -463,6 +463,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     );
 
     useEffect(() => {
+      // If this conteudo change came from the editor (user typing), skip re-pagination
+      // to prevent the loop: edit → onContentChange → conteudo prop changes → re-paginate → setContent → duplicate
+      if (editorOriginatedChangeRef.current && conteudo === lastConteudoForPaginationRef.current) {
+        editorOriginatedChangeRef.current = false;
+        return;
+      }
+      editorOriginatedChangeRef.current = false;
+      lastConteudoForPaginationRef.current = conteudo;
+
       const measureRoot = measureBodyRef.current;
       const firstChrome = measureFirstChromeRef.current;
       const continuationChrome = measureContinuationChromeRef.current;
