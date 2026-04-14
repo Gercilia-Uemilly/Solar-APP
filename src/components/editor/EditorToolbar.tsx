@@ -30,6 +30,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
   const [isDictating, setIsDictating] = useState(false);
   const recognitionRef = useRef<any>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const insertingImageRef = useRef(false);
 
   const ToolBtn = useCallback(({ onClick, active, children, title }: {
     onClick: () => void; active?: boolean; children: React.ReactNode; title: string;
@@ -51,14 +52,35 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
   const handleImageInsert = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Prevent duplicate insertion from double-fire
+    if (insertingImageRef.current) {
+      e.target.value = "";
+      return;
+    }
+    insertingImageRef.current = true;
+
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Imagem muito grande. Máximo 5MB.");
       e.target.value = "";
+      insertingImageRef.current = false;
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
-      (editor.chain().focus() as any).setImage({ src: reader.result as string }).run();
+      const base64 = reader.result as string;
+      // Check if this exact image already exists in the editor
+      const currentHtml = editor.getHTML();
+      if (base64 && currentHtml.includes(base64.substring(0, 80))) {
+        toast.info("Imagem já inserida no editor.");
+        insertingImageRef.current = false;
+        return;
+      }
+      (editor.chain().focus() as any).setImage({ src: base64 }).run();
+      insertingImageRef.current = false;
+    };
+    reader.onerror = () => {
+      insertingImageRef.current = false;
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -111,7 +133,6 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
   const currentFontSizeRaw = editor.getAttributes("textStyle").fontSize;
   const currentFontSize = currentFontSizeRaw ? parseInt(currentFontSizeRaw) : 10;
 
-  // Use `as any` to bypass TS chain issues with TipTap extensions
   const cmd = (fn: string, ...args: any[]) => {
     const chain = editor.chain().focus() as any;
     if (typeof chain[fn] === "function") {
