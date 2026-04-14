@@ -27,7 +27,30 @@ interface ContatoExtraido {
   tipo: "Telefone" | "WhatsApp" | "Ambos";
   categoria: string;
   scriptTitulo: string;
+  origem?: "Script" | "Planilha";
 }
+
+const CONTATOS_PLANILHA: ContatoExtraido[] = [
+  { nome: "ZAP 01 - Monyê", telefone: "(34) 98418-5325", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 02 - Joana", telefone: "(34) 98435-6242", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 03 - Monyê", telefone: "(34) 98431-5324", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 04 - Joana", telefone: "(34) 98431-1657", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 05 - Monyê", telefone: "(34) 98439-5505", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 06 - Joana", telefone: "(34) 98430-0587", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP 07 - Gercilia", telefone: "(34) 98425-7665", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP Conecta Jovem - João", telefone: "(34) 99102-7957", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP Empregador - Georgeane", telefone: "(34) 98406-0364", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP Agenda - Gabriela", telefone: "(34) 98427-3897", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "ZAP Relações Políticas - Diego", telefone: "(34) 98441-9523", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 01 - Marielle", telefone: "(34) 98401-8068", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 02 - Kellen", telefone: "(34) 98440-0624", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 03 - Águeda", telefone: "(34) 98423-7647", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 04 - Maria", telefone: "(34) 97400-8012", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 05 - Kellen", telefone: "(34) 99974-5336", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 06 - Daiane", telefone: "(34) 98832-5694", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 07 - Águeda", telefone: "(34) 99725-3482", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+  { nome: "REQ 08 - Maria", telefone: "(34) 98433-2617", tipo: "WhatsApp", categoria: "Gabinete", scriptTitulo: "ZAPs e REQs do Gabinete 30", origem: "Planilha" },
+];
 
 function extrairContatos(scripts: ScriptRow[]): ContatoExtraido[] {
   const phoneRegex = /\(?\d{2}\)?\s?\d{4,5}[\s-]?\d{4}/g;
@@ -75,7 +98,18 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
   const [catFilter, setCatFilter] = useState("Todas");
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
-  const contatos = useMemo(() => extrairContatos(scripts), [scripts]);
+  const contatos = useMemo(() => {
+    const fromScripts = extrairContatos(scripts).map(c => ({ ...c, origem: "Script" as const }));
+    // Merge planilha contacts, avoiding duplicates by phone
+    const seen = new Set(fromScripts.map(c => c.telefone.replace(/\s+/g, "").replace(/-/g, "")));
+    const fromPlanilha = CONTATOS_PLANILHA.filter(c => {
+      const cleaned = c.telefone.replace(/\s+/g, "").replace(/-/g, "");
+      if (seen.has(cleaned)) return false;
+      seen.add(cleaned);
+      return true;
+    });
+    return [...fromScripts, ...fromPlanilha].sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
+  }, [scripts]);
 
   const categorias = useMemo(() => {
     const s = new Set(contatos.map((c) => c.categoria));
@@ -151,13 +185,14 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
                 <TableHead>Telefone / ZAP</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Origem</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Nenhum contato encontrado.
                   </TableCell>
                 </TableRow>
@@ -185,6 +220,15 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
                     <TableCell>
                       <Badge variant="secondary" className="text-[10px]">
                         {c.categoria}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={
+                        c.origem === "Planilha"
+                          ? "border-orange-500/30 text-orange-600 bg-orange-500/10 text-[10px]"
+                          : "border-muted-foreground/30 text-[10px]"
+                      }>
+                        {c.origem || "Script"}
                       </Badge>
                     </TableCell>
                     <TableCell>
