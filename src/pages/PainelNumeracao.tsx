@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Hash, Loader2, RefreshCw, Grid3X3, List, CheckCircle2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface NumRow {
   id: string;
@@ -63,6 +64,7 @@ export default function PainelNumeracao() {
   const [selected, setSelected] = useState<NumRow | null>(null);
   const [ano] = useState(new Date().getFullYear());
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [sortMode, setSortMode] = useState<"num_asc" | "num_desc" | "date_asc" | "date_desc">("num_asc");
 
   const fetchNumeros = useCallback(async () => {
     setLoading(true);
@@ -161,6 +163,34 @@ export default function PainelNumeracao() {
   // All numbers up to the last used/reserved one, plus any beyond that are non-disponivel
   const visibleNumbers = numeros.filter(n => n.numero <= lastUsedNum || n.status !== "disponivel");
 
+  const sortedNumbers = useMemo(() => {
+    const arr = [...visibleNumbers];
+    switch (sortMode) {
+      case "num_desc":
+        return arr.sort((a, b) => b.numero - a.numero);
+      case "date_asc":
+        return arr.sort((a, b) => {
+          const da = a.usado_em || a.reservado_em || "";
+          const db = b.usado_em || b.reservado_em || "";
+          if (!da && !db) return a.numero - b.numero;
+          if (!da) return 1;
+          if (!db) return -1;
+          return da.localeCompare(db) || a.numero - b.numero;
+        });
+      case "date_desc":
+        return arr.sort((a, b) => {
+          const da = a.usado_em || a.reservado_em || "";
+          const db = b.usado_em || b.reservado_em || "";
+          if (!da && !db) return b.numero - a.numero;
+          if (!da) return 1;
+          if (!db) return -1;
+          return db.localeCompare(da) || b.numero - a.numero;
+        });
+      default:
+        return arr.sort((a, b) => a.numero - b.numero);
+    }
+  }, [visibleNumbers, sortMode]);
+
   const getStatusBadge = (status: string) => {
     const colorMap: Record<string, string> = {
       reservado: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30",
@@ -188,6 +218,17 @@ export default function PainelNumeracao() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="num_asc">Número ↑ crescente</SelectItem>
+              <SelectItem value="num_desc">Número ↓ decrescente</SelectItem>
+              <SelectItem value="date_asc">Data ↑ mais antiga</SelectItem>
+              <SelectItem value="date_desc">Data ↓ mais recente</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="flex items-center bg-muted rounded-lg p-0.5">
             <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="h-7 px-2">
               <List size={14} />
@@ -233,14 +274,14 @@ export default function PainelNumeracao() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visibleNumbers.length === 0 ? (
+                  {sortedNumbers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         Nenhum número reservado ou utilizado ainda.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    visibleNumbers.map(n => (
+                    sortedNumbers.map(n => (
                       <TableRow key={n.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelected(n)}>
                         <TableCell className="font-mono font-bold text-foreground">{n.numero}/{n.ano}</TableCell>
                         <TableCell>{getStatusBadge(n.status)}</TableCell>
@@ -275,7 +316,7 @@ export default function PainelNumeracao() {
           ) : (
             <div className="bg-card rounded-xl border border-border p-4">
               <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(48px, 1fr))" }}>
-                {visibleNumbers.map(n => (
+                {sortedNumbers.map(n => (
                   <Tooltip key={n.id}>
                     <TooltipTrigger asChild>
                       <button
