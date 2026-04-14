@@ -51,6 +51,7 @@ export default function Oficios() {
   const { user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const { oficios, setOficios, loading, fetchOficios, optimisticUpdate, optimisticAdd, optimisticRemove } = useOficios();
   const [search, setSearch] = useState("");
