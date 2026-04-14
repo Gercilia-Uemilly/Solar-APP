@@ -28,7 +28,7 @@ interface GeminiResponse {
 }
 
 function mapModel(m?: string): string {
-  if (!m) return "gpt-4o-mini";
+  if (!m) return "gpt-4o";
   const modelMap: Record<string, string> = {
     "gemini-2.5-flash": "gpt-4o-mini",
     "gemini-2.5-flash-lite": "gpt-4o-mini",
