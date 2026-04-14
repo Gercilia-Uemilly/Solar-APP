@@ -545,9 +545,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const handlePageContentChange = useCallback((pageIndex: number, newPageHtml: string) => {
       setBodyPageSegments((prev) => {
+        // Skip if content hasn't actually changed for this page
+        if (prev[pageIndex] === newPageHtml) return prev;
         const next = [...prev];
         next[pageIndex] = newPageHtml;
-        onContentChange?.(next.join(""));
+        const joined = next.join("");
+        // Flag that this content change originated from the editor
+        editorOriginatedChangeRef.current = true;
+        lastConteudoForPaginationRef.current = joined;
+        onContentChange?.(joined);
         return next;
       });
     }, [onContentChange]);
