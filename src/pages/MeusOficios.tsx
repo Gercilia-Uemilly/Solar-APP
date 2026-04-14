@@ -1213,7 +1213,9 @@ export default function MeusOficios() {
             handleInlineFieldChange("assunto", correcao);
           } else if (campo === "destinatario") {
             handleInlineFieldChange("destinatario", correcao);
-          } else if (campo === "vocativo" || campo === "cargo_destinatario") {
+          } else if (campo === "vocativo") {
+            handleInlineFieldChange("vocativo", correcao);
+          } else if (campo === "cargo_destinatario") {
             handleInlineFieldChange("cargo_destinatario", correcao);
           } else if (campo === "conclusao" || campo === "texto" || campo === "gramatica") {
             if (correcao) {
@@ -1230,7 +1232,8 @@ export default function MeusOficios() {
             if (!erro.correcao) continue;
             if (erro.campo === "assunto") handleInlineFieldChange("assunto", erro.correcao);
             else if (erro.campo === "destinatario") handleInlineFieldChange("destinatario", erro.correcao);
-            else if (erro.campo === "vocativo") handleInlineFieldChange("cargo_destinatario", erro.correcao);
+            else if (erro.campo === "vocativo") handleInlineFieldChange("vocativo", erro.correcao);
+            else if (erro.campo === "cargo_destinatario") handleInlineFieldChange("cargo_destinatario", erro.correcao);
             else if (erro.campo === "conclusao" || erro.campo === "texto" || erro.campo === "gramatica") {
               setEditedContent(erro.correcao);
               editedContentRef.current = erro.correcao;
