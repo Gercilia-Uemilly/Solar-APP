@@ -110,7 +110,7 @@ export default function TipTapOficioEditor({
 
     lastPropContentRef.current = content;
     lastEmittedRef.current = content;
-    editor.commands.setContent(content || "<p></p>", false);
+    editor.commands.setContent(content || "<p></p>", { emitUpdate: false });
   }, [content, editor]);
 
   // Reset on unmount
