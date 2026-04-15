@@ -45,7 +45,7 @@ serve(async (req) => {
     const ano: number = body.ano || new Date().getFullYear();
     const userName: string = body.user_nome || "";
 
-    // Reserve the next number using the DB function
+    // Reserve the next number using the DB function (no gap filling)
     const { data: reservedNum, error: rpcError } = await supabaseAdmin.rpc("reservar_proximo_numero", {
       p_ano: ano,
       p_user_id: userId,
@@ -59,27 +59,12 @@ serve(async (req) => {
       );
     }
 
-    // Check if this number was a gap (i.e. there are used numbers above it)
-    const { data: higherUsed } = await supabaseAdmin
-      .from("oficio_numeracao")
-      .select("numero")
-      .eq("ano", ano)
-      .in("status", ["usado", "reservado"])
-      .gt("numero", reservedNum)
-      .order("numero", { ascending: true })
-      .limit(1);
-
-    const isGapFill = higherUsed && higherUsed.length > 0;
-    const nextHigher = isGapFill ? higherUsed[0].numero : null;
-
     return new Response(
       JSON.stringify({
         numero: reservedNum,
         ano,
         numero_completo: `${reservedNum}/${ano}`,
         origem: "sistema",
-        lacuna: isGapFill,
-        proximo_usado: nextHigher,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
