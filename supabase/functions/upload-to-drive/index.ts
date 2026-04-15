@@ -322,6 +322,17 @@ serve(async (req) => {
     }
 
     if (lastError) {
+      // Detect scope/permission errors and return friendly message
+      if (/SCOPE_INSUFFICIENT|insufficientPermissions|insufficient authentication scopes/i.test(lastError)) {
+        return new Response(
+          JSON.stringify({
+            error: "Permissões insuficientes. Desconecte e reconecte seu Google Drive em Configurações para atualizar as permissões.",
+            needsReauth: true,
+            googleEmail: userToken.googleEmail,
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       throw new Error(`Todas as tentativas de upload falharam. Último erro: ${lastError}`);
     }
     console.log(`Uploaded! File ID: ${driveResult!.id}, modo: ${uploadMode}`);
