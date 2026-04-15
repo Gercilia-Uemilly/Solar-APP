@@ -87,6 +87,23 @@ export default function MeusOficios() {
 
   // View
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
+
+  // Cleanup editing status on page unmount or browser close
+  const viewOficioRef = useRef<OficioRow | null>(null);
+  useEffect(() => { viewOficioRef.current = viewOficio; }, [viewOficio]);
+  useEffect(() => {
+    const clearEditing = () => {
+      const o = viewOficioRef.current;
+      if (o) {
+        supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", o.id);
+      }
+    };
+    window.addEventListener("beforeunload", clearEditing);
+    return () => {
+      window.removeEventListener("beforeunload", clearEditing);
+      clearEditing();
+    };
+  }, []);
   const [showPreview, setShowPreview] = useState(false);
   const [previewAnexoUrls, setPreviewAnexoUrls] = useState<string[]>([]);
   const [previewAnexoDocs, setPreviewAnexoDocs] = useState<Array<{ nome: string; tipo: string; paginas?: number }>>([]);
@@ -165,6 +182,12 @@ export default function MeusOficios() {
     setPreviewAnexoUrls([]);
     setPreviewAnexoDocs([]);
     setShowPreview(true);
+
+    // Mark as being edited
+    if (user) {
+      const userName = profileName || user.user_metadata?.full_name || user.email || "";
+      supabase.from("oficios").update({ editing_by: user.id, editing_by_name: userName, editing_since: new Date().toISOString() } as any).eq("id", o.id);
+    }
 
     // Load anexos (imagens + documentos)
     fetchSavedImages(o.id)
@@ -908,6 +931,16 @@ export default function MeusOficios() {
                 </TableCell>
                 <TableCell>
                   <span>{o.assunto || "-"}</span>
+                  {(o as any).editing_by && (o as any).editing_by !== user?.id && (
+                    <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30">
+                      ✏️ {(o as any).editing_by_name || "Alguém"} editando
+                    </span>
+                  )}
+                  {(o as any).editing_by && (o as any).editing_by === user?.id && (
+                    <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                      ✏️ Você está editando
+                    </span>
+                  )}
                   {(o as any).versao === "externo" && (
                     <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30">📄 Externo</span>
                   )}
@@ -1080,6 +1113,10 @@ export default function MeusOficios() {
       <Dialog open={showPreview} onOpenChange={(open) => {
         if (!open && editedContent !== originalContent) {
           if (!confirm("Você tem edições não salvas. Deseja sair mesmo assim?")) return;
+        }
+        if (!open && viewOficio) {
+          // Clear editing status
+          supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", viewOficio.id);
         }
         setShowPreview(open);
       }}>

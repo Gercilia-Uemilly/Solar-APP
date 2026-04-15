@@ -387,4 +387,7 @@ export interface OficioRow {
   uploaded_at?: string | null;
   uploaded_by_name?: string | null;
   uploaded_by_email?: string | null;
+  editing_by?: string | null;
+  editing_by_name?: string | null;
+  editing_since?: string | null;
 }

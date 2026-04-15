@@ -398,7 +398,20 @@ export default function Oficios() {
     fetchProfile();
   }, [user]);
 
-  // 20-minute reminder: warn operator that the reserved number will expire soon
+  // Cleanup editing status on page unmount
+  useEffect(() => {
+    return () => {
+      // Clear editing status if user navigates away while editing
+      const id = editingOficioIdRef.current;
+      if (id) {
+        supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", id);
+      }
+    };
+  }, []);
+
+  const editingOficioIdRef = useRef<string | null>(null);
+  useEffect(() => { editingOficioIdRef.current = editingOficioId; }, [editingOficioId]);
+
   useEffect(() => {
     if (!reservedAt || !showDialog || !numero) return;
     const TWENTY_MIN = 20 * 60 * 1000;
@@ -686,7 +699,7 @@ export default function Oficios() {
     if (editingOficioId) {
       ({ error } = await supabase.from("oficios").update(payload).eq("id", editingOficioId));
     } else {
-      const { data: insertData, error: insertError } = await supabase.from("oficios").insert({ ...payload, author_id: user.id }).select("id").single();
+      const { data: insertData, error: insertError } = await supabase.from("oficios").insert({ ...payload, author_id: user.id, editing_by: user.id, editing_by_name: profileName || user.user_metadata?.full_name || user.email || null, editing_since: new Date().toISOString() }).select("id").single();
       error = insertError;
       if (insertData) oficioId = insertData.id;
     }
@@ -707,15 +720,20 @@ export default function Oficios() {
 
     await fetchOficios();
     
-    // If new oficio, set the editing ID so we stay in edit mode
+    // If new oficio, set the editing ID and mark as being edited
     if (!editingOficioId && oficioId) {
       setEditingOficioId(oficioId);
+      await supabase.from("oficios").update({ editing_by: user.id, editing_by_name: profileName || user.user_metadata?.full_name || user.email || null, editing_since: new Date().toISOString() } as any).eq("id", oficioId);
     }
 
     toast({ title: editingOficioId ? "✓ Ofício atualizado!" : "✓ Ofício salvo!" });
     void registrarAuditoria(editingOficioId ? "editar" : "criar", { tabela: "oficios", id: oficioId || "", numero: fullNumero || "" });
 
     if (closeAfterSave) {
+      // Clear editing status
+      if (oficioId) {
+        await supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", oficioId);
+      }
       resetForm();
     }
   };
@@ -899,6 +917,11 @@ export default function Oficios() {
           // Silent fail
         }
       }
+    }
+
+    // Clear editing status for the oficio
+    if (editingOficioId) {
+      await supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", editingOficioId);
     }
 
     resetForm();
