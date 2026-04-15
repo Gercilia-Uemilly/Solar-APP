@@ -628,23 +628,20 @@ export default function Ajuda() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.65 }}
       >
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-          <CardContent className="pt-6 pb-6 text-center space-y-3">
-            <p className="text-base font-medium text-foreground">
-              💬 Recado final
-            </p>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">
-                Erros podem acontecer 😊
+        <Card className="border-primary/30 overflow-hidden">
+          <div className="flex items-center gap-4 px-6 py-5">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 shrink-0">
+              <MessageCircle className="w-6 h-6 text-primary" />
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-sm font-semibold text-foreground">
+                Erros podem acontecer — e tudo bem 😊
               </p>
               <p className="text-sm text-muted-foreground">
-                O importante é <strong className="text-foreground">conferir antes de finalizar</strong>.
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                O sistema está em melhoria contínua e tudo será ajustado.
+                O importante é <strong className="text-foreground">conferir antes de finalizar</strong>. O Solar está em melhoria contínua.
               </p>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </motion.div>
     </div>
