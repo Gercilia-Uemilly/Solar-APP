@@ -686,7 +686,7 @@ export default function Oficios() {
     if (editingOficioId) {
       ({ error } = await supabase.from("oficios").update(payload).eq("id", editingOficioId));
     } else {
-      const { data: insertData, error: insertError } = await supabase.from("oficios").insert({ ...payload, author_id: user.id }).select("id").single();
+      const { data: insertData, error: insertError } = await supabase.from("oficios").insert({ ...payload, author_id: user.id, editing_by: user.id, editing_by_name: profileName || user.user_metadata?.full_name || user.email || null, editing_since: new Date().toISOString() }).select("id").single();
       error = insertError;
       if (insertData) oficioId = insertData.id;
     }
