@@ -103,8 +103,9 @@ export default function PainelNumeracao() {
   }, []);
 
 
+  // Admin-only: manual corrections
   const handleMarkUsed = async (num: NumRow) => {
-    if (!user) return;
+    if (!isAdmin || !user) return;
     const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
     const userName = (profile as any)?.full_name || user.user_metadata?.full_name || user.email || "";
     const { data: result } = await supabase.rpc("usar_numero", {
@@ -136,8 +137,7 @@ export default function PainelNumeracao() {
   };
 
   const handleReleaseNumber = async (num: NumRow) => {
-    const canRelease = isAdmin || num.reservado_por === user?.id || num.usado_por === user?.id;
-    if (!canRelease) return;
+    if (!isAdmin) return;
     const { error } = await supabase
       .from("oficio_numeracao" as any)
       .update({ status: "disponivel", reservado_por: null, reservado_por_nome: null, reservado_em: null, usado_por: null, usado_por_nome: null, usado_em: null, oficio_id: null } as any)
@@ -213,7 +213,7 @@ export default function PainelNumeracao() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Controle de Numeração — {ano}</h1>
             <p className="text-sm text-muted-foreground">
-              Último número: <span className="font-mono font-bold text-foreground">{lastUsedNum || "—"}</span> · {counts.disponivel} disponíveis
+              Último número: <span className="font-mono font-bold text-foreground">{lastUsedNum || "—"}</span> · {counts.usado} salvos · {counts.reservado} rascunhos · {counts.cancelado} cancelados
             </p>
           </div>
         </div>
@@ -301,7 +301,7 @@ export default function PainelNumeracao() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {n.status === "disponivel" && (
+                          {isAdmin && n.status === "disponivel" && (
                             <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={(e) => { e.stopPropagation(); handleMarkUsed(n); }}>
                               Usar
                             </Button>
@@ -378,19 +378,23 @@ export default function PainelNumeracao() {
                   )}
                 </div>
               )}
-              {selected.status === "disponivel" && (
+              {isAdmin && selected.status === "disponivel" && (
                 <div className="flex gap-2 pt-2 border-t border-border">
                   <Button variant="default" size="sm" onClick={() => handleMarkUsed(selected)}>✅ Marcar como usado</Button>
                 </div>
               )}
-              {(selected.status === "reservado" || selected.status === "usado") &&
-                (isAdmin || selected.reservado_por === user?.id || selected.usado_por === user?.id) && (
+              {isAdmin && (selected.status === "reservado" || selected.status === "usado" || selected.status === "cancelado") && (
                 <div className="flex gap-2 pt-2 border-t border-border">
                   <Button variant="outline" size="sm" onClick={() => handleReleaseNumber(selected)}>🔓 Liberar número</Button>
-                  {isAdmin && (
+                  {selected.status !== "cancelado" && (
                     <Button variant="destructive" size="sm" onClick={() => handleCancelNumber(selected)}>Cancelar</Button>
                   )}
                 </div>
+              )}
+              {!isAdmin && (
+                <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+                  ℹ️ A numeração é gerenciada automaticamente pelo sistema. Contate um administrador para correções.
+                </p>
               )}
             </div>
           )}
