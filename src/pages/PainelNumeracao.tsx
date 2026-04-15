@@ -213,7 +213,7 @@ export default function PainelNumeracao() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Controle de Numeração — {ano}</h1>
             <p className="text-sm text-muted-foreground">
-              Último número: <span className="font-mono font-bold text-foreground">{lastUsedNum || "—"}</span> · {counts.disponivel} disponíveis
+              Último número: <span className="font-mono font-bold text-foreground">{lastUsedNum || "—"}</span> · {counts.usado} salvos · {counts.reservado} rascunhos · {counts.cancelado} cancelados
             </p>
           </div>
         </div>
