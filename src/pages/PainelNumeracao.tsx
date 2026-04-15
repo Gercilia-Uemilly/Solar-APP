@@ -160,8 +160,8 @@ export default function PainelNumeracao() {
 
   const lastUsedNum = numeros.filter(n => n.status !== "disponivel").sort((a, b) => b.numero - a.numero)[0]?.numero || 0;
 
-  // All numbers up to the last used/reserved one, plus any beyond that are non-disponivel
-  const visibleNumbers = numeros.filter(n => n.numero <= lastUsedNum || n.status !== "disponivel");
+  // Show all numbers from 1 to 1000 (or up to highest used if beyond 1000)
+  const visibleNumbers = numeros.filter(n => n.numero <= 1000 || (n.numero > 1000 && n.status !== "disponivel"));
 
   const sortedNumbers = useMemo(() => {
     const arr = [...visibleNumbers];
