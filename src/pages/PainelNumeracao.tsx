@@ -286,10 +286,10 @@ export default function PainelNumeracao() {
                         <TableCell className="font-mono font-bold text-foreground">{n.numero}/{n.ano}</TableCell>
                         <TableCell>{getStatusBadge(n.status)}</TableCell>
                         <TableCell className="text-sm text-foreground">
-                          {n.status === "usado" ? n.usado_por_nome : n.reservado_por_nome || "—"}
+                          {n.usado_por_nome || n.reservado_por_nome || "—"}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {n.status === "usado" && n.usado_em
+                          {n.usado_em
                             ? new Date(n.usado_em).toLocaleString("pt-BR")
                             : n.reservado_em
                               ? new Date(n.reservado_em).toLocaleString("pt-BR")
