@@ -85,6 +85,23 @@ export default function MeusOficios() {
     });
   }, [user]);
 
+  // Cleanup editing status on page unmount or browser close
+  const viewOficioRef = useRef<OficioRow | null>(null);
+  useEffect(() => { viewOficioRef.current = viewOficio; }, [viewOficio]);
+  useEffect(() => {
+    const clearEditing = () => {
+      const o = viewOficioRef.current;
+      if (o) {
+        supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", o.id);
+      }
+    };
+    window.addEventListener("beforeunload", clearEditing);
+    return () => {
+      window.removeEventListener("beforeunload", clearEditing);
+      clearEditing();
+    };
+  }, []);
+
   // View
   const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
