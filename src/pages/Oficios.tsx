@@ -707,15 +707,20 @@ export default function Oficios() {
 
     await fetchOficios();
     
-    // If new oficio, set the editing ID so we stay in edit mode
+    // If new oficio, set the editing ID and mark as being edited
     if (!editingOficioId && oficioId) {
       setEditingOficioId(oficioId);
+      await supabase.from("oficios").update({ editing_by: user.id, editing_by_name: profileName || user.user_metadata?.full_name || user.email || null, editing_since: new Date().toISOString() } as any).eq("id", oficioId);
     }
 
     toast({ title: editingOficioId ? "✓ Ofício atualizado!" : "✓ Ofício salvo!" });
     void registrarAuditoria(editingOficioId ? "editar" : "criar", { tabela: "oficios", id: oficioId || "", numero: fullNumero || "" });
 
     if (closeAfterSave) {
+      // Clear editing status
+      if (oficioId) {
+        await supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", oficioId);
+      }
       resetForm();
     }
   };
