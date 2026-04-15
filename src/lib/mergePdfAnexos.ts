@@ -95,11 +95,7 @@ function isLandscape(w: number, h: number): boolean {
 
 /**
  * Calculate slots for N images based on their orientations.
- * - 1 image: full page
- * - 2 landscape: stacked vertically (full width, half height each)
- * - 2 portrait: side by side (half width, full height)
- * - 2 mixed: stacked vertically
- * - 3-4: 2x2 grid
+ * Landscape images get full-width rows; portrait images share columns.
  */
 function calculateSlots(
   images: { width: number; height: number }[]
@@ -136,17 +132,39 @@ function calculateSlots(
   }
 
   if (count === 3) {
+    const allLandscape = images.every(i => isLandscape(i.width, i.height));
+    if (allLandscape) {
+      // 3 landscape → stack vertically, each gets full width
+      const slotH = (CONTENT_HEIGHT - GAP * 2) / 3;
+      return [
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH * 2 + GAP * 2, w: CONTENT_WIDTH, h: slotH },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH },
+      ];
+    }
     const cellW = (CONTENT_WIDTH - GAP) / 2;
     const cellH = (CONTENT_HEIGHT - GAP) / 2;
     return [
       { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
       { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-      // Third image centered on bottom row
       { x: MARGIN_LEFT + (CONTENT_WIDTH - cellW) / 2, y: MARGIN_BOTTOM, w: cellW, h: cellH },
     ];
   }
 
-  // 4 images — 2x2 grid
+  // 4 images
+  const allLandscape = images.every(i => isLandscape(i.width, i.height));
+  if (allLandscape) {
+    // 4 landscape → stack vertically, each gets full width
+    const slotH = (CONTENT_HEIGHT - GAP * 3) / 4;
+    return [
+      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH * 3 + GAP * 3, w: CONTENT_WIDTH, h: slotH },
+      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH * 2 + GAP * 2, w: CONTENT_WIDTH, h: slotH },
+      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
+      { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH },
+    ];
+  }
+
+  // Mixed or all portrait → 2x2 grid
   const cellW = (CONTENT_WIDTH - GAP) / 2;
   const cellH = (CONTENT_HEIGHT - GAP) / 2;
   return [
@@ -210,7 +228,7 @@ async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
     const imgDims = embeddedImages.map(img => ({ width: img.width, height: img.height }));
     const slots = calculateSlots(imgDims);
     for (let i = 0; i < total; i++) {
-      drawImageInSlot(page, embeddedImages[i], slots[i], total === 1 ? "contain" : "cover");
+      drawImageInSlot(page, embeddedImages[i], slots[i], "contain");
     }
   } else {
     // Multiple pages, 4 images per page
@@ -223,7 +241,7 @@ async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
       const imgDims = pageImages.map(img => ({ width: img.width, height: img.height }));
       const slots = calculateSlots(imgDims);
       for (let i = 0; i < onThisPage; i++) {
-        drawImageInSlot(page, pageImages[i], slots[i], "cover");
+        drawImageInSlot(page, pageImages[i], slots[i], "contain");
       }
       idx += onThisPage;
     }
