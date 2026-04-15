@@ -227,24 +227,31 @@ function TicketForm({ onClose }: { onClose: () => void }) {
   if (result) {
     return (
       <div className="space-y-4">
-        <div className={`p-4 rounded-lg border ${result.resolvido ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
-          <div className="flex items-center gap-2 mb-3">
-            {result.resolvido ? (
-              <Bot className="w-5 h-5 text-emerald-600" />
-            ) : (
+        <div className="flex items-center gap-2 mb-1">
+          {result.resolvido ? (
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100">
+              <CheckCircle className="w-5 h-5 text-emerald-600" />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100">
               <Send className="w-5 h-5 text-amber-600" />
-            )}
-            <span className={`font-semibold text-sm ${result.resolvido ? "text-emerald-700" : "text-amber-700"}`}>
-              {result.resolvido ? "✅ Resolvido pelo Solar" : "📨 Encaminhado ao administrador"}
-            </span>
-          </div>
-          <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{result.resposta}</p>
-          {!result.resolvido && (
-            <p className="text-xs text-muted-foreground mt-3 italic">
-              O administrador receberá uma notificação via WhatsApp e email com os detalhes do seu chamado.
-            </p>
+            </div>
           )}
+          <span className={`font-bold text-base ${result.resolvido ? "text-emerald-700" : "text-amber-700"}`}>
+            {result.resolvido ? "Resolvido pelo Solar" : "Encaminhado ao administrador"}
+          </span>
         </div>
+
+        <div className="p-4 rounded-lg border bg-card">
+          <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{result.resposta}</p>
+        </div>
+
+        {!result.resolvido && (
+          <p className="text-xs text-muted-foreground italic">
+            O administrador receberá uma notificação via WhatsApp e email com os detalhes do seu chamado.
+          </p>
+        )}
+
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={() => { setResult(null); setDescription(""); setScreenshot(null); setPreviewUrl(null); }}>
             Novo chamado
