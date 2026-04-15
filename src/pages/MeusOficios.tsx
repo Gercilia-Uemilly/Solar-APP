@@ -85,6 +85,9 @@ export default function MeusOficios() {
     });
   }, [user]);
 
+  // View
+  const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
+
   // Cleanup editing status on page unmount or browser close
   const viewOficioRef = useRef<OficioRow | null>(null);
   useEffect(() => { viewOficioRef.current = viewOficio; }, [viewOficio]);
@@ -101,9 +104,6 @@ export default function MeusOficios() {
       clearEditing();
     };
   }, []);
-
-  // View
-  const [viewOficio, setViewOficio] = useState<OficioRow | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewAnexoUrls, setPreviewAnexoUrls] = useState<string[]>([]);
   const [previewAnexoDocs, setPreviewAnexoDocs] = useState<Array<{ nome: string; tipo: string; paginas?: number }>>([]);
