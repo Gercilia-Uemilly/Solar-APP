@@ -212,7 +212,7 @@ function TicketForm({ onClose }: { onClose: () => void }) {
       });
 
       if (data.resolvido) {
-        toast.success("A IA conseguiu resolver seu problema!");
+        toast.success("O Solar conseguiu resolver seu problema!");
       } else {
         toast.info("Chamado enviado ao administrador via WhatsApp e email.");
       }
@@ -235,7 +235,7 @@ function TicketForm({ onClose }: { onClose: () => void }) {
               <Send className="w-5 h-5 text-amber-600" />
             )}
             <span className={`font-semibold text-sm ${result.resolvido ? "text-emerald-700" : "text-amber-700"}`}>
-              {result.resolvido ? "✅ Resolvido pela IA" : "📨 Encaminhado ao administrador"}
+              {result.resolvido ? "✅ Resolvido pelo Solar" : "📨 Encaminhado ao administrador"}
             </span>
           </div>
           <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{result.resposta}</p>
@@ -320,8 +320,8 @@ function TicketForm({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="p-3 rounded-lg bg-muted/50 border text-xs text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground text-sm">🤖 Como funciona:</p>
-        <p>1. A IA tentará resolver seu problema automaticamente</p>
+        <p className="font-medium text-foreground text-sm">☀️ Como funciona:</p>
+        <p>1. O Solar tentará resolver seu problema automaticamente</p>
         <p>2. Se não conseguir, o chamado será enviado ao administrador via <strong>WhatsApp</strong> e <strong>email</strong></p>
         <p>3. Você receberá uma notificação quando for respondido</p>
       </div>
@@ -380,7 +380,7 @@ function MeusChamados() {
           <p className="text-sm text-foreground line-clamp-2">{t.description}</p>
           {t.ai_response && (
             <div className="p-2 rounded bg-muted/50 border text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">🤖 IA:</span> {t.ai_response.slice(0, 200)}{t.ai_response.length > 200 ? "..." : ""}
+              <span className="font-medium text-foreground">☀️ Solar:</span> {t.ai_response.slice(0, 200)}{t.ai_response.length > 200 ? "..." : ""}
             </div>
           )}
         </div>
