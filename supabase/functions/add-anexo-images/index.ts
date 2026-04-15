@@ -242,23 +242,19 @@ function getImageDimensions(data: Uint8Array, type: string): { width: number; he
 // Content: 16cm wide x 24.7cm tall
 // 1cm = 360,000 EMU
 const CONTENT_WIDTH_EMU = 5_760_000;  // 16cm
-const MAX_SINGLE_HEIGHT = 5_400_000;  // ~15cm max for single image (not full page)
-const MAX_STACK_HEIGHT = 3_600_000;   // ~10cm max per image when stacked (2 images)
+const CONTENT_HEIGHT_EMU = 8_892_000; // 24.7cm
+const MAX_SINGLE_HEIGHT = 7_200_000;  // ~20cm max for single image
 const MAX_SIDE_WIDTH = 2_700_000;     // ~7.5cm per image side by side
-const MAX_SIDE_HEIGHT = 5_400_000;    // ~15cm max height for side by side
-const MAX_GRID_HEIGHT = 3_240_000;    // ~9cm max per image in grid
+const MAX_SIDE_HEIGHT = 7_200_000;    // ~20cm max height for side by side
+const MAX_GRID_HEIGHT = 4_140_000;    // ~11.5cm max per image in grid
 const IMG_GAP_EMU = 144_000;          // 0.4cm gap
 
-/**
- * Detect if an image is landscape (wider than tall).
- */
 function isLandscape(w: number, h: number): boolean {
   return w >= h;
 }
 
 /**
  * Scale image to fit within a box while maintaining aspect ratio (contain behavior).
- * Returns the actual cx, cy to use.
  */
 function containFit(
   imgW: number, imgH: number, maxCx: number, maxCy: number
@@ -267,12 +263,10 @@ function containFit(
   const boxRatio = maxCx / maxCy;
   
   if (imgRatio > boxRatio) {
-    // Image is wider relative to box → fit to width
     const cx = maxCx;
     const cy = Math.round(maxCx / imgRatio);
     return { cx, cy };
   } else {
-    // Image is taller relative to box → fit to height
     const cy = maxCy;
     const cx = Math.round(maxCy * imgRatio);
     return { cx, cy };
@@ -280,40 +274,41 @@ function containFit(
 }
 
 /**
+ * For stacked layout: fit to full width, height is proportional.
+ */
+function fitToFullWidth(imgW: number, imgH: number): { cx: number; cy: number } {
+  const cx = CONTENT_WIDTH_EMU;
+  const cy = Math.round(CONTENT_WIDTH_EMU * imgH / imgW);
+  return { cx, cy };
+}
+
+/**
  * Determine the best layout for a group of images based on their orientations.
  */
 function getOrientationAwareLayout(
   images: { width: number; height: number }[]
-): { maxCx: number; maxCy: number; layout: "single" | "stack" | "side" | "grid22" } {
+): { layout: "single" | "stack" | "side" | "grid22" } {
   const count = images.length;
 
   if (count === 1) {
-    return { maxCx: CONTENT_WIDTH_EMU, maxCy: MAX_SINGLE_HEIGHT, layout: "single" };
+    return { layout: "single" };
   }
 
   if (count === 2) {
     const landscapeCount = images.filter(i => isLandscape(i.width, i.height)).length;
-    
-    if (landscapeCount >= 2) {
-      return { maxCx: CONTENT_WIDTH_EMU, maxCy: MAX_STACK_HEIGHT, layout: "stack" };
-    } else if (landscapeCount === 0) {
-      return { maxCx: MAX_SIDE_WIDTH, maxCy: MAX_SIDE_HEIGHT, layout: "side" };
-    } else {
-      return { maxCx: CONTENT_WIDTH_EMU, maxCy: MAX_STACK_HEIGHT, layout: "stack" };
+    if (landscapeCount === 0) {
+      return { layout: "side" };
     }
+    return { layout: "stack" };
   }
 
-  // 3-4 images: check if ALL are landscape → stack vertically (full width each)
+  // 3-4 images: all landscape → stack, otherwise grid
   const allLandscape = images.every(i => isLandscape(i.width, i.height));
   if (allLandscape) {
-    // Stack vertically — each image gets full width, height divided by count
-    const maxH = count === 3 ? 2_880_000 : 2_160_000; // ~8cm for 3, ~6cm for 4
-    return { maxCx: CONTENT_WIDTH_EMU, maxCy: maxH, layout: "stack" };
+    return { layout: "stack" };
   }
 
-  // Mixed orientations → 2x2 grid
-  const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
-  return { maxCx: cx, maxCy: MAX_GRID_HEIGHT, layout: "grid22" };
+  return { layout: "grid22" };
 }
 
 function buildImagePageXml(
@@ -326,37 +321,39 @@ function buildImagePageXml(
 ): string[] {
   const paragraphs: string[] = [];
   const layoutInfo = getOrientationAwareLayout(images);
-  const { maxCx, maxCy, layout } = layoutInfo;
+  const { layout } = layoutInfo;
 
   if (layout === "single") {
     const img = images[0];
-    const fit = containFit(img.width, img.height, maxCx, maxCy);
+    const fit = isLandscape(img.width, img.height)
+      ? fitToFullWidth(img.width, img.height)
+      : containFit(img.width, img.height, CONTENT_WIDTH_EMU, MAX_SINGLE_HEIGHT);
     paragraphs.push(makeImageRowXml(
       [makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS)],
         W, WP, A_NS, PIC_NS, pageBreakBeforeFirst
     ));
   } else if (layout === "stack") {
-    // Each image on its own centered paragraph
+    // Each image full width, proportional height
     for (const [index, img] of images.entries()) {
-      const fit = containFit(img.width, img.height, maxCx, maxCy);
+      const fit = fitToFullWidth(img.width, img.height);
       paragraphs.push(makeImageRowXml(
         [makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS)],
         W, WP, A_NS, PIC_NS, pageBreakBeforeFirst && index === 0
       ));
     }
   } else if (layout === "side") {
-    // Both images side by side in one paragraph
     const runs = images.map(img => {
-      const fit = containFit(img.width, img.height, maxCx, maxCy);
+      const fit = containFit(img.width, img.height, MAX_SIDE_WIDTH, MAX_SIDE_HEIGHT);
       return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
     });
     paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst));
   } else {
-    // grid22: rows of 2
+    // grid22
+    const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
     for (let i = 0; i < images.length; i += 2) {
       const pair = images.slice(i, i + 2);
       const runs = pair.map(img => {
-        const fit = containFit(img.width, img.height, maxCx, maxCy);
+        const fit = containFit(img.width, img.height, cx, MAX_GRID_HEIGHT);
         return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
       });
       paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst && i === 0));
