@@ -414,13 +414,13 @@ export default function Oficios() {
 
   useEffect(() => {
     if (!reservedAt || !showDialog || !numero) return;
-    const TWENTY_MIN = 20 * 60 * 1000;
+    const TEN_MIN = 10 * 60 * 1000;
     const elapsed = Date.now() - reservedAt;
-    const remaining = TWENTY_MIN - elapsed;
+    const remaining = TEN_MIN - elapsed;
     if (remaining <= 0) {
       toast({
         title: "⏰ Número prestes a expirar",
-        description: `O número ${numero} será liberado em 10 minutos se não for finalizado.`,
+        description: `O número ${numero} será liberado em 5 minutos se não for salvo.`,
         variant: "destructive",
       });
       return;
@@ -428,7 +428,7 @@ export default function Oficios() {
     const timer = setTimeout(() => {
       toast({
         title: "⏰ Número prestes a expirar",
-        description: `O número ${numero} será liberado em 10 minutos se não for finalizado. Salve ou finalize o ofício.`,
+        description: `O número ${numero} será liberado em 5 minutos se não for salvo. Salve o ofício.`,
         variant: "destructive",
       });
     }, remaining);
