@@ -35,7 +35,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   disponivel: "Disponível",
   reservado: "Rascunho",
-  usado: "Protocolado",
+  usado: "Salvo",
   cancelado: "Cancelado",
 };
 
