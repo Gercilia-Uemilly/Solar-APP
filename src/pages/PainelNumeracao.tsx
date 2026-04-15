@@ -103,8 +103,9 @@ export default function PainelNumeracao() {
   }, []);
 
 
+  // Admin-only: manual corrections
   const handleMarkUsed = async (num: NumRow) => {
-    if (!user) return;
+    if (!isAdmin || !user) return;
     const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
     const userName = (profile as any)?.full_name || user.user_metadata?.full_name || user.email || "";
     const { data: result } = await supabase.rpc("usar_numero", {
@@ -136,8 +137,7 @@ export default function PainelNumeracao() {
   };
 
   const handleReleaseNumber = async (num: NumRow) => {
-    const canRelease = isAdmin || num.reservado_por === user?.id || num.usado_por === user?.id;
-    if (!canRelease) return;
+    if (!isAdmin) return;
     const { error } = await supabase
       .from("oficio_numeracao" as any)
       .update({ status: "disponivel", reservado_por: null, reservado_por_nome: null, reservado_em: null, usado_por: null, usado_por_nome: null, usado_em: null, oficio_id: null } as any)
