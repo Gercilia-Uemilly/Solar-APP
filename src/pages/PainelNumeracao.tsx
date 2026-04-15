@@ -326,12 +326,15 @@ export default function PainelNumeracao() {
                         {String(n.numero).padStart(3, "0")}
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs max-w-[200px]">
-                      <p className="font-medium">{n.numero}/{ano}</p>
-                      <p>{statusLabels[n.status] || n.status}</p>
+                    <TooltipContent side="top" className="text-xs max-w-[220px]">
+                      <p className="font-medium">{n.numero}/{ano} — {statusLabels[n.status] || n.status}</p>
+                      {(n.usado_por_nome || n.reservado_por_nome) && (
+                        <p>👤 {n.usado_por_nome || n.reservado_por_nome}</p>
+                      )}
+                      {(n.usado_em || n.reservado_em) && (
+                        <p>🕐 {new Date((n.usado_em || n.reservado_em)!).toLocaleString("pt-BR")}</p>
+                      )}
                       {n.origem_numero && n.origem_numero !== "sistema" && <p>Origem: {origemLabels[n.origem_numero]}</p>}
-                      {n.status === "reservado" && n.reservado_por_nome && <p>Reservado por: {n.reservado_por_nome}</p>}
-                      {n.status === "usado" && n.usado_por_nome && <p>Usado por: {n.usado_por_nome}</p>}
                     </TooltipContent>
                   </Tooltip>
                 ))}
