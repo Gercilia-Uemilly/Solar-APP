@@ -46,6 +46,7 @@ const menuSections = [
     items: [
       { label: "Lixeira", icon: Trash2, path: "/lixeira", adminOnly: false },
       { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
+      { label: "Ajuda", icon: HelpCircle, path: "/ajuda", adminOnly: false },
       { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },
     ],
   },
