@@ -906,6 +906,11 @@ export default function Oficios() {
       }
     }
 
+    // Clear editing status for the oficio
+    if (editingOficioId) {
+      await supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", editingOficioId);
+    }
+
     resetForm();
     fetchOficios();
   };
