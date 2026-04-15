@@ -376,14 +376,7 @@ export default function Oficios() {
       }
       setNumero(data.numero_completo || `${data.numero}/${ano}`);
       setReservedAt(Date.now());
-      if (data.lacuna && data.proximo_usado) {
-        toast({
-          title: `⚠️ Número ${data.numero_completo} — lacuna preenchida`,
-          description: `Este número foi pulado anteriormente. O próximo número já utilizado acima é o ${data.proximo_usado}/${ano}.`,
-        });
-      } else {
-        toast({ title: `Número ${data.numero_completo} reservado` });
-      }
+      toast({ title: `Número ${data.numero_completo} reservado` });
     } catch (err) {
       toast({ title: "Erro ao reservar número", variant: "destructive" });
       setShowDialog(false);
