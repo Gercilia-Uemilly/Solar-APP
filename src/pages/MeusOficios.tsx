@@ -1087,6 +1087,10 @@ export default function MeusOficios() {
         if (!open && editedContent !== originalContent) {
           if (!confirm("Você tem edições não salvas. Deseja sair mesmo assim?")) return;
         }
+        if (!open && viewOficio) {
+          // Clear editing status
+          supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", viewOficio.id);
+        }
         setShowPreview(open);
       }}>
         <DialogContent className="bg-card border-border max-w-[900px] max-h-[90vh] overflow-y-auto">
