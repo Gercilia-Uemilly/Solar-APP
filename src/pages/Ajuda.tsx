@@ -342,19 +342,33 @@ function MeusChamados() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchTickets = async () => {
     if (!user) return;
-    (async () => {
-      const { data } = await supabase
-        .from("support_tickets")
-        .select("id, category, description, status, ai_response, created_at, screenshot_url")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      setTickets((data as any) || []);
-      setLoading(false);
-    })();
+    const { data } = await supabase
+      .from("support_tickets")
+      .select("id, category, description, status, ai_response, created_at, screenshot_url")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setTickets((data as any) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTickets();
   }, [user]);
+
+  const handleDelete = async (ticketId: string) => {
+    const confirmed = window.confirm("Tem certeza que deseja apagar este chamado?");
+    if (!confirmed) return;
+    const { error } = await supabase.from("support_tickets").delete().eq("id", ticketId);
+    if (error) {
+      toast.error("Erro ao apagar chamado.");
+      return;
+    }
+    setTickets(prev => prev.filter(t => t.id !== ticketId));
+    toast.success("Chamado apagado.");
+  };
 
   if (loading) return <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   if (!tickets.length) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum chamado aberto ainda.</p>;
@@ -372,10 +386,19 @@ function MeusChamados() {
                 {categoryOptions.find(c => c.value === t.category)?.label || t.category}
               </span>
             </div>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {new Date(t.created_at).toLocaleDateString("pt-BR")}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {new Date(t.created_at).toLocaleDateString("pt-BR")}
+              </span>
+              <button
+                onClick={() => handleDelete(t.id)}
+                className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded-md hover:bg-destructive/10"
+                title="Apagar chamado"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
           <p className="text-sm text-foreground line-clamp-2">{t.description}</p>
           {t.ai_response && (
