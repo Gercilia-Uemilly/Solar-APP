@@ -44,12 +44,12 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 0,
-      gcTime: 1000 * 60 * 5,
+      gcTime: 0,
+      refetchOnMount: true,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
-      refetchOnMount: true,
       retry: 3,
-      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+      retryDelay: 1000,
     },
     mutations: {
       retry: 2,
