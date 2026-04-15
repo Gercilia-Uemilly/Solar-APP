@@ -398,7 +398,20 @@ export default function Oficios() {
     fetchProfile();
   }, [user]);
 
-  // 20-minute reminder: warn operator that the reserved number will expire soon
+  // Cleanup editing status on page unmount
+  useEffect(() => {
+    return () => {
+      // Clear editing status if user navigates away while editing
+      const id = editingOficioIdRef.current;
+      if (id) {
+        supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", id);
+      }
+    };
+  }, []);
+
+  const editingOficioIdRef = useRef<string | null>(null);
+  useEffect(() => { editingOficioIdRef.current = editingOficioId; }, [editingOficioId]);
+
   useEffect(() => {
     if (!reservedAt || !showDialog || !numero) return;
     const TWENTY_MIN = 20 * 60 * 1000;
