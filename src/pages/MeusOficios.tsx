@@ -166,6 +166,12 @@ export default function MeusOficios() {
     setPreviewAnexoDocs([]);
     setShowPreview(true);
 
+    // Mark as being edited
+    if (user) {
+      const userName = profileName || user.user_metadata?.full_name || user.email || "";
+      supabase.from("oficios").update({ editing_by: user.id, editing_by_name: userName, editing_since: new Date().toISOString() } as any).eq("id", o.id);
+    }
+
     // Load anexos (imagens + documentos)
     fetchSavedImages(o.id)
       .then(async (files) => {
