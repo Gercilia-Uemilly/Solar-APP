@@ -295,18 +295,23 @@ function getOrientationAwareLayout(
     const landscapeCount = images.filter(i => isLandscape(i.width, i.height)).length;
     
     if (landscapeCount >= 2) {
-      // Both landscape → stack vertically
       return { maxCx: CONTENT_WIDTH_EMU, maxCy: MAX_STACK_HEIGHT, layout: "stack" };
     } else if (landscapeCount === 0) {
-      // Both portrait → side by side
       return { maxCx: MAX_SIDE_WIDTH, maxCy: MAX_SIDE_HEIGHT, layout: "side" };
     } else {
-      // Mixed → stack vertically
       return { maxCx: CONTENT_WIDTH_EMU, maxCy: MAX_STACK_HEIGHT, layout: "stack" };
     }
   }
 
-  // 3 or 4 images: 2x2 grid
+  // 3-4 images: check if ALL are landscape → stack vertically (full width each)
+  const allLandscape = images.every(i => isLandscape(i.width, i.height));
+  if (allLandscape) {
+    // Stack vertically — each image gets full width, height divided by count
+    const maxH = count === 3 ? 2_880_000 : 2_160_000; // ~8cm for 3, ~6cm for 4
+    return { maxCx: CONTENT_WIDTH_EMU, maxCy: maxH, layout: "stack" };
+  }
+
+  // Mixed orientations → 2x2 grid
   const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
   return { maxCx: cx, maxCy: MAX_GRID_HEIGHT, layout: "grid22" };
 }
