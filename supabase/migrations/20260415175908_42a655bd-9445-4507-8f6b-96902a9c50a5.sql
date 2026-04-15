@@ -1,0 +1,25 @@
+
+ALTER TABLE oficios REPLICA IDENTITY FULL;
+ALTER TABLE oficio_numeracao REPLICA IDENTITY FULL;
+ALTER TABLE profiles REPLICA IDENTITY FULL;
+ALTER TABLE notificacoes REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE oficios;
+  EXCEPTION WHEN others THEN NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE oficio_numeracao;
+  EXCEPTION WHEN others THEN NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+  EXCEPTION WHEN others THEN NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE notificacoes;
+  EXCEPTION WHEN others THEN NULL;
+  END;
+END $$;
