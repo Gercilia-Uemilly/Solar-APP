@@ -301,7 +301,7 @@ export default function PainelNumeracao() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {n.status === "disponivel" && (
+                          {isAdmin && n.status === "disponivel" && (
                             <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={(e) => { e.stopPropagation(); handleMarkUsed(n); }}>
                               Usar
                             </Button>
@@ -378,19 +378,23 @@ export default function PainelNumeracao() {
                   )}
                 </div>
               )}
-              {selected.status === "disponivel" && (
+              {isAdmin && selected.status === "disponivel" && (
                 <div className="flex gap-2 pt-2 border-t border-border">
                   <Button variant="default" size="sm" onClick={() => handleMarkUsed(selected)}>✅ Marcar como usado</Button>
                 </div>
               )}
-              {(selected.status === "reservado" || selected.status === "usado") &&
-                (isAdmin || selected.reservado_por === user?.id || selected.usado_por === user?.id) && (
+              {isAdmin && (selected.status === "reservado" || selected.status === "usado" || selected.status === "cancelado") && (
                 <div className="flex gap-2 pt-2 border-t border-border">
                   <Button variant="outline" size="sm" onClick={() => handleReleaseNumber(selected)}>🔓 Liberar número</Button>
-                  {isAdmin && (
+                  {selected.status !== "cancelado" && (
                     <Button variant="destructive" size="sm" onClick={() => handleCancelNumber(selected)}>Cancelar</Button>
                   )}
                 </div>
+              )}
+              {!isAdmin && (
+                <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+                  ℹ️ A numeração é gerenciada automaticamente pelo sistema. Contate um administrador para correções.
+                </p>
               )}
             </div>
           )}
