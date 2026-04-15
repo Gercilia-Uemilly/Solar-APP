@@ -184,11 +184,11 @@ function drawImageInSlot(
   page: ReturnType<PDFDocument["addPage"]>,
   img: Awaited<ReturnType<PDFDocument["embedJpg"]>>,
   slot: Slot,
-  mode: "contain" | "cover" = "cover"
 ) {
+  // Always contain: fit entirely preserving aspect ratio, centered in slot
   const scaleX = slot.w / img.width;
   const scaleY = slot.h / img.height;
-  const scale = mode === "contain" ? Math.min(scaleX, scaleY) : Math.max(scaleX, scaleY);
+  const scale = Math.min(scaleX, scaleY);
 
   const drawW = img.width * scale;
   const drawH = img.height * scale;
