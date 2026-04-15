@@ -828,6 +828,51 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          ai_response: string | null
+          category: string
+          created_at: string
+          description: string
+          escalated_at: string | null
+          id: string
+          screenshot_url: string | null
+          status: string
+          updated_at: string
+          user_email: string | null
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          ai_response?: string | null
+          category?: string
+          created_at?: string
+          description: string
+          escalated_at?: string | null
+          id?: string
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          user_email?: string | null
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          ai_response?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          escalated_at?: string | null
+          id?: string
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       user_drive_tokens: {
         Row: {
           access_token: string
