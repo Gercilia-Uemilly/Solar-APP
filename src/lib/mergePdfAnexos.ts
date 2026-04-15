@@ -228,7 +228,7 @@ async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
     const imgDims = embeddedImages.map(img => ({ width: img.width, height: img.height }));
     const slots = calculateSlots(imgDims);
     for (let i = 0; i < total; i++) {
-      drawImageInSlot(page, embeddedImages[i], slots[i], "contain");
+      drawImageInSlot(page, embeddedImages[i], slots[i]);
     }
   } else {
     // Multiple pages, 4 images per page
@@ -241,7 +241,7 @@ async function addImagesWithLayout(doc: PDFDocument, imageFiles: File[]) {
       const imgDims = pageImages.map(img => ({ width: img.width, height: img.height }));
       const slots = calculateSlots(imgDims);
       for (let i = 0; i < onThisPage; i++) {
-        drawImageInSlot(page, pageImages[i], slots[i], "contain");
+        drawImageInSlot(page, pageImages[i], slots[i]);
       }
       idx += onThisPage;
     }
