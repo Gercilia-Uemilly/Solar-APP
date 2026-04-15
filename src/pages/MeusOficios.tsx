@@ -379,21 +379,8 @@ export default function MeusOficios() {
 
     setOficios(prev => prev.map(o => o.id === oficioId ? { ...o, ...statusPayload } : o));
 
-    if (newStatus === "Protocolado" && oficioAtual?.numero) {
-      const numMatch = oficioAtual.numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().match(/^(\d+)/);
-      if (numMatch && user) {
-        const numInt = parseInt(numMatch[1], 10);
-        const ano = oficioAtual.ano || new Date().getFullYear();
-        const userName = profileName || user.user_metadata?.full_name || user.email || "";
-        await supabase.rpc("usar_numero", {
-          p_numero: numInt,
-          p_ano: ano,
-          p_user_id: user.id,
-          p_user_nome: userName,
-          p_oficio_id: oficioId,
-        });
-      }
-    }
+    // The trigger `trg_sync_numeracao` automatically syncs numeracao
+    // when oficio status changes — no manual usar_numero needed.
 
     toast({ title: `Status alterado para "${newStatus}"` });
   };
