@@ -165,6 +165,9 @@ export default function BancoInformacoes() {
   const [fonteFilter, setFonteFilter] = useState("Todas");
   const [dateFilter, setDateFilter] = useState("Todas");
   const [themeFilter, setThemeFilter] = useState("Todos");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [sosSearch, setSosSearch] = useState("");
+  const [sosSortOrder, setSosSortOrder] = useState<"desc" | "asc">("desc");
   const [mainTab, setMainTab] = useState("base");
 
   const [showDialog, setShowDialog] = useState(false);
@@ -236,17 +239,39 @@ export default function BancoInformacoes() {
       const days = dateFilter === "Hoje" ? 1 : dateFilter === "7 dias" ? 7 : dateFilter === "30 dias" ? 30 : 90;
       result = result.filter(e => (now - new Date(e.created_at).getTime()) / 86400000 <= days);
     }
-    if (!search) return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    const s = search.toLowerCase();
-    result = result.filter(e =>
-      e.titulo.toLowerCase().includes(s) ||
-      e.descricao?.toLowerCase().includes(s) ||
-      e.orgao?.toLowerCase().includes(s) ||
-      e.bairro?.toLowerCase().includes(s) ||
-      e.palavras_chave?.some(k => k.toLowerCase().includes(s))
-    );
-    return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [entries, search, fonteFilter, themeFilter, dateFilter]);
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter(e =>
+        e.titulo.toLowerCase().includes(s) ||
+        e.descricao?.toLowerCase().includes(s) ||
+        e.orgao?.toLowerCase().includes(s) ||
+        e.bairro?.toLowerCase().includes(s) ||
+        e.palavras_chave?.some(k => k.toLowerCase().includes(s))
+      );
+    }
+    return result.sort((a, b) => {
+      const da = new Date(a.data_publicacao || a.created_at).getTime();
+      const db = new Date(b.data_publicacao || b.created_at).getTime();
+      return sortOrder === "desc" ? db - da : da - db;
+    });
+  }, [entries, search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+
+  const sosEntries = useMemo(() => {
+    let result = entries.filter(e => e.fonte === "SOS Uberlândia");
+    if (sosSearch) {
+      const s = sosSearch.toLowerCase();
+      result = result.filter(e =>
+        e.titulo.toLowerCase().includes(s) ||
+        e.descricao?.toLowerCase().includes(s) ||
+        e.palavras_chave?.some(k => k.toLowerCase().includes(s))
+      );
+    }
+    return [...result].sort((a, b) => {
+      const da = new Date(a.data_publicacao || a.created_at).getTime();
+      const db = new Date(b.data_publicacao || b.created_at).getTime();
+      return sosSortOrder === "desc" ? db - da : da - db;
+    });
+  }, [entries, sosSearch, sosSortOrder]);
 
   const audioEntries = useMemo(() => {
     let result = audioBaseEntries;
@@ -880,6 +905,13 @@ export default function BancoInformacoes() {
                   <SelectTrigger className="w-[120px] h-8 text-xs"><Calendar size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
                   <SelectContent>{dateOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                 </Select>
+                <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "desc" | "asc")}>
+                  <SelectTrigger className="w-[150px] h-8 text-xs"><Clock size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Mais recentes</SelectItem>
+                    <SelectItem value="asc">Mais antigas</SelectItem>
+                  </SelectContent>
+                </Select>
                 {(fonteFilter !== "Todas" || themeFilter !== "Todos" || dateFilter !== "Todas") && (
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setFonteFilter("Todas"); setThemeFilter("Todos"); setDateFilter("Todas"); }}>Limpar</Button>
                 )}
@@ -1171,7 +1203,80 @@ export default function BancoInformacoes() {
                   {scraping ? "Buscando..." : "Importar Todo o Site (1000)"}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Automática a cada 6h.</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Atualização automática a cada 4 horas.</p>
+            </CardContent>
+          </Card>
+
+          {/* Lista de notícias importadas */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <FileText size={14} className="text-muted-foreground" />
+                Notícias importadas ({sosEntries.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2 flex-wrap">
+                <div className="flex-1 min-w-[200px] relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar notícia..."
+                    value={sosSearch}
+                    onChange={(e) => setSosSearch(e.target.value)}
+                    className="pl-9 h-9 text-sm"
+                  />
+                </div>
+                <Select value={sosSortOrder} onValueChange={(v) => setSosSortOrder(v as "desc" | "asc")}>
+                  <SelectTrigger className="w-[160px] h-9 text-xs">
+                    <Clock size={12} className="mr-1" /><SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Mais recentes</SelectItem>
+                    <SelectItem value="asc">Mais antigas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {sosEntries.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <Rss size={32} className="mx-auto mb-2 opacity-30" />
+                  Nenhuma notícia encontrada. Use os botões acima para importar.
+                </div>
+              ) : (
+                <div className="grid gap-2 md:grid-cols-2 max-h-[600px] overflow-y-auto pr-1">
+                  {sosEntries.map((entry) => (
+                    <div key={entry.id} className="border border-border rounded-lg p-3 hover:bg-muted/40 transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-sm font-semibold text-foreground line-clamp-2 flex-1">{entry.titulo}</h4>
+                        {isAdmin && (
+                          <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => handleDelete(entry.id)}>
+                            <Trash2 size={12} className="text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                      {entry.descricao && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{entry.descricao}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Clock size={10} />
+                          {new Date(entry.data_publicacao || entry.created_at).toLocaleDateString("pt-BR")}
+                        </span>
+                        {entry.bairro && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <MapPin size={10} /> {entry.bairro}
+                          </span>
+                        )}
+                        {entry.link && (
+                          <a href={entry.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline ml-auto">
+                            <ExternalLink size={10} /> Abrir
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
