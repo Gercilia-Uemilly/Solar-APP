@@ -905,6 +905,13 @@ export default function BancoInformacoes() {
                   <SelectTrigger className="w-[120px] h-8 text-xs"><Calendar size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
                   <SelectContent>{dateOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                 </Select>
+                <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "desc" | "asc")}>
+                  <SelectTrigger className="w-[150px] h-8 text-xs"><Clock size={12} className="mr-1 flex-shrink-0" /><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Mais recentes</SelectItem>
+                    <SelectItem value="asc">Mais antigas</SelectItem>
+                  </SelectContent>
+                </Select>
                 {(fonteFilter !== "Todas" || themeFilter !== "Todos" || dateFilter !== "Todas") && (
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setFonteFilter("Todas"); setThemeFilter("Todos"); setDateFilter("Todas"); }}>Limpar</Button>
                 )}
