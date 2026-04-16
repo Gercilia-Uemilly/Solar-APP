@@ -239,17 +239,39 @@ export default function BancoInformacoes() {
       const days = dateFilter === "Hoje" ? 1 : dateFilter === "7 dias" ? 7 : dateFilter === "30 dias" ? 30 : 90;
       result = result.filter(e => (now - new Date(e.created_at).getTime()) / 86400000 <= days);
     }
-    if (!search) return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    const s = search.toLowerCase();
-    result = result.filter(e =>
-      e.titulo.toLowerCase().includes(s) ||
-      e.descricao?.toLowerCase().includes(s) ||
-      e.orgao?.toLowerCase().includes(s) ||
-      e.bairro?.toLowerCase().includes(s) ||
-      e.palavras_chave?.some(k => k.toLowerCase().includes(s))
-    );
-    return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [entries, search, fonteFilter, themeFilter, dateFilter]);
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter(e =>
+        e.titulo.toLowerCase().includes(s) ||
+        e.descricao?.toLowerCase().includes(s) ||
+        e.orgao?.toLowerCase().includes(s) ||
+        e.bairro?.toLowerCase().includes(s) ||
+        e.palavras_chave?.some(k => k.toLowerCase().includes(s))
+      );
+    }
+    return result.sort((a, b) => {
+      const da = new Date(a.data_publicacao || a.created_at).getTime();
+      const db = new Date(b.data_publicacao || b.created_at).getTime();
+      return sortOrder === "desc" ? db - da : da - db;
+    });
+  }, [entries, search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+
+  const sosEntries = useMemo(() => {
+    let result = entries.filter(e => e.fonte === "SOS Uberlândia");
+    if (sosSearch) {
+      const s = sosSearch.toLowerCase();
+      result = result.filter(e =>
+        e.titulo.toLowerCase().includes(s) ||
+        e.descricao?.toLowerCase().includes(s) ||
+        e.palavras_chave?.some(k => k.toLowerCase().includes(s))
+      );
+    }
+    return [...result].sort((a, b) => {
+      const da = new Date(a.data_publicacao || a.created_at).getTime();
+      const db = new Date(b.data_publicacao || b.created_at).getTime();
+      return sosSortOrder === "desc" ? db - da : da - db;
+    });
+  }, [entries, sosSearch, sosSortOrder]);
 
   const audioEntries = useMemo(() => {
     let result = audioBaseEntries;
