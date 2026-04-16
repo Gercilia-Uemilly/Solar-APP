@@ -32,6 +32,7 @@ const VOCATIVO_MAP: Record<string, string> = {
   'PRODAUB': 'Excelentíssimo(a) Senhor(a) Diretor(a),',
   'Polícia Militar (PMMG)': 'Senhor(a) Comandante,',
   'CEMIG': 'Prezado(a) Senhor(a),',
+  'Conservatório Estadual de Música Cora Pavan Capparelli': 'Excelentíssimo(a) Senhor(a) Diretor(a),',
 };
 
 function normalizeSecretariaInput(s: string): string {
@@ -64,6 +65,7 @@ function getNomeOrgaoForSecretaria(s: string): string {
     'PROCON': 'PROCON Municipal de Uberlândia',
     'DNIT': 'Departamento Nacional de Infraestrutura de Transportes',
     'DER-MG': 'Departamento de Edificações e Estradas de Rodagem de Minas Gerais',
+    'Conservatório Estadual de Música Cora Pavan Capparelli': 'Conservatório Estadual de Música Cora Pavan Capparelli',
   };
   if (m[s]) return m[s];
   if (m[normalized]) return m[normalized];
