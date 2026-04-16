@@ -148,6 +148,10 @@ export const SECRETARIAS_CONFIG: Record<string, SecretariaConfig> = {
     destinatario: 'Sr(a). Chefe de Serviço do Departamento Nacional de Infraestrutura de Transportes (DNIT) – Unidade Local de Uberlândia',
     vocativo: 'Prezado(a) Senhor(a),'
   },
+  'Conservatório Estadual de Música Cora Pavan Capparelli': {
+    destinatario: 'Sr(a). Diretor(a) do Conservatório Estadual de Música Cora Pavan Capparelli',
+    vocativo: 'Excelentíssimo(a) Senhor(a) Diretor(a),'
+  },
   'Polícia Militar (PMMG)': {
     destinatario: 'Senhor(a) Comandante do Batalhão da Polícia Militar de Minas Gerais (PMMG)',
     vocativo: 'Senhor(a) Comandante,'
