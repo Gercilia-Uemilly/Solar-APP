@@ -165,6 +165,9 @@ export default function BancoInformacoes() {
   const [fonteFilter, setFonteFilter] = useState("Todas");
   const [dateFilter, setDateFilter] = useState("Todas");
   const [themeFilter, setThemeFilter] = useState("Todos");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [sosSearch, setSosSearch] = useState("");
+  const [sosSortOrder, setSosSortOrder] = useState<"desc" | "asc">("desc");
   const [mainTab, setMainTab] = useState("base");
 
   const [showDialog, setShowDialog] = useState(false);
