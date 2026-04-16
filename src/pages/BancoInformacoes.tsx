@@ -228,7 +228,7 @@ export default function BancoInformacoes() {
   const dateOptions = ["Todas", "Hoje", "7 dias", "30 dias", "90 dias"];
 
   const filtered = useMemo(() => {
-    let result = entries;
+    let result = [...entries];
     if (fonteFilter !== "Todas") result = result.filter(e => e.fonte === fonteFilter);
     if (themeFilter !== "Todos") result = result.filter(e => e.categoria === themeFilter);
     if (dateFilter !== "Todas") {
@@ -236,15 +236,16 @@ export default function BancoInformacoes() {
       const days = dateFilter === "Hoje" ? 1 : dateFilter === "7 dias" ? 7 : dateFilter === "30 dias" ? 30 : 90;
       result = result.filter(e => (now - new Date(e.created_at).getTime()) / 86400000 <= days);
     }
-    if (!search) return result;
+    if (!search) return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     const s = search.toLowerCase();
-    return result.filter(e =>
+    result = result.filter(e =>
       e.titulo.toLowerCase().includes(s) ||
       e.descricao?.toLowerCase().includes(s) ||
       e.orgao?.toLowerCase().includes(s) ||
       e.bairro?.toLowerCase().includes(s) ||
       e.palavras_chave?.some(k => k.toLowerCase().includes(s))
     );
+    return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [entries, search, fonteFilter, themeFilter, dateFilter]);
 
   const audioEntries = useMemo(() => {
