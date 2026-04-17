@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import {
   Heart, Copy, Sparkles, Loader2, Send, RefreshCw, Check,
   Mic, MessageSquare, Database, AlertTriangle, ChevronRight,
-  ChevronLeft, User, Search, Clock, Trash2, Upload, Printer
+  ChevronLeft, User, Search, Clock, Trash2, Upload, Printer, Image as ImageIcon, X, ScanText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +60,11 @@ export default function Respostas() {
 
   // File upload ref
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Print/imagem (extração via IA)
+  const [printFile, setPrintFile] = useState<File | null>(null);
+  const [printPreview, setPrintPreview] = useState<string | null>(null);
+  const [analisandoPrint, setAnalisandoPrint] = useState(false);
 
   // === Load history ===
   const loadHistorico = useCallback(async () => {
