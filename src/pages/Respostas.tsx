@@ -254,6 +254,58 @@ export default function Respostas() {
     setResposta("");
     setFontes(null);
     setSelectedFile(null);
+    setPrintFile(null);
+    setPrintPreview(null);
+  };
+
+  // Converte arquivo para base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handlePrintSelect = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "Selecione uma imagem (PNG, JPG).", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Imagem muito grande", description: "Limite de 10MB.", variant: "destructive" });
+      return;
+    }
+    setPrintFile(file);
+    const dataUrl = await fileToBase64(file);
+    setPrintPreview(dataUrl);
+  };
+
+  const handleAnalisarPrint = async () => {
+    if (!printFile || !printPreview) {
+      toast({ title: "Selecione um print primeiro", variant: "destructive" });
+      return;
+    }
+    setAnalisandoPrint(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-print-demanda", {
+        body: { imageBase64: printPreview, mimeType: printFile.type },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.cidadao_nome && !cidadaoNome) setCidadaoNome(data.cidadao_nome);
+      if (data?.demanda_completa) {
+        setDescricao(prev => prev ? `${prev}\n\n${data.demanda_completa}` : data.demanda_completa);
+      }
+      if (data?.resumo) setResumo(data.resumo);
+      toast({ title: "✅ Print analisado!", description: "Dados extraídos automaticamente pela IA." });
+    } catch (e: any) {
+      toast({ title: "Erro ao analisar print", description: e.message, variant: "destructive" });
+    } finally {
+      setAnalisandoPrint(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
