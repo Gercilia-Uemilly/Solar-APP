@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import {
   Heart, Copy, Sparkles, Loader2, Send, RefreshCw, Check,
   Mic, MessageSquare, Database, AlertTriangle, ChevronRight,
-  ChevronLeft, User, Search, Clock, Trash2, Upload, Printer
+  ChevronLeft, User, Search, Clock, Trash2, Upload, Printer, Image as ImageIcon, X, ScanText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +60,11 @@ export default function Respostas() {
 
   // File upload ref
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Print/imagem (extração via IA)
+  const [printFile, setPrintFile] = useState<File | null>(null);
+  const [printPreview, setPrintPreview] = useState<string | null>(null);
+  const [analisandoPrint, setAnalisandoPrint] = useState(false);
 
   // === Load history ===
   const loadHistorico = useCallback(async () => {
@@ -249,6 +254,58 @@ export default function Respostas() {
     setResposta("");
     setFontes(null);
     setSelectedFile(null);
+    setPrintFile(null);
+    setPrintPreview(null);
+  };
+
+  // Converte arquivo para base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handlePrintSelect = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "Selecione uma imagem (PNG, JPG).", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Imagem muito grande", description: "Limite de 10MB.", variant: "destructive" });
+      return;
+    }
+    setPrintFile(file);
+    const dataUrl = await fileToBase64(file);
+    setPrintPreview(dataUrl);
+  };
+
+  const handleAnalisarPrint = async () => {
+    if (!printFile || !printPreview) {
+      toast({ title: "Selecione um print primeiro", variant: "destructive" });
+      return;
+    }
+    setAnalisandoPrint(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-print-demanda", {
+        body: { imageBase64: printPreview, mimeType: printFile.type },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.cidadao_nome && !cidadaoNome) setCidadaoNome(data.cidadao_nome);
+      if (data?.demanda_completa) {
+        setDescricao(prev => prev ? `${prev}\n\n${data.demanda_completa}` : data.demanda_completa);
+      }
+      if (data?.resumo) setResumo(data.resumo);
+      toast({ title: "✅ Print analisado!", description: "Dados extraídos automaticamente pela IA." });
+    } catch (e: any) {
+      toast({ title: "Erro ao analisar print", description: e.message, variant: "destructive" });
+    } finally {
+      setAnalisandoPrint(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -377,7 +434,57 @@ export default function Respostas() {
                       </div>
                     </div>
 
-                    {/* Descrição */}
+                    {/* Print / imagem (extração via IA) */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
+                        <ImageIcon size={12} /> Print de WhatsApp ou imagem (opcional)
+                      </label>
+                      {!printPreview ? (
+                        <label className="cursor-pointer block">
+                          <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                            <p className="text-sm text-muted-foreground">
+                              Clique para enviar um print da conversa — a IA extrai a demanda automaticamente
+                            </p>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (file) handlePrintSelect(file);
+                            }}
+                          />
+                        </label>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="relative inline-block max-w-full">
+                            <img
+                              src={printPreview}
+                              alt="Print enviado"
+                              className="max-h-48 rounded-lg border border-border object-contain"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { setPrintFile(null); setPrintPreview(null); }}
+                              className="absolute top-1 right-1 bg-background/90 border border-border rounded-full p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                              title="Remover imagem"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                          <Button
+                            onClick={handleAnalisarPrint}
+                            disabled={analisandoPrint}
+                            variant="outline"
+                            className="gap-2 w-full"
+                          >
+                            {analisandoPrint ? <Loader2 size={14} className="animate-spin" /> : <ScanText size={14} />}
+                            {analisandoPrint ? "Analisando print com IA..." : "Extrair demanda do print"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição da demanda</label>
                       <Textarea
