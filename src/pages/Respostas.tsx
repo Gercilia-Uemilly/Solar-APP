@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import {
   Heart, Copy, Sparkles, Loader2, Send, RefreshCw, Check,
   Mic, MessageSquare, Database, AlertTriangle, ChevronRight,
-  ChevronLeft, User, Search, Clock, Trash2, Upload
+  ChevronLeft, User, Search, Clock, Trash2, Upload, Printer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -210,6 +210,35 @@ export default function Respostas() {
 
   const handleWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(resposta)}`, "_blank");
+  };
+
+  const handlePrint = (texto: string, nome?: string, dataStr?: string) => {
+    const w = window.open("", "_blank", "width=800,height=900");
+    if (!w) {
+      toast({ title: "Pop-up bloqueado", description: "Permita pop-ups para imprimir.", variant: "destructive" });
+      return;
+    }
+    const safe = texto.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Resposta ao Cidadão</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: 0 auto; }
+        h1 { font-size: 18px; margin: 0 0 4px 0; }
+        .meta { font-size: 12px; color: #555; margin-bottom: 24px; border-bottom: 1px solid #ddd; padding-bottom: 12px; }
+        .body { font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+        .footer { margin-top: 40px; font-size: 11px; color: #888; border-top: 1px solid #eee; padding-top: 12px; }
+        @media print { body { padding: 20px; } }
+      </style></head><body>
+      <h1>Resposta ao Cidadão</h1>
+      <div class="meta">
+        ${nome ? `<div><strong>Cidadão:</strong> ${nome}</div>` : ""}
+        <div><strong>Data:</strong> ${dataStr || new Date().toLocaleString("pt-BR")}</div>
+      </div>
+      <div class="body">${safe}</div>
+      <div class="footer">Solar — Sistema de Gerenciamento de Mandato</div>
+      <script>window.onload = () => { window.print(); };<\/script>
+      </body></html>`;
+    w.document.write(html);
+    w.document.close();
   };
 
   const handleReset = () => {
