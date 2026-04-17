@@ -476,12 +476,15 @@ export default function Respostas() {
                         />
 
                         <div className="flex flex-wrap gap-2">
-                          <Button onClick={handleCopy} variant="outline" className="gap-2 flex-1">
+                          <Button onClick={handleCopy} variant="outline" className="gap-2 flex-1 min-w-[110px]">
                             {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                             {copied ? "Copiado!" : "Copiar"}
                           </Button>
                           <Button onClick={handleWhatsApp} variant="outline" className="gap-2 text-green-600">
                             <Send size={14} /> WhatsApp
+                          </Button>
+                          <Button onClick={() => handlePrint(resposta, cidadaoNome)} variant="outline" className="gap-2">
+                            <Printer size={14} /> Imprimir
                           </Button>
                           <Button onClick={handleGenerate} variant="ghost" disabled={generating} title="Regenerar">
                             {generating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
@@ -550,6 +553,21 @@ export default function Respostas() {
                         <span className="text-[11px] text-muted-foreground">
                           {format(new Date(a.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                         </span>
+                        {a.resposta_editada && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary"
+                            onClick={() => handlePrint(
+                              a.resposta_editada!,
+                              a.cidadao_nome,
+                              format(new Date(a.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                            )}
+                            title="Imprimir resposta"
+                          >
+                            <Printer size={12} />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
