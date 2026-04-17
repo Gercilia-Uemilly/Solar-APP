@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import UserAvatar from "@/components/UserAvatar";
 import GuidedTour from "@/components/GuidedTour";
-import SupportDrawer from "@/components/SupportDrawer";
 import AiSupportChat from "@/components/AiSupportChat";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -263,7 +262,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </div>
 
       <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
-      <SupportDrawer open={supportOpen} onClose={() => setSupportOpen(false)} />
       <AiSupportChat />
     </div>
   );
