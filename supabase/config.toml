@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.classificar-conteudo]
 verify_jwt = false
+
+[functions.extract-print-demanda]
+verify_jwt = false
