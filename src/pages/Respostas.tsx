@@ -434,7 +434,57 @@ export default function Respostas() {
                       </div>
                     </div>
 
-                    {/* Descrição */}
+                    {/* Print / imagem (extração via IA) */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
+                        <ImageIcon size={12} /> Print de WhatsApp ou imagem (opcional)
+                      </label>
+                      {!printPreview ? (
+                        <label className="cursor-pointer block">
+                          <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                            <p className="text-sm text-muted-foreground">
+                              Clique para enviar um print da conversa — a IA extrai a demanda automaticamente
+                            </p>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (file) handlePrintSelect(file);
+                            }}
+                          />
+                        </label>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="relative inline-block max-w-full">
+                            <img
+                              src={printPreview}
+                              alt="Print enviado"
+                              className="max-h-48 rounded-lg border border-border object-contain"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { setPrintFile(null); setPrintPreview(null); }}
+                              className="absolute top-1 right-1 bg-background/90 border border-border rounded-full p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                              title="Remover imagem"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                          <Button
+                            onClick={handleAnalisarPrint}
+                            disabled={analisandoPrint}
+                            variant="outline"
+                            className="gap-2 w-full"
+                          >
+                            {analisandoPrint ? <Loader2 size={14} className="animate-spin" /> : <ScanText size={14} />}
+                            {analisandoPrint ? "Analisando print com IA..." : "Extrair demanda do print"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição da demanda</label>
                       <Textarea
