@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
   Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
-  Smartphone, MessagesSquare, BookOpen, Hash, Trash2, DatabaseBackup, Bell, Upload
+  Smartphone, MessagesSquare, BookOpen, Hash, Trash2, DatabaseBackup, Bell, Upload, Download
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +45,7 @@ const menuSections = [
     title: "Sistema",
     items: [
       { label: "Lixeira", icon: Trash2, path: "/lixeira", adminOnly: false },
+      { label: "Instalar App", icon: Download, path: "/instalar", adminOnly: false },
       { label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: false },
       { label: "Ajuda", icon: HelpCircle, path: "/ajuda", adminOnly: false },
       { label: "Sobre", icon: Info, path: "/sobre", adminOnly: false },

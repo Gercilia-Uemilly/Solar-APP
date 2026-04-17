@@ -39,6 +39,7 @@ const VerificarSMS = lazy(() => import("./pages/VerificarSMS"));
 const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 const Lembretes = lazy(() => import("./pages/Lembretes"));
 const Ajuda = lazy(() => import("./pages/Ajuda"));
+const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -141,6 +142,7 @@ const AppRoutes = () => {
         <Route path="/numeracao" element={<ProtectedRoute><AppLayout><PainelNumeracao /></AppLayout></ProtectedRoute>} />
         <Route path="/lembretes" element={<ProtectedRoute><AppLayout><Lembretes /></AppLayout></ProtectedRoute>} />
         <Route path="/ajuda" element={<ProtectedRoute><AppLayout><Ajuda /></AppLayout></ProtectedRoute>} />
+        <Route path="/instalar" element={<ProtectedRoute><AppLayout><InstalarApp /></AppLayout></ProtectedRoute>} />
         <Route path="/lixeira" element={<ProtectedRoute><AppLayout><Lixeira /></AppLayout></ProtectedRoute>} />
         <Route path="/backups" element={<AdminRoute><AppLayout><Backups /></AppLayout></AdminRoute>} />
         <Route path="/whatsapp" element={<AdminRoute><AppLayout><WhatsAppConectar /></AppLayout></AdminRoute>} />
