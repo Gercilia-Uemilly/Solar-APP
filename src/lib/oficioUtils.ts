@@ -212,9 +212,11 @@ export const normalizarConteudoOficio = (conteudo: string): string => {
 
 export const getDestinatario = (secretaria: string): string => {
   const normalized = normalizeSecretariaNome(secretaria);
-  return SECRETARIAS_CONFIG[secretaria]?.destinatario ||
-    SECRETARIAS_CONFIG[normalized]?.destinatario ||
-    `Ilmo(a). Sr(a). Secretário(a) Municipal de ${normalized}`;
+  if (SECRETARIAS_CONFIG[secretaria]) return SECRETARIAS_CONFIG[secretaria].destinatario;
+  if (SECRETARIAS_CONFIG[normalized]) return SECRETARIAS_CONFIG[normalized].destinatario;
+  const aliasKey = resolveAliasKey(secretaria) || resolveAliasKey(normalized);
+  if (aliasKey && SECRETARIAS_CONFIG[aliasKey]) return SECRETARIAS_CONFIG[aliasKey].destinatario;
+  return `Ilmo(a). Sr(a). Secretário(a) Municipal de ${normalized}`;
 };
 
 /** Get vocativo string for a secretaria key */
