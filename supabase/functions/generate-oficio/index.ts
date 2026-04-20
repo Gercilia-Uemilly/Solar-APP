@@ -86,6 +86,25 @@ function detectSecretaria(text: string): string | null {
   return best;
 }
 
+function isMudancaDirecaoRua(text: string): boolean {
+  const lower = (text || '').toLowerCase();
+  const palavrasChave = [
+    'mudança de direção', 'mudanca de direcao',
+    'mudança de sentido', 'mudanca de sentido',
+    'mudança de mão', 'mudanca de mao',
+    'inverter o sentido', 'inverter sentido',
+    'mão única', 'mao unica',
+    'sentido único', 'sentido unico',
+    'mão dupla', 'mao dupla',
+    'sentido da via', 'sentido da rua',
+    'mudar o sentido', 'mudar a direção', 'mudar a direcao',
+    'alterar o sentido', 'alterar a direção',
+    'direção da rua', 'direcao da rua',
+    'direção da via', 'direcao da via',
+  ];
+  return palavrasChave.some((kw) => lower.includes(kw));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -103,7 +122,20 @@ serve(async (req) => {
     const artigo = masculineStarts.some(p => nomeOrgao.startsWith(p)) ? 'o' : 'a';
     const conclusao = `Assim, encaminha-se o presente para apreciação d${artigo} ${nomeOrgao}, solicitando-se a análise do pleito e a manifestação quanto à sua viabilidade, bem como a indicação de eventual previsão para execução do serviço.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
 
+    const ehMudancaDirecao = isMudancaDirecaoRua(textoCompleto);
+
+    const TEMPLATE_MUDANCA_DIRECAO = `MODELO OBRIGATÓRIO PARA PEDIDOS DE MUDANÇA DE DIREÇÃO/SENTIDO DE RUA:
+Use EXATAMENTE a estrutura abaixo, adaptando APENAS o nome da rua, bairro e ponto de referência (ex.: escola, comércio) com base nos dados fornecidos. NÃO altere o tom, a ordem dos parágrafos nem invente fatos. Mantenha <strong> nos locais e pontos críticos.
+
+<p>Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar a realização de estudos técnicos e a adoção de medidas viárias cabíveis na <strong>[NOME DA RUA/VIA]</strong>, localizada no <strong>Bairro [NOME DO BAIRRO]</strong>[, em frente à <strong>[PONTO DE REFERÊNCIA]</strong> — incluir somente se houver].</p>
+<p>Conforme relatos encaminhados a este gabinete, o tráfego na referida via tem causado <strong>transtornos significativos</strong>[, especialmente nos horários de entrada e saída dos alunos — incluir somente se houver escola/creche]. A atual configuração do local tem resultado em <strong>congestionamentos frequentes</strong>, dificuldades para a <strong>travessia segura de pedestres</strong> e problemas relacionados ao <strong>estacionamento inadequado</strong>.</p>
+<p>As consequências desta situação incluem o <strong>aumento do risco de acidentes</strong>, afetando não apenas os motoristas, mas também [pedestres, moradores e — adaptar conforme contexto, ex.: estudantes, pais, servidores da escola]. Tal cenário gera <strong>insegurança e transtornos</strong> para toda a comunidade do entorno.</p>
+<p>Diante do exposto, solicitamos a realização de <strong>análise técnica no local</strong> e a implementação das <strong>intervenções viárias</strong> que se mostrarem necessárias e viáveis, visando melhorar o fluxo do trânsito e, principalmente, reforçar a <strong>segurança de pedestres e motoristas</strong>.</p>
+
+Em seguida, anexe a CONCLUSÃO FIXA fornecida (2 <p>) — não reescreva o encerramento.`;
+
     const SYSTEM_PROMPT = `Redator parlamentar do Vereador Fabão, Uberlândia-MG. Redija o CORPO de ofícios formais.
+${ehMudancaDirecao ? `\n${TEMPLATE_MUDANCA_DIRECAO}\n` : ''}
 
 ESTRUTURA: exatamente 4 parágrafos + conclusão fixa (2 <p>):
 §1: "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar..." + ação, local, bairro. Destaque com <strong> o nome do local, bairro e tipo de serviço.
