@@ -11,7 +11,7 @@ const SECRETARIA_MAP: Record<string, string[]> = {
   "Serviços Urbanos": ["capina","roçagem","limpeza","poda","árvore","iluminação","poste","lâmpada","coleta","lixo","entulho","bueiro","calçada","praça","parque"],
   "Infraestrutura": ["buraco","asfalto","pavimentação","tapa-buraco","recapeamento","erosão","obra","ponte","viaduto","estrada"],
   "Saúde": ["saúde","UBS","hospital","posto de saúde","médico","dengue","fumacê","vacina","ambulância","SAMU","UPA"],
-  "Trânsito e Transportes (SETTRAN)": ["trânsito","semáforo","sinalização","faixa de pedestre","lombada","ônibus","transporte"],
+  "Trânsito e Transportes (SETTRAN)": ["trânsito","semáforo","sinalização","faixa de pedestre","lombada","quebra-mola","quebra mola","redutor de velocidade","ônibus","transporte"],
   "Gestão Ambiental e Sustentabilidade": ["meio ambiente","ambiental","desmatamento","queimada","poluição","córrego","nascente"],
   "Educação": ["escola","educação","creche","EMEI","EMEF","professor","ensino","merenda"],
   "Desenvolvimento Social": ["assistência social","CRAS","CREAS","vulnerabilidade","moradia","população de rua"],
@@ -154,6 +154,7 @@ REGRAS CRÍTICAS:
 - Bairro, endereço, secretaria: cada um aparece UMA vez. Nunca duplicar "Bairro Bairro X".
 - Formatação: apenas <p> e <strong>. Sem style inline, sem <b>.
 - Entradas curtas → desenvolva. Conversas WhatsApp → extraia fatos. Narrativas → organize.
+- TERMINOLOGIA OBRIGATÓRIA: SEMPRE use "redutor de velocidade" no lugar de "quebra-mola", "quebra mola" ou "lombada". Mesmo que a entrada use esses termos, no ofício sempre escreva "redutor de velocidade".
 
 ASSUNTO: resumido e objetivo. Prioridade: nome do local > tipo de ação > bairro. O bairro é OBRIGATÓRIO no assunto (ex: "Operação tapa-buraco na Rua X - Bairro Y"). NUNCA incluir endereço completo no assunto.
 
