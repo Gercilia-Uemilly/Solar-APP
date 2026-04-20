@@ -36,7 +36,7 @@ function getNomeOrgaoForSecretaria(s: string): string {
     'SETTRAN': 'Secretaria Municipal de Trânsito e Transportes',
     'Trânsito e Transportes (SETTRAN)': 'Secretaria Municipal de Trânsito e Transportes',
     'Trânsito e Transportes': 'Secretaria Municipal de Trânsito e Transportes',
-    'Gestão Ambiental e Sustentabilidade': 'Secretaria Municipal de Meio Ambiente e Sustentabilidade',
+    'Gestão Ambiental e Sustentabilidade': 'Secretaria Municipal de Gestão Ambiental e Sustentabilidade',
     'PMMG': 'Polícia Militar de Minas Gerais',
     'Polícia Militar (PMMG)': 'Polícia Militar de Minas Gerais',
     'CEMIG': 'Companhia Energética de Minas Gerais',
