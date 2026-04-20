@@ -595,7 +595,7 @@ serve(async (req) => {
     // ── Fallback: nenhum provedor configurado ────────────────────────────────
     return new Response(
       JSON.stringify({
-        error: "Nenhum serviço de conversão configurado. Configure ao menos um: Drive conectado do usuário, GOOGLE_SERVICE_ACCOUNT_KEY, CONVERTAPI_SECRET, CLOUDCONVERT_API_KEY, API2PDF_API_KEY ou GOTENBERG_URL.",
+        error: "Nenhum serviço de conversão configurado. Configure ao menos um: Drive conectado do usuário, GOOGLE_SERVICE_ACCOUNT_KEY, CONVERTAPI_SECRET, CONVERTAPI_SECRET_2, CLOUDCONVERT_API_KEY, API2PDF_API_KEY ou GOTENBERG_URL.",
         fallback: true,
       }),
       { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
