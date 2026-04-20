@@ -517,6 +517,20 @@ serve(async (req) => {
       }
     }
 
+    // ── Tentativa 1.5: ConvertAPI reserva (segunda chave) ────────────────────
+    const CONVERTAPI_SECRET_2 = Deno.env.get("CONVERTAPI_SECRET_2");
+    if (CONVERTAPI_SECRET_2 && CONVERTAPI_SECRET_2 !== CONVERTAPI_SECRET) {
+      configuredProviders.push("ConvertAPI(reserva)");
+      try {
+        const pdfBytes = await convertWithConvertApi(docxBytes, filename, CONVERTAPI_SECRET_2);
+        return new Response(pdfBytes, { headers: pdfHeaders });
+      } catch (e) {
+        const msg = getErrorMessage(e);
+        providerErrors.push(`ConvertAPI(reserva): ${msg}`);
+        console.error("ConvertAPI reserva failed, trying next provider:", e);
+      }
+    }
+
     // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
     const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
     if (CLOUDCONVERT_API_KEY) {
