@@ -272,9 +272,12 @@ export const getDestinatario = (secretaria: string): string => {
 
 /** Get vocativo string for a secretaria key */
 export const getVocativo = (secretaria: string): string => {
-  return SECRETARIAS_CONFIG[secretaria]?.vocativo ||
-    SECRETARIAS_CONFIG[normalizeSecretariaNome(secretaria)]?.vocativo ||
-    'Excelentíssimo(a) Senhor(a) Secretário(a),';
+  if (SECRETARIAS_CONFIG[secretaria]) return SECRETARIAS_CONFIG[secretaria].vocativo;
+  const normalized = normalizeSecretariaNome(secretaria);
+  if (SECRETARIAS_CONFIG[normalized]) return SECRETARIAS_CONFIG[normalized].vocativo;
+  const aliasKey = resolveAliasKey(secretaria) || resolveAliasKey(normalized);
+  if (aliasKey && SECRETARIAS_CONFIG[aliasKey]) return SECRETARIAS_CONFIG[aliasKey].vocativo;
+  return 'Excelentíssimo(a) Senhor(a) Secretário(a),';
 };
 
 /** Extract the organ name from a secretaria key (for AI conclusion text) */
