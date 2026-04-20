@@ -210,6 +210,57 @@ export const normalizarConteudoOficio = (conteudo: string): string => {
   );
 };
 
+/**
+ * Mapeia nomes/órgãos completos retornados pela IA (ex: "Departamento Municipal de Água e Esgoto")
+ * de volta para a chave canônica em SECRETARIAS_CONFIG (ex: "DMAE").
+ */
+const ORGAO_ALIAS_MAP: Record<string, string> = {
+  'departamento municipal de água e esgoto': 'DMAE',
+  'departamento municipal de agua e esgoto': 'DMAE',
+  'dmae': 'DMAE',
+  'agência de regulação dos serviços de saneamento básico de uberlândia': 'ARESAN',
+  'aresan': 'ARESAN',
+  'fundação uberlandense do turismo': 'FUTEL',
+  'fundação uberlandense do turismo, esporte e lazer': 'FUTEL',
+  'futel': 'FUTEL',
+  'instituto de previdência dos servidores públicos do município de uberlândia': 'IPREMU',
+  'ipremu': 'IPREMU',
+  'empresa municipal de apoio e manutenção': 'EMAM',
+  'emam': 'EMAM',
+  'fundação de excelência rural de uberlândia': 'FERUB',
+  'ferub': 'FERUB',
+  'prodaub': 'PRODAUB',
+  'processamento de dados de uberlândia': 'PRODAUB',
+  'detran-mg': 'DETRAN-MG',
+  'departamento estadual de trânsito de minas gerais': 'DETRAN-MG',
+  'procon': 'PROCON',
+  'procon municipal de uberlândia': 'PROCON',
+  'hc/ufu': 'HC/UFU',
+  'hospital de clínicas da universidade federal de uberlândia': 'HC/UFU',
+  'der-mg': 'DER-MG',
+  'departamento de estradas de rodagem de minas gerais': 'DER-MG',
+  'dnit': 'DNIT',
+  'departamento nacional de infraestrutura de transportes': 'DNIT',
+  'pmmg': 'Polícia Militar (PMMG)',
+  'polícia militar de minas gerais': 'Polícia Militar (PMMG)',
+  'cemig': 'CEMIG',
+  'companhia energética de minas gerais': 'CEMIG',
+  'settran': 'Trânsito e Transportes (SETTRAN)',
+  'secretaria municipal de trânsito e transportes': 'Trânsito e Transportes (SETTRAN)',
+  'trânsito e transportes': 'Trânsito e Transportes (SETTRAN)',
+  'secretaria municipal de meio ambiente e sustentabilidade': 'Gestão Ambiental e Sustentabilidade',
+  'ministério público de minas gerais': 'Ministério Público de Minas Gerais',
+  'superintendência regional de ensino': 'Superintendência Regional de Ensino',
+  'superintendência regional de saúde': 'Superintendência Regional de Saúde',
+  'conservatório estadual de música cora pavan capparelli': 'Conservatório Estadual de Música Cora Pavan Capparelli',
+};
+
+const resolveAliasKey = (s: string): string | null => {
+  if (!s) return null;
+  const key = s.toLowerCase().replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  return ORGAO_ALIAS_MAP[key] || null;
+};
+
 export const getDestinatario = (secretaria: string): string => {
   const normalized = normalizeSecretariaNome(secretaria);
   if (SECRETARIAS_CONFIG[secretaria]) return SECRETARIAS_CONFIG[secretaria].destinatario;
