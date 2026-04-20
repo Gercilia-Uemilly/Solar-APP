@@ -72,21 +72,13 @@ Deno.serve(async (req) => {
     const pages = Math.min(body.pages || 3, 50); // max 50 pages (1000 posts)
     const perPage = 20;
 
-    // Get existing links to avoid duplicates
-    const { data: existingEntries } = await supabase
-      .from("base_conhecimento")
-      .select("link")
-      .eq("fonte", "SOS Uberlândia");
-    const existingLinks = new Set(
-      (existingEntries || []).map((e: any) => e.link).filter(Boolean)
-    );
-
     let inserted = 0;
     let skipped = 0;
     let totalFetched = 0;
 
     for (let page = 1; page <= pages; page++) {
-      const url = `${WP_API}?per_page=${perPage}&page=${page}&_fields=id,title,content,excerpt,link,date,categories`;
+      // orderby=date&order=desc -> always fetch newest first
+      const url = `${WP_API}?per_page=${perPage}&page=${page}&orderby=date&order=desc&_fields=id,title,content,excerpt,link,date,categories`;
       
       console.log(`Fetching page ${page}: ${url}`);
       
@@ -105,10 +97,7 @@ Deno.serve(async (req) => {
 
       for (const post of posts) {
         const link = post.link || "";
-        if (existingLinks.has(link)) {
-          skipped++;
-          continue;
-        }
+        if (!link) continue;
 
         const titulo = stripHtml(post.title?.rendered || "Sem título");
         const rawContent = post.content?.rendered || post.excerpt?.rendered || "";
@@ -124,7 +113,7 @@ Deno.serve(async (req) => {
         toInsert.push({
           titulo,
           descricao: descricao || null,
-          link: link || null,
+          link,
           data_publicacao: dataPub,
           fonte: "SOS Uberlândia",
           categoria: "Notícia",
@@ -132,17 +121,21 @@ Deno.serve(async (req) => {
           bairro,
           modelo: false,
         });
-
-        existingLinks.add(link); // prevent duplicates within same batch
       }
 
-      // Batch insert
+      // Upsert with ignoreDuplicates: relies on the partial unique index
+      // base_conhecimento_sos_link_unique (link) WHERE fonte='SOS Uberlândia'
       if (toInsert.length > 0) {
-        const { error } = await supabase.from("base_conhecimento").insert(toInsert);
-        if (!error) {
-          inserted += toInsert.length;
-        } else {
+        const { data: upserted, error } = await supabase
+          .from("base_conhecimento")
+          .upsert(toInsert, { onConflict: "link", ignoreDuplicates: true })
+          .select("id");
+        if (error) {
           console.error("Insert error:", error);
+        } else {
+          const newCount = upserted?.length || 0;
+          inserted += newCount;
+          skipped += toInsert.length - newCount;
         }
       }
     }
