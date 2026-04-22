@@ -127,6 +127,24 @@ serve(async (req) => {
     }
 
     const textoCompleto = `${descricao || ""} ${assunto || ""} ${bairro || ""} ${local || ""}`;
+
+    // ═══════════════════════════════════════════════════
+    // EXTRAÇÃO DE NÚMERO DE LOGRADOURO
+    // Busca padrões "nº 123", "n. 123", "número 123" ou "Rua X, 123" no campo
+    // local + descrição para garantir que a IA preserve o número exato.
+    // ═══════════════════════════════════════════════════
+    function extrairNumeroLogradouro(texto: string): string | null {
+      if (!texto) return null;
+      // Padrões: "nº 123", "n° 123", "n. 123", "numero 123", "número 123"
+      const m1 = texto.match(/n[º°o\.]\s*(\d{1,6})/i);
+      if (m1) return m1[1];
+      // Padrão "Rua/Av/Avenida/Travessa NOME, 123"
+      const m2 = texto.match(/(?:rua|av\.?|avenida|travessa|alameda|praça|estrada|rodovia)[^,]{2,80},\s*(\d{1,6})\b/i);
+      if (m2) return m2[1];
+      return null;
+    }
+    const numeroLogradouro = extrairNumeroLogradouro(`${local || ""} ${descricao || ""}`);
+
     const tipoNormalizado = typeof tipo === "string" ? tipo.trim() : "";
     const tipoValidoComoSecretaria = tipoNormalizado && !["solicitação", "reclamação", "requerimento"].includes(tipoNormalizado.toLowerCase());
     const secretariaDetectada = (tipoValidoComoSecretaria ? tipoNormalizado : "") || detectSecretaria(textoCompleto) || "Serviços Urbanos";
@@ -159,13 +177,15 @@ ${ehMudancaDirecao ? `\n${TEMPLATE_MUDANCA_DIRECAO}\n` : ''}
 2. NUNCA copiar frases literais do usuário — sempre reescrever em linguagem institucional.
 3. NUNCA mencionar o solicitante (não citar nome, "morador X disse", "a senhora fulana", etc).
 4. NUNCA repetir bairro, endereço ou logradouro — cada informação aparece UMA ÚNICA vez, somente no §1.
-5. NUNCA inventar dados, nomes, números, estatísticas ou fatos não fornecidos.
+5. NUNCA inventar dados, nomes, números de casa, estatísticas, datas ou fatos não fornecidos. Se algo não foi mencionado no CONTEÚDO RECEBIDO ou nos campos estruturados, NÃO ESCREVA. Prefira omitir a inventar.
 6. NUNCA fugir da estrutura de 4 parágrafos.
 7. NUNCA alterar o texto da conclusão fixa fornecida.
 8. SEMPRE use "redutor de velocidade" no lugar de "quebra-mola", "quebra mola" ou "lombada".
+9. PRESERVE LITERALMENTE números de logradouro (nº/número da casa). Se o endereço informado contiver "nº 1234" ou ", 1234", esse número DEVE aparecer EXATAMENTE igual no §1, no formato "nº 1234". NUNCA arredonde, omita ou altere o número.
+10. PRESERVE LITERALMENTE nomes de ruas, bairros e pontos de referência fornecidos. Não traduza, não abrevie, não complete com palavras adicionais.
 
 ═══ ESTRUTURA OBRIGATÓRIA — EXATAMENTE 4 PARÁGRAFOS + CONCLUSÃO FIXA ═══
-§1 (INTRODUÇÃO COM SOLICITAÇÃO): Iniciar com "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar...". Citar a ação, o local (endereço/rua) e o bairro UMA ÚNICA VEZ. Destacar com <strong> o tipo de serviço, a rua e o bairro.
+§1 (INTRODUÇÃO COM SOLICITAÇÃO): Iniciar com "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar...". Citar a ação, o local (rua + número quando informado) e o bairro UMA ÚNICA VEZ. Quando houver número de logradouro, escreva no formato "Rua XXX, nº NNNN". Destacar com <strong> o tipo de serviço, a rua (com número) e o bairro.
 §2 (RELATO): Iniciar OBRIGATORIAMENTE com "Conforme relatos encaminhados a este gabinete,...". Descrever o problema de forma objetiva e institucional. NÃO repetir o endereço nem o bairro. Destacar com <strong> os pontos críticos.
 §3 (CONSEQUÊNCIAS): Descrever consequências realistas e proporcionais — sem dramatizar, sem inventar. Destacar com <strong> os riscos e impactos relevantes. NÃO repetir endereço/bairro.
 §4 (SOLICITAÇÃO FORMAL — PRIMEIRO PARÁGRAFO DA CONCLUSÃO FIXA): Escrever EXATAMENTE no formato: "Diante do exposto, solicita-se a adoção da seguinte providência: <strong>[AÇÃO ESPECÍFICA EXTRAÍDA DO CONTEXTO]</strong>, a fim de garantir <strong>[FINALIDADE PERTINENTE]</strong>." Substituir [AÇÃO ESPECÍFICA] e [FINALIDADE] com base no contexto fornecido. NÃO repetir endereço/bairro.
@@ -182,6 +202,7 @@ Resumido e objetivo. Prioridade: tipo de ação > rua > bairro. O bairro é OBRI
 
 ═══ TRATAMENTO DE ENTRADAS RUINS ═══
 Se a entrada for curta, confusa, coloquial ou em formato de comando: interpretar a intenção, completar de forma coerente e reescrever em linguagem institucional formal. Nunca reproduzir texto original como está.
+ATENÇÃO: "completar de forma coerente" significa preencher conectivos institucionais — NÃO significa inventar dados factuais (números, datas, nomes, quantidades, horários). Se um dado factual não foi fornecido, simplesmente não cite.
 
 RETORNE APENAS JSON VÁLIDO: {"oficio":"HTML","assunto_sugerido":"...","secretaria_identificada":"...","tipo_demanda":"Solicitação|Reclamação|Requerimento","urgencia":"normal|urgente","sugestoes_melhoria":[]}`;
 
@@ -192,12 +213,13 @@ DESTINATÁRIO: ${destinatario || "A identificar"}
 CONTEÚDO RECEBIDO (texto institucional ou comando do operador): ${descricaoLimpa}
 BAIRRO: ${bairro || "Não informado"}
 ENDEREÇO/LOCAL: ${local || "Não informado"}
+${numeroLogradouro ? `NÚMERO DO LOGRADOURO (OBRIGATÓRIO usar EXATAMENTE este valor no §1, no formato "nº ${numeroLogradouro}"): ${numeroLogradouro}` : "NÚMERO DO LOGRADOURO: não informado — NÃO inventar"}
 PRIORIDADE: ${prioridade || "Normal"}
 ASSUNTO: ${assunto || "Gerar automaticamente"}
 
 ENCAMINHAMENTO FIXO (use LITERALMENTE como §5 e §6, em 2 tags <p> separadas): "${conclusaoEncaminhamento}"
 
-Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágrafos do encaminhamento fixo. NÃO mencione solicitante. NÃO repita bairro/endereço fora do §1. Retorne apenas JSON válido.`;
+Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágrafos do encaminhamento fixo. NÃO mencione solicitante. NÃO repita bairro/endereço fora do §1. NÃO invente dados não fornecidos. ${numeroLogradouro ? `O número "${numeroLogradouro}" DEVE aparecer no §1.` : ""} Retorne apenas JSON válido.`;
 
     const { systemInstruction, messages } = toGeminiMessages(SYSTEM_PROMPT, userPrompt);
     // gpt-4o-mini: rápido e estável para JSON, atende ao requisito de geração ágil.
@@ -228,6 +250,23 @@ Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágra
 
     if (!parsed.secretaria_identificada && secretariaDetectada) {
       parsed.secretaria_identificada = secretariaDetectada;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // VALIDAÇÃO PÓS-GERAÇÃO: número do logradouro foi preservado?
+    // Se o usuário informou um número e a IA o omitiu, injeta no §1.
+    // ═══════════════════════════════════════════════════
+    if (numeroLogradouro && typeof parsed.oficio === "string" && !parsed.oficio.includes(numeroLogradouro)) {
+      console.warn(`[generate-oficio] IA omitiu número "${numeroLogradouro}". Injetando no §1.`);
+      parsed.oficio = parsed.oficio.replace(
+        /(<strong>[^<]*?(?:Rua|Avenida|Av\.|Travessa|Alameda|Praça|Estrada|Rodovia)[^<]*?)(<\/strong>)/i,
+        `$1, nº ${numeroLogradouro}$2`
+      );
+      // Fallback: se o regex acima não casou, anexa aviso visível
+      if (!parsed.oficio.includes(numeroLogradouro)) {
+        parsed.sugestoes_melhoria = parsed.sugestoes_melhoria || [];
+        parsed.sugestoes_melhoria.push(`⚠️ O número "${numeroLogradouro}" do logradouro não foi incluído pela IA. Adicione manualmente no §1.`);
+      }
     }
 
     return new Response(JSON.stringify(parsed), {
