@@ -175,7 +175,17 @@ CONCLUSÃO FIXA (2 <p>): "${conclusao}"
 Gere ofício completo com 4 parágrafos + conclusão. JSON.`;
 
     const { systemInstruction, messages } = toGeminiMessages(SYSTEM_PROMPT, userPrompt);
-    const result = await callGemini({ model: "gpt-5", systemInstruction, messages });
+    // gpt-4o entrega resposta completa em JSON de forma confiável (gpt-5 estava
+    // consumindo todos os tokens em reasoning e devolvendo conteúdo vazio).
+    const result = await callGemini({ model: "gpt-4o", systemInstruction, messages });
+
+    if (!result.text || result.text.trim().length < 20) {
+      console.error("IA retornou resposta vazia. Raw:", JSON.stringify(result.raw)?.slice(0, 500));
+      return new Response(
+        JSON.stringify({ error: "A IA não retornou conteúdo. Tente novamente em instantes." }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     let parsed;
     try {
