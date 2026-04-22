@@ -880,6 +880,93 @@ export default function BancoInformacoes() {
     }
   };
 
+  const renderAudioCard = (entry: KnowledgeEntry) => (
+    <Card key={entry.id} className="group hover:shadow-md transition-all">
+      <CardContent className="p-4 md:p-5">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Headphones size={24} className="text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-semibold text-foreground leading-tight">
+              {entry.titulo.replace(/🎤\s*/g, "")}
+            </h4>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Clock size={10} /> {new Date(entry.created_at).toLocaleDateString("pt-BR")}
+              </span>
+              <AudioDuration src={entry.link} />
+              <span className="inline-flex items-center gap-1 text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-full">
+                {fonteIcon(entry.fonte)} {entry.fonte || "Upload"}
+              </span>
+              {entry.orgao && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  {entry.orgao}
+                </span>
+              )}
+            </div>
+            {entry.palavras_chave && entry.palavras_chave.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {entry.palavras_chave.map((kw, i) => (
+                  <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0">{kw}</Badge>
+                ))}
+              </div>
+            )}
+            {entry.descricao && (
+              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{entry.descricao}</p>
+            )}
+            {entry.link && (
+              <audio controls preload="none" className="w-full mt-3 h-10 rounded-lg" style={{ maxWidth: 500 }}>
+                <source src={entry.link} />
+              </audio>
+            )}
+            {entry.descricao && entry.descricao.length > 100 && (
+              <details className="mt-2">
+                <summary className="text-[11px] text-primary cursor-pointer hover:underline font-medium">📝 Ver transcrição completa</summary>
+                <p className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap bg-muted/50 p-3 rounded-lg border border-border max-h-40 overflow-y-auto">
+                  {entry.descricao}
+                </p>
+              </details>
+            )}
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              {entry.link && (
+                <>
+                  <button
+                    onClick={() => handleSmartDownload(entry)}
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium shadow-sm"
+                  >
+                    <Download size={13} /> Baixar Áudio
+                  </button>
+                  <button
+                    onClick={() => downloadAndOpenWhatsApp(entry, null, () => toast({ title: "Áudio baixado!", description: "Agora anexe o arquivo no WhatsApp clicando no ícone de clipe 📎" }))}
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors font-medium shadow-sm"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Baixar e Abrir WhatsApp
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => { if (entry.descricao) { navigator.clipboard.writeText(entry.descricao); toast({ title: "Transcrição copiada!" }); } }}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition-colors"
+              >
+                <Copy size={13} /> Copiar texto
+              </button>
+              <button onClick={() => openDialog(entry)}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent text-accent-foreground hover:bg-accent/70 transition-colors"
+              >
+                <Sparkles size={13} /> Criar script
+              </button>
+            </div>
+          </div>
+          <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
