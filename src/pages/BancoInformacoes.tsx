@@ -356,6 +356,19 @@ export default function BancoInformacoes() {
     return ["Todos", ...Array.from(s)] as string[];
   }, [audioBaseEntries]);
 
+  // Agrupa os áudios por tema classificado para exibição
+  const audioGroups = useMemo(() => {
+    const map = new Map<string, KnowledgeEntry[]>();
+    for (const e of audioEntries) {
+      const theme = classifyAudioTheme(e);
+      if (!map.has(theme)) map.set(theme, []);
+      map.get(theme)!.push(e);
+    }
+    return Array.from(map.entries())
+      .map(([theme, items]) => ({ theme, items }))
+      .sort((a, b) => b.items.length - a.items.length);
+  }, [audioEntries]);
+
   const instagramEntries = useMemo(
     () => entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram"),
     [entries]
