@@ -1166,7 +1166,9 @@ export default function BancoInformacoes() {
             ) : audioEntries.map(entry => renderAudioCard(entry))}
           </div>
         </TabsContent>
-              <Card key={entry.id} className="group hover:shadow-md transition-all">
+        {/* legacy-audio-card-removed */}
+        {false && (
+              <Card className="group hover:shadow-md transition-all">
                 <CardContent className="p-4 md:p-5">
                   <div className="flex items-start gap-4">
                     {/* Audio icon */}
@@ -1269,9 +1271,7 @@ export default function BancoInformacoes() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </TabsContent>
+        )}
 
         {/* ═══════════ TAB: SOS UBERLÂNDIA ═══════════ */}
         <TabsContent value="importar" className="space-y-4">
