@@ -1172,6 +1172,7 @@ export default function BancoInformacoes() {
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Clock size={10} /> {new Date(entry.created_at).toLocaleDateString("pt-BR")}
                         </span>
+                        <AudioDuration src={entry.link} />
                         <span className="inline-flex items-center gap-1 text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-full">
                           {fonteIcon(entry.fonte)} {entry.fonte || "Upload"}
                         </span>
