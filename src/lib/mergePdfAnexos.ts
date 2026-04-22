@@ -199,8 +199,19 @@ function drawImageInSlot(
   const drawW = img.width * scale;
   const drawH = img.height * scale;
 
-  const drawX = slot.x + (slot.w - drawW) / 2;
-  const drawY = slot.y + (slot.h - drawH) / 2;
+  const alignH = slot.alignH ?? "center";
+  const alignV = slot.alignV ?? "center";
+
+  let drawX: number;
+  if (alignH === "left") drawX = slot.x;
+  else if (alignH === "right") drawX = slot.x + (slot.w - drawW);
+  else drawX = slot.x + (slot.w - drawW) / 2;
+
+  // PDF coords: y grows upward, slot.y is the bottom-left of the slot
+  let drawY: number;
+  if (alignV === "top") drawY = slot.y + (slot.h - drawH);
+  else if (alignV === "bottom") drawY = slot.y;
+  else drawY = slot.y + (slot.h - drawH) / 2;
 
   page.drawImage(img, {
     x: drawX,
