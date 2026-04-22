@@ -3,10 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+// 8 horas de inatividade real (jornada de trabalho completa).
+// Antes eram 30 min, o que estava deslogando os operadores no meio do uso.
+const TIMEOUT_MS = 8 * 60 * 60 * 1000;
 
 /**
- * Auto-logout after 30 minutes of inactivity.
+ * Auto-logout após inatividade prolongada.
+ * Considera atividade: clique, tecla, scroll, toque e movimento de mouse.
  */
 export function useSessionTimeout(enabled: boolean) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -18,14 +21,18 @@ export function useSessionTimeout(enabled: boolean) {
     const resetTimer = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(async () => {
-        await supabase.auth.signOut();
-        toast.warning("Sessão encerrada por inatividade.");
-        navigate("/login");
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // ignore
+        }
+        toast.warning("Sessão encerrada por inatividade prolongada.");
+        navigate("/auth");
       }, TIMEOUT_MS);
     };
 
-    const events = ["mousedown", "keydown", "scroll", "touchstart"] as const;
-    events.forEach((e) => window.addEventListener(e, resetTimer));
+    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"] as const;
+    events.forEach((e) => window.addEventListener(e, resetTimer, { passive: true }));
     resetTimer();
 
     return () => {
