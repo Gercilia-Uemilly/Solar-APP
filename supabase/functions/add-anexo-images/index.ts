@@ -323,7 +323,8 @@ function coverFit(
 function fitToStackSlot(imgW: number, imgH: number, slotCount: number): { cx: number; cy: number } {
   const availableHeight = CONTENT_HEIGHT_EMU - IMG_GAP_EMU * Math.max(0, slotCount - 1);
   const slotHeight = Math.floor(availableHeight / Math.max(1, slotCount));
-  return coverFit(imgW, imgH, CONTENT_WIDTH_EMU, slotHeight);
+  // contain (sem corte): preserva imagem inteira, centralizada no slot
+  return containFit(imgW, imgH, CONTENT_WIDTH_EMU, slotHeight);
 }
 
 /**
