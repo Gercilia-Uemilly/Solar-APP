@@ -87,6 +87,10 @@ interface Slot {
   y: number; // bottom-left y in PDF coords
   w: number;
   h: number;
+  /** Horizontal alignment of the image inside the slot */
+  alignH?: "left" | "center" | "right";
+  /** Vertical alignment of the image inside the slot */
+  alignV?: "top" | "center" | "bottom";
 }
 
 function isLandscape(w: number, h: number): boolean {
@@ -118,15 +122,15 @@ function calculateSlots(
       // Both portrait → side by side
       const slotW = (CONTENT_WIDTH - GAP) / 2;
       return [
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT },
-        { x: MARGIN_LEFT + slotW + GAP, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT, alignH: "right", alignV: "top" },
+        { x: MARGIN_LEFT + slotW + GAP, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT, alignH: "left", alignV: "top" },
       ];
     } else {
       // Both landscape or mixed → stacked vertically
       const slotH = (CONTENT_HEIGHT - GAP) / 2;
       return [
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH, alignH: "center", alignV: "bottom" },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH, alignH: "center", alignV: "top" },
       ];
     }
   }
@@ -145,9 +149,9 @@ function calculateSlots(
     const cellW = (CONTENT_WIDTH - GAP) / 2;
     const cellH = (CONTENT_HEIGHT - GAP) / 2;
     return [
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-      { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-      { x: MARGIN_LEFT + (CONTENT_WIDTH - cellW) / 2, y: MARGIN_BOTTOM, w: cellW, h: cellH },
+      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "right", alignV: "bottom" },
+      { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "left", alignV: "bottom" },
+      { x: MARGIN_LEFT + (CONTENT_WIDTH - cellW) / 2, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "center", alignV: "top" },
     ];
   }
 
@@ -168,10 +172,12 @@ function calculateSlots(
   const cellW = (CONTENT_WIDTH - GAP) / 2;
   const cellH = (CONTENT_HEIGHT - GAP) / 2;
   return [
-    { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-    { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: cellW, h: cellH },
-    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM, w: cellW, h: cellH },
+    // Top row: align to outer corners (bottom-aligned so tops sit at the divider line)
+    { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "right", alignV: "bottom" },
+    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "left", alignV: "bottom" },
+    // Bottom row: align to outer corners (top-aligned so tops sit just below the divider)
+    { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "right", alignV: "top" },
+    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "left", alignV: "top" },
   ];
 }
 
@@ -193,8 +199,19 @@ function drawImageInSlot(
   const drawW = img.width * scale;
   const drawH = img.height * scale;
 
-  const drawX = slot.x + (slot.w - drawW) / 2;
-  const drawY = slot.y + (slot.h - drawH) / 2;
+  const alignH = slot.alignH ?? "center";
+  const alignV = slot.alignV ?? "center";
+
+  let drawX: number;
+  if (alignH === "left") drawX = slot.x;
+  else if (alignH === "right") drawX = slot.x + (slot.w - drawW);
+  else drawX = slot.x + (slot.w - drawW) / 2;
+
+  // PDF coords: y grows upward, slot.y is the bottom-left of the slot
+  let drawY: number;
+  if (alignV === "top") drawY = slot.y + (slot.h - drawH);
+  else if (alignV === "bottom") drawY = slot.y;
+  else drawY = slot.y + (slot.h - drawH) / 2;
 
   page.drawImage(img, {
     x: drawX,
