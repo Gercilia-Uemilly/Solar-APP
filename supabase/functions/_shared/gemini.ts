@@ -112,12 +112,19 @@ export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
     });
   }
 
+  const resolvedModel = mapModel(opts.model);
+  const isGpt5Family = resolvedModel.startsWith("gpt-5");
   const body: any = {
-    model: mapModel(opts.model),
+    model: resolvedModel,
     messages: openaiMessages,
-    temperature: 0.7,
-    max_tokens: 4096,
   };
+  if (isGpt5Family) {
+    // gpt-5 only supports default temperature and uses max_completion_tokens
+    body.max_completion_tokens = 4096;
+  } else {
+    body.temperature = 0.7;
+    body.max_tokens = 4096;
+  }
 
   const convertedTools = convertTools(opts.tools);
   if (convertedTools) {
