@@ -248,6 +248,8 @@ const MAX_SIDE_WIDTH = 2_700_000;     // ~7.5cm per image side by side
 const MAX_SIDE_HEIGHT = 7_200_000;    // ~20cm max height for side by side
 const MAX_GRID_HEIGHT = 4_140_000;    // ~11.5cm max per image in grid
 const IMG_GAP_EMU = 144_000;          // 0.4cm gap
+const EMU_PER_TWIP = 635;
+const TABLE_COL_WIDTH_EMU = Math.floor(CONTENT_WIDTH_EMU / 2);
 
 function isLandscape(w: number, h: number): boolean {
   return w >= h;
