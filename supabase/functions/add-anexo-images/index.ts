@@ -424,8 +424,8 @@ function makeImageTableXml(
 
       const maxWidth = MAX_SIDE_WIDTH;
       const maxHeight = pair.length === 1 ? MAX_SIDE_HEIGHT : MAX_GRID_HEIGHT;
-      const fit = containFit(img.width, img.height, maxWidth, maxHeight);
-      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
+      const fit = coverFit(img.width, img.height, maxWidth, maxHeight);
+      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS, fit.crop);
       return makeImageTableCellXml(run, W);
     });
 
@@ -493,6 +493,7 @@ function makeImageRunXml(
   idx: number,
   A_NS: string,
   PIC_NS: string,
+  crop?: CropRect,
 ): string {
   return `
 <w:r>
@@ -513,6 +514,7 @@ function makeImageRunXml(
             </pic:nvPicPr>
             <pic:blipFill>
               <a:blip r:embed="${rId}"/>
+              ${crop ? `<a:srcRect${crop.left != null ? ` l="${crop.left}"` : ""}${crop.top != null ? ` t="${crop.top}"` : ""}${crop.right != null ? ` r="${crop.right}"` : ""}${crop.bottom != null ? ` b="${crop.bottom}"` : ""}/>` : ""}
               <a:stretch><a:fillRect/></a:stretch>
             </pic:blipFill>
             <pic:spPr>
