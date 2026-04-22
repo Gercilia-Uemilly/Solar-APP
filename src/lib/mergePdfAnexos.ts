@@ -87,6 +87,10 @@ interface Slot {
   y: number; // bottom-left y in PDF coords
   w: number;
   h: number;
+  /** Horizontal alignment of the image inside the slot */
+  alignH?: "left" | "center" | "right";
+  /** Vertical alignment of the image inside the slot */
+  alignV?: "top" | "center" | "bottom";
 }
 
 function isLandscape(w: number, h: number): boolean {
