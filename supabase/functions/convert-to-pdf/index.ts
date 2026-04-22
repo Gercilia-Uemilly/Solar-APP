@@ -533,7 +533,12 @@ serve(async (req) => {
 
     // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
     const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
-    if (CLOUDCONVERT_API_KEY) {
+    // ⚠️ CloudConvert/Api2PDF realizam upload pesado dentro da edge function
+    // e frequentemente excedem o limite de CPU (WORKER_RESOURCE_LIMIT) quando
+    // o documento contém anexos. Só usamos como último recurso, e apenas se
+    // nenhum provedor "leve" (Drive/ConvertAPI) estiver configurado.
+    const heavyProvidersAllowed = configuredProviders.length === 0;
+    if (CLOUDCONVERT_API_KEY && heavyProvidersAllowed) {
       configuredProviders.push("CloudConvert");
       try {
         const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
@@ -547,7 +552,7 @@ serve(async (req) => {
 
     // ── Tentativa 3: Api2PDF (LibreOffice) ───────────────────────────────────
     const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
-    if (API2PDF_KEY) {
+    if (API2PDF_KEY && heavyProvidersAllowed) {
       configuredProviders.push("Api2PDF");
       let tempUpload: { bucket: string; path: string; publicUrl: string } | null = null;
       try {
@@ -583,7 +588,7 @@ serve(async (req) => {
     if (configuredProviders.length > 0) {
       return new Response(
         JSON.stringify({
-          error: "Todos os serviços de conversão falharam (créditos esgotados, indisponibilidade ou timeout).",
+          error: "Não foi possível gerar o PDF: os conversores externos estão sem créditos ou com cota excedida. Conecte seu Google Drive pessoal em Configurações → Google Drive para gerar PDFs ilimitados, ou exporte como Word.",
           fallback: true,
           configuredProviders,
           details: providerErrors,
