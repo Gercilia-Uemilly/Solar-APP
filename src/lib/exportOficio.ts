@@ -1087,8 +1087,14 @@ export async function exportToPDF(data: OficioData): Promise<void> {
   } catch (e: any) {
     console.error("PDF conversion failed:", e);
     const message = e?.message || "Não foi possível gerar o PDF agora. Tente novamente em instantes.";
-    if (message.includes("Todos os serviços de conversão falharam")) {
-      throw new Error("Falha na conversão de PDF: serviços externos sem créditos/instáveis no momento. O Word continua disponível.");
+    if (
+      message.includes("conversores externos") ||
+      message.includes("Todos os serviços de conversão falharam") ||
+      message.includes("WORKER_RESOURCE_LIMIT")
+    ) {
+      throw new Error(
+        "Não foi possível gerar o PDF: conversores externos sem créditos. Conecte seu Google Drive pessoal (Configurações → Google Drive) para gerar PDFs ilimitados, ou exporte como Word."
+      );
     }
     throw new Error(message);
   }
