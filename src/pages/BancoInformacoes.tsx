@@ -1403,6 +1403,11 @@ export default function BancoInformacoes() {
         <TabsContent value="contatos" className="space-y-4">
           <ContatosTable scripts={scripts as any} knowledgeEntries={entries as any} loading={scriptsLoading || loading} />
         </TabsContent>
+
+        {/* ═══════════ TAB: SECRETARIAS ═══════════ */}
+        <TabsContent value="secretarias" className="space-y-4">
+          <SecretariasReferencia />
+        </TabsContent>
       </Tabs>
 
       {/* Script Dialog */}
