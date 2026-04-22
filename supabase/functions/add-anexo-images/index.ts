@@ -344,22 +344,9 @@ function buildImagePageXml(
       ));
     }
   } else if (layout === "side") {
-    const runs = images.map(img => {
-      const fit = containFit(img.width, img.height, MAX_SIDE_WIDTH, MAX_SIDE_HEIGHT);
-      return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
-    });
-    paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst));
+    paragraphs.push(makeImageTableXml(images, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst));
   } else {
-    // grid22
-    const cx = Math.floor((CONTENT_WIDTH_EMU - IMG_GAP_EMU) / 2);
-    for (let i = 0; i < images.length; i += 2) {
-      const pair = images.slice(i, i + 2);
-      const runs = pair.map(img => {
-        const fit = containFit(img.width, img.height, cx, MAX_GRID_HEIGHT);
-        return makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
-      });
-      paragraphs.push(makeImageRowXml(runs, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst && i === 0));
-    }
+    paragraphs.push(makeImageTableXml(images, W, WP, A_NS, PIC_NS, pageBreakBeforeFirst));
   }
 
   return paragraphs;
@@ -376,6 +363,87 @@ function makeImageRowXml(runs: string[], W: string, WP: string, A_NS: string, PI
   </w:pPr>
   ${runs.join(spacer)}
 </w:p>`;
+}
+
+function makeImageTableXml(
+  images: { rId: string; idx: number; width: number; height: number }[],
+  W: string,
+  WP: string,
+  A_NS: string,
+  PIC_NS: string,
+  pageBreakBefore = false,
+): string {
+  const rows: string[] = [];
+  for (let i = 0; i < images.length; i += 2) {
+    const pair = images.slice(i, i + 2);
+    const cells = [0, 1].map((cellIndex) => {
+      const img = pair[cellIndex];
+      if (!img) {
+        return makeImageTableCellXml("", W);
+      }
+
+      const maxWidth = MAX_SIDE_WIDTH;
+      const maxHeight = pair.length === 1 ? MAX_SIDE_HEIGHT : MAX_GRID_HEIGHT;
+      const fit = containFit(img.width, img.height, maxWidth, maxHeight);
+      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
+      return makeImageTableCellXml(run, W);
+    });
+
+    rows.push(`
+<w:tr>
+  ${cells.join("\n")}
+</w:tr>`);
+  }
+
+  return `
+<w:tbl xmlns:w="${W}" xmlns:wp="${WP}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:tblPr>
+    <w:tblW w:w="0" w:type="auto"/>
+    <w:jc w:val="center"/>
+    <w:tblCellMar>
+      <w:top w:w="0" w:type="dxa"/>
+      <w:left w:w="0" w:type="dxa"/>
+      <w:bottom w:w="0" w:type="dxa"/>
+      <w:right w:w="0" w:type="dxa"/>
+    </w:tblCellMar>
+    <w:tblBorders>
+      <w:top w:val="nil"/>
+      <w:left w:val="nil"/>
+      <w:bottom w:val="nil"/>
+      <w:right w:val="nil"/>
+      <w:insideH w:val="nil"/>
+      <w:insideV w:val="nil"/>
+    </w:tblBorders>
+  </w:tblPr>
+  <w:tblGrid>
+    <w:gridCol w:w="${Math.round(TABLE_COL_WIDTH_EMU / EMU_PER_TWIP)}"/>
+    <w:gridCol w:w="${Math.round(TABLE_COL_WIDTH_EMU / EMU_PER_TWIP)}"/>
+  </w:tblGrid>
+  ${pageBreakBefore ? `<w:tr><w:trPr><w:cantSplit/></w:trPr>
+  <w:tc>
+    <w:tcPr><w:gridSpan w:val="2"/></w:tcPr>
+    <w:p><w:pPr><w:pageBreakBefore/></w:pPr></w:p>
+  </w:tc>
+</w:tr>` : ""}
+  ${rows.join("\n")}
+</w:tbl>`;
+}
+
+function makeImageTableCellXml(content: string, W: string): string {
+  return `
+<w:tc>
+  <w:tcPr>
+    <w:tcW w:w="${Math.round(TABLE_COL_WIDTH_EMU / EMU_PER_TWIP)}" w:type="dxa"/>
+    <w:vAlign w:val="center"/>
+  </w:tcPr>
+  <w:p>
+    <w:pPr>
+      <w:jc w:val="center"/>
+      <w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>
+    </w:pPr>
+    ${content}
+  </w:p>
+</w:tc>`;
 }
 
 function makeImageRunXml(
