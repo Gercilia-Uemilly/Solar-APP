@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Copy, Share2, Calendar, Tag, Globe, Headphones, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Info, Smartphone, Monitor, Plus, Pencil, MessageSquareText, Eye, Check, X } from "lucide-react";
 import ScriptsExplorer from "@/components/ScriptsExplorer";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
@@ -29,6 +29,63 @@ interface KnowledgeEntry {
   categoria: string | null;
   modelo: boolean;
   created_at: string;
+}
+
+// Componente que carrega a duração de um áudio (minutagem) sem reproduzir
+function AudioDuration({ src }: { src: string | null }) {
+  const [dur, setDur] = useState<number | null>(null);
+  useEffect(() => {
+    if (!src) return;
+    const a = new Audio();
+    a.preload = "metadata";
+    a.src = src;
+    const onLoaded = () => {
+      if (isFinite(a.duration) && a.duration > 0) setDur(a.duration);
+    };
+    a.addEventListener("loadedmetadata", onLoaded);
+    return () => {
+      a.removeEventListener("loadedmetadata", onLoaded);
+      a.src = "";
+    };
+  }, [src]);
+  if (dur == null) return <span className="text-[10px] text-muted-foreground">--:--</span>;
+  const m = Math.floor(dur / 60);
+  const s = Math.floor(dur % 60).toString().padStart(2, "0");
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+      <Clock size={10} /> {m}:{s}
+    </span>
+  );
+}
+
+// Classifica um áudio em um tema legível baseado em palavras-chave / título / descrição
+function classifyAudioTheme(entry: KnowledgeEntry): string {
+  const txt = `${entry.titulo} ${entry.descricao || ""} ${(entry.palavras_chave || []).join(" ")}`.toLowerCase();
+  const rules: Array<{ theme: string; kws: string[] }> = [
+    { theme: "🩺 Saúde", kws: ["saúde", "saude", "ubs", "hospital", "remédio", "remedio", "consulta", "médico", "medico", "sus", "vacina"] },
+    { theme: "🎓 Educação", kws: ["escola", "creche", "vaga escolar", "educação", "educacao", "aluno", "ensino", "professor"] },
+    { theme: "💼 Emprego e Vagas", kws: ["jovem aprendiz", "vaga", "emprego", "currículo", "curriculo", "trabalho", "estágio", "estagio"] },
+    { theme: "🚧 Obras e Infraestrutura", kws: ["buraco", "asfalto", "obra", "rua", "calçada", "calcada", "pavimentação", "pavimentacao", "tapa-buraco"] },
+    { theme: "💡 Iluminação e Energia", kws: ["iluminação", "iluminacao", "poste", "lâmpada", "lampada", "cemig", "energia", "luz"] },
+    { theme: "💧 Água e Esgoto", kws: ["dmae", "água", "agua", "esgoto", "vazamento", "encanamento"] },
+    { theme: "🧹 Limpeza Urbana", kws: ["lixo", "entulho", "limpeza", "varrição", "varricao", "coleta"] },
+    { theme: "🌳 Meio Ambiente / Praças", kws: ["praça", "praca", "árvore", "arvore", "poda", "parque", "meio ambiente"] },
+    { theme: "🚌 Transporte / Trânsito", kws: ["ônibus", "onibus", "transporte", "settran", "trânsito", "transito", "semáforo", "semaforo"] },
+    { theme: "🏠 Habitação / Moradia", kws: ["moradia", "casa", "aluguel social", "habitação", "habitacao"] },
+    { theme: "🤝 Assistência Social", kws: ["cras", "creas", "bolsa", "auxílio", "auxilio", "assistência social", "assistencia social"] },
+    { theme: "🛡️ Segurança", kws: ["polícia", "policia", "segurança", "seguranca", "guarda municipal", "violência", "violencia"] },
+    { theme: "🐾 Animais", kws: ["cachorro", "gato", "animal", "castração", "castracao", "ccz"] },
+    { theme: "📣 Reclamação / Denúncia", kws: ["reclamação", "reclamacao", "denúncia", "denuncia", "abandono"] },
+    { theme: "📅 Evento / Convite", kws: ["evento", "convite", "reunião", "reuniao", "audiência", "audiencia"] },
+  ];
+  for (const r of rules) {
+    if (r.kws.some(k => txt.includes(k))) return r.theme;
+  }
+  // fallback: primeira palavra-chave
+  if (entry.palavras_chave && entry.palavras_chave.length > 0) {
+    return `🏷️ ${entry.palavras_chave[0]}`;
+  }
+  return "📂 Outros";
 }
 
 interface ExistingScript {
