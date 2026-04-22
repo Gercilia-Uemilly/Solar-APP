@@ -275,6 +275,47 @@ function containFit(
   }
 }
 
+type CropRect = {
+  left?: number;
+  top?: number;
+  right?: number;
+  bottom?: number;
+};
+
+function coverFit(
+  imgW: number,
+  imgH: number,
+  boxW: number,
+  boxH: number,
+): { cx: number; cy: number; crop?: CropRect } {
+  const imgRatio = imgW / imgH;
+  const boxRatio = boxW / boxH;
+
+  if (Math.abs(imgRatio - boxRatio) < 0.001) {
+    return { cx: boxW, cy: boxH };
+  }
+
+  if (imgRatio > boxRatio) {
+    const scaledWidth = boxH * imgRatio;
+    const cropEachSide = Math.max(0, (scaledWidth - boxW) / scaledWidth / 2);
+    const crop = Math.round(cropEachSide * 100_000);
+    return {
+      cx: boxW,
+      cy: boxH,
+      crop: { left: crop, right: crop },
+    };
+  }
+
+  const scaledHeight = boxW / imgRatio;
+  const cropEachSide = Math.max(0, (scaledHeight - boxH) / scaledHeight / 2);
+  const crop = Math.round(cropEachSide * 100_000);
+  return {
+    cx: boxW,
+    cy: boxH,
+    crop: { top: crop, bottom: crop },
+  };
+}
+
 /**
  * For stacked layout: fit within the page slot height to avoid page breaks
  * that make one image render per page after DOCX → PDF conversion.
@@ -282,7 +323,7 @@ function containFit(
 function fitToStackSlot(imgW: number, imgH: number, slotCount: number): { cx: number; cy: number } {
   const availableHeight = CONTENT_HEIGHT_EMU - IMG_GAP_EMU * Math.max(0, slotCount - 1);
   const slotHeight = Math.floor(availableHeight / Math.max(1, slotCount));
-  return containFit(imgW, imgH, CONTENT_WIDTH_EMU, slotHeight);
+  return coverFit(imgW, imgH, CONTENT_WIDTH_EMU, slotHeight);
 }
 
 /**
@@ -383,8 +424,8 @@ function makeImageTableXml(
 
       const maxWidth = MAX_SIDE_WIDTH;
       const maxHeight = pair.length === 1 ? MAX_SIDE_HEIGHT : MAX_GRID_HEIGHT;
-      const fit = containFit(img.width, img.height, maxWidth, maxHeight);
-      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
+      const fit = coverFit(img.width, img.height, maxWidth, maxHeight);
+      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS, fit.crop);
       return makeImageTableCellXml(run, W);
     });
 
@@ -452,6 +493,7 @@ function makeImageRunXml(
   idx: number,
   A_NS: string,
   PIC_NS: string,
+  crop?: CropRect,
 ): string {
   return `
 <w:r>
@@ -472,6 +514,7 @@ function makeImageRunXml(
             </pic:nvPicPr>
             <pic:blipFill>
               <a:blip r:embed="${rId}"/>
+              ${crop ? `<a:srcRect${crop.left != null ? ` l="${crop.left}"` : ""}${crop.top != null ? ` t="${crop.top}"` : ""}${crop.right != null ? ` r="${crop.right}"` : ""}${crop.bottom != null ? ` b="${crop.bottom}"` : ""}/>` : ""}
               <a:stretch><a:fillRect/></a:stretch>
             </pic:blipFill>
             <pic:spPr>
