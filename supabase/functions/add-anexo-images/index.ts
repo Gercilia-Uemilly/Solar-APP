@@ -275,6 +275,47 @@ function containFit(
   }
 }
 
+type CropRect = {
+  left?: number;
+  top?: number;
+  right?: number;
+  bottom?: number;
+};
+
+function coverFit(
+  imgW: number,
+  imgH: number,
+  boxW: number,
+  boxH: number,
+): { cx: number; cy: number; crop?: CropRect } {
+  const imgRatio = imgW / imgH;
+  const boxRatio = boxW / boxH;
+
+  if (Math.abs(imgRatio - boxRatio) < 0.001) {
+    return { cx: boxW, cy: boxH };
+  }
+
+  if (imgRatio > boxRatio) {
+    const scaledWidth = boxH * imgRatio;
+    const cropEachSide = Math.max(0, (scaledWidth - boxW) / scaledWidth / 2);
+    const crop = Math.round(cropEachSide * 100_000);
+    return {
+      cx: boxW,
+      cy: boxH,
+      crop: { left: crop, right: crop },
+    };
+  }
+
+  const scaledHeight = boxW / imgRatio;
+  const cropEachSide = Math.max(0, (scaledHeight - boxH) / scaledHeight / 2);
+  const crop = Math.round(cropEachSide * 100_000);
+  return {
+    cx: boxW,
+    cy: boxH,
+    crop: { top: crop, bottom: crop },
+  };
+}
+
 /**
  * For stacked layout: fit within the page slot height to avoid page breaks
  * that make one image render per page after DOCX → PDF conversion.
@@ -282,7 +323,7 @@ function containFit(
 function fitToStackSlot(imgW: number, imgH: number, slotCount: number): { cx: number; cy: number } {
   const availableHeight = CONTENT_HEIGHT_EMU - IMG_GAP_EMU * Math.max(0, slotCount - 1);
   const slotHeight = Math.floor(availableHeight / Math.max(1, slotCount));
-  return containFit(imgW, imgH, CONTENT_WIDTH_EMU, slotHeight);
+  return coverFit(imgW, imgH, CONTENT_WIDTH_EMU, slotHeight);
 }
 
 /**
