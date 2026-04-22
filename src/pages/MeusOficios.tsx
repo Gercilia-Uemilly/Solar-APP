@@ -471,23 +471,12 @@ export default function MeusOficios() {
         imagens: imgs.length > 0 ? imgs : undefined,
       };
       
-      let uploadBlob: Blob;
-      let uploadFileName: string;
-      
-      try {
-        // Try PDF first with a 30s timeout to avoid "Failed to fetch"
-        const pdfPromise = buildMergedPdfBlob(exportData);
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("PDF timeout")), 30000)
-        );
-        uploadBlob = await Promise.race([pdfPromise, timeoutPromise]);
-        uploadFileName = `${baseFileName}.pdf`;
-      } catch (pdfErr) {
-        console.warn("PDF conversion failed, uploading Word:", pdfErr);
-        // Fallback to Word if PDF conversion fails or times out
-        uploadBlob = await buildWordBlobForExport(exportData);
-        uploadFileName = `${baseFileName}.docx`;
-      }
+      const pdfPromise = buildMergedPdfBlob(exportData);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("A geração do PDF para o Drive demorou demais. Gere a prévia real e tente novamente.")), 90000)
+      );
+      const uploadBlob = await Promise.race([pdfPromise, timeoutPromise]);
+      const uploadFileName = `${baseFileName}.pdf`;
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
@@ -531,7 +520,7 @@ export default function MeusOficios() {
         } as any).eq("id", oficio.id);
         optimisticUpdate(oficio.id, { status: "Salvo no Drive", link_pdf_drive: driveResult.driveLink } as any);
       }
-      toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado!" : "Enviado como Word." });
+      toast({ title: "✅ Enviado ao Drive!", description: "PDF final enviado exatamente como na prévia real." });
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
@@ -620,11 +609,19 @@ export default function MeusOficios() {
       // 4. Download Word
       saveAs(wordBlob, `${fileName}.docx`);
 
-      // 5. Upload to Drive (PDF or Word)
+      // 5. Upload to Drive (somente PDF final, para manter o mesmo layout do export)
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!pdfBlob) {
+        toast({
+          title: "PDF do Drive não foi gerado",
+          description: "O Word foi baixado, mas o envio ao Drive foi cancelado para evitar desalinhamento. Gere a prévia real e tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
       const driveFormData = new FormData();
-      const uploadBlob = pdfBlob || wordBlob;
-      const uploadName = pdfBlob ? `${fileName}.pdf` : `${fileName}.docx`;
+      const uploadBlob = pdfBlob;
+      const uploadName = `${fileName}.pdf`;
       driveFormData.append("file", uploadBlob, uploadName);
       driveFormData.append("metadata", JSON.stringify({
         numero: oficio.numero || "",

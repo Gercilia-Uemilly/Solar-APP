@@ -962,23 +962,12 @@ export default function Oficios() {
       // Ensure saved attachments are included
       const exportData = await withSavedAttachments(data);
 
-      let uploadBlob: Blob;
-      let uploadFileName: string;
-
-      try {
-        // Try PDF first with a 30s timeout to avoid "Failed to fetch"
-        const pdfPromise = buildMergedPdfBlob(exportData);
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("PDF timeout")), 30000)
-        );
-        uploadBlob = await Promise.race([pdfPromise, timeoutPromise]);
-        uploadFileName = `${baseFileName}.pdf`;
-      } catch (pdfErr) {
-        console.warn("PDF conversion failed, uploading Word:", pdfErr);
-        // Fallback to Word if PDF conversion fails or times out
-        uploadBlob = await buildWordBlobForExport(exportData);
-        uploadFileName = `${baseFileName}.docx`;
-      }
+      const pdfPromise = buildMergedPdfBlob(exportData);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("A geração do PDF para o Drive demorou demais. Gere a prévia real e tente novamente.")), 90000)
+      );
+      const uploadBlob = await Promise.race([pdfPromise, timeoutPromise]);
+      const uploadFileName = `${baseFileName}.pdf`;
 
       const driveFormData = new FormData();
       driveFormData.append("file", uploadBlob, uploadFileName);
@@ -1015,7 +1004,7 @@ export default function Oficios() {
         } as any).eq("id", oficio.id);
         optimisticUpdate(oficio.id, { status: "Salvo no Drive", link_pdf_drive: driveResult.driveLink } as any);
       }
-      toast({ title: "✅ Enviado ao Drive!", description: uploadFileName.endsWith(".pdf") ? "PDF enviado com sucesso!" : "Arquivo enviado como Word." });
+      toast({ title: "✅ Enviado ao Drive!", description: "PDF final enviado exatamente como na prévia real." });
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
