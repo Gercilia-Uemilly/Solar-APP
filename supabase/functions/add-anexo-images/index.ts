@@ -276,12 +276,13 @@ function containFit(
 }
 
 /**
- * For stacked layout: fit to full width, height is proportional.
+ * For stacked layout: fit within the page slot height to avoid page breaks
+ * that make one image render per page after DOCX → PDF conversion.
  */
-function fitToFullWidth(imgW: number, imgH: number): { cx: number; cy: number } {
-  const cx = CONTENT_WIDTH_EMU;
-  const cy = Math.round(CONTENT_WIDTH_EMU * imgH / imgW);
-  return { cx, cy };
+function fitToStackSlot(imgW: number, imgH: number, slotCount: number): { cx: number; cy: number } {
+  const availableHeight = CONTENT_HEIGHT_EMU - IMG_GAP_EMU * Math.max(0, slotCount - 1);
+  const slotHeight = Math.floor(availableHeight / Math.max(1, slotCount));
+  return containFit(imgW, imgH, CONTENT_WIDTH_EMU, slotHeight);
 }
 
 /**
@@ -327,9 +328,7 @@ function buildImagePageXml(
 
   if (layout === "single") {
     const img = images[0];
-    const fit = isLandscape(img.width, img.height)
-      ? fitToFullWidth(img.width, img.height)
-      : containFit(img.width, img.height, CONTENT_WIDTH_EMU, MAX_SINGLE_HEIGHT);
+    const fit = containFit(img.width, img.height, CONTENT_WIDTH_EMU, MAX_SINGLE_HEIGHT);
     paragraphs.push(makeImageRowXml(
       [makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS)],
         W, WP, A_NS, PIC_NS, pageBreakBeforeFirst
@@ -337,7 +336,7 @@ function buildImagePageXml(
   } else if (layout === "stack") {
     // Each image full width, proportional height
     for (const [index, img] of images.entries()) {
-      const fit = fitToFullWidth(img.width, img.height);
+      const fit = fitToStackSlot(img.width, img.height, images.length);
       paragraphs.push(makeImageRowXml(
         [makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS)],
         W, WP, A_NS, PIC_NS, pageBreakBeforeFirst && index === 0
