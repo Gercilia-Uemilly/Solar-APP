@@ -1152,7 +1152,20 @@ export default function BancoInformacoes() {
                   <p className="text-xs mt-1">Envie áudios ou ajuste os filtros.</p>
                 </CardContent>
               </Card>
-            ) : audioEntries.map(entry => (
+            ) : audioGrouped ? (
+              audioGroups.map(group => (
+                <div key={group.theme} className="space-y-2">
+                  <div className="flex items-center gap-2 px-1 pt-2">
+                    <h3 className="text-sm font-bold text-foreground">{group.theme}</h3>
+                    <Badge variant="secondary" className="text-[10px]">{group.items.length}</Badge>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  {group.items.map(entry => renderAudioCard(entry))}
+                </div>
+              ))
+            ) : audioEntries.map(entry => renderAudioCard(entry))}
+          </div>
+        </TabsContent>
               <Card key={entry.id} className="group hover:shadow-md transition-all">
                 <CardContent className="p-4 md:p-5">
                   <div className="flex items-start gap-4">
