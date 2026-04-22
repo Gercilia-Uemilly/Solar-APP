@@ -1299,6 +1299,27 @@ export default function MeusOficios() {
         preSelectedOficioId={uploadPreSelectedId}
         onSuccess={fetchOficios}
       />
+
+      <RealPreviewDialog
+        open={showRealPreview}
+        onOpenChange={setShowRealPreview}
+        buildData={async () => {
+          if (!viewOficio) throw new Error("Nenhum ofício selecionado.");
+          const imgs = await fetchSavedImages(viewOficio.id);
+          return {
+            ...buildExportData(viewOficio),
+            conteudo: editedContentRef.current || viewOficio.conteudo || "",
+            imagens: imgs.length > 0 ? imgs : undefined,
+          };
+        }}
+        fileName={viewOficio ? `${buildFileName(
+          buildExportData(viewOficio).numero,
+          buildExportData(viewOficio).solicitante,
+          buildExportData(viewOficio).codigoZ,
+          buildExportData(viewOficio).contatoSolicitante,
+          (buildExportData(viewOficio) as any).origem,
+        )}.pdf` : "previa-oficio.pdf"}
+      />
     </div>
   );
 }
