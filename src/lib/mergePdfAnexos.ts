@@ -172,10 +172,12 @@ function calculateSlots(
   const cellW = (CONTENT_WIDTH - GAP) / 2;
   const cellH = (CONTENT_HEIGHT - GAP) / 2;
   return [
-    { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-    { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: cellW, h: cellH },
-    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM, w: cellW, h: cellH },
+    // Top row: align to outer corners (bottom-aligned so tops sit at the divider line)
+    { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "right", alignV: "bottom" },
+    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "left", alignV: "bottom" },
+    // Bottom row: align to outer corners (top-aligned so tops sit just below the divider)
+    { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "right", alignV: "top" },
+    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "left", alignV: "top" },
   ];
 }
 
