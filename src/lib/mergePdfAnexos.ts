@@ -122,15 +122,15 @@ function calculateSlots(
       // Both portrait → side by side
       const slotW = (CONTENT_WIDTH - GAP) / 2;
       return [
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT },
-        { x: MARGIN_LEFT + slotW + GAP, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT, alignH: "right", alignV: "top" },
+        { x: MARGIN_LEFT + slotW + GAP, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT, alignH: "left", alignV: "top" },
       ];
     } else {
       // Both landscape or mixed → stacked vertically
       const slotH = (CONTENT_HEIGHT - GAP) / 2;
       return [
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH, alignH: "center", alignV: "bottom" },
+        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH, alignH: "center", alignV: "top" },
       ];
     }
   }
@@ -149,9 +149,9 @@ function calculateSlots(
     const cellW = (CONTENT_WIDTH - GAP) / 2;
     const cellH = (CONTENT_HEIGHT - GAP) / 2;
     return [
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-      { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH },
-      { x: MARGIN_LEFT + (CONTENT_WIDTH - cellW) / 2, y: MARGIN_BOTTOM, w: cellW, h: cellH },
+      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "right", alignV: "bottom" },
+      { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "left", alignV: "bottom" },
+      { x: MARGIN_LEFT + (CONTENT_WIDTH - cellW) / 2, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "center", alignV: "top" },
     ];
   }
 
