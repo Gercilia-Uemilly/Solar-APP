@@ -110,17 +110,33 @@ serve(async (req) => {
 
   try {
     const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
+
+    // ═══════════════════════════════════════════════════
+    // VALIDAÇÃO DE ENTRADA OBRIGATÓRIA
+    // Não gerar ofício sem texto/comando válido.
+    // ═══════════════════════════════════════════════════
+    const descricaoLimpa = (descricao || "").trim();
+    if (descricaoLimpa.length < 10) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Entrada inválida. Informe um texto institucional pronto ou um comando direto descrevendo a demanda (mínimo 10 caracteres).",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const textoCompleto = `${descricao || ""} ${assunto || ""} ${bairro || ""} ${local || ""}`;
     const tipoNormalizado = typeof tipo === "string" ? tipo.trim() : "";
     const tipoValidoComoSecretaria = tipoNormalizado && !["solicitação", "reclamação", "requerimento"].includes(tipoNormalizado.toLowerCase());
     const secretariaDetectada = (tipoValidoComoSecretaria ? tipoNormalizado : "") || detectSecretaria(textoCompleto) || "Serviços Urbanos";
     const nomeOrgao = getNomeOrgaoForSecretaria(secretariaDetectada);
     const vocativo = getVocativoForSecretaria(secretariaDetectada);
-    // "do" for masculine nouns (Departamento, Instituto, Hospital, Processamento, PROCON, DNIT, Ministério, Batalhão)
-    // "da" for feminine nouns (Secretaria, Companhia, Agência, Fundação, Empresa, Polícia)
+    // "do" for masculine nouns; "da" for feminine
     const masculineStarts = ['Departamento', 'Instituto', 'PROCON', 'Ministério', 'Batalhão', 'Hospital', 'Processamento', 'DNIT'];
     const artigo = masculineStarts.some(p => nomeOrgao.startsWith(p)) ? 'o' : 'a';
-    const conclusao = `Assim, encaminha-se o presente para apreciação d${artigo} ${nomeOrgao}, solicitando-se a análise do pleito e a manifestação quanto à sua viabilidade, bem como a indicação de eventual previsão para execução do serviço.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
+    // Conclusão fixa padronizada (parte estática que segue ao §4) — encaminhamento + agradecimento
+    const conclusaoEncaminhamento = `Assim, encaminha-se o presente para apreciação d${artigo} ${nomeOrgao}, solicitando-se a análise do pleito e a manifestação quanto à sua viabilidade, bem como a indicação de eventual previsão para execução do serviço.\n\nNa certeza de contar com o vosso pronto atendimento, desde já agradeço.`;
 
     const ehMudancaDirecao = isMudancaDirecaoRua(textoCompleto);
 
@@ -134,50 +150,58 @@ Use EXATAMENTE a estrutura abaixo, adaptando APENAS o nome da rua, bairro e pont
 
 Em seguida, anexe a CONCLUSÃO FIXA fornecida (2 <p>) — não reescreva o encerramento.`;
 
-    const SYSTEM_PROMPT = `Redator parlamentar do Vereador Fabão, Uberlândia-MG. Redija o CORPO de ofícios formais.
+    const SYSTEM_PROMPT = `Redator parlamentar institucional do Vereador Fabão, Uberlândia-MG.
+Sua função: TRANSFORMAR o conteúdo recebido (mesmo que esteja incompleto, mal escrito, coloquial, em formato de comando ou desorganizado) em um ofício formal de alta qualidade.
 ${ehMudancaDirecao ? `\n${TEMPLATE_MUDANCA_DIRECAO}\n` : ''}
 
-ESTRUTURA: exatamente 4 parágrafos + conclusão fixa (2 <p>):
-§1: "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar..." + ação, local, bairro. Destaque com <strong> o nome do local, bairro e tipo de serviço.
-§2: "Conforme relatos encaminhados a este gabinete..." + problema detalhado. NÃO repetir endereço. Destaque com <strong> os pontos críticos do problema.
-§3: Consequências realistas. NÃO dramatizar nem inventar. Use <strong> para destacar riscos e impactos importantes.
-§4: "Diante do exposto, solicita-se a adoção da seguinte providência:" + pedido objetivo. Destaque com <strong> a providência solicitada.
-§5-§6: Conclusão fixa fornecida pelo usuário em 2 <p>.
+═══ REGRAS CRÍTICAS NÃO NEGOCIÁVEIS ═══
+1. NUNCA usar linguagem coloquial, gírias ou tom de conversa.
+2. NUNCA copiar frases literais do usuário — sempre reescrever em linguagem institucional.
+3. NUNCA mencionar o solicitante (não citar nome, "morador X disse", "a senhora fulana", etc).
+4. NUNCA repetir bairro, endereço ou logradouro — cada informação aparece UMA ÚNICA vez, somente no §1.
+5. NUNCA inventar dados, nomes, números, estatísticas ou fatos não fornecidos.
+6. NUNCA fugir da estrutura de 4 parágrafos.
+7. NUNCA alterar o texto da conclusão fixa fornecida.
+8. SEMPRE use "redutor de velocidade" no lugar de "quebra-mola", "quebra mola" ou "lombada".
 
-USO DE NEGRITO (<strong>):
-- OBRIGATÓRIO em todos os parágrafos: nomes de locais, bairros, ruas, tipo de serviço, riscos, providências.
-- Use <strong> para destacar os pontos-chave que o leitor precisa identificar rapidamente.
-- Exemplo: "solicitar a realização de <strong>operação tapa-buraco</strong> na <strong>Rua das Flores</strong>, no <strong>Bairro Santa Mônica</strong>"
+═══ ESTRUTURA OBRIGATÓRIA — EXATAMENTE 4 PARÁGRAFOS + CONCLUSÃO FIXA ═══
+§1 (INTRODUÇÃO COM SOLICITAÇÃO): Iniciar com "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar...". Citar a ação, o local (endereço/rua) e o bairro UMA ÚNICA VEZ. Destacar com <strong> o tipo de serviço, a rua e o bairro.
+§2 (RELATO): Iniciar OBRIGATORIAMENTE com "Conforme relatos encaminhados a este gabinete,...". Descrever o problema de forma objetiva e institucional. NÃO repetir o endereço nem o bairro. Destacar com <strong> os pontos críticos.
+§3 (CONSEQUÊNCIAS): Descrever consequências realistas e proporcionais — sem dramatizar, sem inventar. Destacar com <strong> os riscos e impactos relevantes. NÃO repetir endereço/bairro.
+§4 (SOLICITAÇÃO FORMAL — PRIMEIRO PARÁGRAFO DA CONCLUSÃO FIXA): Escrever EXATAMENTE no formato: "Diante do exposto, solicita-se a adoção da seguinte providência: <strong>[AÇÃO ESPECÍFICA EXTRAÍDA DO CONTEXTO]</strong>, a fim de garantir <strong>[FINALIDADE PERTINENTE]</strong>." Substituir [AÇÃO ESPECÍFICA] e [FINALIDADE] com base no contexto fornecido. NÃO repetir endereço/bairro.
+§5 e §6 (ENCAMINHAMENTO + AGRADECIMENTO): Reproduzir LITERALMENTE, sem qualquer alteração, os 2 parágrafos fornecidos no campo "ENCAMINHAMENTO FIXO" do prompt do usuário.
 
-REGRAS CRÍTICAS:
-- SOMENTE dados do prompt. NUNCA inventar nomes, números, ruas, estatísticas.
-- Bairro, endereço, secretaria: cada um aparece UMA vez. Nunca duplicar "Bairro Bairro X".
-- Formatação: apenas <p> e <strong>. Sem style inline, sem <b>.
-- Entradas curtas → desenvolva. Conversas WhatsApp → extraia fatos. Narrativas → organize.
-- TERMINOLOGIA OBRIGATÓRIA: SEMPRE use "redutor de velocidade" no lugar de "quebra-mola", "quebra mola" ou "lombada". Mesmo que a entrada use esses termos, no ofício sempre escreva "redutor de velocidade".
+═══ USO DE NEGRITO (<strong>) ═══
+Obrigatório nos §1, §2, §3 e §4 para destacar: tipo de serviço, rua/local, bairro, riscos, providência solicitada e finalidade.
 
-ASSUNTO: resumido e objetivo. Prioridade: nome do local > tipo de ação > bairro. O bairro é OBRIGATÓRIO no assunto (ex: "Operação tapa-buraco na Rua X - Bairro Y"). NUNCA incluir endereço completo no assunto.
+═══ FORMATAÇÃO ═══
+Apenas tags <p> e <strong>. Sem style inline, sem <b>, sem <div>, sem listas. Cada parágrafo é um <p>.
 
-Retorne JSON: {"oficio":"HTML","assunto_sugerido":"...","secretaria_identificada":"...","tipo_demanda":"Solicitação|Reclamação|Requerimento","urgencia":"normal|urgente","sugestoes_melhoria":[]}`;
+═══ ASSUNTO ═══
+Resumido e objetivo. Prioridade: tipo de ação > rua > bairro. O bairro é OBRIGATÓRIO no assunto. NUNCA incluir endereço completo no assunto.
+
+═══ TRATAMENTO DE ENTRADAS RUINS ═══
+Se a entrada for curta, confusa, coloquial ou em formato de comando: interpretar a intenção, completar de forma coerente e reescrever em linguagem institucional formal. Nunca reproduzir texto original como está.
+
+RETORNE APENAS JSON VÁLIDO: {"oficio":"HTML","assunto_sugerido":"...","secretaria_identificada":"...","tipo_demanda":"Solicitação|Reclamação|Requerimento","urgencia":"normal|urgente","sugestoes_melhoria":[]}`;
+
     const userPrompt = `SECRETARIA: ${secretariaDetectada}
 VOCATIVO: ${vocativo}
 ÓRGÃO: ${nomeOrgao}
 DESTINATÁRIO: ${destinatario || "A identificar"}
-DESCRIÇÃO: ${descricao || "Não informado"}
-SOLICITANTE: ${solicitante || "moradores da região"}
+CONTEÚDO RECEBIDO (texto institucional ou comando do operador): ${descricaoLimpa}
 BAIRRO: ${bairro || "Não informado"}
 ENDEREÇO/LOCAL: ${local || "Não informado"}
 PRIORIDADE: ${prioridade || "Normal"}
 ASSUNTO: ${assunto || "Gerar automaticamente"}
 
-CONCLUSÃO FIXA (2 <p>): "${conclusao}"
+ENCAMINHAMENTO FIXO (use LITERALMENTE como §5 e §6, em 2 tags <p> separadas): "${conclusaoEncaminhamento}"
 
-Gere ofício completo com 4 parágrafos + conclusão. JSON.`;
+Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágrafos do encaminhamento fixo. NÃO mencione solicitante. NÃO repita bairro/endereço fora do §1. Retorne apenas JSON válido.`;
 
     const { systemInstruction, messages } = toGeminiMessages(SYSTEM_PROMPT, userPrompt);
-    // gpt-4o entrega resposta completa em JSON de forma confiável (gpt-5 estava
-    // consumindo todos os tokens em reasoning e devolvendo conteúdo vazio).
-    const result = await callGemini({ model: "gpt-4o", systemInstruction, messages });
+    // gpt-4o-mini: rápido e estável para JSON, atende ao requisito de geração ágil.
+    const result = await callGemini({ model: "gpt-4o-mini", systemInstruction, messages });
 
     if (!result.text || result.text.trim().length < 20) {
       console.error("IA retornou resposta vazia. Raw:", JSON.stringify(result.raw)?.slice(0, 500));
