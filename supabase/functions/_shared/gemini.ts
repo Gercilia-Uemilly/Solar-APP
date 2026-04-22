@@ -120,10 +120,10 @@ export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
   };
   if (isGpt5Family) {
     // gpt-5 only supports default temperature and uses max_completion_tokens
-    body.max_completion_tokens = 4096;
+    body.max_completion_tokens = 8192;
   } else {
     body.temperature = 0.7;
-    body.max_tokens = 4096;
+    body.max_tokens = 8192;
   }
 
   const convertedTools = convertTools(opts.tools);
