@@ -415,6 +415,10 @@ function makeImageTableXml(
   pageBreakBefore = false,
 ): string {
   const rows: string[] = [];
+  const isGrid = images.length > 2;
+  const slotMaxHeight = isGrid ? MAX_GRID_HEIGHT : MAX_SIDE_HEIGHT;
+  // Altura fixa da linha (em twips) para que todos os slots tenham o MESMO tamanho visual
+  const rowHeightTwips = Math.round(slotMaxHeight / EMU_PER_TWIP);
   for (let i = 0; i < images.length; i += 2) {
     const pair = images.slice(i, i + 2);
     const cells = [0, 1].map((cellIndex) => {
@@ -425,13 +429,15 @@ function makeImageTableXml(
 
       const maxWidth = MAX_SIDE_WIDTH;
       const maxHeight = pair.length === 1 ? MAX_SIDE_HEIGHT : MAX_GRID_HEIGHT;
-      const fit = coverFit(img.width, img.height, maxWidth, maxHeight);
-      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS, fit.crop);
+      // contain: preserva imagem inteira (sem corte), centralizada no slot
+      const fit = containFit(img.width, img.height, maxWidth, maxHeight);
+      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
       return makeImageTableCellXml(run, W);
     });
 
     rows.push(`
 <w:tr>
+  <w:trPr><w:trHeight w:val="${rowHeightTwips}" w:hRule="exact"/><w:cantSplit/></w:trPr>
   ${cells.join("\n")}
 </w:tr>`);
   }
