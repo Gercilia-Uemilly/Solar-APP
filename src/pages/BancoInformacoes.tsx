@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Copy, Share2, Calendar, Tag, Globe, Headphones, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Info, Smartphone, Monitor, Plus, Pencil, MessageSquareText, Eye, Check, X } from "lucide-react";
 import ScriptsExplorer from "@/components/ScriptsExplorer";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
@@ -29,6 +29,63 @@ interface KnowledgeEntry {
   categoria: string | null;
   modelo: boolean;
   created_at: string;
+}
+
+// Componente que carrega a duração de um áudio (minutagem) sem reproduzir
+function AudioDuration({ src }: { src: string | null }) {
+  const [dur, setDur] = useState<number | null>(null);
+  useEffect(() => {
+    if (!src) return;
+    const a = new Audio();
+    a.preload = "metadata";
+    a.src = src;
+    const onLoaded = () => {
+      if (isFinite(a.duration) && a.duration > 0) setDur(a.duration);
+    };
+    a.addEventListener("loadedmetadata", onLoaded);
+    return () => {
+      a.removeEventListener("loadedmetadata", onLoaded);
+      a.src = "";
+    };
+  }, [src]);
+  if (dur == null) return <span className="text-[10px] text-muted-foreground">--:--</span>;
+  const m = Math.floor(dur / 60);
+  const s = Math.floor(dur % 60).toString().padStart(2, "0");
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+      <Clock size={10} /> {m}:{s}
+    </span>
+  );
+}
+
+// Classifica um áudio em um tema legível baseado em palavras-chave / título / descrição
+function classifyAudioTheme(entry: KnowledgeEntry): string {
+  const txt = `${entry.titulo} ${entry.descricao || ""} ${(entry.palavras_chave || []).join(" ")}`.toLowerCase();
+  const rules: Array<{ theme: string; kws: string[] }> = [
+    { theme: "🩺 Saúde", kws: ["saúde", "saude", "ubs", "hospital", "remédio", "remedio", "consulta", "médico", "medico", "sus", "vacina"] },
+    { theme: "🎓 Educação", kws: ["escola", "creche", "vaga escolar", "educação", "educacao", "aluno", "ensino", "professor"] },
+    { theme: "💼 Emprego e Vagas", kws: ["jovem aprendiz", "vaga", "emprego", "currículo", "curriculo", "trabalho", "estágio", "estagio"] },
+    { theme: "🚧 Obras e Infraestrutura", kws: ["buraco", "asfalto", "obra", "rua", "calçada", "calcada", "pavimentação", "pavimentacao", "tapa-buraco"] },
+    { theme: "💡 Iluminação e Energia", kws: ["iluminação", "iluminacao", "poste", "lâmpada", "lampada", "cemig", "energia", "luz"] },
+    { theme: "💧 Água e Esgoto", kws: ["dmae", "água", "agua", "esgoto", "vazamento", "encanamento"] },
+    { theme: "🧹 Limpeza Urbana", kws: ["lixo", "entulho", "limpeza", "varrição", "varricao", "coleta"] },
+    { theme: "🌳 Meio Ambiente / Praças", kws: ["praça", "praca", "árvore", "arvore", "poda", "parque", "meio ambiente"] },
+    { theme: "🚌 Transporte / Trânsito", kws: ["ônibus", "onibus", "transporte", "settran", "trânsito", "transito", "semáforo", "semaforo"] },
+    { theme: "🏠 Habitação / Moradia", kws: ["moradia", "casa", "aluguel social", "habitação", "habitacao"] },
+    { theme: "🤝 Assistência Social", kws: ["cras", "creas", "bolsa", "auxílio", "auxilio", "assistência social", "assistencia social"] },
+    { theme: "🛡️ Segurança", kws: ["polícia", "policia", "segurança", "seguranca", "guarda municipal", "violência", "violencia"] },
+    { theme: "🐾 Animais", kws: ["cachorro", "gato", "animal", "castração", "castracao", "ccz"] },
+    { theme: "📣 Reclamação / Denúncia", kws: ["reclamação", "reclamacao", "denúncia", "denuncia", "abandono"] },
+    { theme: "📅 Evento / Convite", kws: ["evento", "convite", "reunião", "reuniao", "audiência", "audiencia"] },
+  ];
+  for (const r of rules) {
+    if (r.kws.some(k => txt.includes(k))) return r.theme;
+  }
+  // fallback: primeira palavra-chave
+  if (entry.palavras_chave && entry.palavras_chave.length > 0) {
+    return `🏷️ ${entry.palavras_chave[0]}`;
+  }
+  return "📂 Outros";
 }
 
 interface ExistingScript {
@@ -198,6 +255,7 @@ export default function BancoInformacoes() {
   const [audioSearch, setAudioSearch] = useState("");
   const [audioOriginFilter, setAudioOriginFilter] = useState("Todas");
   const [audioTagFilter, setAudioTagFilter] = useState("Todos");
+  const [audioGrouped, setAudioGrouped] = useState(true);
 
   // Script tab state
   const [scriptSearch, setScriptSearch] = useState("");
@@ -297,6 +355,19 @@ export default function BancoInformacoes() {
     const s = new Set(audioBaseEntries.flatMap(e => e.palavras_chave || []).filter(Boolean));
     return ["Todos", ...Array.from(s)] as string[];
   }, [audioBaseEntries]);
+
+  // Agrupa os áudios por tema classificado para exibição
+  const audioGroups = useMemo(() => {
+    const map = new Map<string, KnowledgeEntry[]>();
+    for (const e of audioEntries) {
+      const theme = classifyAudioTheme(e);
+      if (!map.has(theme)) map.set(theme, []);
+      map.get(theme)!.push(e);
+    }
+    return Array.from(map.entries())
+      .map(([theme, items]) => ({ theme, items }))
+      .sort((a, b) => b.items.length - a.items.length);
+  }, [audioEntries]);
 
   const instagramEntries = useMemo(
     () => entries.filter(e => e.fonte === "Instagram" || e.categoria === "Instagram"),
@@ -809,6 +880,93 @@ export default function BancoInformacoes() {
     }
   };
 
+  const renderAudioCard = (entry: KnowledgeEntry) => (
+    <Card key={entry.id} className="group hover:shadow-md transition-all">
+      <CardContent className="p-4 md:p-5">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Headphones size={24} className="text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-semibold text-foreground leading-tight">
+              {entry.titulo.replace(/🎤\s*/g, "")}
+            </h4>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Clock size={10} /> {new Date(entry.created_at).toLocaleDateString("pt-BR")}
+              </span>
+              <AudioDuration src={entry.link} />
+              <span className="inline-flex items-center gap-1 text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-full">
+                {fonteIcon(entry.fonte)} {entry.fonte || "Upload"}
+              </span>
+              {entry.orgao && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  {entry.orgao}
+                </span>
+              )}
+            </div>
+            {entry.palavras_chave && entry.palavras_chave.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {entry.palavras_chave.map((kw, i) => (
+                  <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0">{kw}</Badge>
+                ))}
+              </div>
+            )}
+            {entry.descricao && (
+              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{entry.descricao}</p>
+            )}
+            {entry.link && (
+              <audio controls preload="none" className="w-full mt-3 h-10 rounded-lg" style={{ maxWidth: 500 }}>
+                <source src={entry.link} />
+              </audio>
+            )}
+            {entry.descricao && entry.descricao.length > 100 && (
+              <details className="mt-2">
+                <summary className="text-[11px] text-primary cursor-pointer hover:underline font-medium">📝 Ver transcrição completa</summary>
+                <p className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap bg-muted/50 p-3 rounded-lg border border-border max-h-40 overflow-y-auto">
+                  {entry.descricao}
+                </p>
+              </details>
+            )}
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              {entry.link && (
+                <>
+                  <button
+                    onClick={() => handleSmartDownload(entry)}
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium shadow-sm"
+                  >
+                    <Download size={13} /> Baixar Áudio
+                  </button>
+                  <button
+                    onClick={() => downloadAndOpenWhatsApp(entry, null, () => toast({ title: "Áudio baixado!", description: "Agora anexe o arquivo no WhatsApp clicando no ícone de clipe 📎" }))}
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors font-medium shadow-sm"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Baixar e Abrir WhatsApp
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => { if (entry.descricao) { navigator.clipboard.writeText(entry.descricao); toast({ title: "Transcrição copiada!" }); } }}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition-colors"
+              >
+                <Copy size={13} /> Copiar texto
+              </button>
+              <button onClick={() => openDialog(entry)}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent text-accent-foreground hover:bg-accent/70 transition-colors"
+              >
+                <Sparkles size={13} /> Criar script
+              </button>
+            </div>
+          </div>
+          <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1050,6 +1208,15 @@ export default function BancoInformacoes() {
                 {(audioOriginFilter !== "Todas" || audioTagFilter !== "Todos") && (
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setAudioOriginFilter("Todas"); setAudioTagFilter("Todos"); }}>Limpar</Button>
                 )}
+                <Button
+                  variant={audioGrouped ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => setAudioGrouped(g => !g)}
+                  title="Alternar agrupamento por tema"
+                >
+                  <Library size={12} /> {audioGrouped ? "Agrupado por tema" : "Lista simples"}
+                </Button>
                 <span className="text-xs text-muted-foreground ml-auto">{audioEntries.length} áudio(s)</span>
               </div>
             </CardContent>
@@ -1072,110 +1239,18 @@ export default function BancoInformacoes() {
                   <p className="text-xs mt-1">Envie áudios ou ajuste os filtros.</p>
                 </CardContent>
               </Card>
-            ) : audioEntries.map(entry => (
-              <Card key={entry.id} className="group hover:shadow-md transition-all">
-                <CardContent className="p-4 md:p-5">
-                  <div className="flex items-start gap-4">
-                    {/* Audio icon */}
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Headphones size={24} className="text-primary" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      {/* Title */}
-                      <h4 className="text-sm font-semibold text-foreground leading-tight">
-                        {entry.titulo.replace(/🎤\s*/g, "")}
-                      </h4>
-
-                      {/* Meta: date, origin, theme */}
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Clock size={10} /> {new Date(entry.created_at).toLocaleDateString("pt-BR")}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-full">
-                          {fonteIcon(entry.fonte)} {entry.fonte || "Upload"}
-                        </span>
-                        {entry.orgao && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                            {entry.orgao}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Tags */}
-                      {entry.palavras_chave && entry.palavras_chave.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {entry.palavras_chave.map((kw, i) => (
-                            <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0">{kw}</Badge>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Short description */}
-                      {entry.descricao && (
-                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                          {entry.descricao}
-                        </p>
-                      )}
-
-                      {/* Audio player */}
-                      {entry.link && (
-                        <audio controls preload="none" className="w-full mt-3 h-10 rounded-lg" style={{ maxWidth: 500 }}>
-                          <source src={entry.link} />
-                        </audio>
-                      )}
-
-                      {/* Full transcription */}
-                      {entry.descricao && entry.descricao.length > 100 && (
-                        <details className="mt-2">
-                          <summary className="text-[11px] text-primary cursor-pointer hover:underline font-medium">📝 Ver transcrição completa</summary>
-                          <p className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap bg-muted/50 p-3 rounded-lg border border-border max-h-40 overflow-y-auto">
-                            {entry.descricao}
-                          </p>
-                        </details>
-                      )}
-
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2 mt-3 flex-wrap">
-                        {entry.link && (
-                          <>
-                            <button
-                              onClick={() => handleSmartDownload(entry)}
-                              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium shadow-sm"
-                            >
-                              <Download size={13} /> Baixar Áudio
-                            </button>
-                            <button
-                              onClick={() => downloadAndOpenWhatsApp(entry, null, () => toast({ title: "Áudio baixado!", description: "Agora anexe o arquivo no WhatsApp clicando no ícone de clipe 📎" }))}
-                              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors font-medium shadow-sm"
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.553 4.12 1.522 5.857L.056 23.456l5.735-1.506A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.87 0-3.633-.5-5.15-1.377l-.37-.217-3.402.893.908-3.319-.238-.378A9.78 9.78 0 012.18 12c0-5.422 4.398-9.82 9.82-9.82 5.422 0 9.82 4.398 9.82 9.82 0 5.422-4.398 9.82-9.82 9.82z"/></svg>
-                              Baixar e Abrir WhatsApp
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => { if (entry.descricao) { navigator.clipboard.writeText(entry.descricao); toast({ title: "Transcrição copiada!" }); } }}
-                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition-colors"
-                        >
-                          <Copy size={13} /> Copiar texto
-                        </button>
-                        <button onClick={() => openDialog(entry)}
-                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent text-accent-foreground hover:bg-accent/70 transition-colors"
-                        >
-                          <Sparkles size={13} /> Criar script
-                        </button>
-                      </div>
-                    </div>
-
-                    <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
-                      <Trash2 size={14} />
-                    </button>
+            ) : audioGrouped ? (
+              audioGroups.map(group => (
+                <div key={group.theme} className="space-y-2">
+                  <div className="flex items-center gap-2 px-1 pt-2">
+                    <h3 className="text-sm font-bold text-foreground">{group.theme}</h3>
+                    <Badge variant="secondary" className="text-[10px]">{group.items.length}</Badge>
+                    <div className="flex-1 h-px bg-border" />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  {group.items.map(entry => renderAudioCard(entry))}
+                </div>
+              ))
+            ) : audioEntries.map(entry => renderAudioCard(entry))}
           </div>
         </TabsContent>
 
