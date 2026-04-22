@@ -1170,6 +1170,17 @@ export default function MeusOficios() {
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  title="Mostra exatamente como o PDF final ficará (incluindo grid 2x2 das imagens)"
+                  onClick={() => {
+                    if (!viewOficio) return;
+                    setShowRealPreview(true);
+                  }}
+                >
+                  <Eye size={14} className="mr-1" /> Prévia real
+                </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewOficio) return;
                   const imgs = await fetchSavedImages(viewOficio.id);
