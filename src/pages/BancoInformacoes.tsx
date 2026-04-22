@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import ContatosTable from "@/components/ContatosTable";
+import SecretariasReferencia from "@/components/SecretariasReferencia";
 
 interface KnowledgeEntry {
   id: string;
@@ -70,6 +71,7 @@ const TAB_CONFIG = [
   { value: "instagram", label: "Instagram", icon: InstagramIcon, adminOnly: false },
   { value: "upload", label: "Upload", icon: UploadCloud, adminOnly: false },
   { value: "contatos", label: "Contatos", icon: Smartphone, adminOnly: false },
+  { value: "secretarias", label: "Secretarias", icon: Landmark, adminOnly: false },
 ] as const;
 
 /** Build a smart download filename: 2026-03-04_tarifa-zero-criancas_fala-vereador.mp3 */
@@ -1400,6 +1402,11 @@ export default function BancoInformacoes() {
         {/* ═══════════ TAB: CONTATOS ═══════════ */}
         <TabsContent value="contatos" className="space-y-4">
           <ContatosTable scripts={scripts as any} knowledgeEntries={entries as any} loading={scriptsLoading || loading} />
+        </TabsContent>
+
+        {/* ═══════════ TAB: SECRETARIAS ═══════════ */}
+        <TabsContent value="secretarias" className="space-y-4">
+          <SecretariasReferencia />
         </TabsContent>
       </Tabs>
 
