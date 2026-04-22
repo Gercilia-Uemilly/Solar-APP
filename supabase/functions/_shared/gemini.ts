@@ -33,8 +33,9 @@ function mapModel(m?: string): string {
     "gemini-2.5-flash": "gpt-4o-mini",
     "gemini-2.5-flash-lite": "gpt-4o-mini",
     "gemini-2.5-pro": "gpt-4o",
-    "openai/gpt-5": "gpt-4o",
-    "openai/gpt-5-mini": "gpt-4o-mini",
+    "openai/gpt-5": "gpt-5",
+    "gpt-5": "gpt-5",
+    "openai/gpt-5-mini": "gpt-5-mini",
     "openai/gpt-5-nano": "gpt-4o-mini",
     "google/gemini-2.5-flash": "gpt-4o-mini",
     "google/gemini-2.5-flash-lite": "gpt-4o-mini",
@@ -111,12 +112,19 @@ export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
     });
   }
 
+  const resolvedModel = mapModel(opts.model);
+  const isGpt5Family = resolvedModel.startsWith("gpt-5");
   const body: any = {
-    model: mapModel(opts.model),
+    model: resolvedModel,
     messages: openaiMessages,
-    temperature: 0.7,
-    max_tokens: 4096,
   };
+  if (isGpt5Family) {
+    // gpt-5 only supports default temperature and uses max_completion_tokens
+    body.max_completion_tokens = 4096;
+  } else {
+    body.temperature = 0.7;
+    body.max_tokens = 4096;
+  }
 
   const convertedTools = convertTools(opts.tools);
   if (convertedTools) {

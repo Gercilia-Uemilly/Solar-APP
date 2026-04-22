@@ -175,7 +175,7 @@ CONCLUSÃO FIXA (2 <p>): "${conclusao}"
 Gere ofício completo com 4 parágrafos + conclusão. JSON.`;
 
     const { systemInstruction, messages } = toGeminiMessages(SYSTEM_PROMPT, userPrompt);
-    const result = await callGemini({ systemInstruction, messages });
+    const result = await callGemini({ model: "gpt-5", systemInstruction, messages });
 
     let parsed;
     try {
