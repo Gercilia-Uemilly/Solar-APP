@@ -255,6 +255,7 @@ export default function BancoInformacoes() {
   const [audioSearch, setAudioSearch] = useState("");
   const [audioOriginFilter, setAudioOriginFilter] = useState("Todas");
   const [audioTagFilter, setAudioTagFilter] = useState("Todos");
+  const [audioGrouped, setAudioGrouped] = useState(true);
 
   // Script tab state
   const [scriptSearch, setScriptSearch] = useState("");
