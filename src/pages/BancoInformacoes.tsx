@@ -1121,6 +1121,15 @@ export default function BancoInformacoes() {
                 {(audioOriginFilter !== "Todas" || audioTagFilter !== "Todos") && (
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setAudioOriginFilter("Todas"); setAudioTagFilter("Todos"); }}>Limpar</Button>
                 )}
+                <Button
+                  variant={audioGrouped ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => setAudioGrouped(g => !g)}
+                  title="Alternar agrupamento por tema"
+                >
+                  <Library size={12} /> {audioGrouped ? "Agrupado por tema" : "Lista simples"}
+                </Button>
                 <span className="text-xs text-muted-foreground ml-auto">{audioEntries.length} áudio(s)</span>
               </div>
             </CardContent>
