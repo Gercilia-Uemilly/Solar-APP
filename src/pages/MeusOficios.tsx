@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown, Package, SearchCheck, Upload } from "lucide-react";
+import { Trash2, Download, Search, FileText, FileSpreadsheet, CalendarIcon, X, CloudUpload, Loader2, Pencil, ArrowLeft, Save, ChevronDown, Package, SearchCheck, Upload, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import OficioPreview from "@/components/OficioPreview";
@@ -27,6 +27,7 @@ import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import VersionHistoryDialog from "@/components/VersionHistoryDialog";
 import { saveBackupBeforeEdit } from "@/lib/oficioBackup";
 import UploadOficioModal from "@/components/UploadOficioModal";
+import RealPreviewDialog from "@/components/RealPreviewDialog";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -107,6 +108,7 @@ export default function MeusOficios() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewAnexoUrls, setPreviewAnexoUrls] = useState<string[]>([]);
   const [previewAnexoDocs, setPreviewAnexoDocs] = useState<Array<{ nome: string; tipo: string; paginas?: number }>>([]);
+  const [showRealPreview, setShowRealPreview] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const editedContentRef = useRef<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
@@ -1168,6 +1170,17 @@ export default function MeusOficios() {
                 }}>
                   <FileText size={14} className="mr-1" /> Word
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  title="Mostra exatamente como o PDF final ficará (incluindo grid 2x2 das imagens)"
+                  onClick={() => {
+                    if (!viewOficio) return;
+                    setShowRealPreview(true);
+                  }}
+                >
+                  <Eye size={14} className="mr-1" /> Prévia real
+                </Button>
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!viewOficio) return;
                   const imgs = await fetchSavedImages(viewOficio.id);
@@ -1285,6 +1298,27 @@ export default function MeusOficios() {
         oficios={oficios.map(o => ({ id: o.id, numero: o.numero, assunto: o.assunto, destinatario: o.destinatario }))}
         preSelectedOficioId={uploadPreSelectedId}
         onSuccess={fetchOficios}
+      />
+
+      <RealPreviewDialog
+        open={showRealPreview}
+        onOpenChange={setShowRealPreview}
+        buildData={async () => {
+          if (!viewOficio) throw new Error("Nenhum ofício selecionado.");
+          const imgs = await fetchSavedImages(viewOficio.id);
+          return {
+            ...buildExportData(viewOficio),
+            conteudo: editedContentRef.current || viewOficio.conteudo || "",
+            imagens: imgs.length > 0 ? imgs : undefined,
+          };
+        }}
+        fileName={viewOficio ? `${buildFileName(
+          buildExportData(viewOficio).numero,
+          buildExportData(viewOficio).solicitante,
+          buildExportData(viewOficio).codigoZ,
+          buildExportData(viewOficio).contatoSolicitante,
+          (buildExportData(viewOficio) as any).origem,
+        )}.pdf` : "previa-oficio.pdf"}
       />
     </div>
   );
