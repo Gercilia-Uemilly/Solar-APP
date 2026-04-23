@@ -139,31 +139,61 @@ export default function Oficios() {
   const [modelos, setModelos] = useState<any[]>([]);
   const [mostrarModelos, setMostrarModelos] = useState(false);
 
-  // Duplicate detection
-  const verificarDuplicata = useCallback(async (endereco: string, sec: string) => {
-    if (!endereco || endereco.length < 5) return;
+  // Duplicate detection — busca por endereço/local, sem exigir match de secretaria
+  const verificarDuplicata = useCallback(async (endereco: string, local: string, sec: string) => {
+    const termoBusca = (endereco || local || "").trim();
+    if (termoBusca.length < 5) {
+      setDuplicatasEncontradas([]);
+      setMostrarAlertaDuplicata(false);
+      return;
+    }
+
+    // Busca em endereco_completo OU local_demanda — janela de 180 dias
+    const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from("oficios")
-      .select("id, numero, assunto, created_at, status")
-      .ilike("endereco_completo", `%${endereco}%`)
-      .ilike("secretaria_identificada", `%${sec}%`)
+      .select("id, numero, assunto, created_at, status, secretaria_identificada, endereco_completo, local_demanda")
+      .or(`endereco_completo.ilike.%${termoBusca}%,local_demanda.ilike.%${termoBusca}%`)
       .is("deleted_at", null)
-      .gte("created_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
-      .limit(3);
-    if (data && data.length > 0) {
-      setDuplicatasEncontradas(data as OficioRow[]);
-      setMostrarAlertaDuplicata(true);
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    // Excluir o próprio ofício em edição
+    let lista = (data || []) as any[];
+    if (editingOficioId) lista = lista.filter((o) => o.id !== editingOficioId);
+
+    // Se houver secretaria selecionada, prioriza os da mesma secretaria mas mostra todos
+    if (sec) {
+      lista.sort((a, b) => {
+        const aMatch = (a.secretaria_identificada || "").toLowerCase().includes(sec.toLowerCase()) ? 0 : 1;
+        const bMatch = (b.secretaria_identificada || "").toLowerCase().includes(sec.toLowerCase()) ? 0 : 1;
+        return aMatch - bMatch;
+      });
     }
-  }, []);
+
+    const top = lista.slice(0, 5);
+    if (top.length > 0) {
+      setDuplicatasEncontradas(top as OficioRow[]);
+      setMostrarAlertaDuplicata(true);
+    } else {
+      setDuplicatasEncontradas([]);
+      setMostrarAlertaDuplicata(false);
+    }
+  }, [editingOficioId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (enderecoCompleto && enderecoCompleto.length >= 5 && secretaria) {
-        verificarDuplicata(enderecoCompleto, secretaria);
+      const termo = (enderecoCompleto || localDemanda || "").trim();
+      if (termo.length >= 5) {
+        verificarDuplicata(enderecoCompleto, localDemanda, secretaria);
+      } else {
+        setDuplicatasEncontradas([]);
+        setMostrarAlertaDuplicata(false);
       }
-    }, 1000);
+    }, 800);
     return () => clearTimeout(timer);
-  }, [enderecoCompleto, secretaria, verificarDuplicata]);
+  }, [enderecoCompleto, localDemanda, secretaria, verificarDuplicata]);
 
   // Load modelos
   const carregarModelos = useCallback(async () => {
@@ -1548,14 +1578,39 @@ export default function Oficios() {
               {mostrarAlertaDuplicata && duplicatasEncontradas.length > 0 && (
                 <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-orange-600 dark:text-orange-400 flex items-center gap-1"><AlertTriangle size={14} /> Possível ofício duplicado</span>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setMostrarAlertaDuplicata(false)}><X size={14} /></Button>
+                    <span className="text-xs font-medium text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                      <AlertTriangle size={14} /> Atenção: já existe(m) {duplicatasEncontradas.length} ofício(s) para este endereço/local
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setMostrarAlertaDuplicata(false)}>
+                      <X size={14} />
+                    </Button>
                   </div>
-                  {duplicatasEncontradas.map(d => (
-                    <div key={d.id} className="text-xs text-muted-foreground">
-                      {d.numero || "s/n"} — {d.assunto?.slice(0, 60)} ({d.status}) — {new Date(d.created_at).toLocaleDateString("pt-BR")}
-                    </div>
-                  ))}
+                  {duplicatasEncontradas.map((d: any) => {
+                    const mesmaSec = secretaria && (d.secretaria_identificada || "").toLowerCase().includes(secretaria.toLowerCase());
+                    const enderecoMatch = d.endereco_completo || d.local_demanda || "";
+                    return (
+                      <div key={d.id} className="text-xs space-y-0.5 border-l-2 border-orange-500/40 pl-2">
+                        <div className="text-foreground">
+                          <span className="font-medium">{d.numero || "s/nº"}</span>
+                          {" — "}
+                          <span>{d.assunto?.slice(0, 70) || "(sem assunto)"}</span>
+                          {mesmaSec && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-700 dark:text-orange-300 text-[10px] font-medium">
+                              mesma secretaria
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {d.status} · {new Date(d.created_at).toLocaleDateString("pt-BR")}
+                          {enderecoMatch && <> · 📍 {enderecoMatch.slice(0, 60)}</>}
+                          {d.secretaria_identificada && <> · {d.secretaria_identificada.slice(0, 30)}</>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-[11px] text-muted-foreground pt-1 border-t border-orange-500/20">
+                    Confira se não é uma duplicata antes de continuar.
+                  </p>
                 </div>
               )}
 
