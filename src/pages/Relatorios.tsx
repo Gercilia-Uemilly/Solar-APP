@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart3, Download, Calendar, Users, Clock } from "lucide-react";
+import { BarChart3, Download, Calendar, Users, Clock, ShieldAlert, Monitor, Smartphone, Globe } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { exportToCSV } from "@/lib/exportOficio";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,6 +25,8 @@ interface SessionRow {
   id: string;
   user_id: string;
   logged_in_at: string;
+  ip_address?: string | null;
+  user_agent?: string | null;
 }
 
 interface ProfileRow {
@@ -38,7 +41,30 @@ interface UserAccessSummary {
   email: string;
   total: number;
   lastAccess: string;
-  sessions: { date: string; time: string }[];
+  sessions: { date: string; time: string; device: string; browser: string; ip: string }[];
+}
+
+interface LoginAttemptRow {
+  id: string;
+  identifier: string;
+  success: boolean;
+  motivo: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+function parseUA(ua?: string | null): { device: string; browser: string } {
+  if (!ua) return { device: "Desconhecido", browser: "—" };
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+  const device = isMobile ? "Mobile" : "Desktop";
+  let browser = "Outro";
+  if (/Edg\//i.test(ua)) browser = "Edge";
+  else if (/Chrome\//i.test(ua) && !/Edg/i.test(ua)) browser = "Chrome";
+  else if (/Firefox\//i.test(ua)) browser = "Firefox";
+  else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari";
+  else if (/OPR\//i.test(ua)) browser = "Opera";
+  return { device, browser };
 }
 
 const COLORS = ["hsl(220,70%,50%)", "hsl(25,80%,50%)", "hsl(145,60%,40%)", "hsl(280,50%,50%)", "hsl(30,60%,40%)", "hsl(0,70%,50%)"];
@@ -47,20 +73,23 @@ export default function Relatorios() {
   const [oficios, setOficios] = useState<OficioRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [attempts, setAttempts] = useState<LoginAttemptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("todos");
   const [selectedUser, setSelectedUser] = useState<UserAccessSummary | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [oficiosRes, sessionsRes, profilesRes] = await Promise.all([
+      const [oficiosRes, sessionsRes, profilesRes, attemptsRes] = await Promise.all([
         supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, created_at").is("deleted_at" as any, null),
-        supabase.from("user_sessions").select("id, user_id, logged_in_at").order("logged_in_at", { ascending: false }),
-        supabase.from("profiles").select("id, full_name, email")
+        supabase.from("user_sessions").select("id, user_id, logged_in_at, ip_address, user_agent").order("logged_in_at", { ascending: false }).limit(1000),
+        supabase.from("profiles").select("id, full_name, email"),
+        (supabase.from("login_attempts" as any).select("id, identifier, success, motivo, ip_address, user_agent, created_at").order("created_at", { ascending: false }).limit(500))
       ]);
       setOficios((oficiosRes.data as OficioRow[]) || []);
       setSessions((sessionsRes.data as SessionRow[]) || []);
       setProfiles((profilesRes.data as ProfileRow[]) || []);
+      setAttempts(((attemptsRes as any).data as LoginAttemptRow[]) || []);
       setLoading(false);
     };
     fetchData();
@@ -116,9 +145,13 @@ export default function Relatorios() {
   sessions.forEach(s => {
     const existing = userAccessMap.get(s.user_id);
     const sessionDate = new Date(s.logged_in_at);
+    const { device, browser } = parseUA(s.user_agent);
     const sessionInfo = {
       date: format(sessionDate, "dd/MM/yyyy", { locale: ptBR }),
-      time: format(sessionDate, "HH:mm:ss", { locale: ptBR })
+      time: format(sessionDate, "HH:mm:ss", { locale: ptBR }),
+      device,
+      browser,
+      ip: s.ip_address || "—",
     };
     const profile = profileMap.get(s.user_id);
     if (existing) {
@@ -137,6 +170,21 @@ export default function Relatorios() {
   });
   const userAccessList = Array.from(userAccessMap.values()).sort((a, b) => b.total - a.total);
   const topAccessData = userAccessList.slice(0, 10).map(u => ({ name: u.name.split(" ")[0], value: u.total }));
+
+  // Login attempts stats
+  const failedAttempts = attempts.filter(a => !a.success);
+  const successAttempts = attempts.filter(a => a.success);
+  const failedToday = failedAttempts.filter(a => new Date(a.created_at).toDateString() === now.toDateString()).length;
+  // Devices distribution from sessions
+  const deviceCounts: Record<string, number> = { Desktop: 0, Mobile: 0 };
+  const browserCounts: Record<string, number> = {};
+  sessions.forEach(s => {
+    const { device, browser } = parseUA(s.user_agent);
+    deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+    browserCounts[browser] = (browserCounts[browser] || 0) + 1;
+  });
+  const deviceData = Object.entries(deviceCounts).map(([name, value]) => ({ name, value }));
+  const browserData = Object.entries(browserCounts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
 
   if (loading) return <p className="text-center text-muted-foreground py-12">Carregando relatórios...</p>;
 
@@ -173,6 +221,7 @@ export default function Relatorios() {
         <TabsList className="bg-secondary">
           <TabsTrigger value="oficios">Ofícios</TabsTrigger>
           <TabsTrigger value="acessos">Acessos de Usuários</TabsTrigger>
+          <TabsTrigger value="tentativas">Tentativas de Login</TabsTrigger>
         </TabsList>
 
         <TabsContent value="oficios" className="space-y-6 mt-4">
@@ -341,6 +390,9 @@ export default function Relatorios() {
                     <TableRow>
                       <TableHead>Data</TableHead>
                       <TableHead>Horário</TableHead>
+                      <TableHead>Dispositivo</TableHead>
+                      <TableHead>Navegador</TableHead>
+                      <TableHead>IP</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -348,6 +400,14 @@ export default function Relatorios() {
                       <TableRow key={i}>
                         <TableCell>{s.date}</TableCell>
                         <TableCell>{s.time}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center gap-1 text-xs">
+                            {s.device === "Mobile" ? <Smartphone size={12} /> : <Monitor size={12} />}
+                            {s.device}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs">{s.browser}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground font-mono">{s.ip}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -355,6 +415,116 @@ export default function Relatorios() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="tentativas" className="space-y-6 mt-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <ShieldAlert size={20} className="mx-auto mb-1 text-destructive" />
+              <p className="text-2xl font-bold text-foreground">{failedAttempts.length}</p>
+              <p className="text-xs text-muted-foreground">Falhas (total)</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <p className="text-2xl font-bold text-destructive">{failedToday}</p>
+              <p className="text-xs text-muted-foreground">Falhas hoje</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <p className="text-2xl font-bold text-primary">{successAttempts.length}</p>
+              <p className="text-xs text-muted-foreground">Sucessos registrados</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <Globe size={20} className="mx-auto mb-1 text-primary" />
+              <p className="text-2xl font-bold text-foreground">{new Set(attempts.map(a => a.ip_address).filter(Boolean)).size}</p>
+              <p className="text-xs text-muted-foreground">IPs únicos</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-card rounded-xl border border-border p-5">
+              <h3 className="text-sm font-medium text-foreground mb-4">Dispositivos (sessões)</h3>
+              {sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Sem dados.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={deviceData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                      {deviceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Legend />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="bg-card rounded-xl border border-border p-5">
+              <h3 className="text-sm font-medium text-foreground mb-4">Navegadores (sessões)</h3>
+              {browserData.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Sem dados.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={browserData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl border border-border p-5">
+            <h3 className="text-sm font-medium text-foreground mb-4">Últimas tentativas (500 mais recentes)</h3>
+            {attempts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tentativa registrada ainda. Os registros começam a partir de agora.</p>
+            ) : (
+              <div className="max-h-[500px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Identificador</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Motivo</TableHead>
+                      <TableHead>Dispositivo</TableHead>
+                      <TableHead>Navegador</TableHead>
+                      <TableHead>IP</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attempts.map(a => {
+                      const { device, browser } = parseUA(a.user_agent);
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(new Date(a.created_at), "dd/MM/yy HH:mm:ss", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell className="text-xs">{a.identifier}</TableCell>
+                          <TableCell>
+                            <Badge variant={a.success ? "default" : "destructive"} className="text-[10px]">
+                              {a.success ? "Sucesso" : "Falha"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={a.motivo || ""}>
+                            {a.motivo || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1 text-xs">
+                              {device === "Mobile" ? <Smartphone size={12} /> : <Monitor size={12} />}
+                              {device}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs">{browser}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground font-mono">{a.ip_address || "—"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
