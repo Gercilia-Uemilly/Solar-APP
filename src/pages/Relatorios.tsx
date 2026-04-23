@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart3, Download, Calendar, Users, Clock } from "lucide-react";
+import { BarChart3, Download, Calendar, Users, Clock, ShieldAlert, Monitor, Smartphone, Globe } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { exportToCSV } from "@/lib/exportOficio";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,6 +25,8 @@ interface SessionRow {
   id: string;
   user_id: string;
   logged_in_at: string;
+  ip_address?: string | null;
+  user_agent?: string | null;
 }
 
 interface ProfileRow {
@@ -38,7 +41,30 @@ interface UserAccessSummary {
   email: string;
   total: number;
   lastAccess: string;
-  sessions: { date: string; time: string }[];
+  sessions: { date: string; time: string; device: string; browser: string; ip: string }[];
+}
+
+interface LoginAttemptRow {
+  id: string;
+  identifier: string;
+  success: boolean;
+  motivo: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+function parseUA(ua?: string | null): { device: string; browser: string } {
+  if (!ua) return { device: "Desconhecido", browser: "—" };
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+  const device = isMobile ? "Mobile" : "Desktop";
+  let browser = "Outro";
+  if (/Edg\//i.test(ua)) browser = "Edge";
+  else if (/Chrome\//i.test(ua) && !/Edg/i.test(ua)) browser = "Chrome";
+  else if (/Firefox\//i.test(ua)) browser = "Firefox";
+  else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari";
+  else if (/OPR\//i.test(ua)) browser = "Opera";
+  return { device, browser };
 }
 
 const COLORS = ["hsl(220,70%,50%)", "hsl(25,80%,50%)", "hsl(145,60%,40%)", "hsl(280,50%,50%)", "hsl(30,60%,40%)", "hsl(0,70%,50%)"];
@@ -47,20 +73,23 @@ export default function Relatorios() {
   const [oficios, setOficios] = useState<OficioRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [attempts, setAttempts] = useState<LoginAttemptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("todos");
   const [selectedUser, setSelectedUser] = useState<UserAccessSummary | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [oficiosRes, sessionsRes, profilesRes] = await Promise.all([
+      const [oficiosRes, sessionsRes, profilesRes, attemptsRes] = await Promise.all([
         supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, created_at").is("deleted_at" as any, null),
-        supabase.from("user_sessions").select("id, user_id, logged_in_at").order("logged_in_at", { ascending: false }),
-        supabase.from("profiles").select("id, full_name, email")
+        supabase.from("user_sessions").select("id, user_id, logged_in_at, ip_address, user_agent").order("logged_in_at", { ascending: false }).limit(1000),
+        supabase.from("profiles").select("id, full_name, email"),
+        (supabase.from("login_attempts" as any).select("id, identifier, success, motivo, ip_address, user_agent, created_at").order("created_at", { ascending: false }).limit(500))
       ]);
       setOficios((oficiosRes.data as OficioRow[]) || []);
       setSessions((sessionsRes.data as SessionRow[]) || []);
       setProfiles((profilesRes.data as ProfileRow[]) || []);
+      setAttempts(((attemptsRes as any).data as LoginAttemptRow[]) || []);
       setLoading(false);
     };
     fetchData();
@@ -116,9 +145,13 @@ export default function Relatorios() {
   sessions.forEach(s => {
     const existing = userAccessMap.get(s.user_id);
     const sessionDate = new Date(s.logged_in_at);
+    const { device, browser } = parseUA(s.user_agent);
     const sessionInfo = {
       date: format(sessionDate, "dd/MM/yyyy", { locale: ptBR }),
-      time: format(sessionDate, "HH:mm:ss", { locale: ptBR })
+      time: format(sessionDate, "HH:mm:ss", { locale: ptBR }),
+      device,
+      browser,
+      ip: s.ip_address || "—",
     };
     const profile = profileMap.get(s.user_id);
     if (existing) {
@@ -137,6 +170,21 @@ export default function Relatorios() {
   });
   const userAccessList = Array.from(userAccessMap.values()).sort((a, b) => b.total - a.total);
   const topAccessData = userAccessList.slice(0, 10).map(u => ({ name: u.name.split(" ")[0], value: u.total }));
+
+  // Login attempts stats
+  const failedAttempts = attempts.filter(a => !a.success);
+  const successAttempts = attempts.filter(a => a.success);
+  const failedToday = failedAttempts.filter(a => new Date(a.created_at).toDateString() === now.toDateString()).length;
+  // Devices distribution from sessions
+  const deviceCounts: Record<string, number> = { Desktop: 0, Mobile: 0 };
+  const browserCounts: Record<string, number> = {};
+  sessions.forEach(s => {
+    const { device, browser } = parseUA(s.user_agent);
+    deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+    browserCounts[browser] = (browserCounts[browser] || 0) + 1;
+  });
+  const deviceData = Object.entries(deviceCounts).map(([name, value]) => ({ name, value }));
+  const browserData = Object.entries(browserCounts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
 
   if (loading) return <p className="text-center text-muted-foreground py-12">Carregando relatórios...</p>;
 
