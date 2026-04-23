@@ -139,31 +139,61 @@ export default function Oficios() {
   const [modelos, setModelos] = useState<any[]>([]);
   const [mostrarModelos, setMostrarModelos] = useState(false);
 
-  // Duplicate detection
-  const verificarDuplicata = useCallback(async (endereco: string, sec: string) => {
-    if (!endereco || endereco.length < 5) return;
+  // Duplicate detection — busca por endereço/local, sem exigir match de secretaria
+  const verificarDuplicata = useCallback(async (endereco: string, local: string, sec: string) => {
+    const termoBusca = (endereco || local || "").trim();
+    if (termoBusca.length < 5) {
+      setDuplicatasEncontradas([]);
+      setMostrarAlertaDuplicata(false);
+      return;
+    }
+
+    // Busca em endereco_completo OU local_demanda — janela de 180 dias
+    const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from("oficios")
-      .select("id, numero, assunto, created_at, status")
-      .ilike("endereco_completo", `%${endereco}%`)
-      .ilike("secretaria_identificada", `%${sec}%`)
+      .select("id, numero, assunto, created_at, status, secretaria_identificada, endereco_completo, local_demanda")
+      .or(`endereco_completo.ilike.%${termoBusca}%,local_demanda.ilike.%${termoBusca}%`)
       .is("deleted_at", null)
-      .gte("created_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
-      .limit(3);
-    if (data && data.length > 0) {
-      setDuplicatasEncontradas(data as OficioRow[]);
-      setMostrarAlertaDuplicata(true);
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    // Excluir o próprio ofício em edição
+    let lista = (data || []) as any[];
+    if (editingOficioId) lista = lista.filter((o) => o.id !== editingOficioId);
+
+    // Se houver secretaria selecionada, prioriza os da mesma secretaria mas mostra todos
+    if (sec) {
+      lista.sort((a, b) => {
+        const aMatch = (a.secretaria_identificada || "").toLowerCase().includes(sec.toLowerCase()) ? 0 : 1;
+        const bMatch = (b.secretaria_identificada || "").toLowerCase().includes(sec.toLowerCase()) ? 0 : 1;
+        return aMatch - bMatch;
+      });
     }
-  }, []);
+
+    const top = lista.slice(0, 5);
+    if (top.length > 0) {
+      setDuplicatasEncontradas(top as OficioRow[]);
+      setMostrarAlertaDuplicata(true);
+    } else {
+      setDuplicatasEncontradas([]);
+      setMostrarAlertaDuplicata(false);
+    }
+  }, [editingOficioId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (enderecoCompleto && enderecoCompleto.length >= 5 && secretaria) {
-        verificarDuplicata(enderecoCompleto, secretaria);
+      const termo = (enderecoCompleto || localDemanda || "").trim();
+      if (termo.length >= 5) {
+        verificarDuplicata(enderecoCompleto, localDemanda, secretaria);
+      } else {
+        setDuplicatasEncontradas([]);
+        setMostrarAlertaDuplicata(false);
       }
-    }, 1000);
+    }, 800);
     return () => clearTimeout(timer);
-  }, [enderecoCompleto, secretaria, verificarDuplicata]);
+  }, [enderecoCompleto, localDemanda, secretaria, verificarDuplicata]);
 
   // Load modelos
   const carregarModelos = useCallback(async () => {
