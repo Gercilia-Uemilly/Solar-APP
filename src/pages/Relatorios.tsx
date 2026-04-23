@@ -221,6 +221,7 @@ export default function Relatorios() {
         <TabsList className="bg-secondary">
           <TabsTrigger value="oficios">Ofícios</TabsTrigger>
           <TabsTrigger value="acessos">Acessos de Usuários</TabsTrigger>
+          <TabsTrigger value="tentativas">Tentativas de Login</TabsTrigger>
         </TabsList>
 
         <TabsContent value="oficios" className="space-y-6 mt-4">
