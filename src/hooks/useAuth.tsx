@@ -47,6 +47,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    // Detecta erro de Navigator LockManager (Chrome mobile / múltiplas abas)
+    // e força limpeza do storage de auth para destravar a sessão.
+    const handleLockError = (event: PromiseRejectionEvent | ErrorEvent) => {
+      const msg = (event as any)?.reason?.message || (event as any)?.message || "";
+      if (typeof msg === "string" && msg.includes("Navigator LockManager")) {
+        console.warn("[Auth] Lock travado detectado, limpando storage e recarregando…");
+        try {
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith("sb-") && k.includes("-auth-token"))
+            .forEach((k) => localStorage.removeItem(k));
+        } catch {}
+        window.location.reload();
+      }
+    };
+    window.addEventListener("unhandledrejection", handleLockError);
+    window.addEventListener("error", handleLockError);
+
     const safelySetAuthState = async (nextSession: Session | null) => {
       if (!mounted) return;
       setSession(nextSession);
@@ -77,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
       window.clearTimeout(loadingTimeout);
+      window.removeEventListener("unhandledrejection", handleLockError);
+      window.removeEventListener("error", handleLockError);
       subscription.unsubscribe();
     };
   }, []);
