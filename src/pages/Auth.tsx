@@ -38,22 +38,37 @@ export default function Auth() {
       return;
     }
     setLoading(true);
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : null;
+    const registrarTentativa = (success: boolean, motivo?: string) => {
+      void (supabase.from("login_attempts") as any).insert({
+        identifier: loginIdentifier,
+        success,
+        motivo: motivo ?? null,
+        user_agent: ua,
+      });
+    };
     try {
       let email = loginIdentifier;
       if (!loginIdentifier.includes("@")) {
         const { data, error } = await supabase.rpc("get_email_by_username", { _username: loginIdentifier });
-        if (error || !data) throw new Error("Usuário não encontrado");
+        if (error || !data) {
+          registrarTentativa(false, "Usuário não encontrado");
+          throw new Error("Usuário não encontrado");
+        }
         email = data;
       }
       const { status } = await signIn(email, loginPassword);
       if (status === "pendente") {
+        registrarTentativa(true, "Pendente de aprovação");
         navigate("/aguardando-aprovacao");
         return;
       }
       if (status === "bloqueado") {
+        registrarTentativa(false, "Conta bloqueada");
         toast({ title: "Acesso bloqueado", description: "Entre em contato com o administrador.", variant: "destructive" });
         return;
       }
+      registrarTentativa(true);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -80,6 +95,7 @@ export default function Auth() {
         }
       }
     } catch (err: any) {
+      registrarTentativa(false, err?.message?.slice(0, 200) || "Erro desconhecido");
       const attempts = loginAttempts + 1;
       setLoginAttempts(attempts);
       if (attempts >= 5) {
