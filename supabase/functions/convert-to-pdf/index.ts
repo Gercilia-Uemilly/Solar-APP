@@ -386,24 +386,18 @@ async function convertWithGoogleDrive(
     tempFileId = await uploadDocxAsGoogleDoc(accessToken, docxBytes, filename);
     return await exportGoogleDocToPdf(accessToken, tempFileId);
   } catch (e) {
-    // If quota exceeded, try cleanup and retry once
     const msg = e instanceof Error ? e.message : String(e);
+    // ⚠️ Quota exceeded em Service Account é PERMANENTE (não adianta limpar lixeira
+    // de uma conta de serviço que já está cheia). Apenas relança para o próximo
+    // provider — retentar consome CPU e leva ao WORKER_RESOURCE_LIMIT.
     if (msg.includes("storageQuotaExceeded") || msg.includes("quota")) {
-      console.log("[convertWithGoogleDrive] Quota exceeded, cleaning up and retrying...");
-      if (tempFileId) {
-        await removeGoogleDriveFile(accessToken, tempFileId);
-        tempFileId = null;
-      }
-      await cleanupOldTempFiles(accessToken);
-      await emptyDriveTrash(accessToken);
-      // Retry
-      tempFileId = await uploadDocxAsGoogleDoc(accessToken, docxBytes, filename);
-      return await exportGoogleDocToPdf(accessToken, tempFileId);
+      console.log("[convertWithGoogleDrive] Quota exceeded — pulando provider sem retry");
     }
     throw e;
   } finally {
     if (tempFileId) {
-      await removeGoogleDriveFile(accessToken, tempFileId);
+      // fire-and-forget para não gastar CPU em cleanup quando já vamos cair fora
+      removeGoogleDriveFile(accessToken, tempFileId).catch(() => {});
     }
   }
 }
@@ -505,6 +499,7 @@ serve(async (req) => {
 
     // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
     const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
+    let convertApiOutOfCredits = false;
     if (CONVERTAPI_SECRET) {
       configuredProviders.push("ConvertAPI");
       try {
@@ -513,13 +508,16 @@ serve(async (req) => {
       } catch (e) {
         const msg = getErrorMessage(e);
         providerErrors.push(`ConvertAPI: ${msg}`);
+        if (/4035|No conversions remaining|trial plan has expired/i.test(msg)) {
+          convertApiOutOfCredits = true;
+        }
         console.error("ConvertAPI failed, trying next provider:", e);
       }
     }
 
     // ── Tentativa 1.5: ConvertAPI reserva (segunda chave) ────────────────────
     const CONVERTAPI_SECRET_2 = Deno.env.get("CONVERTAPI_SECRET_2");
-    if (CONVERTAPI_SECRET_2 && CONVERTAPI_SECRET_2 !== CONVERTAPI_SECRET) {
+    if (CONVERTAPI_SECRET_2 && CONVERTAPI_SECRET_2 !== CONVERTAPI_SECRET && !convertApiOutOfCredits) {
       configuredProviders.push("ConvertAPI(reserva)");
       try {
         const pdfBytes = await convertWithConvertApi(docxBytes, filename, CONVERTAPI_SECRET_2);
@@ -529,6 +527,8 @@ serve(async (req) => {
         providerErrors.push(`ConvertAPI(reserva): ${msg}`);
         console.error("ConvertAPI reserva failed, trying next provider:", e);
       }
+    } else if (convertApiOutOfCredits) {
+      console.log("[convert-to-pdf] Pulando ConvertAPI reserva: chave principal sem créditos");
     }
 
     // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
