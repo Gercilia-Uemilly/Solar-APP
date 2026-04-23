@@ -390,6 +390,9 @@ export default function Relatorios() {
                     <TableRow>
                       <TableHead>Data</TableHead>
                       <TableHead>Horário</TableHead>
+                      <TableHead>Dispositivo</TableHead>
+                      <TableHead>Navegador</TableHead>
+                      <TableHead>IP</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -397,6 +400,14 @@ export default function Relatorios() {
                       <TableRow key={i}>
                         <TableCell>{s.date}</TableCell>
                         <TableCell>{s.time}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center gap-1 text-xs">
+                            {s.device === "Mobile" ? <Smartphone size={12} /> : <Monitor size={12} />}
+                            {s.device}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs">{s.browser}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground font-mono">{s.ip}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -404,6 +415,116 @@ export default function Relatorios() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="tentativas" className="space-y-6 mt-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <ShieldAlert size={20} className="mx-auto mb-1 text-destructive" />
+              <p className="text-2xl font-bold text-foreground">{failedAttempts.length}</p>
+              <p className="text-xs text-muted-foreground">Falhas (total)</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <p className="text-2xl font-bold text-destructive">{failedToday}</p>
+              <p className="text-xs text-muted-foreground">Falhas hoje</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <p className="text-2xl font-bold text-primary">{successAttempts.length}</p>
+              <p className="text-xs text-muted-foreground">Sucessos registrados</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <Globe size={20} className="mx-auto mb-1 text-primary" />
+              <p className="text-2xl font-bold text-foreground">{new Set(attempts.map(a => a.ip_address).filter(Boolean)).size}</p>
+              <p className="text-xs text-muted-foreground">IPs únicos</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-card rounded-xl border border-border p-5">
+              <h3 className="text-sm font-medium text-foreground mb-4">Dispositivos (sessões)</h3>
+              {sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Sem dados.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={deviceData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                      {deviceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Legend />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="bg-card rounded-xl border border-border p-5">
+              <h3 className="text-sm font-medium text-foreground mb-4">Navegadores (sessões)</h3>
+              {browserData.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Sem dados.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={browserData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl border border-border p-5">
+            <h3 className="text-sm font-medium text-foreground mb-4">Últimas tentativas (500 mais recentes)</h3>
+            {attempts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tentativa registrada ainda. Os registros começam a partir de agora.</p>
+            ) : (
+              <div className="max-h-[500px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Identificador</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Motivo</TableHead>
+                      <TableHead>Dispositivo</TableHead>
+                      <TableHead>Navegador</TableHead>
+                      <TableHead>IP</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attempts.map(a => {
+                      const { device, browser } = parseUA(a.user_agent);
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(new Date(a.created_at), "dd/MM/yy HH:mm:ss", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell className="text-xs">{a.identifier}</TableCell>
+                          <TableCell>
+                            <Badge variant={a.success ? "default" : "destructive"} className="text-[10px]">
+                              {a.success ? "Sucesso" : "Falha"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={a.motivo || ""}>
+                            {a.motivo || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1 text-xs">
+                              {device === "Mobile" ? <Smartphone size={12} /> : <Monitor size={12} />}
+                              {device}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs">{browser}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground font-mono">{a.ip_address || "—"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
