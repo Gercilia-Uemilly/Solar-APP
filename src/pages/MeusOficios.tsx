@@ -160,7 +160,7 @@ export default function MeusOficios() {
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
-    const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at, cargo_destinatario, destinatario, assunto, numero, bairro, data_geracao").eq("id", o.id).single();
+    const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at, cargo_destinatario, destinatario, assunto, numero, bairro, data_geracao, arquivo_externo_url, arquivo_externo_nome, arquivo_externo_tipo, arquivo_externo_at, versao").eq("id", o.id).single();
     if (latest) {
       if (latest.last_edited_by_name && latest.last_edited_at) {
         const editDate = new Date(latest.last_edited_at);
@@ -173,7 +173,7 @@ export default function MeusOficios() {
         }
       }
       // Always use latest data from DB
-      o = { ...o, conteudo: latest.conteudo, cargo_destinatario: latest.cargo_destinatario, destinatario: latest.destinatario, assunto: latest.assunto, numero: latest.numero, bairro: latest.bairro, data_geracao: latest.data_geracao };
+      o = { ...o, ...(latest as any) };
     }
     setViewOficio(o);
     inlineFieldsRef.current = {};
