@@ -60,9 +60,9 @@ async function extractDocxText(blob: Blob) {
       const parts: string[] = [];
       paragraph.childNodes.forEach((node) => {
         if (!(node instanceof Element)) return;
-        node.getElementsByTagName("w:t").forEach((textNode) => parts.push(textNode.textContent || ""));
-        node.getElementsByTagName("w:tab").forEach(() => parts.push("\t"));
-        node.getElementsByTagName("w:br").forEach(() => parts.push("\n"));
+        Array.from(node.getElementsByTagName("w:t")).forEach((textNode) => parts.push(textNode.textContent || ""));
+        Array.from(node.getElementsByTagName("w:tab")).forEach(() => parts.push("\t"));
+        Array.from(node.getElementsByTagName("w:br")).forEach(() => parts.push("\n"));
       });
       return parts.join("").trim();
     })
