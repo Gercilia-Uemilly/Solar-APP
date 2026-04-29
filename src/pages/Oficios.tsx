@@ -112,6 +112,7 @@ export default function Oficios() {
 
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
+  const [editingExternalFileContent, setEditingExternalFileContent] = useState(false);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const { anexos, setAnexos, addFile: persistAddFile, removeFile: persistRemoveFile, addLocalFile, uploadLocalFiles, reset: resetAnexos } = useAnexos(editingOficioId);
   const [descricaoAnexos, setDescricaoAnexos] = useState("");
@@ -663,6 +664,7 @@ export default function Oficios() {
         const conteudoNovo = await extractExternalOficioUrlToHtml(arquivoExternoUrl, arquivoExternoNome, arquivoExternoTipo);
         if (!conteudoNovo) throw new Error("Não foi possível extrair texto editável do arquivo.");
         o = { ...o, conteudo: conteudoNovo };
+        setEditingExternalFileContent(true);
       } catch (e: any) {
         toast({
           title: "Não consegui abrir para edição",
@@ -672,6 +674,8 @@ export default function Oficios() {
         window.open(arquivoExternoUrl, "_blank", "noopener,noreferrer");
         return;
       }
+    } else {
+      setEditingExternalFileContent(false);
     }
     setEditingOficioId(o.id);
     const rawNum = o.numero || "";
