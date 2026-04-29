@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Upload, FileText, Loader2, File } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { extractExternalOficioFileToHtml } from "@/lib/externalOficioText";
 
 type Modo = "substituir" | "nova_versao" | "novo";
 
@@ -97,6 +98,7 @@ export default function UploadOficioModal({
 
       const { data: urlData } = supabase.storage.from("midias").getPublicUrl(caminho);
       const publicUrl = urlData.publicUrl;
+      const extractedHtml = await extractExternalOficioFileToHtml(file).catch(() => "");
 
       // Fetch profile name
       const { data: profile } = await supabase
@@ -116,6 +118,7 @@ export default function UploadOficioModal({
             arquivo_externo_at: new Date().toISOString(),
             arquivo_externo_por: user.id,
             versao: "externo",
+            ...(extractedHtml ? { conteudo: extractedHtml } : {}),
           } as any)
           .eq("id", oficioAlvoId);
 
@@ -160,6 +163,7 @@ export default function UploadOficioModal({
           arquivo_externo_at: new Date().toISOString(),
           arquivo_externo_por: user.id,
           versao: "externo",
+          conteudo: extractedHtml || null,
         } as any);
 
         if (insertError) throw insertError;
