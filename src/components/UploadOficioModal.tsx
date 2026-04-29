@@ -107,6 +107,7 @@ export default function UploadOficioModal({
         .eq("id", user.id)
         .single();
       const userName = profile?.full_name || "";
+      const now = new Date().toISOString();
 
       if (modo === "substituir" && oficioAlvoId) {
         await supabase
@@ -115,10 +116,11 @@ export default function UploadOficioModal({
             arquivo_externo_url: publicUrl,
             arquivo_externo_nome: file.name,
             arquivo_externo_tipo: ext,
-            arquivo_externo_at: new Date().toISOString(),
+            arquivo_externo_at: now,
             arquivo_externo_por: user.id,
             versao: "externo",
             ...(extractedHtml ? { conteudo: extractedHtml } : {}),
+            ...(extractedHtml ? { last_edited_by: user.id, last_edited_by_name: userName || user.email || null, last_edited_at: now } : {}),
           } as any)
           .eq("id", oficioAlvoId);
 
@@ -160,10 +162,11 @@ export default function UploadOficioModal({
           arquivo_externo_url: publicUrl,
           arquivo_externo_nome: file.name,
           arquivo_externo_tipo: ext,
-          arquivo_externo_at: new Date().toISOString(),
+          arquivo_externo_at: now,
           arquivo_externo_por: user.id,
           versao: "externo",
           conteudo: extractedHtml || null,
+          ...(extractedHtml ? { last_edited_by: user.id, last_edited_by_name: userName || user.email || null, last_edited_at: now } : {}),
         } as any);
 
         if (insertError) throw insertError;
