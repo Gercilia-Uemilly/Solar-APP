@@ -797,7 +797,18 @@ export default function Oficios() {
         const formData = new FormData();
         formData.append("file", item.file);
         formData.append("type", item.type);
-        const { data, error } = await supabase.functions.invoke("process-file", { body: formData });
+        // process-file: retry inline because invokeWithRetry expects JSON body
+        let data: any = null;
+        let error: any = null;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const res = await supabase.functions.invoke("process-file", { body: formData });
+          data = res.data;
+          error = res.error;
+          const errMsg = String(error?.message || "").toLowerCase();
+          const transient = errMsg.includes("failed to send") || errMsg.includes("failed to fetch") || errMsg.includes("network") || errMsg.includes("load failed");
+          if (!error || !transient || attempt === 3) break;
+          await new Promise(r => setTimeout(r, 800 * attempt));
+        }
         if (error) throw error;
         const text = data.text || "";
 
