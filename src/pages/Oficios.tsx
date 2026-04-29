@@ -657,11 +657,21 @@ export default function Oficios() {
     const arquivoExternoUrl = (o as any).arquivo_externo_url as string | undefined;
     const arquivoExternoNome = (o as any).arquivo_externo_nome as string | undefined;
     const arquivoExternoTipo = (o as any).arquivo_externo_tipo as string | undefined;
+    const arquivoExternoAt = (o as any).arquivo_externo_at as string | undefined;
+    const lastEditedAt = (o as any).last_edited_at as string | undefined;
     const versao = (o as any).versao as string | undefined;
     if (arquivoExternoUrl && (versao === "externo" || versao === "misto")) {
       try {
         toast({ title: "Carregando o ofício novo...", description: arquivoExternoNome || "Arquivo substituído" });
-        const conteudoNovo = await extractExternalOficioUrlToHtml(arquivoExternoUrl, arquivoExternoNome, arquivoExternoTipo);
+        const externalSavedInContent = Boolean(
+          o.conteudo &&
+          arquivoExternoAt &&
+          lastEditedAt &&
+          Math.abs(new Date(lastEditedAt).getTime() - new Date(arquivoExternoAt).getTime()) < 5000
+        );
+        const conteudoNovo = externalSavedInContent
+          ? o.conteudo
+          : await extractExternalOficioUrlToHtml(arquivoExternoUrl, arquivoExternoNome, arquivoExternoTipo);
         if (!conteudoNovo) throw new Error("Não foi possível extrair texto editável do arquivo.");
         o = { ...o, conteudo: conteudoNovo };
         setEditingExternalFileContent(true);
