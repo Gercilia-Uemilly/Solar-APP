@@ -17,7 +17,8 @@ import {
   TicketCheck,
   Bot,
   Clock,
-  ImageIcon
+  ImageIcon,
+  Smartphone
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 const sections = [
+  {
+    id: "multi-dispositivo",
+    icon: Smartphone,
+    title: "Conta usada em vários celulares ao mesmo tempo",
+    description: "Se você usa a mesma conta em 2 ou 3 aparelhos ao mesmo tempo, eles 'brigam' pela mesma sessão. Isso pode causar: cair do sistema sem motivo, erro 'Falha ao enviar' ao gerar ofícios, número de ofício trocado, e tela travando.",
+    action: "Escolha 1 celular principal para trabalhar e saia da conta nos outros (Configurações → Sair). Se realmente precisar de acessos simultâneos, peça ao administrador para criar contas separadas para cada aparelho.",
+    note: "O sistema foi feito para 1 conta = 1 pessoa = 1 celular.",
+    color: "text-rose-600",
+    bgColor: "bg-rose-50",
+    borderColor: "border-rose-200"
+  },
   {
     id: "drive",
     icon: RefreshCw,
