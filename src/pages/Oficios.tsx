@@ -646,6 +646,13 @@ export default function Oficios() {
   };
 
   const handleEdit = async (o: OficioRow) => {
+    const { data: latest } = await supabase
+      .from("oficios")
+      .select("*")
+      .eq("id", o.id)
+      .single();
+    if (latest) o = { ...o, ...(latest as any) };
+
     const arquivoExternoUrl = (o as any).arquivo_externo_url as string | undefined;
     const arquivoExternoNome = (o as any).arquivo_externo_nome as string | undefined;
     const arquivoExternoTipo = (o as any).arquivo_externo_tipo as string | undefined;
