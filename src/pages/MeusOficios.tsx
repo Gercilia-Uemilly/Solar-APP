@@ -28,7 +28,6 @@ import VersionHistoryDialog from "@/components/VersionHistoryDialog";
 import { saveBackupBeforeEdit } from "@/lib/oficioBackup";
 import UploadOficioModal from "@/components/UploadOficioModal";
 import RealPreviewDialog from "@/components/RealPreviewDialog";
-import PdfBlobIframe from "@/components/PdfBlobIframe";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -286,6 +285,12 @@ export default function MeusOficios() {
       assunto: cleanAssuntoPrefix(latestViewOficio.assunto || ""),
       numero: latestViewOficio.numero,
       data_geracao: validDataGeracao,
+      versao: "sistema",
+      arquivo_externo_url: null,
+      arquivo_externo_nome: null,
+      arquivo_externo_tipo: null,
+      arquivo_externo_at: null,
+      arquivo_externo_por: null,
       
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
