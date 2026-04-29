@@ -108,7 +108,7 @@ const ORGAOS: OrgaoReferencia[] = [
   {
     nome: "Hospital de Clínicas da Universidade Federal de Uberlândia",
     sigla: "HC/UFU",
-    destinatario: "Ilmo(a). Sr(a). Diretor(a) e Superintendente do HC/UFU",
+    destinatario: "Sr(a). Diretor(a) e Superintendente do HC/UFU",
     vocativo: "Prezados(as) Senhores(as),",
     categoria: "Órgão Público",
   },
@@ -117,6 +117,13 @@ const ORGAOS: OrgaoReferencia[] = [
     sigla: "DER-MG",
     destinatario: "Sr(a). Coordenador(a) do DER-MG",
     vocativo: "Prezado(a) Senhor(a) Coordenador(a),",
+    categoria: "Órgão Público",
+  },
+  {
+    nome: "Departamento Nacional de Infraestrutura de Transportes — Unidade Local de Uberlândia",
+    sigla: "DNIT",
+    destinatario: "Sr(a). Responsável da Unidade Local do DNIT em Uberlândia",
+    vocativo: "Prezado(a) Senhor(a),",
     categoria: "Órgão Público",
   },
   {
@@ -150,6 +157,18 @@ const ORGAOS: OrgaoReferencia[] = [
     sigla: "MPMG",
     destinatario: "Exmo(a). Sr(a). Promotor(a) de Justiça do MPMG",
     vocativo: "Excelentíssimo(a) Senhor(a) Promotor(a) de Justiça,",
+    categoria: "Órgão Público",
+  },
+  {
+    nome: "Gabinete do Prefeito de Uberlândia",
+    destinatario: "Excelentíssimo Senhor Prefeito Municipal de Uberlândia",
+    vocativo: "Excelentíssimo Senhor Prefeito,",
+    categoria: "Órgão Público",
+  },
+  {
+    nome: "Câmara Municipal de Uberlândia",
+    destinatario: "Exmo(a). Sr(a). Vereador(a) da Câmara Municipal de Uberlândia",
+    vocativo: "Excelentíssimo(a) Senhor(a) Vereador(a),",
     categoria: "Órgão Público",
   },
 ];
