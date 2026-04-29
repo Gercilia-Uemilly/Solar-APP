@@ -674,14 +674,25 @@ export default function Oficios() {
           : await extractExternalOficioUrlToHtml(arquivoExternoUrl, arquivoExternoNome, arquivoExternoTipo);
         if (!conteudoNovo) throw new Error("Não foi possível extrair texto editável do arquivo.");
         o = { ...o, conteudo: conteudoNovo };
+        await supabase.from("oficios").update({
+          conteudo: conteudoNovo,
+          versao: "sistema",
+          arquivo_externo_url: null,
+          arquivo_externo_nome: null,
+          arquivo_externo_tipo: null,
+          arquivo_externo_at: null,
+          arquivo_externo_por: null,
+          last_edited_by: user?.id || null,
+          last_edited_by_name: profileName || user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        } as any).eq("id", o.id);
         setEditingExternalFileContent(true);
       } catch (e: any) {
         toast({
           title: "Não consegui abrir para edição",
-          description: e?.message || "Baixe o arquivo novo para editar fora do sistema.",
+          description: e?.message || "O arquivo precisa ter texto selecionável ou estar em Word (.docx).",
           variant: "destructive",
         });
-        window.open(arquivoExternoUrl, "_blank", "noopener,noreferrer");
         return;
       }
     } else {

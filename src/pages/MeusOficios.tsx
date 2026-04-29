@@ -28,7 +28,6 @@ import VersionHistoryDialog from "@/components/VersionHistoryDialog";
 import { saveBackupBeforeEdit } from "@/lib/oficioBackup";
 import UploadOficioModal from "@/components/UploadOficioModal";
 import RealPreviewDialog from "@/components/RealPreviewDialog";
-import PdfBlobIframe from "@/components/PdfBlobIframe";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -286,6 +285,12 @@ export default function MeusOficios() {
       assunto: cleanAssuntoPrefix(latestViewOficio.assunto || ""),
       numero: latestViewOficio.numero,
       data_geracao: validDataGeracao,
+      versao: "sistema",
+      arquivo_externo_url: null,
+      arquivo_externo_nome: null,
+      arquivo_externo_tipo: null,
+      arquivo_externo_at: null,
+      arquivo_externo_por: null,
       
       last_edited_by: user?.id || null,
       last_edited_by_name: profileName || user?.email || null,
@@ -1213,90 +1218,7 @@ export default function MeusOficios() {
           </DialogHeader>
           {viewOficio && (
             <>
-            {(() => {
-              const extUrl = (viewOficio as any).arquivo_externo_url as string | undefined;
-              const extNome = (viewOficio as any).arquivo_externo_nome as string | undefined;
-              const extTipo = ((viewOficio as any).arquivo_externo_tipo as string | undefined)?.toLowerCase();
-              const versao = (viewOficio as any).versao as string | undefined;
-              const isExterno = !!extUrl && (versao === "externo" || versao === "misto");
-              if (!isExterno) return null;
-              const isPdf = extTipo === "pdf" || extUrl?.toLowerCase().endsWith(".pdf");
-              return (
-                <div className="mt-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-                    <div className="text-sm">
-                      <span className="font-semibold text-primary">📎 Arquivo substituído:</span>{" "}
-                      <span className="text-foreground">{extNome || "arquivo externo"}</span>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        Este ofício foi substituído por um arquivo externo. O conteúdo abaixo é o do arquivo subido — não do editor antigo.
-                      </div>
-                      <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                        ⚠️ Se a prévia ficar em branco ou aparecer "ERR_BLOCKED_BY_CLIENT", desative o bloqueador de anúncios (AdBlock/uBlock) para este site, ou use o botão <strong>"Baixar"</strong> abaixo.
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(extUrl!);
-                            const blob = await res.blob();
-                            const blobUrl = URL.createObjectURL(blob);
-                            window.open(blobUrl, "_blank");
-                            setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-                          } catch {
-                            window.open(extUrl, "_blank");
-                          }
-                        }}
-                      >
-                        <Eye size={14} className="mr-1" /> Abrir em nova aba
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="default"
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(extUrl!);
-                            const blob = await res.blob();
-                            const blobUrl = URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = blobUrl;
-                            a.download = extNome || "oficio-externo";
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-                          } catch {
-                            const a = document.createElement("a");
-                            a.href = extUrl!;
-                            a.download = extNome || "oficio-externo";
-                            a.click();
-                          }
-                        }}
-                      >
-                        <Download size={14} className="mr-1" /> Baixar
-                      </Button>
-                    </div>
-                  </div>
-                  {isPdf ? (
-                    <PdfBlobIframe url={extUrl!} title={extNome || "Arquivo externo"} />
-                  ) : (
-                    <div className="text-sm text-muted-foreground p-4 border border-dashed border-border rounded bg-background text-center">
-                      Arquivo Word (.docx) não pode ser visualizado direto no navegador.<br />
-                      Use os botões acima para abrir ou baixar.
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
             <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
-            <details className="mt-2">
-              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground select-none px-2 py-1">
-                {((viewOficio as any).arquivo_externo_url && ((viewOficio as any).versao === "externo" || (viewOficio as any).versao === "misto"))
-                  ? "▸ Mostrar conteúdo antigo do sistema (apenas referência — não é o que será exportado)"
-                  : "▸ Conteúdo do ofício"}
-              </summary>
             <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
               <OficioPreview
                 key={editorKey}
@@ -1327,7 +1249,6 @@ export default function MeusOficios() {
                 anexoDocuments={previewAnexoDocs}
               />
             </div>
-            </details>
             </>
           )}
         </DialogContent>

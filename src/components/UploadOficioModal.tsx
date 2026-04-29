@@ -87,18 +87,25 @@ export default function UploadOficioModal({
     const toastId = toast.loading("Processando arquivo...");
 
     try {
-      const ext = file.name.split(".").pop() || "pdf";
-      const caminho = `${user.id}/oficios-externos/${Date.now()}.${ext}`;
-
-      const { error: storageError } = await supabase.storage
-        .from("midias")
-        .upload(caminho, file, { contentType: file.type, upsert: false });
-
-      if (storageError) throw storageError;
-
-      const { data: urlData } = supabase.storage.from("midias").getPublicUrl(caminho);
-      const publicUrl = urlData.publicUrl;
       const extractedHtml = await extractExternalOficioFileToHtml(file).catch(() => "");
+      if ((modo === "substituir" || modo === "novo") && !extractedHtml) {
+        throw new Error("Não consegui converter este arquivo para texto editável. Envie um Word (.docx) ou PDF com texto selecionável para substituir o ofício.");
+      }
+
+      const ext = file.name.split(".").pop() || "pdf";
+      let publicUrl = "";
+      if (modo === "nova_versao") {
+        const caminho = `${user.id}/oficios-externos/${Date.now()}.${ext}`;
+
+        const { error: storageError } = await supabase.storage
+          .from("midias")
+          .upload(caminho, file, { contentType: file.type, upsert: false });
+
+        if (storageError) throw storageError;
+
+        const { data: urlData } = supabase.storage.from("midias").getPublicUrl(caminho);
+        publicUrl = urlData.publicUrl;
+      }
 
       // Fetch profile name
       const { data: profile } = await supabase
@@ -113,18 +120,20 @@ export default function UploadOficioModal({
         await supabase
           .from("oficios")
           .update({
-            arquivo_externo_url: publicUrl,
-            arquivo_externo_nome: file.name,
-            arquivo_externo_tipo: ext,
-            arquivo_externo_at: now,
-            arquivo_externo_por: user.id,
-            versao: "externo",
-            ...(extractedHtml ? { conteudo: extractedHtml } : {}),
-            ...(extractedHtml ? { last_edited_by: user.id, last_edited_by_name: userName || user.email || null, last_edited_at: now } : {}),
+            conteudo: extractedHtml,
+            arquivo_externo_url: null,
+            arquivo_externo_nome: null,
+            arquivo_externo_tipo: null,
+            arquivo_externo_at: null,
+            arquivo_externo_por: null,
+            versao: "sistema",
+            last_edited_by: user.id,
+            last_edited_by_name: userName || user.email || null,
+            last_edited_at: now,
           } as any)
           .eq("id", oficioAlvoId);
 
-        toast.success("Ofício substituído com sucesso!", { id: toastId });
+        toast.success("Ofício substituído e pronto para edição!", { id: toastId });
       } else if (modo === "nova_versao" && oficioAlvoId) {
         await supabase.from("versoes_oficio" as any).insert({
           oficio_id: oficioAlvoId,
@@ -159,18 +168,15 @@ export default function UploadOficioModal({
           destinatario: "",
           status: "Rascunho",
           operador_nome: userName,
-          arquivo_externo_url: publicUrl,
-          arquivo_externo_nome: file.name,
-          arquivo_externo_tipo: ext,
-          arquivo_externo_at: now,
-          arquivo_externo_por: user.id,
-          versao: "externo",
-          conteudo: extractedHtml || null,
-          ...(extractedHtml ? { last_edited_by: user.id, last_edited_by_name: userName || user.email || null, last_edited_at: now } : {}),
+          versao: "sistema",
+          conteudo: extractedHtml,
+          last_edited_by: user.id,
+          last_edited_by_name: userName || user.email || null,
+          last_edited_at: now,
         } as any);
 
         if (insertError) throw insertError;
-        toast.success("Ofício criado com arquivo externo!", { id: toastId });
+        toast.success("Ofício criado e pronto para edição!", { id: toastId });
       }
 
       onSuccess();
