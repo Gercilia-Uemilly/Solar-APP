@@ -759,6 +759,7 @@ export default function Oficios() {
       solicitante: solicitante || null,
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
+      ...(editingExternalFileContent ? { versao: "sistema" } : {}),
       
       last_edited_by: user.id,
       last_edited_by_name: profileName || user.user_metadata?.full_name || user.email || null,
@@ -927,6 +928,7 @@ export default function Oficios() {
     setAppliedSuggestionId(null);
     setDescSaveStatus("");
     setVocativoCustom("");
+    setEditingExternalFileContent(false);
 
     // Force release focus and body scroll
     if (document.activeElement instanceof HTMLElement) {
