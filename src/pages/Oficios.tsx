@@ -645,6 +645,25 @@ export default function Oficios() {
   };
 
   const handleEdit = async (o: OficioRow) => {
+    // Se o ofício foi substituído por arquivo externo (PDF/Word subido),
+    // não faz sentido abrir o editor de texto — o conteúdo "verdadeiro" agora
+    // é o arquivo externo. Avisa o usuário e abre o arquivo em nova aba.
+    const arquivoExternoUrl = (o as any).arquivo_externo_url as string | undefined;
+    const versao = (o as any).versao as string | undefined;
+    if (arquivoExternoUrl && (versao === "externo" || versao === "misto")) {
+      const nome = (o as any).arquivo_externo_nome || "arquivo";
+      const querEditarMesmoAssim = window.confirm(
+        `Este ofício foi substituído pelo arquivo externo "${nome}".\n\n` +
+        `• Clique em OK para ABRIR o arquivo externo (recomendado).\n` +
+        `• Clique em Cancelar para editar o conteúdo antigo do sistema.\n\n` +
+        `Atenção: editar o conteúdo antigo NÃO altera o arquivo subido.`
+      );
+      if (querEditarMesmoAssim) {
+        window.open(arquivoExternoUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      // Se cancelou, segue para edição normal do conteúdo antigo (comportamento legado).
+    }
     setEditingOficioId(o.id);
     const rawNum = o.numero || "";
     setNumero(rawNum);
