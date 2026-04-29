@@ -1374,7 +1374,9 @@ export default function Oficios() {
           <DialogHeader className="flex flex-row items-center justify-between">
             <div>
               <DialogTitle className="text-foreground">{editingOficioId ? "Editar Ofício" : "Novo Ofício"}</DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">Preencha os dados, revise o texto e salve o ofício.</DialogDescription>
+              <DialogDescription className="text-xs text-muted-foreground">
+                {editingExternalFileContent ? "Ofício novo carregado do arquivo substituído. Ao salvar, ele passa a ser o conteúdo editável do sistema." : "Preencha os dados, revise o texto e salve o ofício."}
+              </DialogDescription>
             </div>
             {editingOficioId && (
               <Button variant="destructive" size="sm" onClick={async () => { await handleDelete(editingOficioId); resetForm(); }}>
