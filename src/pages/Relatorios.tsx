@@ -41,6 +41,8 @@ interface UserAccessSummary {
   email: string;
   total: number;
   lastAccess: string;
+  uniqueDevices24h: number;
+  multiDeviceWarning: boolean;
   sessions: { date: string; time: string; device: string; browser: string; ip: string }[];
 }
 
@@ -164,9 +166,26 @@ export default function Relatorios() {
         email: profile?.email || "Sem email",
         total: 1,
         lastAccess: format(sessionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+        uniqueDevices24h: 0,
+        multiDeviceWarning: false,
         sessions: [sessionInfo]
       });
     }
+  });
+  // Compute unique devices in the last 24h per user (browser+device+IP fingerprint)
+  const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
+  userAccessMap.forEach((u) => {
+    const recent = sessions.filter(
+      (s) => s.user_id === u.user_id && new Date(s.logged_in_at).getTime() >= cutoff24h
+    );
+    const fingerprints = new Set(
+      recent.map((s) => {
+        const { device, browser } = parseUA(s.user_agent);
+        return `${device}|${browser}|${s.ip_address || "?"}`;
+      })
+    );
+    u.uniqueDevices24h = fingerprints.size;
+    u.multiDeviceWarning = fingerprints.size >= 2;
   });
   const userAccessList = Array.from(userAccessMap.values()).sort((a, b) => b.total - a.total);
   const topAccessData = userAccessList.slice(0, 10).map(u => ({ name: u.name.split(" ")[0], value: u.total }));
