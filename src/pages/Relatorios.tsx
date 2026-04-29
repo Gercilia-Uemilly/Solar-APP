@@ -41,6 +41,8 @@ interface UserAccessSummary {
   email: string;
   total: number;
   lastAccess: string;
+  uniqueDevices24h: number;
+  multiDeviceWarning: boolean;
   sessions: { date: string; time: string; device: string; browser: string; ip: string }[];
 }
 
@@ -164,9 +166,26 @@ export default function Relatorios() {
         email: profile?.email || "Sem email",
         total: 1,
         lastAccess: format(sessionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+        uniqueDevices24h: 0,
+        multiDeviceWarning: false,
         sessions: [sessionInfo]
       });
     }
+  });
+  // Compute unique devices in the last 24h per user (browser+device+IP fingerprint)
+  const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
+  userAccessMap.forEach((u) => {
+    const recent = sessions.filter(
+      (s) => s.user_id === u.user_id && new Date(s.logged_in_at).getTime() >= cutoff24h
+    );
+    const fingerprints = new Set(
+      recent.map((s) => {
+        const { device, browser } = parseUA(s.user_agent);
+        return `${device}|${browser}|${s.ip_address || "?"}`;
+      })
+    );
+    u.uniqueDevices24h = fingerprints.size;
+    u.multiDeviceWarning = fingerprints.size >= 2;
   });
   const userAccessList = Array.from(userAccessMap.values()).sort((a, b) => b.total - a.total);
   const topAccessData = userAccessList.slice(0, 10).map(u => ({ name: u.name.split(" ")[0], value: u.total }));
@@ -352,6 +371,7 @@ export default function Relatorios() {
                       <TableHead>Nome</TableHead>
                       <TableHead>E-mail</TableHead>
                       <TableHead className="text-center">Acessos</TableHead>
+                      <TableHead className="text-center">Disp. (24h)</TableHead>
                       <TableHead>Último</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -365,6 +385,15 @@ export default function Relatorios() {
                         <TableCell className="font-medium">{u.name}</TableCell>
                         <TableCell className="text-muted-foreground text-xs">{u.email}</TableCell>
                         <TableCell className="text-center font-bold">{u.total}</TableCell>
+                        <TableCell className="text-center">
+                          {u.multiDeviceWarning ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <ShieldAlert size={10} /> {u.uniqueDevices24h}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{u.uniqueDevices24h}</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">{u.lastAccess}</TableCell>
                       </TableRow>
                     ))}
