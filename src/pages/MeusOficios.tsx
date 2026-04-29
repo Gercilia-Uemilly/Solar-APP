@@ -160,7 +160,7 @@ export default function MeusOficios() {
 
   const handleOpenPreview = async (o: OficioRow) => {
     // Check for concurrent edits before opening
-    const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at, cargo_destinatario, destinatario, assunto, numero, bairro, data_geracao").eq("id", o.id).single();
+    const { data: latest } = await supabase.from("oficios").select("conteudo, last_edited_by_name, last_edited_at, updated_at, cargo_destinatario, destinatario, assunto, numero, bairro, data_geracao, arquivo_externo_url, arquivo_externo_nome, arquivo_externo_tipo, arquivo_externo_at, versao").eq("id", o.id).single();
     if (latest) {
       if (latest.last_edited_by_name && latest.last_edited_at) {
         const editDate = new Date(latest.last_edited_at);
@@ -173,7 +173,7 @@ export default function MeusOficios() {
         }
       }
       // Always use latest data from DB
-      o = { ...o, conteudo: latest.conteudo, cargo_destinatario: latest.cargo_destinatario, destinatario: latest.destinatario, assunto: latest.assunto, numero: latest.numero, bairro: latest.bairro, data_geracao: latest.data_geracao };
+      o = { ...o, ...(latest as any) };
     }
     setViewOficio(o);
     inlineFieldsRef.current = {};
@@ -1212,7 +1212,60 @@ export default function MeusOficios() {
           </DialogHeader>
           {viewOficio && (
             <>
+            {(() => {
+              const extUrl = (viewOficio as any).arquivo_externo_url as string | undefined;
+              const extNome = (viewOficio as any).arquivo_externo_nome as string | undefined;
+              const extTipo = ((viewOficio as any).arquivo_externo_tipo as string | undefined)?.toLowerCase();
+              const versao = (viewOficio as any).versao as string | undefined;
+              const isExterno = !!extUrl && (versao === "externo" || versao === "misto");
+              if (!isExterno) return null;
+              const isPdf = extTipo === "pdf" || extUrl?.toLowerCase().endsWith(".pdf");
+              return (
+                <div className="mt-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <div className="text-sm">
+                      <span className="font-semibold text-primary">📎 Arquivo substituído:</span>{" "}
+                      <span className="text-foreground">{extNome || "arquivo externo"}</span>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        Este ofício foi substituído por um arquivo externo. O conteúdo abaixo é o do arquivo subido — não do editor antigo.
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={extUrl} target="_blank" rel="noopener noreferrer">
+                          <Eye size={14} className="mr-1" /> Abrir em nova aba
+                        </a>
+                      </Button>
+                      <Button size="sm" variant="default" asChild>
+                        <a href={extUrl} download={extNome || true}>
+                          <Download size={14} className="mr-1" /> Baixar
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                  {isPdf ? (
+                    <iframe
+                      src={extUrl}
+                      title={extNome || "Arquivo externo"}
+                      className="w-full border border-border rounded bg-background"
+                      style={{ height: "60vh" }}
+                    />
+                  ) : (
+                    <div className="text-sm text-muted-foreground p-4 border border-dashed border-border rounded bg-background text-center">
+                      Arquivo Word (.docx) não pode ser visualizado direto no navegador.<br />
+                      Use os botões acima para abrir ou baixar.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
+            <details className="mt-2">
+              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground select-none px-2 py-1">
+                {((viewOficio as any).arquivo_externo_url && ((viewOficio as any).versao === "externo" || (viewOficio as any).versao === "misto"))
+                  ? "▸ Mostrar conteúdo antigo do sistema (apenas referência — não é o que será exportado)"
+                  : "▸ Conteúdo do ofício"}
+              </summary>
             <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
               <OficioPreview
                 key={editorKey}
@@ -1243,6 +1296,7 @@ export default function MeusOficios() {
                 anexoDocuments={previewAnexoDocs}
               />
             </div>
+            </details>
             </>
           )}
         </DialogContent>
