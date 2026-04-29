@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Upload, FileText, Loader2, File } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { extractExternalOficioFileToHtml } from "@/lib/externalOficioText";
 
 type Modo = "substituir" | "nova_versao" | "novo";
 
@@ -97,6 +98,7 @@ export default function UploadOficioModal({
 
       const { data: urlData } = supabase.storage.from("midias").getPublicUrl(caminho);
       const publicUrl = urlData.publicUrl;
+      const extractedHtml = await extractExternalOficioFileToHtml(file).catch(() => "");
 
       // Fetch profile name
       const { data: profile } = await supabase
@@ -105,6 +107,7 @@ export default function UploadOficioModal({
         .eq("id", user.id)
         .single();
       const userName = profile?.full_name || "";
+      const now = new Date().toISOString();
 
       if (modo === "substituir" && oficioAlvoId) {
         await supabase
@@ -113,9 +116,11 @@ export default function UploadOficioModal({
             arquivo_externo_url: publicUrl,
             arquivo_externo_nome: file.name,
             arquivo_externo_tipo: ext,
-            arquivo_externo_at: new Date().toISOString(),
+            arquivo_externo_at: now,
             arquivo_externo_por: user.id,
             versao: "externo",
+            ...(extractedHtml ? { conteudo: extractedHtml } : {}),
+            ...(extractedHtml ? { last_edited_by: user.id, last_edited_by_name: userName || user.email || null, last_edited_at: now } : {}),
           } as any)
           .eq("id", oficioAlvoId);
 
@@ -157,9 +162,11 @@ export default function UploadOficioModal({
           arquivo_externo_url: publicUrl,
           arquivo_externo_nome: file.name,
           arquivo_externo_tipo: ext,
-          arquivo_externo_at: new Date().toISOString(),
+          arquivo_externo_at: now,
           arquivo_externo_por: user.id,
           versao: "externo",
+          conteudo: extractedHtml || null,
+          ...(extractedHtml ? { last_edited_by: user.id, last_edited_by_name: userName || user.email || null, last_edited_at: now } : {}),
         } as any);
 
         if (insertError) throw insertError;

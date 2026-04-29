@@ -30,6 +30,7 @@ import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
+import { extractExternalOficioUrlToHtml } from "@/lib/externalOficioText";
 
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Enviado", "Respondido", "Atendido", "Arquivado"];
@@ -111,6 +112,7 @@ export default function Oficios() {
 
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
+  const [editingExternalFileContent, setEditingExternalFileContent] = useState(false);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const { anexos, setAnexos, addFile: persistAddFile, removeFile: persistRemoveFile, addLocalFile, uploadLocalFiles, reset: resetAnexos } = useAnexos(editingOficioId);
   const [descricaoAnexos, setDescricaoAnexos] = useState("");
@@ -645,24 +647,45 @@ export default function Oficios() {
   };
 
   const handleEdit = async (o: OficioRow) => {
-    // Se o ofício foi substituído por arquivo externo (PDF/Word subido),
-    // não faz sentido abrir o editor de texto — o conteúdo "verdadeiro" agora
-    // é o arquivo externo. Avisa o usuário e abre o arquivo em nova aba.
+    const { data: latest } = await supabase
+      .from("oficios")
+      .select("*")
+      .eq("id", o.id)
+      .single();
+    if (latest) o = { ...o, ...(latest as any) };
+
     const arquivoExternoUrl = (o as any).arquivo_externo_url as string | undefined;
+    const arquivoExternoNome = (o as any).arquivo_externo_nome as string | undefined;
+    const arquivoExternoTipo = (o as any).arquivo_externo_tipo as string | undefined;
+    const arquivoExternoAt = (o as any).arquivo_externo_at as string | undefined;
+    const lastEditedAt = (o as any).last_edited_at as string | undefined;
     const versao = (o as any).versao as string | undefined;
     if (arquivoExternoUrl && (versao === "externo" || versao === "misto")) {
-      const nome = (o as any).arquivo_externo_nome || "arquivo";
-      const querEditarMesmoAssim = window.confirm(
-        `Este ofício foi substituído pelo arquivo externo "${nome}".\n\n` +
-        `• Clique em OK para ABRIR o arquivo externo (recomendado).\n` +
-        `• Clique em Cancelar para editar o conteúdo antigo do sistema.\n\n` +
-        `Atenção: editar o conteúdo antigo NÃO altera o arquivo subido.`
-      );
-      if (querEditarMesmoAssim) {
+      try {
+        toast({ title: "Carregando o ofício novo...", description: arquivoExternoNome || "Arquivo substituído" });
+        const externalSavedInContent = Boolean(
+          o.conteudo &&
+          arquivoExternoAt &&
+          lastEditedAt &&
+          Math.abs(new Date(lastEditedAt).getTime() - new Date(arquivoExternoAt).getTime()) < 5000
+        );
+        const conteudoNovo = externalSavedInContent
+          ? o.conteudo
+          : await extractExternalOficioUrlToHtml(arquivoExternoUrl, arquivoExternoNome, arquivoExternoTipo);
+        if (!conteudoNovo) throw new Error("Não foi possível extrair texto editável do arquivo.");
+        o = { ...o, conteudo: conteudoNovo };
+        setEditingExternalFileContent(true);
+      } catch (e: any) {
+        toast({
+          title: "Não consegui abrir para edição",
+          description: e?.message || "Baixe o arquivo novo para editar fora do sistema.",
+          variant: "destructive",
+        });
         window.open(arquivoExternoUrl, "_blank", "noopener,noreferrer");
         return;
       }
-      // Se cancelou, segue para edição normal do conteúdo antigo (comportamento legado).
+    } else {
+      setEditingExternalFileContent(false);
     }
     setEditingOficioId(o.id);
     const rawNum = o.numero || "";
@@ -746,6 +769,7 @@ export default function Oficios() {
       solicitante: solicitante || null,
       contato_solicitante: contatoSolicitante || null,
       data_geracao: dataGeracao || null,
+      ...(editingExternalFileContent ? { versao: "sistema" } : {}),
       
       last_edited_by: user.id,
       last_edited_by_name: profileName || user.user_metadata?.full_name || user.email || null,
@@ -914,6 +938,7 @@ export default function Oficios() {
     setAppliedSuggestionId(null);
     setDescSaveStatus("");
     setVocativoCustom("");
+    setEditingExternalFileContent(false);
 
     // Force release focus and body scroll
     if (document.activeElement instanceof HTMLElement) {
@@ -1359,7 +1384,9 @@ export default function Oficios() {
           <DialogHeader className="flex flex-row items-center justify-between">
             <div>
               <DialogTitle className="text-foreground">{editingOficioId ? "Editar Ofício" : "Novo Ofício"}</DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">Preencha os dados, revise o texto e salve o ofício.</DialogDescription>
+              <DialogDescription className="text-xs text-muted-foreground">
+                {editingExternalFileContent ? "Ofício novo carregado do arquivo substituído. Ao salvar, ele passa a ser o conteúdo editável do sistema." : "Preencha os dados, revise o texto e salve o ofício."}
+              </DialogDescription>
             </div>
             {editingOficioId && (
               <Button variant="destructive" size="sm" onClick={async () => { await handleDelete(editingOficioId); resetForm(); }}>
