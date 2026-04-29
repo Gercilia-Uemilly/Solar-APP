@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import NotificationBell from "@/components/NotificationBell";
 import LembreteBell from "@/components/LembreteBell";
+import MultiDeviceWarning from "@/components/MultiDeviceWarning";
 import { setOnDuplicataDetected, type DuplicataInfo } from "@/lib/exportOficio";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -243,6 +244,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
+
+        <MultiDeviceWarning />
 
         {/* Main */}
         <main className="flex-1 p-5 sm:p-7 animate-fade-in">
