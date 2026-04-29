@@ -18,6 +18,7 @@ import { exportToWord, exportToPDF, fetchSavedImages, buildMergedPdfBlob, buildW
 import { registrarAuditoria } from "@/lib/auditLog";
 import { enqueueExport } from "@/lib/exportQueue";
 import { comprimirImagem } from "@/lib/imageCompression";
+import { invokeWithRetry, friendlyInvokeError } from "@/lib/invokeWithRetry";
 
 import { generateOperatorCode, type OficioRow, LISTA_SECRETARIAS, getDestinatario, getVocativo, getNomeOrgao, gerarEncerramentoDinamico } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -567,8 +568,12 @@ export default function Oficios() {
     }, 45000);
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-oficio", {
+      const { data, error } = await invokeWithRetry<any>("generate-oficio", {
         body: { assunto, destinatario, descricao, tipo: secretaria || "Solicitação", solicitante, bairro: bairro, prioridade, local: enderecoCompleto || localDemanda },
+        retries: 3,
+        onRetry: (attempt) => {
+          toast({ title: `Reconectando... (tentativa ${attempt + 1}/3)`, description: "Conexão instável detectada." });
+        },
       });
       if (error) throw error;
       if (!data || (!data.oficio && !data.text)) throw new Error("Sem resposta da IA. Tente novamente.");
@@ -591,7 +596,7 @@ export default function Oficios() {
       toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
     } catch (e: any) {
       console.error("Erro handleGenerateAI:", e);
-      toast({ title: "Erro ao gerar", description: e.message || "Tente novamente.", variant: "destructive" });
+      toast({ title: "Erro ao gerar", description: friendlyInvokeError(e), variant: "destructive" });
     } finally {
       clearTimeout(safetyTimeout);
       setIsGenerating(false);
@@ -609,7 +614,7 @@ export default function Oficios() {
         ...anexos.filter(a => a.tipo.includes("pdf")).map(() => "documentos PDF"),
       ].filter((v, i, a) => a.indexOf(v) === i).join(", ");
 
-      const { data, error } = await supabase.functions.invoke("generate-resposta", {
+      const { data, error } = await invokeWithRetry<any>("generate-resposta", {
         body: {
           numero: numero || null,
           assunto,
@@ -624,12 +629,16 @@ export default function Oficios() {
           tem_midias: temMidias,
           tipos_midias: tiposMidias || null,
         },
+        retries: 3,
+        onRetry: (attempt) => {
+          toast({ title: `Reconectando... (${attempt + 1}/3)`, description: "Conexão instável." });
+        },
       });
       if (error) throw error;
       setEditedResposta(data.resposta || "");
       toast({ title: "💬 Resposta empática gerada!", description: "Revise e edite antes de copiar." });
     } catch (e: any) {
-      toast({ title: "Erro ao gerar resposta", description: e.message || "Tente novamente.", variant: "destructive" });
+      toast({ title: "Erro ao gerar resposta", description: friendlyInvokeError(e), variant: "destructive" });
     } finally {
       setIsGeneratingResposta(false);
     }
