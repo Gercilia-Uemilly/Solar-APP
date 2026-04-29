@@ -1229,27 +1229,57 @@ export default function MeusOficios() {
                       <div className="text-xs text-muted-foreground mt-0.5">
                         Este ofício foi substituído por um arquivo externo. O conteúdo abaixo é o do arquivo subido — não do editor antigo.
                       </div>
+                      <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                        ⚠️ Se a prévia ficar em branco ou aparecer "ERR_BLOCKED_BY_CLIENT", desative o bloqueador de anúncios (AdBlock/uBlock) para este site, ou use o botão <strong>"Baixar"</strong> abaixo.
+                      </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={extUrl} target="_blank" rel="noopener noreferrer">
-                          <Eye size={14} className="mr-1" /> Abrir em nova aba
-                        </a>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(extUrl!);
+                            const blob = await res.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            window.open(blobUrl, "_blank");
+                            setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+                          } catch {
+                            window.open(extUrl, "_blank");
+                          }
+                        }}
+                      >
+                        <Eye size={14} className="mr-1" /> Abrir em nova aba
                       </Button>
-                      <Button size="sm" variant="default" asChild>
-                        <a href={extUrl} download={extNome || true}>
-                          <Download size={14} className="mr-1" /> Baixar
-                        </a>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(extUrl!);
+                            const blob = await res.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = blobUrl;
+                            a.download = extNome || "oficio-externo";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+                          } catch {
+                            const a = document.createElement("a");
+                            a.href = extUrl!;
+                            a.download = extNome || "oficio-externo";
+                            a.click();
+                          }
+                        }}
+                      >
+                        <Download size={14} className="mr-1" /> Baixar
                       </Button>
                     </div>
                   </div>
                   {isPdf ? (
-                    <iframe
-                      src={extUrl}
-                      title={extNome || "Arquivo externo"}
-                      className="w-full border border-border rounded bg-background"
-                      style={{ height: "60vh" }}
-                    />
+                    <PdfBlobIframe url={extUrl!} title={extNome || "Arquivo externo"} />
                   ) : (
                     <div className="text-sm text-muted-foreground p-4 border border-dashed border-border rounded bg-background text-center">
                       Arquivo Word (.docx) não pode ser visualizado direto no navegador.<br />
