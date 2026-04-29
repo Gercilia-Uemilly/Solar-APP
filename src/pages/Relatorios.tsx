@@ -371,6 +371,7 @@ export default function Relatorios() {
                       <TableHead>Nome</TableHead>
                       <TableHead>E-mail</TableHead>
                       <TableHead className="text-center">Acessos</TableHead>
+                      <TableHead className="text-center">Disp. (24h)</TableHead>
                       <TableHead>Último</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -384,6 +385,15 @@ export default function Relatorios() {
                         <TableCell className="font-medium">{u.name}</TableCell>
                         <TableCell className="text-muted-foreground text-xs">{u.email}</TableCell>
                         <TableCell className="text-center font-bold">{u.total}</TableCell>
+                        <TableCell className="text-center">
+                          {u.multiDeviceWarning ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <ShieldAlert size={10} /> {u.uniqueDevices24h}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{u.uniqueDevices24h}</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">{u.lastAccess}</TableCell>
                       </TableRow>
                     ))}
