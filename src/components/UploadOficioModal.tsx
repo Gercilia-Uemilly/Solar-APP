@@ -200,9 +200,9 @@ export default function UploadOficioModal({
         toast.success("Ofício criado e pronto para edição!", { id: toastId });
       }
 
-      await onSuccess(targetOficioId);
       onOpenChange(false);
       reset();
+      await onSuccess(targetOficioId);
     } catch (e: any) {
       toast.error("Erro ao subir arquivo: " + (e?.message || "Tente novamente."), { id: toastId });
     } finally {
