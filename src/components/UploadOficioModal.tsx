@@ -1,24 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, FileText, Loader2, File } from "lucide-react";
+import { Upload, FileText, Loader2, File as FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { extractExternalOficioFileData } from "@/lib/externalOficioText";
-
-type Modo = "substituir" | "nova_versao" | "novo";
-
-interface UploadOficioModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  oficios: Array<{ id: string; numero?: string | null; assunto: string; destinatario: string }>;
-  /** Pre-select an ofício id (when triggered from row action) */
-  preSelectedOficioId?: string | null;
-  onSuccess: (oficioId?: string) => void | Promise<void>;
-}
 
 const ACCEPTED = ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const MAX_SIZE = 20 * 1024 * 1024;
@@ -35,33 +23,27 @@ function isValidType(file: File) {
   );
 }
 
+interface UploadOficioModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: (oficioId?: string) => void | Promise<void>;
+}
+
 export default function UploadOficioModal({
   open,
   onOpenChange,
-  oficios,
-  preSelectedOficioId,
   onSuccess,
 }: UploadOficioModalProps) {
   const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [modo, setModo] = useState<Modo>(preSelectedOficioId ? "substituir" : "novo");
-  const [oficioAlvoId, setOficioAlvoId] = useState<string>(preSelectedOficioId || "");
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
   const reset = useCallback(() => {
     setFile(null);
-    setModo(preSelectedOficioId ? "substituir" : "novo");
-    setOficioAlvoId(preSelectedOficioId || "");
     setUploading(false);
-  }, [preSelectedOficioId]);
-
-  useEffect(() => {
-    if (!open) return;
-    setModo(preSelectedOficioId ? "substituir" : "novo");
-    setOficioAlvoId(preSelectedOficioId || "");
-  }, [open, preSelectedOficioId]);
+  }, []);
 
   const handleFile = (f: File) => {
     if (f.size > MAX_SIZE) {
@@ -84,10 +66,6 @@ export default function UploadOficioModal({
 
   const handleSubmit = async () => {
     if (!file || !user) return;
-    if ((modo === "substituir" || modo === "nova_versao") && !oficioAlvoId) {
-      toast.error("Selecione o ofício alvo.");
-      return;
-    }
 
     setUploading(true);
     const toastId = toast.loading("Processando arquivo...");
@@ -95,26 +73,10 @@ export default function UploadOficioModal({
     try {
       const extracted = await extractExternalOficioFileData(file).catch(() => null);
       const extractedHtml = extracted?.html || "";
-      if ((modo === "substituir" || modo === "novo") && !extractedHtml) {
-        throw new Error("Não consegui converter este arquivo para texto editável. Envie um Word (.docx) ou PDF com texto selecionável para substituir o ofício.");
+      if (!extractedHtml) {
+        throw new Error("Não consegui converter este arquivo para texto editável. Envie um Word (.docx) ou PDF com texto selecionável.");
       }
 
-      const ext = file.name.split(".").pop() || "pdf";
-      let publicUrl = "";
-      if (modo === "nova_versao") {
-        const caminho = `${user.id}/oficios-externos/${Date.now()}.${ext}`;
-
-        const { error: storageError } = await supabase.storage
-          .from("midias")
-          .upload(caminho, file, { contentType: file.type, upsert: false });
-
-        if (storageError) throw storageError;
-
-        const { data: urlData } = supabase.storage.from("midias").getPublicUrl(caminho);
-        publicUrl = urlData.publicUrl;
-      }
-
-      // Fetch profile name
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -122,83 +84,26 @@ export default function UploadOficioModal({
         .single();
       const userName = profile?.full_name || "";
       const now = new Date().toISOString();
-      let targetOficioId: string | undefined;
 
-      if (modo === "substituir" && oficioAlvoId) {
-        const { error: updateError } = await supabase
-          .from("oficios")
-          .update({
-            conteudo: extractedHtml,
-            ...(extracted?.numero ? { numero: extracted.numero } : {}),
-            ...(extracted?.dataGeracao ? { data_geracao: extracted.dataGeracao } : {}),
-            ...(extracted?.assunto ? { assunto: extracted.assunto } : {}),
-            ...(extracted?.destinatario ? { destinatario: extracted.destinatario, cargo_destinatario: extracted.destinatario } : {}),
-            arquivo_externo_url: null,
-            arquivo_externo_nome: null,
-            arquivo_externo_tipo: null,
-            arquivo_externo_at: null,
-            arquivo_externo_por: null,
-            versao: "sistema",
-            last_edited_by: user.id,
-            last_edited_by_name: userName || user.email || null,
-            last_edited_at: now,
-          } as any)
-          .eq("id", oficioAlvoId);
+      const { data: inserted, error: insertError } = await supabase.from("oficios").insert({
+        author_id: user.id,
+        numero: extracted?.numero || null,
+        data_geracao: extracted?.dataGeracao || now.split("T")[0],
+        assunto: extracted?.assunto || file.name.replace(/\.(pdf|docx)$/i, ""),
+        destinatario: extracted?.destinatario || "",
+        cargo_destinatario: extracted?.destinatario || null,
+        status: "Rascunho",
+        operador_nome: userName,
+        versao: "sistema",
+        conteudo: extractedHtml,
+        last_edited_by: user.id,
+        last_edited_by_name: userName || user.email || null,
+        last_edited_at: now,
+      } as any).select("id").single();
 
-        if (updateError) throw updateError;
-        await supabase.from("versoes_oficio" as any).delete().eq("oficio_id", oficioAlvoId);
-        targetOficioId = oficioAlvoId;
-
-        toast.success("Ofício substituído e pronto para edição!", { id: toastId });
-      } else if (modo === "nova_versao" && oficioAlvoId) {
-        const { error: versaoError } = await supabase.from("versoes_oficio" as any).insert({
-          oficio_id: oficioAlvoId,
-          arquivo_url: publicUrl,
-          arquivo_nome: file.name,
-          arquivo_tipo: ext,
-          criado_por: user.id,
-          criado_por_nome: userName,
-          descricao: "Versão editada externamente",
-        });
-        if (versaoError) throw versaoError;
-
-        // Mark ofício as having mixed versions
-        const { data: oficio } = await supabase
-          .from("oficios")
-          .select("versao")
-          .eq("id", oficioAlvoId)
-          .single();
-
-        if (oficio && (oficio as any).versao !== "externo") {
-          await supabase
-            .from("oficios")
-            .update({ versao: "misto" } as any)
-            .eq("id", oficioAlvoId);
-        }
-
-        toast.success("Nova versão adicionada!", { id: toastId });
-      } else {
-        // Create new ofício with external file
-        const { data: inserted, error: insertError } = await supabase.from("oficios").insert({
-          author_id: user.id,
-          numero: extracted?.numero || null,
-          data_geracao: extracted?.dataGeracao || now.split("T")[0],
-          assunto: extracted?.assunto || file.name.replace(/\.(pdf|docx)$/i, ""),
-          destinatario: extracted?.destinatario || "",
-          cargo_destinatario: extracted?.destinatario || null,
-          status: "Rascunho",
-          operador_nome: userName,
-          versao: "sistema",
-          conteudo: extractedHtml,
-          last_edited_by: user.id,
-          last_edited_by_name: userName || user.email || null,
-          last_edited_at: now,
-        } as any).select("id").single();
-
-        if (insertError) throw insertError;
-        targetOficioId = inserted?.id;
-        toast.success("Ofício criado e pronto para edição!", { id: toastId });
-      }
+      if (insertError) throw insertError;
+      const targetOficioId = inserted?.id;
+      toast.success("Ofício criado e pronto para edição!", { id: toastId });
 
       onOpenChange(false);
       reset();
@@ -208,11 +113,6 @@ export default function UploadOficioModal({
     } finally {
       setUploading(false);
     }
-  };
-
-  const oficioLabel = (o: { numero?: string | null; assunto: string; destinatario: string }) => {
-    const num = o.numero ? `${o.numero} – ` : "";
-    return `${num}${o.assunto || o.destinatario}`.slice(0, 60);
   };
 
   return (
@@ -229,7 +129,7 @@ export default function UploadOficioModal({
             <Upload size={18} /> Subir Ofício Externo
           </DialogTitle>
           <DialogDescription>
-            Envie um PDF ou Word (.docx) editado externamente.
+            Envie um PDF ou Word (.docx) para criar um novo ofício com todas as informações extraídas.
           </DialogDescription>
         </DialogHeader>
 
@@ -245,7 +145,6 @@ export default function UploadOficioModal({
           }}
         />
 
-        {/* Drop zone */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -258,7 +157,7 @@ export default function UploadOficioModal({
         >
           {file ? (
             <div className="flex items-center justify-center gap-2 text-sm">
-              <File size={20} className="text-primary" />
+              <FileIcon size={20} className="text-primary" />
               <span className="font-medium">{file.name}</span>
               <span className="text-muted-foreground">({(file.size / 1024 / 1024).toFixed(1)}MB)</span>
             </div>
@@ -275,67 +174,9 @@ export default function UploadOficioModal({
           )}
         </div>
 
-        {/* Mode selection */}
-        <div className="space-y-3 mt-2">
-          <p className="text-sm font-medium text-foreground">O que fazer com este arquivo?</p>
-
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="modo"
-              checked={modo === "substituir"}
-              onChange={() => setModo("substituir")}
-              className="mt-1 accent-primary"
-            />
-            <div>
-              <span className="text-sm font-medium">Substituir ofício existente</span>
-              <p className="text-xs text-muted-foreground">O arquivo externo substitui o conteúdo original</p>
-            </div>
-          </label>
-
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="modo"
-              checked={modo === "nova_versao"}
-              onChange={() => setModo("nova_versao")}
-              className="mt-1 accent-primary"
-            />
-            <div>
-              <span className="text-sm font-medium">Acrescentar como nova versão</span>
-              <p className="text-xs text-muted-foreground">Mantém o original + adiciona esta versão</p>
-            </div>
-          </label>
-
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="modo"
-              checked={modo === "novo"}
-              onChange={() => setModo("novo")}
-              className="mt-1 accent-primary"
-            />
-            <div>
-              <span className="text-sm font-medium">Criar novo ofício com este arquivo</span>
-              <p className="text-xs text-muted-foreground">Registra um novo ofício no sistema</p>
-            </div>
-          </label>
-
-          {(modo === "substituir" || modo === "nova_versao") && (
-            <Select value={oficioAlvoId} onValueChange={setOficioAlvoId}>
-              <SelectTrigger className="bg-background border-border">
-                <SelectValue placeholder="Selecionar ofício..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {oficios.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {oficioLabel(o)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          O número, destinatário, assunto e conteúdo serão extraídos automaticamente do arquivo.
+        </p>
 
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={uploading}>
@@ -344,11 +185,11 @@ export default function UploadOficioModal({
           <Button onClick={handleSubmit} disabled={!file || uploading}>
             {uploading ? (
               <>
-                <Loader2 size={14} className="animate-spin mr-1" /> Enviando...
+                <Loader2 size={14} className="animate-spin mr-1" /> Processando...
               </>
             ) : (
               <>
-                <Upload size={14} className="mr-1" /> Subir
+                <Upload size={14} className="mr-1" /> Criar Ofício
               </>
             )}
           </Button>
