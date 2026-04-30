@@ -75,7 +75,11 @@ serve(async (req) => {
       authUrl.searchParams.set("client_id", clientId);
       authUrl.searchParams.set("redirect_uri", redirectUri);
       authUrl.searchParams.set("response_type", "code");
-      authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/documents.readonly");
+      // Full Drive permission is required because uploads are saved into an existing
+      // gabinete folder; drive.file only works reliably for files/folders created or
+      // explicitly opened by this app and can return SCOPE_INSUFFICIENT on upload.
+      authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/documents.readonly");
+      authUrl.searchParams.set("include_granted_scopes", "true");
       authUrl.searchParams.set("access_type", "offline");
       authUrl.searchParams.set("prompt", "consent");
       authUrl.searchParams.set("state", state);
