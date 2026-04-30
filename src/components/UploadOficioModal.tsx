@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -56,6 +56,12 @@ export default function UploadOficioModal({
     setOficioAlvoId(preSelectedOficioId || "");
     setUploading(false);
   }, [preSelectedOficioId]);
+
+  useEffect(() => {
+    if (!open) return;
+    setModo(preSelectedOficioId ? "substituir" : "novo");
+    setOficioAlvoId(preSelectedOficioId || "");
+  }, [open, preSelectedOficioId]);
 
   const handleFile = (f: File) => {
     if (f.size > MAX_SIZE) {
