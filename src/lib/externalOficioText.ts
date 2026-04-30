@@ -101,7 +101,14 @@ function parseExternalOficioText(rawText: string): ExtractedExternalOficio {
       ? lines.slice(assuntoStart + 1)
       : lines;
 
-  const closingIndex = bodyLines.findIndex((line) => /^(Atenciosamente|Respeitosamente|FAB[ÃA]O\b)/i.test(line));
+  const closingIndex = bodyLines.findIndex((line) => {
+    const normalized = line.replace(/\s+/g, " ").trim();
+    return (
+      /^Atenciosamente[,.]?$/i.test(normalized) ||
+      /^Respeitosamente[,.]?$/i.test(normalized) ||
+      /^FAB[ÃA]O\b/i.test(normalized)
+    );
+  });
   if (closingIndex >= 0) bodyLines = bodyLines.slice(0, closingIndex);
 
   bodyLines = bodyLines.filter((line) => !isNoiseLine(line));
