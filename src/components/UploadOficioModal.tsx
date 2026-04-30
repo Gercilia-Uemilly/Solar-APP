@@ -116,6 +116,7 @@ export default function UploadOficioModal({
         .single();
       const userName = profile?.full_name || "";
       const now = new Date().toISOString();
+      let targetOficioId: string | undefined;
 
       if (modo === "substituir" && oficioAlvoId) {
         const { error: updateError } = await supabase
@@ -140,6 +141,7 @@ export default function UploadOficioModal({
 
         if (updateError) throw updateError;
         await supabase.from("versoes_oficio" as any).delete().eq("oficio_id", oficioAlvoId);
+        targetOficioId = oficioAlvoId;
 
         toast.success("Ofício substituído e pronto para edição!", { id: toastId });
       } else if (modo === "nova_versao" && oficioAlvoId) {
@@ -171,7 +173,7 @@ export default function UploadOficioModal({
         toast.success("Nova versão adicionada!", { id: toastId });
       } else {
         // Create new ofício with external file
-        const { error: insertError } = await supabase.from("oficios").insert({
+        const { data: inserted, error: insertError } = await supabase.from("oficios").insert({
           author_id: user.id,
           numero: extracted?.numero || null,
           data_geracao: extracted?.dataGeracao || now.split("T")[0],
@@ -185,13 +187,14 @@ export default function UploadOficioModal({
           last_edited_by: user.id,
           last_edited_by_name: userName || user.email || null,
           last_edited_at: now,
-        } as any);
+        } as any).select("id").single();
 
         if (insertError) throw insertError;
+        targetOficioId = inserted?.id;
         toast.success("Ofício criado e pronto para edição!", { id: toastId });
       }
 
-      await onSuccess(modo === "substituir" ? oficioAlvoId : undefined);
+      await onSuccess(targetOficioId);
       onOpenChange(false);
       reset();
     } catch (e: any) {
