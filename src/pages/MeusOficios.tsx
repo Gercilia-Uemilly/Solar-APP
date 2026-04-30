@@ -1313,7 +1313,13 @@ export default function MeusOficios() {
         onOpenChange={setShowUploadModal}
         oficios={oficios.map(o => ({ id: o.id, numero: o.numero, assunto: o.assunto, destinatario: o.destinatario }))}
         preSelectedOficioId={uploadPreSelectedId}
-        onSuccess={fetchOficios}
+        onSuccess={async (oficioId) => {
+          await fetchOficios();
+          if (oficioId) {
+            const { data } = await supabase.from("oficios").select("*").eq("id", oficioId).single();
+            if (data) navigate("/oficios", { state: { editOficio: data } });
+          }
+        }}
       />
 
       <RealPreviewDialog
