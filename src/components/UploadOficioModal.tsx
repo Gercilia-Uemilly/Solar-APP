@@ -17,7 +17,7 @@ interface UploadOficioModalProps {
   oficios: Array<{ id: string; numero?: string | null; assunto: string; destinatario: string }>;
   /** Pre-select an ofício id (when triggered from row action) */
   preSelectedOficioId?: string | null;
-  onSuccess: () => void;
+  onSuccess: (oficioId?: string) => void | Promise<void>;
 }
 
 const ACCEPTED = ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -118,7 +118,7 @@ export default function UploadOficioModal({
       const now = new Date().toISOString();
 
       if (modo === "substituir" && oficioAlvoId) {
-        await supabase
+        const { error: updateError } = await supabase
           .from("oficios")
           .update({
             conteudo: extractedHtml,
@@ -138,9 +138,12 @@ export default function UploadOficioModal({
           } as any)
           .eq("id", oficioAlvoId);
 
+        if (updateError) throw updateError;
+        await supabase.from("versoes_oficio" as any).delete().eq("oficio_id", oficioAlvoId);
+
         toast.success("Ofício substituído e pronto para edição!", { id: toastId });
       } else if (modo === "nova_versao" && oficioAlvoId) {
-        await supabase.from("versoes_oficio" as any).insert({
+        const { error: versaoError } = await supabase.from("versoes_oficio" as any).insert({
           oficio_id: oficioAlvoId,
           arquivo_url: publicUrl,
           arquivo_nome: file.name,
@@ -149,6 +152,7 @@ export default function UploadOficioModal({
           criado_por_nome: userName,
           descricao: "Versão editada externamente",
         });
+        if (versaoError) throw versaoError;
 
         // Mark ofício as having mixed versions
         const { data: oficio } = await supabase
@@ -187,7 +191,7 @@ export default function UploadOficioModal({
         toast.success("Ofício criado e pronto para edição!", { id: toastId });
       }
 
-      onSuccess();
+      await onSuccess(modo === "substituir" ? oficioAlvoId : undefined);
       onOpenChange(false);
       reset();
     } catch (e: any) {
