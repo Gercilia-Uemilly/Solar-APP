@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Upload, FileText, Loader2, File } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { extractExternalOficioFileToHtml } from "@/lib/externalOficioText";
+import { extractExternalOficioFileData } from "@/lib/externalOficioText";
 
 type Modo = "substituir" | "nova_versao" | "novo";
 
@@ -87,7 +87,8 @@ export default function UploadOficioModal({
     const toastId = toast.loading("Processando arquivo...");
 
     try {
-      const extractedHtml = await extractExternalOficioFileToHtml(file).catch(() => "");
+      const extracted = await extractExternalOficioFileData(file).catch(() => null);
+      const extractedHtml = extracted?.html || "";
       if ((modo === "substituir" || modo === "novo") && !extractedHtml) {
         throw new Error("Não consegui converter este arquivo para texto editável. Envie um Word (.docx) ou PDF com texto selecionável para substituir o ofício.");
       }
@@ -121,6 +122,10 @@ export default function UploadOficioModal({
           .from("oficios")
           .update({
             conteudo: extractedHtml,
+            ...(extracted?.numero ? { numero: extracted.numero } : {}),
+            ...(extracted?.dataGeracao ? { data_geracao: extracted.dataGeracao } : {}),
+            ...(extracted?.assunto ? { assunto: extracted.assunto } : {}),
+            ...(extracted?.destinatario ? { destinatario: extracted.destinatario, cargo_destinatario: extracted.destinatario } : {}),
             arquivo_externo_url: null,
             arquivo_externo_nome: null,
             arquivo_externo_tipo: null,
@@ -164,8 +169,11 @@ export default function UploadOficioModal({
         // Create new ofício with external file
         const { error: insertError } = await supabase.from("oficios").insert({
           author_id: user.id,
-          assunto: file.name.replace(/\.(pdf|docx)$/i, ""),
-          destinatario: "",
+          numero: extracted?.numero || null,
+          data_geracao: extracted?.dataGeracao || now.split("T")[0],
+          assunto: extracted?.assunto || file.name.replace(/\.(pdf|docx)$/i, ""),
+          destinatario: extracted?.destinatario || "",
+          cargo_destinatario: extracted?.destinatario || null,
           status: "Rascunho",
           operador_nome: userName,
           versao: "sistema",
