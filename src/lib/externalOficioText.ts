@@ -119,35 +119,13 @@ function parseExternalOficioText(rawText: string): ExtractedExternalOficio {
 
   const vocativo = vocativoStart >= 0 ? lines[vocativoStart] : undefined;
 
-  // Body starts after vocativo, or after assunto, or after destinatário
-  const bodyStartIdx = vocativoStart >= 0
-    ? vocativoStart + 1
-    : assuntoStart >= 0
-      ? assuntoStart + 1
-      : destStart >= 0
-        ? destStart + 1
-        : 0;
-
-  // Also skip date line and "Ofício" line at the top
-  let bodyLines = lines.slice(bodyStartIdx);
-
-  // Remove header noise lines that may still be present
-  bodyLines = bodyLines.filter((line) => {
-    if (/^Of[ií]cio\s+GVF/i.test(line)) return false;
-    if (/^Uberl[âa]ndia,/i.test(line)) return false;
-    if (/^DESTINAT[ÁA]RIO\s*:?/i.test(line)) return false;
-    if (/^ASSUNTO\s*:?/i.test(line)) return false;
-    return true;
-  });
-
-  // For the body, keep old logic of vocativo start:
-  let bodyLinesFiltered = vocativoStart >= 0
+  let bodyLines = vocativoStart >= 0
     ? lines.slice(vocativoStart + 1)
     : assuntoStart >= 0
       ? lines.slice(assuntoStart + 1)
       : lines;
 
-  const closingIndex = bodyLinesFiltered.findIndex((line) => {
+  const closingIndex = bodyLines.findIndex((line) => {
     const normalized = line.replace(/\s+/g, " ").trim();
     return (
       /^Atenciosamente[,.]?$/i.test(normalized) ||
@@ -155,10 +133,10 @@ function parseExternalOficioText(rawText: string): ExtractedExternalOficio {
       /^FAB[ÃA]O\b/i.test(normalized)
     );
   });
-  if (closingIndex >= 0) bodyLinesFiltered = bodyLinesFiltered.slice(0, closingIndex);
+  if (closingIndex >= 0) bodyLines = bodyLines.slice(0, closingIndex);
 
-  bodyLinesFiltered = bodyLinesFiltered.filter((line) => !isNoiseLine(line));
-  const bodyText = bodyLinesFiltered.join("\n").trim();
+  bodyLines = bodyLines.filter((line) => !isNoiseLine(line));
+  const bodyText = bodyLines.join("\n").trim();
 
   return {
     html: textToEditorHtml(bodyText || rawText),
