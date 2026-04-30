@@ -30,7 +30,7 @@ import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
-import { extractExternalOficioUrlToHtml } from "@/lib/externalOficioText";
+import { extractExternalOficioUrlData } from "@/lib/externalOficioText";
 
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Enviado", "Respondido", "Atendido", "Arquivado"];
@@ -669,13 +669,17 @@ export default function Oficios() {
           lastEditedAt &&
           Math.abs(new Date(lastEditedAt).getTime() - new Date(arquivoExternoAt).getTime()) < 5000
         );
-        const conteudoNovo = externalSavedInContent
-          ? o.conteudo
-          : await extractExternalOficioUrlToHtml(arquivoExternoUrl, arquivoExternoNome, arquivoExternoTipo);
+        const extracted = externalSavedInContent
+          ? { html: o.conteudo || "", rawText: "" }
+          : await extractExternalOficioUrlData(arquivoExternoUrl, arquivoExternoNome, arquivoExternoTipo);
+        const conteudoNovo = extracted.html;
         if (!conteudoNovo) throw new Error("Não foi possível extrair texto editável do arquivo.");
-        o = { ...o, conteudo: conteudoNovo };
-        await supabase.from("oficios").update({
+        const updatePayload = {
           conteudo: conteudoNovo,
+          ...(extracted.numero ? { numero: extracted.numero } : {}),
+          ...(extracted.dataGeracao ? { data_geracao: extracted.dataGeracao } : {}),
+          ...(extracted.assunto ? { assunto: extracted.assunto } : {}),
+          ...(extracted.destinatario ? { destinatario: extracted.destinatario, cargo_destinatario: extracted.destinatario } : {}),
           versao: "sistema",
           arquivo_externo_url: null,
           arquivo_externo_nome: null,
@@ -685,7 +689,9 @@ export default function Oficios() {
           last_edited_by: user?.id || null,
           last_edited_by_name: profileName || user?.email || null,
           last_edited_at: new Date().toISOString(),
-        } as any).eq("id", o.id);
+        };
+        o = { ...o, ...updatePayload, ...(extracted.vocativo ? { vocativo: extracted.vocativo } : {}) } as OficioRow;
+        await supabase.from("oficios").update(updatePayload as any).eq("id", o.id);
         setEditingExternalFileContent(true);
       } catch (e: any) {
         toast({
@@ -714,6 +720,7 @@ export default function Oficios() {
     setOrigemOficio((o as any).origem || "WhatsApp Gabinete");
     const savedSecretaria = (o as any).secretaria_identificada || "";
     setSecretaria(savedSecretaria);
+    setVocativoCustom((o as any).vocativo || "");
     const content = o.conteudo || "";
     oficioEditedManuallyRef.current = false;
     setEditedOficio(content);
