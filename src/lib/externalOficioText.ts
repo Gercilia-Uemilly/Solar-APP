@@ -72,36 +72,82 @@ function parseExternalOficioText(rawText: string): ExtractedExternalOficio {
     .filter(Boolean);
 
   const joined = lines.join(" ");
-  const numero = joined.match(/Of[ií]cio\s+GVF\s*n[°ºo]?\s*([0-9]{1,5}\s*\/\s*[0-9]{4})/i)?.[1]?.replace(/\s+/g, "");
+  const numero =
+    joined.match(/Of[ií]cio\s+GVF\s*n[°ºo.]?\s*([0-9]{1,5}\s*\/\s*[0-9]{4})/i)?.[1]?.replace(/\s+/g, "") ||
+    joined.match(/Of[ií]cio\s+n[°ºo.]?\s*([0-9]{1,5}\s*\/\s*[0-9]{4})/i)?.[1]?.replace(/\s+/g, "");
   const dataGeracao = parseDate(joined);
 
-  const destStart = lines.findIndex((line) => /DESTINAT[ÁA]RIO\s*:/i.test(line));
-  const assuntoStart = lines.findIndex((line) => /ASSUNTO\s*:/i.test(line));
+  // Find DESTINATÁRIO — may or may not have colon
+  const destStart = lines.findIndex((line) => /^DESTINAT[ÁA]RIO\s*:?/i.test(line));
+  // Find ASSUNTO — may or may not have colon
+  const assuntoStart = lines.findIndex((line) => /^ASSUNTO\s*:?/i.test(line));
+
+  // Find vocativo — greeting line after header fields
+  const headerEnd = Math.max(destStart, assuntoStart);
   const vocativoStart = lines.findIndex((line, index) =>
-    index > Math.max(destStart, assuntoStart) &&
-    /(Excelent[ií]ssim|Ilustr[ií]ssim|Senhor\(a\)|Senhor\s+|Prez(a|ado|ada))/i.test(line)
+    index > headerEnd &&
+    /(Excelent[ií]ssim|Ilustr[ií]ssim|Senhor\(a\)|Senhor\s+|Prez(a|ado|ada)|Sr\.\s|Sra\.\s)/i.test(line)
   );
 
   let destinatario = "";
   if (destStart >= 0) {
-    const end = assuntoStart > destStart ? assuntoStart : destStart + 1;
-    destinatario = cleanField(lines.slice(destStart, end).join(" "));
+    // Collect lines until ASSUNTO or vocativo or next header-like line
+    const endDest = assuntoStart > destStart
+      ? assuntoStart
+      : vocativoStart > destStart
+        ? vocativoStart
+        : destStart + 3; // collect up to 3 lines
+    destinatario = cleanField(lines.slice(destStart, Math.min(endDest, destStart + 5)).join(" "));
   }
 
   let assunto = "";
   if (assuntoStart >= 0) {
-    const end = vocativoStart > assuntoStart ? vocativoStart : assuntoStart + 1;
-    assunto = cleanField(lines.slice(assuntoStart, end).join(" "));
+    const endAssunto = vocativoStart > assuntoStart
+      ? vocativoStart
+      : assuntoStart + 3;
+    assunto = cleanField(lines.slice(assuntoStart, Math.min(endAssunto, assuntoStart + 5)).join(" "));
+  }
+
+  // If we didn't find DESTINATÁRIO/ASSUNTO with labels, try to extract from nearby lines
+  if (!destinatario && !assunto) {
+    // Look for "A Sua Excelência" or similar patterns as destinatário
+    const aSuaIdx = lines.findIndex((l) => /^A\s+Su[au]\s+Excelência/i.test(l));
+    if (aSuaIdx >= 0) {
+      destinatario = lines.slice(aSuaIdx, aSuaIdx + 3).join(" ").trim();
+    }
   }
 
   const vocativo = vocativoStart >= 0 ? lines[vocativoStart] : undefined;
-  let bodyLines = vocativoStart >= 0
+
+  // Body starts after vocativo, or after assunto, or after destinatário
+  const bodyStartIdx = vocativoStart >= 0
+    ? vocativoStart + 1
+    : assuntoStart >= 0
+      ? assuntoStart + 1
+      : destStart >= 0
+        ? destStart + 1
+        : 0;
+
+  // Also skip date line and "Ofício" line at the top
+  let bodyLines = lines.slice(bodyStartIdx);
+
+  // Remove header noise lines that may still be present
+  bodyLines = bodyLines.filter((line) => {
+    if (/^Of[ií]cio\s+GVF/i.test(line)) return false;
+    if (/^Uberl[âa]ndia,/i.test(line)) return false;
+    if (/^DESTINAT[ÁA]RIO\s*:?/i.test(line)) return false;
+    if (/^ASSUNTO\s*:?/i.test(line)) return false;
+    return true;
+  });
+
+  // For the body, keep old logic of vocativo start:
+  let bodyLinesFiltered = vocativoStart >= 0
     ? lines.slice(vocativoStart + 1)
     : assuntoStart >= 0
       ? lines.slice(assuntoStart + 1)
       : lines;
 
-  const closingIndex = bodyLines.findIndex((line) => {
+  const closingIndex = bodyLinesFiltered.findIndex((line) => {
     const normalized = line.replace(/\s+/g, " ").trim();
     return (
       /^Atenciosamente[,.]?$/i.test(normalized) ||
@@ -109,10 +155,10 @@ function parseExternalOficioText(rawText: string): ExtractedExternalOficio {
       /^FAB[ÃA]O\b/i.test(normalized)
     );
   });
-  if (closingIndex >= 0) bodyLines = bodyLines.slice(0, closingIndex);
+  if (closingIndex >= 0) bodyLinesFiltered = bodyLinesFiltered.slice(0, closingIndex);
 
-  bodyLines = bodyLines.filter((line) => !isNoiseLine(line));
-  const bodyText = bodyLines.join("\n").trim();
+  bodyLinesFiltered = bodyLinesFiltered.filter((line) => !isNoiseLine(line));
+  const bodyText = bodyLinesFiltered.join("\n").trim();
 
   return {
     html: textToEditorHtml(bodyText || rawText),
