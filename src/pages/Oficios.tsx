@@ -680,7 +680,6 @@ export default function Oficios() {
           ...(extracted.dataGeracao ? { data_geracao: extracted.dataGeracao } : {}),
           ...(extracted.assunto ? { assunto: extracted.assunto } : {}),
           ...(extracted.destinatario ? { destinatario: extracted.destinatario, cargo_destinatario: extracted.destinatario } : {}),
-          ...(extracted.vocativo ? { vocativo: extracted.vocativo } : {}),
           versao: "sistema",
           arquivo_externo_url: null,
           arquivo_externo_nome: null,
@@ -691,7 +690,7 @@ export default function Oficios() {
           last_edited_by_name: profileName || user?.email || null,
           last_edited_at: new Date().toISOString(),
         };
-        o = { ...o, ...updatePayload } as OficioRow;
+        o = { ...o, ...updatePayload, ...(extracted.vocativo ? { vocativo: extracted.vocativo } : {}) } as OficioRow;
         await supabase.from("oficios").update(updatePayload as any).eq("id", o.id);
         setEditingExternalFileContent(true);
       } catch (e: any) {
