@@ -670,7 +670,7 @@ export default function Oficios() {
           Math.abs(new Date(lastEditedAt).getTime() - new Date(arquivoExternoAt).getTime()) < 5000
         );
         const extracted = externalSavedInContent
-          ? { html: o.conteudo || "" }
+          ? { html: o.conteudo || "", rawText: "" }
           : await extractExternalOficioUrlData(arquivoExternoUrl, arquivoExternoNome, arquivoExternoTipo);
         const conteudoNovo = extracted.html;
         if (!conteudoNovo) throw new Error("Não foi possível extrair texto editável do arquivo.");
