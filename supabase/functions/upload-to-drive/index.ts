@@ -324,9 +324,10 @@ serve(async (req) => {
     if (lastError) {
       // Detect scope/permission errors and return friendly message
       if (/SCOPE_INSUFFICIENT|insufficientPermissions|insufficient authentication scopes/i.test(lastError)) {
+        await supabaseAdmin.from("user_drive_tokens").delete().eq("user_id", userId);
         return new Response(
           JSON.stringify({
-            error: "Permissões insuficientes. Desconecte e reconecte seu Google Drive em Configurações para atualizar as permissões.",
+            error: "Permissões insuficientes. A conexão antiga foi removida; conecte novamente seu Google Drive em Configurações para liberar o envio.",
             needsReauth: true,
             googleEmail: userToken.googleEmail,
           }),

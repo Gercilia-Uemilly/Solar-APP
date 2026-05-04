@@ -185,6 +185,25 @@ serve(async (req) => {
 
     // ── DISCONNECT ──────────────────────────────────────────────
     if (action === "disconnect") {
+      const { data: tokenRow } = await supabaseAdmin
+        .from("user_drive_tokens")
+        .select("access_token, refresh_token")
+        .eq("user_id", userId)
+        .single();
+
+      const tokenToRevoke = tokenRow?.refresh_token || tokenRow?.access_token;
+      if (tokenToRevoke) {
+        try {
+          await fetch("https://oauth2.googleapis.com/revoke", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ token: tokenToRevoke }),
+          });
+        } catch (revokeError) {
+          console.warn("Falha ao revogar token Google; removendo vínculo local mesmo assim:", revokeError);
+        }
+      }
+
       await supabaseAdmin
         .from("user_drive_tokens")
         .delete()
