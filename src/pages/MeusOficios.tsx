@@ -28,6 +28,8 @@ import VersionHistoryDialog from "@/components/VersionHistoryDialog";
 import { saveBackupBeforeEdit } from "@/lib/oficioBackup";
 import UploadOficioModal from "@/components/UploadOficioModal";
 import RealPreviewDialog from "@/components/RealPreviewDialog";
+import DuplicateBadge from "@/components/DuplicateBadge";
+import { buildDuplicateMap } from "@/lib/duplicateDetection";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
