@@ -701,6 +701,12 @@ export default function MeusOficios() {
     return true;
   });
 
+  // Mapa de possíveis duplicatas em todos os ofícios (oficio.id -> matches)
+  const duplicateMap = useMemo(
+    () => buildDuplicateMap(oficios as OficioRow[]),
+    [oficios]
+  );
+
   const hasActiveFilters = filtroStatus !== "Todos" || filtroOperador !== "Todos" || filtroAssunto !== "Todos" || !!dateFrom || !!dateTo || !!search;
   const clearFilters = () => {
     setSearch("");
