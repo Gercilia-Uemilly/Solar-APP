@@ -931,6 +931,15 @@ export default function MeusOficios() {
                 </TableCell>
                 <TableCell>
                   <span>{o.assunto || "-"}</span>
+                  {duplicateMap.get(o.id) && (
+                    <DuplicateBadge
+                      duplicates={duplicateMap.get(o.id)!}
+                      onOpenOficio={(id) => {
+                        const target = oficios.find((x) => x.id === id);
+                        if (target) handleOpenPreview(target as OficioRow);
+                      }}
+                    />
+                  )}
                   {(o as any).editing_by && (o as any).editing_by !== user?.id && (
                     <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30">
                       ✏️ {(o as any).editing_by_name || "Alguém"} editando
