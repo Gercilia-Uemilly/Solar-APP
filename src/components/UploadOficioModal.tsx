@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, FileText, Loader2, File as FileIcon } from "lucide-react";
+import { Upload, FileText, Loader2, File as FileIcon, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { extractExternalOficioFileData } from "@/lib/externalOficioText";
+import { findDuplicates, type DuplicateMatch } from "@/lib/duplicateDetection";
+import type { OficioRow } from "@/lib/oficioUtils";
+import { cleanNumero } from "@/lib/oficioUtils";
 
 const ACCEPTED = ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const MAX_SIZE = 20 * 1024 * 1024;
@@ -39,10 +42,14 @@ export default function UploadOficioModal({
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [duplicates, setDuplicates] = useState<DuplicateMatch[] | null>(null);
+  const [pendingInsert, setPendingInsert] = useState<any | null>(null);
 
   const reset = useCallback(() => {
     setFile(null);
     setUploading(false);
+    setDuplicates(null);
+    setPendingInsert(null);
   }, []);
 
   const handleFile = (f: File) => {
@@ -62,6 +69,27 @@ export default function UploadOficioModal({
     setDragOver(false);
     const f = e.dataTransfer.files[0];
     if (f) handleFile(f);
+  };
+
+  const performInsert = async (payload: any) => {
+    const toastId = toast.loading("Criando ofício...");
+    setUploading(true);
+    try {
+      const { data: inserted, error: insertError } = await supabase
+        .from("oficios")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (insertError) throw insertError;
+      toast.success("Ofício criado e pronto para edição!", { id: toastId });
+      onOpenChange(false);
+      reset();
+      await onSuccess(inserted?.id);
+    } catch (e: any) {
+      toast.error("Erro ao subir arquivo: " + (e?.message || "Tente novamente."), { id: toastId });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -85,7 +113,7 @@ export default function UploadOficioModal({
       const userName = profile?.full_name || "";
       const now = new Date().toISOString();
 
-      const { data: inserted, error: insertError } = await supabase.from("oficios").insert({
+      const payload = {
         author_id: user.id,
         numero: extracted?.numero || null,
         data_geracao: extracted?.dataGeracao || now.split("T")[0],
@@ -99,18 +127,28 @@ export default function UploadOficioModal({
         last_edited_by: user.id,
         last_edited_by_name: userName || user.email || null,
         last_edited_at: now,
-      } as any).select("id").single();
+      };
 
-      if (insertError) throw insertError;
-      const targetOficioId = inserted?.id;
-      toast.success("Ofício criado e pronto para edição!", { id: toastId });
+      // Detecta duplicatas antes de inserir
+      const { data: existentes } = await supabase
+        .from("oficios")
+        .select("id, numero, assunto, destinatario, secretaria_identificada, bairro, solicitante, contato_solicitante, endereco_completo, local_demanda, deleted_at, status, conteudo, resposta_cidadao, author_id, created_at")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      const dups = findDuplicates(payload as any, (existentes || []) as OficioRow[]);
+      toast.dismiss(toastId);
+      setUploading(false);
 
-      onOpenChange(false);
-      reset();
-      await onSuccess(targetOficioId);
+      if (dups.length > 0) {
+        setPendingInsert(payload);
+        setDuplicates(dups);
+        return;
+      }
+
+      await performInsert(payload);
     } catch (e: any) {
       toast.error("Erro ao subir arquivo: " + (e?.message || "Tente novamente."), { id: toastId });
-    } finally {
       setUploading(false);
     }
   };
@@ -124,6 +162,57 @@ export default function UploadOficioModal({
       }}
     >
       <DialogContent className="bg-card border-border max-w-lg">
+        {duplicates && pendingInsert ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-orange-500">
+                <AlertTriangle size={18} /> Possíveis ofícios duplicados
+              </DialogTitle>
+              <DialogDescription>
+                Encontramos {duplicates.length} ofício(s) parecido(s). Confira antes de criar um novo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {duplicates.map(({ oficio, reasons, score }) => (
+                <div
+                  key={oficio.id}
+                  className="p-3 rounded border border-border"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-medium text-sm">
+                      Ofício nº {oficio.numero ? cleanNumero(oficio.numero) : "—"}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-700 dark:text-orange-400 border border-orange-500/30">
+                      {Math.round(score * 100)}% match
+                    </span>
+                  </div>
+                  <div className="text-xs text-foreground/80">{oficio.assunto || "(sem assunto)"}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {oficio.destinatario || oficio.secretaria_identificada || "—"}
+                    {oficio.bairro ? ` • ${oficio.bairro}` : ""}
+                    {oficio.solicitante ? ` • ${oficio.solicitante}` : ""}
+                  </div>
+                  <ul className="mt-1.5 flex flex-wrap gap-1">
+                    {reasons.map((r, i) => (
+                      <li key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground/80 border border-border">
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" onClick={() => { setDuplicates(null); setPendingInsert(null); }} disabled={uploading}>
+                Cancelar
+              </Button>
+              <Button onClick={() => performInsert(pendingInsert)} disabled={uploading}>
+                {uploading ? <><Loader2 size={14} className="animate-spin mr-1" /> Criando...</> : "Criar mesmo assim"}
+              </Button>
+            </div>
+          </>
+        ) : (
+        <>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload size={18} /> Subir Ofício Externo
