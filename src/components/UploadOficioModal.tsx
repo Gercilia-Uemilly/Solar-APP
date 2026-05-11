@@ -283,6 +283,8 @@ export default function UploadOficioModal({
             )}
           </Button>
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
