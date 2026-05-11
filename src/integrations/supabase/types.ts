@@ -44,7 +44,7 @@ export type Database = {
           resposta_gerada: string | null
           resumo_demanda: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           canal?: string
@@ -57,7 +57,7 @@ export type Database = {
           resposta_gerada?: string | null
           resumo_demanda?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           canal?: string
@@ -70,7 +70,7 @@ export type Database = {
           resposta_gerada?: string | null
           resumo_demanda?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1188,6 +1188,29 @@ export type Database = {
     }
     Functions: {
       backup_diario_oficios: { Args: never; Returns: undefined }
+      buscar_audio_tema: { Args: { p_tema: string }; Returns: string }
+      buscar_base_conhecimento: {
+        Args: { p_query: string }
+        Returns: {
+          categoria: string
+          descricao: string
+          link: string
+          titulo: string
+        }[]
+      }
+      criar_oficio_whatsapp: {
+        Args: {
+          p_assunto: string
+          p_bairro: string
+          p_contato: string
+          p_conteudo: string
+          p_local: string
+          p_secretaria: string
+          p_solicitante: string
+          p_tipo: string
+        }
+        Returns: string
+      }
       gerar_numero_protocolo: { Args: { p_ano: number }; Returns: string }
       get_email_by_username: { Args: { _username: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
@@ -1198,6 +1221,15 @@ export type Database = {
         Returns: boolean
       }
       liberar_reservas_expiradas: { Args: never; Returns: undefined }
+      registrar_atendimento_whatsapp: {
+        Args: {
+          p_mensagem: string
+          p_nome: string
+          p_resposta: string
+          p_resumo: string
+        }
+        Returns: string
+      }
       reservar_proximo_numero: {
         Args: {
           p_ano: number
