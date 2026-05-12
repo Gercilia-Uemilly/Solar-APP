@@ -30,8 +30,6 @@ const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const Lixeira = lazy(() => import("./pages/Lixeira"));
 const Backups = lazy(() => import("./pages/Backups"));
-const WhatsAppConectar = lazy(() => import("./pages/WhatsAppConectar"));
-const WhatsAppMensagens = lazy(() => import("./pages/WhatsAppMensagens"));
 const ChatInterno = lazy(() => import("./pages/ChatInterno"));
 const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
 const Modelos = lazy(() => import("./pages/Modelos"));
