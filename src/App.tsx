@@ -145,8 +145,6 @@ const AppRoutes = () => {
         <Route path="/instalar" element={<ProtectedRoute><AppLayout><InstalarApp /></AppLayout></ProtectedRoute>} />
         <Route path="/lixeira" element={<ProtectedRoute><AppLayout><Lixeira /></AppLayout></ProtectedRoute>} />
         <Route path="/backups" element={<AdminRoute><AppLayout><Backups /></AppLayout></AdminRoute>} />
-        <Route path="/whatsapp" element={<AdminRoute><AppLayout><WhatsAppConectar /></AppLayout></AdminRoute>} />
-        <Route path="/whatsapp-mensagens" element={<AdminRoute><AppLayout><WhatsAppMensagens /></AppLayout></AdminRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

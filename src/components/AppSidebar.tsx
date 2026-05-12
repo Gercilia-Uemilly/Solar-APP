@@ -34,8 +34,6 @@ const menuSections = [
   {
     title: "Administração",
     items: [
-      { label: "WhatsApp", icon: Smartphone, path: "/whatsapp", adminOnly: true },
-      { label: "Mensagens WA", icon: MessagesSquare, path: "/whatsapp-mensagens", adminOnly: true },
       { label: "Operadores", icon: Users, path: "/operadores", adminOnly: true },
       { label: "Relatórios", icon: BarChart3, path: "/relatorios", adminOnly: true },
       { label: "Backups", icon: DatabaseBackup, path: "/backups", adminOnly: true },
