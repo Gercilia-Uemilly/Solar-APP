@@ -113,6 +113,7 @@ export default function Oficios() {
 
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
+  const [iaPendente, setIaPendente] = useState(false);
   const [editingExternalFileContent, setEditingExternalFileContent] = useState(false);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const { anexos, setAnexos, addFile: persistAddFile, removeFile: persistRemoveFile, addLocalFile, uploadLocalFiles, reset: resetAnexos } = useAnexos(editingOficioId);
@@ -511,6 +512,9 @@ export default function Oficios() {
     if (!descricao.trim() || !editingOficioId || !showDialog) return;
     // Don't auto-save while AI is generating — it would overwrite AI results
     if (isGenerating) return;
+    // Quando o ofício veio do WhatsApp/n8n e está aguardando geração pela IA,
+    // não sobrescrevemos o conteúdo bruto com o template padrão.
+    if (iaPendente) return;
     setDescSaveStatus("● Editando...");
     const timer = setTimeout(async () => {
       // Double-check: don't overwrite if AI generated or user edited in preview
@@ -541,7 +545,7 @@ export default function Oficios() {
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [descricao, editingOficioId, showDialog, secretaria, isGenerating]);
+  }, [descricao, editingOficioId, showDialog, secretaria, isGenerating, iaPendente]);
 
 
     const filtered = oficios.filter(o => {
@@ -597,6 +601,14 @@ export default function Oficios() {
       }
       setFormTab("preview");
       toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
+      // Se este ofício veio do WhatsApp/n8n marcado como ia_pendente,
+      // limpa a flag agora que o texto oficial foi gerado.
+      if (iaPendente && editingOficioId) {
+        try {
+          await supabase.from("oficios").update({ ia_pendente: false } as any).eq("id", editingOficioId);
+          setIaPendente(false);
+        } catch (_) { /* noop */ }
+      }
     } catch (e: any) {
       console.error("Erro handleGenerateAI:", e);
       toast({ title: "Erro ao gerar", description: friendlyInvokeError(e), variant: "destructive" });
@@ -724,16 +736,31 @@ export default function Oficios() {
     setVocativoCustom((o as any).vocativo || "");
     const content = o.conteudo || "";
     oficioEditedManuallyRef.current = false;
-    setEditedOficio(content);
-    setOriginalOficio(content);
-    setOficioHistory(content ? [content] : []);
-    setHistoryIndex(content ? 0 : -1);
+    // Ofícios vindos do WhatsApp/n8n trazem a descrição bruta em `conteudo` e
+    // ficam marcados com ia_pendente=true. Nesse caso, recolocamos o texto
+    // como descrição da demanda para que o botão "Gerar Texto com IA" produza
+    // o ofício oficial — mesma lógica do formulário manual.
+    const iaPendente = Boolean((o as any).ia_pendente);
+    setIaPendente(iaPendente);
+    if (iaPendente) {
+      const descricaoBruta = content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      setDescricao(descricaoBruta);
+      setEditedOficio("");
+      setOriginalOficio("");
+      setOficioHistory([]);
+      setHistoryIndex(-1);
+    } else {
+      setEditedOficio(content);
+      setOriginalOficio(content);
+      setOficioHistory(content ? [content] : []);
+      setHistoryIndex(content ? 0 : -1);
+      setDescricao("");
+    }
     setEditedResposta(o.resposta_cidadao || "");
-    setDescricao("");
     setPrioridade("Normal");
     setLinhaTelefonica("");
-    // If we have content, go straight to preview; otherwise datos
-    setFormTab(content ? "preview" : "dados");
+    // Se IA pendente ou sem conteúdo, abre na aba Dados; senão, no preview
+    setFormTab(iaPendente || !content ? "dados" : "preview");
     setShowDialog(true);
     // Anexos are loaded automatically by useAnexos when editingOficioId changes
   };
@@ -919,6 +946,7 @@ export default function Oficios() {
   const resetForm = () => {
     setShowDialog(false);
     setEditingOficioId(null);
+    setIaPendente(false);
     destinatarioManualmenteEditadoRef.current = false;
     cargoManualmenteEditadoRef.current = false;
     setNumero("");
@@ -1428,6 +1456,20 @@ export default function Oficios() {
 
             {/* TAB: DADOS */}
             <TabsContent value="dados" className="space-y-4 mt-4">
+              {iaPendente && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-300">
+                    <Sparkles size={14} /> Ofício recebido via WhatsApp — texto oficial pendente
+                  </div>
+                  <p className="text-muted-foreground">
+                    A descrição da demanda foi carregada abaixo. Clique em <strong>Gerar Texto com IA</strong> para
+                    transformá-la no ofício oficial no padrão do gabinete. Nada mais foi alterado.
+                  </p>
+                  <Button size="sm" onClick={handleGenerateAI} disabled={isGenerating} className="bg-primary text-primary-foreground">
+                    {isGenerating ? <><Loader2 size={14} className="mr-1 animate-spin" /> Gerando...</> : <><Sparkles size={14} className="mr-1" /> Gerar Texto com IA agora</>}
+                  </Button>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício {isReservingNumber && <Loader2 size={12} className="inline animate-spin ml-1" />}</label>

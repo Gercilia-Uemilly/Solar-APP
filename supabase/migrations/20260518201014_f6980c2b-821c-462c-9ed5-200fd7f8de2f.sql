@@ -1,0 +1,2 @@
+ALTER TABLE public.oficios ADD COLUMN IF NOT EXISTS ia_pendente boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_oficios_ia_pendente ON public.oficios(ia_pendente) WHERE ia_pendente = true;
