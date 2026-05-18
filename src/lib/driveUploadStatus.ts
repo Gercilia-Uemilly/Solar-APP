@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 export function isDriveAuthRequired(payload: any) {
   return Boolean(payload?.needsAuth || payload?.needsReauth);
 }
