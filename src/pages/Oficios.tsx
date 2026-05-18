@@ -19,6 +19,7 @@ import { registrarAuditoria } from "@/lib/auditLog";
 import { enqueueExport } from "@/lib/exportQueue";
 import { comprimirImagem } from "@/lib/imageCompression";
 import { invokeWithRetry, friendlyInvokeError } from "@/lib/invokeWithRetry";
+import { getDriveAuthDescription, getDriveErrorMessage, isDriveAuthRequired } from "@/lib/driveUploadStatus";
 
 import { generateOperatorCode, type OficioRow, LISTA_SECRETARIAS, getDestinatario, getVocativo, getNomeOrgao, gerarEncerramentoDinamico } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -1098,12 +1099,12 @@ export default function Oficios() {
       });
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
-        if (err.needsAuth) {
-          toast({ title: "🔗 Google Drive não conectado", description: "Vá em Configurações → Google Drive → Conectar para vincular sua conta.", variant: "destructive", duration: 8000 });
+        if (isDriveAuthRequired(err)) {
+          toast({ title: "🔗 Google Drive precisa ser conectado", description: getDriveAuthDescription(err), variant: "destructive", duration: 8000 });
           navigate("/configuracoes");
           return;
         }
-        throw new Error(err.error || "Erro ao enviar para o Drive");
+        throw new Error(getDriveErrorMessage(err));
       }
       const driveResult = await driveResp.json();
       if (driveResult.driveLink) {
