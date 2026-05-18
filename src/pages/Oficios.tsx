@@ -598,6 +598,14 @@ export default function Oficios() {
       }
       setFormTab("preview");
       toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
+      // Se este ofício veio do WhatsApp/n8n marcado como ia_pendente,
+      // limpa a flag agora que o texto oficial foi gerado.
+      if (iaPendente && editingOficioId) {
+        try {
+          await supabase.from("oficios").update({ ia_pendente: false } as any).eq("id", editingOficioId);
+          setIaPendente(false);
+        } catch (_) { /* noop */ }
+      }
     } catch (e: any) {
       console.error("Erro handleGenerateAI:", e);
       toast({ title: "Erro ao gerar", description: friendlyInvokeError(e), variant: "destructive" });
