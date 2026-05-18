@@ -30,6 +30,7 @@ import UploadOficioModal from "@/components/UploadOficioModal";
 import RealPreviewDialog from "@/components/RealPreviewDialog";
 import DuplicateBadge from "@/components/DuplicateBadge";
 import { buildDuplicateMap } from "@/lib/duplicateDetection";
+import { ensureDriveConnected, getDriveAuthDescription, getDriveErrorMessage, isDriveAuthRequired } from "@/lib/driveUploadStatus";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -468,6 +469,11 @@ export default function MeusOficios() {
         return;
       }
       const authToken = accessToken;
+      if (!(await ensureDriveConnected(authToken))) {
+        toast({ title: "🔗 Google Drive precisa ser conectado", description: getDriveAuthDescription({ needsAuth: true }), variant: "destructive", duration: 8000 });
+        navigate("/configuracoes");
+        return;
+      }
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
@@ -505,17 +511,17 @@ export default function MeusOficios() {
       });
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
-        if (err.needsAuth) {
+        if (isDriveAuthRequired(err)) {
           toast({
-            title: "🔗 Google Drive não conectado",
-            description: "Vá em Configurações → Google Drive → Conectar para vincular sua conta Google antes de enviar arquivos.",
+            title: "🔗 Google Drive precisa ser conectado",
+            description: getDriveAuthDescription(err),
             variant: "destructive",
             duration: 8000,
           });
           navigate("/configuracoes");
           return;
         }
-        throw new Error(err.error || "Erro ao enviar para o Drive");
+        throw new Error(getDriveErrorMessage(err));
       }
       const driveResult = await driveResp.json();
       if (driveResult.driveLink) {
@@ -619,6 +625,11 @@ export default function MeusOficios() {
 
       // 5. Upload to Drive (somente PDF final, para manter o mesmo layout do export)
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!(await ensureDriveConnected(authToken))) {
+        toast({ title: "🔗 Google Drive precisa ser conectado", description: getDriveAuthDescription({ needsAuth: true }), variant: "destructive", duration: 8000 });
+        navigate("/configuracoes");
+        return;
+      }
       if (!pdfBlob) {
         toast({
           title: "PDF do Drive não foi gerado",
@@ -646,11 +657,11 @@ export default function MeusOficios() {
       
       if (!driveResp.ok) {
         const err = await driveResp.json().catch(() => ({}));
-        if (err.needsAuth) {
-          toast({ title: "🔗 Google Drive não conectado", description: "Vá em Configurações → Google Drive → Conectar para vincular sua conta.", variant: "destructive", duration: 8000 });
+        if (isDriveAuthRequired(err)) {
+          toast({ title: "🔗 Google Drive precisa ser conectado", description: getDriveAuthDescription(err), variant: "destructive", duration: 8000 });
           navigate("/configuracoes");
         } else {
-          toast({ title: "PDF e Word baixados, mas erro no Drive", description: err.error || "Tente enviar ao Drive separadamente.", variant: "destructive" });
+          toast({ title: "PDF e Word baixados, mas erro no Drive", description: getDriveErrorMessage(err, "Tente enviar ao Drive separadamente."), variant: "destructive" });
         }
         return;
       }
