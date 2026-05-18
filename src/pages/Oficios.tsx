@@ -113,6 +113,7 @@ export default function Oficios() {
 
   // Edit state
   const [editingOficioId, setEditingOficioId] = useState<string | null>(null);
+  const [iaPendente, setIaPendente] = useState(false);
   const [editingExternalFileContent, setEditingExternalFileContent] = useState(false);
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(defaultFormatOptions);
   const { anexos, setAnexos, addFile: persistAddFile, removeFile: persistRemoveFile, addLocalFile, uploadLocalFiles, reset: resetAnexos } = useAnexos(editingOficioId);
