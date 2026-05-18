@@ -1452,6 +1452,20 @@ export default function Oficios() {
 
             {/* TAB: DADOS */}
             <TabsContent value="dados" className="space-y-4 mt-4">
+              {iaPendente && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-300">
+                    <Sparkles size={14} /> Ofício recebido via WhatsApp — texto oficial pendente
+                  </div>
+                  <p className="text-muted-foreground">
+                    A descrição da demanda foi carregada abaixo. Clique em <strong>Gerar Texto com IA</strong> para
+                    transformá-la no ofício oficial no padrão do gabinete. Nada mais foi alterado.
+                  </p>
+                  <Button size="sm" onClick={handleGenerateAI} disabled={isGenerating} className="bg-primary text-primary-foreground">
+                    {isGenerating ? <><Loader2 size={14} className="mr-1 animate-spin" /> Gerando...</> : <><Sparkles size={14} className="mr-1" /> Gerar Texto com IA agora</>}
+                  </Button>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Número do Ofício {isReservingNumber && <Loader2 size={12} className="inline animate-spin ml-1" />}</label>
