@@ -19,7 +19,7 @@ import { registrarAuditoria } from "@/lib/auditLog";
 import { enqueueExport } from "@/lib/exportQueue";
 import { comprimirImagem } from "@/lib/imageCompression";
 import { invokeWithRetry, friendlyInvokeError } from "@/lib/invokeWithRetry";
-import { getDriveAuthDescription, getDriveErrorMessage, isDriveAuthRequired } from "@/lib/driveUploadStatus";
+import { ensureDriveConnected, getDriveAuthDescription, getDriveErrorMessage, isDriveAuthRequired } from "@/lib/driveUploadStatus";
 
 import { generateOperatorCode, type OficioRow, LISTA_SECRETARIAS, getDestinatario, getVocativo, getNomeOrgao, gerarEncerramentoDinamico } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -1067,6 +1067,11 @@ export default function Oficios() {
       }
 
       const authToken = accessToken;
+      if (!(await ensureDriveConnected(authToken))) {
+        toast({ title: "🔗 Google Drive precisa ser conectado", description: getDriveAuthDescription({ needsAuth: true }), variant: "destructive", duration: 8000 });
+        navigate("/configuracoes");
+        return;
+      }
       // Use buildFormExportData to capture exactly what's in the preview
       const data = await buildFormExportData();
       const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
