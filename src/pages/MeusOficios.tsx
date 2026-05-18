@@ -30,7 +30,7 @@ import UploadOficioModal from "@/components/UploadOficioModal";
 import RealPreviewDialog from "@/components/RealPreviewDialog";
 import DuplicateBadge from "@/components/DuplicateBadge";
 import { buildDuplicateMap } from "@/lib/duplicateDetection";
-import { getDriveAuthDescription, getDriveErrorMessage, isDriveAuthRequired } from "@/lib/driveUploadStatus";
+import { ensureDriveConnected, getDriveAuthDescription, getDriveErrorMessage, isDriveAuthRequired } from "@/lib/driveUploadStatus";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -469,6 +469,11 @@ export default function MeusOficios() {
         return;
       }
       const authToken = accessToken;
+      if (!(await ensureDriveConnected(authToken))) {
+        toast({ title: "🔗 Google Drive precisa ser conectado", description: getDriveAuthDescription({ needsAuth: true }), variant: "destructive", duration: 8000 });
+        navigate("/configuracoes");
+        return;
+      }
       const data = buildExportData(oficio);
       const imgs = await fetchSavedImages(oficio.id);
       const baseFileName = buildFileName(data.numero, data.solicitante, data.codigoZ, data.contatoSolicitante, (data as any).origem);
@@ -620,6 +625,11 @@ export default function MeusOficios() {
 
       // 5. Upload to Drive (somente PDF final, para manter o mesmo layout do export)
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!(await ensureDriveConnected(authToken))) {
+        toast({ title: "🔗 Google Drive precisa ser conectado", description: getDriveAuthDescription({ needsAuth: true }), variant: "destructive", duration: 8000 });
+        navigate("/configuracoes");
+        return;
+      }
       if (!pdfBlob) {
         toast({
           title: "PDF do Drive não foi gerado",
