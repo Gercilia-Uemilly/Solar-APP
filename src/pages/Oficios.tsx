@@ -512,6 +512,9 @@ export default function Oficios() {
     if (!descricao.trim() || !editingOficioId || !showDialog) return;
     // Don't auto-save while AI is generating — it would overwrite AI results
     if (isGenerating) return;
+    // Quando o ofício veio do WhatsApp/n8n e está aguardando geração pela IA,
+    // não sobrescrevemos o conteúdo bruto com o template padrão.
+    if (iaPendente) return;
     setDescSaveStatus("● Editando...");
     const timer = setTimeout(async () => {
       // Double-check: don't overwrite if AI generated or user edited in preview
@@ -542,7 +545,7 @@ export default function Oficios() {
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [descricao, editingOficioId, showDialog, secretaria, isGenerating]);
+  }, [descricao, editingOficioId, showDialog, secretaria, isGenerating, iaPendente]);
 
 
     const filtered = oficios.filter(o => {
