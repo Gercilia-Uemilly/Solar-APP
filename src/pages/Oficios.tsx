@@ -943,6 +943,7 @@ export default function Oficios() {
   const resetForm = () => {
     setShowDialog(false);
     setEditingOficioId(null);
+    setIaPendente(false);
     destinatarioManualmenteEditadoRef.current = false;
     cargoManualmenteEditadoRef.current = false;
     setNumero("");
