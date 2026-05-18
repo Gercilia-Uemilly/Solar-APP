@@ -724,16 +724,31 @@ export default function Oficios() {
     setVocativoCustom((o as any).vocativo || "");
     const content = o.conteudo || "";
     oficioEditedManuallyRef.current = false;
-    setEditedOficio(content);
-    setOriginalOficio(content);
-    setOficioHistory(content ? [content] : []);
-    setHistoryIndex(content ? 0 : -1);
+    // Ofícios vindos do WhatsApp/n8n trazem a descrição bruta em `conteudo` e
+    // ficam marcados com ia_pendente=true. Nesse caso, recolocamos o texto
+    // como descrição da demanda para que o botão "Gerar Texto com IA" produza
+    // o ofício oficial — mesma lógica do formulário manual.
+    const iaPendente = Boolean((o as any).ia_pendente);
+    setIaPendente(iaPendente);
+    if (iaPendente) {
+      const descricaoBruta = content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      setDescricao(descricaoBruta);
+      setEditedOficio("");
+      setOriginalOficio("");
+      setOficioHistory([]);
+      setHistoryIndex(-1);
+    } else {
+      setEditedOficio(content);
+      setOriginalOficio(content);
+      setOficioHistory(content ? [content] : []);
+      setHistoryIndex(content ? 0 : -1);
+      setDescricao("");
+    }
     setEditedResposta(o.resposta_cidadao || "");
-    setDescricao("");
     setPrioridade("Normal");
     setLinhaTelefonica("");
-    // If we have content, go straight to preview; otherwise datos
-    setFormTab(content ? "preview" : "dados");
+    // Se IA pendente ou sem conteúdo, abre na aba Dados; senão, no preview
+    setFormTab(iaPendente || !content ? "dados" : "preview");
     setShowDialog(true);
     // Anexos are loaded automatically by useAnexos when editingOficioId changes
   };
