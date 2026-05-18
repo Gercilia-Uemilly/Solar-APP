@@ -517,6 +517,7 @@ export type Database = {
           editing_by_name: string | null
           editing_since: string | null
           endereco_completo: string | null
+          ia_gerada: boolean
           ia_pendente: boolean
           id: string
           last_edited_at: string | null
@@ -567,6 +568,7 @@ export type Database = {
           editing_by_name?: string | null
           editing_since?: string | null
           endereco_completo?: string | null
+          ia_gerada?: boolean
           ia_pendente?: boolean
           id?: string
           last_edited_at?: string | null
@@ -617,6 +619,7 @@ export type Database = {
           editing_by_name?: string | null
           editing_since?: string | null
           endereco_completo?: string | null
+          ia_gerada?: boolean
           ia_pendente?: boolean
           id?: string
           last_edited_at?: string | null
