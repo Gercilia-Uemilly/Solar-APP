@@ -8,8 +8,8 @@ const corsHeaders = {
 };
 
 const SECRETARIA_MAP: Record<string, string[]> = {
-  "Serviços Urbanos": ["capina","roçagem","limpeza","poda","árvore","iluminação","poste","lâmpada","coleta","lixo","entulho","bueiro","calçada","praça","parque"],
-  "Infraestrutura": ["buraco","asfalto","pavimentação","tapa-buraco","recapeamento","erosão","obra","ponte","viaduto","estrada"],
+  "Serviços Urbanos": ["capina","roçagem","limpeza","poda","árvore","iluminação","poste","lâmpada","coleta","lixo","entulho","bueiro","calçada","praça","parque","buraco","tapa-buraco","tapa buraco","asfalto","pavimentação","recapeamento"],
+  "Infraestrutura": ["erosão","obra","ponte","viaduto","estrada"],
   "Saúde": ["saúde","UBS","hospital","posto de saúde","médico","dengue","fumacê","vacina","ambulância","SAMU","UPA"],
   "Trânsito e Transportes (SETTRAN)": ["trânsito","semáforo","sinalização","faixa de pedestre","lombada","quebra-mola","quebra mola","redutor de velocidade","ônibus","transporte"],
   "Gestão Ambiental e Sustentabilidade": ["meio ambiente","ambiental","desmatamento","queimada","poluição","córrego","nascente"],
@@ -247,19 +247,34 @@ Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágra
       );
     }
 
-    let parsed;
+    let parsed: any;
+    const cleaned = result.text.replace(/```json/g, "").replace(/```/g, "").trim();
     try {
-      const cleaned = result.text.replace(/```json/g, "").replace(/```/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
+      // Fallback robusto: extrai os campos via regex para evitar que o JSON cru vaze no conteúdo do ofício.
+      const oficioMatch = cleaned.match(/"oficio"\s*:\s*"((?:\\.|[^"\\])*)"/);
+      const assuntoMatch = cleaned.match(/"assunto_sugerido"\s*:\s*"((?:\\.|[^"\\])*)"/);
+      const secMatch = cleaned.match(/"secretaria_identificada"\s*:\s*"((?:\\.|[^"\\])*)"/);
+      const tipoMatch = cleaned.match(/"tipo_demanda"\s*:\s*"((?:\\.|[^"\\])*)"/);
+      const urgMatch = cleaned.match(/"urgencia"\s*:\s*"((?:\\.|[^"\\])*)"/);
+      const unescape = (s: string) => s.replace(/\\"/g, '"').replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
       parsed = {
-        oficio: result.text,
-        assunto_sugerido: "",
-        secretaria_identificada: secretariaDetectada,
-        tipo_demanda: "Solicitação",
-        urgencia: prioridade === "Urgente" ? "urgente" : "normal",
+        oficio: oficioMatch ? unescape(oficioMatch[1]) : cleaned.replace(/^\{.*?"oficio"\s*:\s*"/s, "").replace(/",\s*"assunto_sugerido".*$/s, ""),
+        assunto_sugerido: assuntoMatch ? unescape(assuntoMatch[1]) : "",
+        secretaria_identificada: secMatch ? unescape(secMatch[1]) : secretariaDetectada,
+        tipo_demanda: tipoMatch ? unescape(tipoMatch[1]) : "Solicitação",
+        urgencia: urgMatch ? unescape(urgMatch[1]) : (prioridade === "Urgente" ? "urgente" : "normal"),
         sugestoes_melhoria: [],
       };
+    }
+
+    // Sanitiza: se o oficio ainda contém vestígios do JSON ({"oficio": ou ,"assunto_sugerido"), limpa.
+    if (typeof parsed.oficio === "string") {
+      parsed.oficio = parsed.oficio
+        .replace(/^\s*\{\s*"oficio"\s*:\s*"/, "")
+        .replace(/"\s*,\s*"assunto_sugerido"[\s\S]*$/, "")
+        .replace(/\}\s*$/, "");
     }
 
     if (!parsed.secretaria_identificada && secretariaDetectada) {
