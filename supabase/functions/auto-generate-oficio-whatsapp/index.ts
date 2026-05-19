@@ -62,12 +62,15 @@ serve(async (req) => {
       });
     }
 
-    // Reaproveita EXATAMENTE a mesma lógica do botão "Gerar Texto com IA"
+    // Reaproveita EXATAMENTE a mesma lógica do botão "Gerar Texto com IA".
+    // Sempre passa "Solicitação" como tipo para que a detecção automática de
+    // secretaria pelo conteúdo da descrição seja usada (evita mapeamentos
+    // errados vindos do n8n, ex.: tapa-buraco -> "Obras").
     const payload = {
       assunto: oficio.assunto || "",
       destinatario: oficio.destinatario || "",
       descricao: descricaoBruta,
-      tipo: oficio.secretaria_identificada || oficio.tipo_demanda || "Solicitação",
+      tipo: "Solicitação",
       solicitante: oficio.solicitante || "",
       bairro: oficio.bairro || "",
       prioridade: oficio.urgencia === "urgente" ? "Urgente" : "Normal",
@@ -95,12 +98,50 @@ serve(async (req) => {
     }
 
     const data = await genResp.json();
-    const oficioText = data.oficio || data.text || "";
+    let oficioText: string = data.oficio || data.text || "";
+
+    // Defesa em profundidade: se vier um JSON serializado dentro de oficio, extrai o HTML.
+    if (typeof oficioText === "string" && oficioText.trim().startsWith("{") && oficioText.includes('"oficio"')) {
+      try {
+        const reparsed = JSON.parse(oficioText);
+        if (reparsed?.oficio) oficioText = reparsed.oficio;
+      } catch {
+        const m = oficioText.match(/"oficio"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        if (m) oficioText = m[1].replace(/\\"/g, '"').replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
+      }
+    }
+    // Limpa qualquer cauda de JSON que tenha vazado.
+    if (typeof oficioText === "string") {
+      oficioText = oficioText
+        .replace(/^\s*\{\s*"oficio"\s*:\s*"/, "")
+        .replace(/"\s*,\s*"assunto_sugerido"[\s\S]*$/, "")
+        .replace(/\}\s*$/, "")
+        .trim();
+    }
+
     if (!oficioText) {
       return new Response(JSON.stringify({ error: "Resposta vazia da IA" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Reserva número se ainda não houver
+    let numeroReservado: string | null = null;
+    const numeroAtual = (oficio.numero || "").trim();
+    const semNumero = !numeroAtual || /n[º°o]?\s*_+/i.test(numeroAtual) || numeroAtual.toLowerCase() === "ofício gvf n° ___";
+    if (semNumero) {
+      const ano = oficio.ano || new Date().getFullYear();
+      const { data: numData, error: numErr } = await admin.rpc("reservar_proximo_numero", {
+        p_ano: ano,
+        p_user_id: oficio.author_id || "00000000-0000-0000-0000-000000000000",
+        p_user_nome: oficio.operador_nome || "WhatsApp Bot",
+      });
+      if (!numErr && numData) {
+        numeroReservado = `Ofício GVF n° ${numData}/${ano}`;
+      } else {
+        console.warn("Falha ao reservar número:", numErr?.message);
+      }
     }
 
     const updatePayload: Record<string, any> = {
@@ -110,8 +151,14 @@ serve(async (req) => {
       resposta_cidadao: oficio.resposta_cidadao || data.resposta_cidadao || null,
       updated_at: new Date().toISOString(),
     };
+    if (numeroReservado) updatePayload.numero = numeroReservado;
     if (data.assunto_sugerido && !oficio.assunto) updatePayload.assunto = data.assunto_sugerido;
     if (data.secretaria_identificada && !oficio.secretaria_identificada) {
+      updatePayload.secretaria_identificada = data.secretaria_identificada;
+    }
+    // Sempre sobrescreve secretaria detectada pela IA (descrição é a fonte da verdade
+    // para ofícios vindos do bot — o n8n pode ter mandado a secretaria errada).
+    if (data.secretaria_identificada) {
       updatePayload.secretaria_identificada = data.secretaria_identificada;
     }
 
