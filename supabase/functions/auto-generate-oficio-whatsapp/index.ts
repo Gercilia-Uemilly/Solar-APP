@@ -115,7 +115,13 @@ serve(async (req) => {
       oficioText = oficioText
         .replace(/^\s*\{\s*"oficio"\s*:\s*"/, "")
         .replace(/"\s*,\s*"assunto_sugerido"[\s\S]*$/, "")
+        .replace(/,?\s*"assunto_sugerido"[\s\S]*$/, "")
+        .replace(/,?\s*"secretaria_identificada"[\s\S]*$/, "")
+        .replace(/,?\s*"tipo_demanda"[\s\S]*$/, "")
+        .replace(/,?\s*"urgencia"[\s\S]*$/, "")
+        .replace(/,?\s*"sugestoes_melhoria"[\s\S]*$/, "")
         .replace(/\}\s*$/, "")
+        .replace(/["}\s,]+$/g, "")
         .trim();
     }
 
