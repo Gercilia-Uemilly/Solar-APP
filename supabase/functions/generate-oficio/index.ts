@@ -85,6 +85,20 @@ function getNomeOrgaoForSecretaria(s: string): string {
   if (m[normalized]) return m[normalized];
   // Strip parenthetical abbreviations before building the full name
   const cleanName = normalized.replace(/\s*\([^)]+\)\s*/g, '').trim();
+  // If the name already represents a non-secretaria public organ, return as-is
+  // (avoid prefixing "Secretaria Municipal de" to Hospital, CEMIG, DMAE etc.)
+  const nonSecretariaPrefixes = [
+    'Hospital', 'Departamento', 'Companhia', 'Polícia', 'Policia',
+    'Agência', 'Agencia', 'Fundação', 'Fundacao', 'Instituto', 'Empresa',
+    'Conservatório', 'Conservatorio', 'Câmara', 'Camara', 'Gabinete',
+    'Prefeitura', 'Ministério', 'Ministerio', 'Superintendência', 'Superintendencia',
+    'Batalhão', 'Batalhao', 'Processamento', 'PROCON', 'DNIT', 'DER',
+    'CEMIG', 'HC/UFU', 'PMMG', 'ARESAN', 'DMAE', 'FUTEL', 'IPREMU',
+    'EMAM', 'FERUB', 'PRODAUB', 'MPMG', 'Universidade'
+  ];
+  if (cleanName && nonSecretariaPrefixes.some(p => cleanName.startsWith(p))) {
+    return cleanName;
+  }
   if (cleanName) return `Secretaria Municipal de ${cleanName}`;
   return normalized;
 }
