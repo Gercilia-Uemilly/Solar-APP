@@ -46,8 +46,10 @@ serve(async (req) => {
       });
     }
 
-    // Segurança: só processa o que veio do bot e ainda está pendente
-    if (oficio.origem !== "whatsapp_bot" || oficio.ia_pendente !== true || oficio.ia_gerada === true) {
+    // Segurança: só processa o que veio do bot e ainda não foi gerado pela IA.
+    // (Não dependemos mais de ia_pendente: o n8n às vezes envia false e
+    //  os ofícios ficavam com o template cru.)
+    if (oficio.origem !== "whatsapp_bot" || oficio.ia_gerada === true) {
       return new Response(JSON.stringify({ skipped: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
