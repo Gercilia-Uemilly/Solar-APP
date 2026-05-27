@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -168,7 +169,7 @@ export default function VersionHistoryDialog({ oficioId, oficioNumero, onRestore
                   <h4 className="font-medium text-foreground mb-2">Conteúdo</h4>
                   <div
                     className="prose prose-sm max-w-none bg-muted/30 rounded-lg p-4 border border-border text-foreground"
-                    dangerouslySetInnerHTML={{ __html: preview.dados.conteudo }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.dados.conteudo || "") }}
                   />
                 </div>
               )}
