@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -256,7 +257,7 @@ export default function Backups() {
                   <h4 className="font-medium text-foreground mb-2">Conteúdo do Ofício</h4>
                   <div
                     className="prose prose-sm max-w-none bg-muted/30 rounded-lg p-4 border border-border text-foreground"
-                    dangerouslySetInnerHTML={{ __html: previewBackup.dados.conteudo }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewBackup.dados.conteudo || "") }}
                   />
                 </div>
               )}
