@@ -478,6 +478,18 @@ serve(async (req) => {
             const msg = getErrorMessage(e);
             providerErrors.push(`GoogleDrive: ${msg}`);
             console.error("GoogleDrive failed, trying next provider:", e);
+            // Token com escopo insuficiente (usuário conectou antes de incluirmos
+            // drive.file) fica zumbi e sempre falha. Removemos para forçar nova
+            // autorização da próxima vez.
+            if (/ACCESS_TOKEN_SCOPE_INSUFFICIENT|insufficientPermissions|insufficient.+scope/i.test(msg)) {
+              try {
+                const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+                await supabaseAdmin.from("user_drive_tokens").delete().eq("user_id", user.id);
+                console.log(`[convert-to-pdf] Token Drive do usuário ${user.id} removido (escopo insuficiente).`);
+              } catch (delErr) {
+                console.warn("Falha ao remover token Drive zumbi:", delErr);
+              }
+            }
           }
         }
       } catch (e) {
