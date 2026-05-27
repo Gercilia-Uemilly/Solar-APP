@@ -387,11 +387,21 @@ async function convertWithGoogleDrive(
     return await exportGoogleDocToPdf(accessToken, tempFileId);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    // ⚠️ Quota exceeded em Service Account é PERMANENTE (não adianta limpar lixeira
-    // de uma conta de serviço que já está cheia). Apenas relança para o próximo
-    // provider — retentar consome CPU e leva ao WORKER_RESOURCE_LIMIT.
-    if (msg.includes("storageQuotaExceeded") || msg.includes("quota")) {
-      console.log("[convertWithGoogleDrive] Quota exceeded — pulando provider sem retry");
+    // ⚠️ Quando dá storageQuotaExceeded (típico em service account com lixeira cheia
+    //   de arquivos antigos tmp_convert_*), tentamos limpar e fazer UMA retry. Se
+    //   continuar falhando, propagamos para o próximo provider.
+    if (msg.includes("storageQuotaExceeded") || msg.includes("quotaExceeded")) {
+      console.log("[convertWithGoogleDrive] Quota exceeded — tentando limpar lixeira/temp e retry uma vez");
+      try {
+        await cleanupOldTempFiles(accessToken);
+        await emptyDriveTrash(accessToken);
+        tempFileId = await uploadDocxAsGoogleDoc(accessToken, docxBytes, filename);
+        return await exportGoogleDocToPdf(accessToken, tempFileId);
+      } catch (retryErr) {
+        const rmsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+        console.log("[convertWithGoogleDrive] Retry após cleanup também falhou:", rmsg);
+        throw retryErr;
+      }
     }
     throw e;
   } finally {
