@@ -28,14 +28,10 @@ export default class ErrorBoundary extends Component<Props, State> {
       const { data: { user } } = await supabase.auth.getUser();
       await (supabase as any).from("error_logs").insert({
         user_id: user?.id ?? null,
-        message: error.message.slice(0, 500),
-        stack: info.componentStack?.slice(0, 3000) ?? null,
-        context: "ErrorBoundary",
-        url: window.location.pathname,
-        extra: {
-          userAgent: navigator.userAgent,
-          errorName: error.name,
-        },
+        error_message: error.message.slice(0, 500),
+        error_stack: (error.stack || "").slice(0, 3000) || null,
+        component_stack: info.componentStack?.slice(0, 3000) || null,
+        url: window.location.href,
       });
       this.setState({ logged: true });
     } catch {
