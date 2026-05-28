@@ -184,7 +184,6 @@ function TicketForm({ onClose }: { onClose: () => void }) {
 
     setSending(true);
     try {
-      // Upload screenshot if any
       let screenshotUrl: string | null = null;
       if (screenshot) {
         const ext = screenshot.name.split(".").pop() || "png";
@@ -198,7 +197,6 @@ function TicketForm({ onClose }: { onClose: () => void }) {
         }
       }
 
-      // Fetch profile for name/email
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, email")
@@ -436,6 +434,11 @@ export default function Ajuda() {
 
   useEffect(() => {
     document.title = "Ajuda — Manual Rápido";
+
+    // Abre o modal automaticamente quando o ErrorBoundary redireciona para cá
+    const handler = () => setTicketOpen(true);
+    window.addEventListener("solar:abrir-chamado", handler);
+    return () => window.removeEventListener("solar:abrir-chamado", handler);
   }, []);
 
   return (
