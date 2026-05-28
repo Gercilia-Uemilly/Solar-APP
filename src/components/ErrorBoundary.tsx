@@ -26,7 +26,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   private async logRemoto(error: Error, info: ErrorInfo) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("error_logs").insert({
+      await (supabase.from("error_logs") as any).insert({
         user_id: user?.id ?? null,
         message: error.message.slice(0, 500),
         stack: info.componentStack?.slice(0, 3000) ?? null,
