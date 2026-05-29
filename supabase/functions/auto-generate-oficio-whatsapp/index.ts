@@ -156,6 +156,7 @@ serve(async (req) => {
       conteudo: oficioText,
       ia_pendente: false,
       ia_gerada: true,
+      status: "Finalizado",
       resposta_cidadao: oficio.resposta_cidadao || data.resposta_cidadao || null,
       updated_at: new Date().toISOString(),
     };
