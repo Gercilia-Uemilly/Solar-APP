@@ -10,9 +10,11 @@ export function useOficios() {
   const [oficios, setOficios] = useState<OficioRow[]>([]);
   const [loading, setLoading] = useState(true);
   const isMounted = useRef(true);
+  const lastFetchRef = useRef<number>(0);
 
   const fetchOficios = useCallback(async () => {
     setLoading(true);
+    lastFetchRef.current = Date.now();
     const { data, error } = await supabase
       .from("oficios")
       .select("*")
@@ -74,9 +76,14 @@ export function useOficios() {
       )
       .subscribe();
 
-    // Refetch on window focus for cross-device sync
+    // Refetch on window focus (throttled — realtime already keeps us in sync,
+    // and the full list is ~1MB so refetching on every focus is expensive)
     const handleFocus = () => {
-      if (isMounted.current) fetchOficios();
+      if (!isMounted.current) return;
+      const now = Date.now();
+      if (now - lastFetchRef.current < 30000) return;
+      lastFetchRef.current = now;
+      fetchOficios();
     };
     window.addEventListener("focus", handleFocus);
 
