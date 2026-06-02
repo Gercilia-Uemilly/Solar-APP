@@ -60,14 +60,20 @@ export function useGlobalSync() {
         console.log("[Solar] Realtime sync:", status);
       });
 
-    // Fallback: refresh every 15s
-    const fallback = setInterval(() => {
+    // Throttle global invalidations to avoid massive refetch storms
+    // (each oficios list = ~1MB; refetching on every focus kills perf)
+    let lastInvalidate = Date.now();
+    const throttledInvalidate = () => {
+      const now = Date.now();
+      if (now - lastInvalidate < 30000) return; // no more than once per 30s
+      lastInvalidate = now;
       queryClient.invalidateQueries();
-    }, 15000);
+    };
 
     // Online/offline detection
     const handleOnline = () => {
-      queryClient.invalidateQueries();
+      lastInvalidate = 0;
+      throttledInvalidate();
       toast.success("Conexão restaurada!");
     };
     const handleOffline = () => {
@@ -76,21 +82,16 @@ export function useGlobalSync() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Focus and visibility — refresh everything when user returns
-    const handleFocus = () => {
-      queryClient.invalidateQueries();
-    };
+    // Focus and visibility — throttled refresh when user returns
+    const handleFocus = () => throttledInvalidate();
     const handleVisibility = () => {
-      if (!document.hidden) {
-        queryClient.invalidateQueries();
-      }
+      if (!document.hidden) throttledInvalidate();
     };
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(fallback);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("focus", handleFocus);
