@@ -14,6 +14,7 @@ export function useOficios() {
 
   const fetchOficios = useCallback(async () => {
     setLoading(true);
+    lastFetchRef.current = Date.now();
     const { data, error } = await supabase
       .from("oficios")
       .select("*")
