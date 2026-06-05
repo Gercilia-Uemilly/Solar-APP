@@ -185,14 +185,6 @@ export default function AppSidebar({ collapsed, onToggle, onOpenTour, onOpenSupp
           <HelpCircle size={15} strokeWidth={1.5} className="flex-shrink-0" />
           {!collapsed && <span>Tutorial</span>}
         </button>
-        <Link
-          to="/ajuda"
-          title="Suporte"
-          className="flex items-center justify-center gap-2.5 px-3 py-[9px] text-[14px] text-white/75 hover:bg-white/8 hover:text-white w-full transition-colors duration-200 border-l-[3px] border-l-transparent font-sans"
-        >
-          <Headphones size={15} strokeWidth={1.5} className="flex-shrink-0" />
-          {!collapsed && <span>Suporte</span>}
-        </Link>
         <button
           onClick={onToggle}
           className="flex items-center justify-center gap-2.5 px-3 py-[9px] text-[14px] text-white/75 hover:bg-white/8 hover:text-white w-full transition-colors duration-200 border-l-[3px] border-l-transparent font-sans"
