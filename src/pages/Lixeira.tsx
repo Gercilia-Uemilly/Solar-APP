@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ export default function Lixeira() {
     isNotNull: ["deleted_at"],
     validate: (row) => row.deleted_at !== null,
   });
+  const [isEmptying, setIsEmptying] = useState(false);
 
   const handleRestore = async (id: string) => {
     const { error } = await supabase.from("oficios").update({
@@ -54,6 +55,27 @@ export default function Lixeira() {
     }
   };
 
+  const handleEmptyTrash = useCallback(async () => {
+    if (!isAdmin) return;
+    if (!confirm("Deseja esvaziar a lixeira? Todos os ofícios serão excluídos permanentemente. Esta ação não pode ser desfeita.")) return;
+    setIsEmptying(true);
+    try {
+      const ids = oficios.map((o) => o.id);
+      if (ids.length === 0) {
+        toast({ title: "A lixeira já está vazia." });
+        return;
+      }
+      const { error } = await supabase.from("oficios").delete().in("id", ids);
+      if (error) {
+        toast({ title: "Erro ao esvaziar lixeira", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "✅ Lixeira esvaziada com sucesso!" });
+      }
+    } finally {
+      setIsEmptying(false);
+    }
+  }, [isAdmin, oficios, toast]);
+
   const daysUntilExpiry = (deletedAt: string) => {
     const deleted = new Date(deletedAt);
     const expiry = new Date(deleted.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -63,11 +85,24 @@ export default function Lixeira() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Trash2 size={24} /> Lixeira
-        </h1>
-        <p className="text-sm text-muted-foreground">Ofícios excluídos ficam aqui por 30 dias antes de serem removidos permanentemente.</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Trash2 size={24} /> Lixeira
+          </h1>
+          <p className="text-sm text-muted-foreground">Ofícios excluídos ficam aqui por 30 dias antes de serem removidos permanentemente.</p>
+        </div>
+        {isAdmin && oficios.length > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleEmptyTrash}
+            disabled={isEmptying}
+          >
+            {isEmptying ? <Loader2 size={14} className="animate-spin mr-1" /> : <Trash2 size={14} className="mr-1" />}
+            Esvaziar Lixeira
+          </Button>
+        )}
       </div>
 
       {loading ? (
