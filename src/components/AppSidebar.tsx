@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FileText, MessageSquare, FolderOpen, ChevronLeft, ChevronRight,
-  Users, BarChart3, Settings, Heart, HelpCircle, Headphones, Library, Info,
+  Users, BarChart3, Settings, Heart, HelpCircle, Library, Info,
   BookOpen, Hash, Trash2, DatabaseBackup, Bell, Upload, Download
 } from "lucide-react";
 import { motion } from "framer-motion";
