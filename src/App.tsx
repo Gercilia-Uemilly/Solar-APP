@@ -7,10 +7,9 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useGlobalSync } from "@/hooks/useGlobalSync";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
-import { ReactNode, lazy, Suspense, useEffect, useRef } from "react";
+import { ReactNode, lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { supabase } from "@/integrations/supabase/client";
 
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -97,25 +96,10 @@ function WaitingRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/** Keepalive ping every 4 minutes to maintain Supabase connection */
-function useKeepalive() {
-  const { user } = useAuth();
-  useEffect(() => {
-    if (!user) return;
-    const ping = setInterval(async () => {
-      try {
-        await supabase.from("profiles").select("id").eq("id", user.id).limit(1).single();
-      } catch {}
-    }, 240000);
-    return () => clearInterval(ping);
-  }, [user]);
-}
-
 const AppRoutes = () => {
   const { user } = useAuth();
   useGlobalSync();
   useSessionTimeout(!!user);
-  useKeepalive();
 
   return (
     <Suspense fallback={<PageLoader />}>
