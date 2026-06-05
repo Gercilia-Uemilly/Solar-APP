@@ -151,7 +151,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       "/": "Painel",
       "/oficios": "Ofícios",
       "/meus-oficios": "Todos os Ofícios",
-      "/modelos": "Modelos",
       "/numeracao": "Numeração",
       "/respostas": "Respostas",
       "/chat": "Chat Interno",

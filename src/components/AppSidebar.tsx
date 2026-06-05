@@ -18,7 +18,6 @@ const menuSections = [
       { label: "Novo Ofício", icon: FileText, path: "/oficios", adminOnly: false, action: "openNew" },
       { label: "Todos os Ofícios", icon: FolderOpen, path: "/meus-oficios", adminOnly: false },
       { label: "Subir Ofício", icon: Upload, path: "/meus-oficios?upload=1", adminOnly: false },
-      { label: "Modelos", icon: BookOpen, path: "/modelos", adminOnly: false },
       { label: "Numeração", icon: Hash, path: "/numeracao", adminOnly: false },
     ],
   },

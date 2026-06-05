@@ -32,7 +32,6 @@ const Lixeira = lazy(() => import("./pages/Lixeira"));
 const Backups = lazy(() => import("./pages/Backups"));
 const ChatInterno = lazy(() => import("./pages/ChatInterno"));
 const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
-const Modelos = lazy(() => import("./pages/Modelos"));
 const VerificarSMS = lazy(() => import("./pages/VerificarSMS"));
 const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 const Lembretes = lazy(() => import("./pages/Lembretes"));
@@ -130,7 +129,6 @@ const AppRoutes = () => {
         <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
         <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
         <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
-        <Route path="/modelos" element={<ProtectedRoute><AppLayout><Modelos /></AppLayout></ProtectedRoute>} />
         <Route path="/respostas" element={<ProtectedRoute><AppLayout><Respostas /></AppLayout></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><AppLayout><ChatInterno /></AppLayout></ProtectedRoute>} />
         <Route path="/operadores" element={<AdminRoute><AppLayout><Operadores /></AppLayout></AdminRoute>} />
