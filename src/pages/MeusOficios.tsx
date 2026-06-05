@@ -687,30 +687,29 @@ export default function MeusOficios() {
     }
   };
 
-  const filtered = oficios.filter(o => {
-    if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
-    if (filtroOperador !== "Todos" && o.operador_nome !== filtroOperador) return false;
-    if (filtroAssunto !== "Todos" && o.assunto !== filtroAssunto) return false;
-    if (dateFrom && new Date(o.created_at) < dateFrom) return false;
-    if (dateTo) {
-      const end = new Date(dateTo);
-      end.setHours(23, 59, 59, 999);
-      if (new Date(o.created_at) > end) return false;
-    }
-    if (search) {
-      const s = search.toLowerCase();
-      return (
-        o.assunto.toLowerCase().includes(s) ||
-        o.destinatario.toLowerCase().includes(s) ||
-        (o.numero || "").toLowerCase().includes(s) ||
-        (o.solicitante || "").toLowerCase().includes(s) ||
-        (o.bairro || "").toLowerCase().includes(s) ||
-        (o.contato_solicitante || "").toLowerCase().includes(s) ||
-        (o.operador_nome || "").toLowerCase().includes(s)
-      );
-    }
-    return true;
-  });
+  const filtered = useMemo(() => {
+    const s = search ? search.toLowerCase() : "";
+    const dateToEnd = dateTo ? (() => { const d = new Date(dateTo); d.setHours(23, 59, 59, 999); return d; })() : null;
+    return oficios.filter(o => {
+      if (filtroStatus !== "Todos" && o.status !== filtroStatus) return false;
+      if (filtroOperador !== "Todos" && o.operador_nome !== filtroOperador) return false;
+      if (filtroAssunto !== "Todos" && o.assunto !== filtroAssunto) return false;
+      if (dateFrom && new Date(o.created_at) < dateFrom) return false;
+      if (dateToEnd && new Date(o.created_at) > dateToEnd) return false;
+      if (s) {
+        return (
+          o.assunto.toLowerCase().includes(s) ||
+          o.destinatario.toLowerCase().includes(s) ||
+          (o.numero || "").toLowerCase().includes(s) ||
+          (o.solicitante || "").toLowerCase().includes(s) ||
+          (o.bairro || "").toLowerCase().includes(s) ||
+          (o.contato_solicitante || "").toLowerCase().includes(s) ||
+          (o.operador_nome || "").toLowerCase().includes(s)
+        );
+      }
+      return true;
+    });
+  }, [oficios, filtroStatus, filtroOperador, filtroAssunto, dateFrom, dateTo, search]);
 
   // Mapa de possíveis duplicatas em todos os ofícios (oficio.id -> matches)
   const duplicateMap = useMemo(
@@ -739,8 +738,15 @@ export default function MeusOficios() {
   };
 
   const statusFinalizados = ["Protocolado", "Respondido", "Atendido", "Impresso"];
-  const finalizados = filtered.filter(o => statusFinalizados.includes(o.status));
-  const rascunhos = filtered.filter(o => !statusFinalizados.includes(o.status));
+  const { finalizados, rascunhos } = useMemo(() => {
+    const fin: OficioRow[] = [];
+    const ras: OficioRow[] = [];
+    for (const o of filtered) {
+      if (statusFinalizados.includes(o.status)) fin.push(o);
+      else ras.push(o);
+    }
+    return { finalizados: fin, rascunhos: ras };
+  }, [filtered]);
   // Se há busca ativa, mostra todos os resultados independente da aba
   const hasBusca = search.trim().length > 0;
   const listaBase = hasBusca ? filtered : (abaAtiva === "rascunhos" ? rascunhos : finalizados);

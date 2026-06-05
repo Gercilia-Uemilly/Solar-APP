@@ -125,9 +125,129 @@ export function buildDuplicateMap(
   opts?: { assuntoThreshold?: number }
 ): Map<string, DuplicateMatch[]> {
   const map = new Map<string, DuplicateMatch[]>();
-  for (const o of all) {
-    const dups = findDuplicates(o, all, opts);
-    if (dups.length > 0) map.set(o.id, dups);
+  const threshold = opts?.assuntoThreshold ?? 0.55;
+
+  // Precomputa tudo uma única vez por ofício (evita O(N²) de tokenização)
+  type Pre = {
+    o: OficioRow;
+    end: string;
+    bairro: string;
+    sec: string;
+    sol: string;
+    fone: string;
+    assTokens: Set<string>;
+  };
+
+  const pre: Pre[] = [];
+  // Índices invertidos para reduzir o N² para apenas pares "candidatos"
+  const byEnd = new Map<string, number[]>();
+  const byFone = new Map<string, number[]>();
+  const bySol = new Map<string, number[]>();
+  const bySec = new Map<string, number[]>();
+  const byBairro = new Map<string, number[]>();
+
+  const pushIdx = (m: Map<string, number[]>, key: string, idx: number) => {
+    if (!key) return;
+    const arr = m.get(key);
+    if (arr) arr.push(idx);
+    else m.set(key, [idx]);
+  };
+
+  for (let i = 0; i < all.length; i++) {
+    const o = all[i];
+    if (o.deleted_at) {
+      pre.push(null as any);
+      continue;
+    }
+    const end = norm(o.endereco_completo || o.local_demanda);
+    const bairro = norm(o.bairro);
+    const sec = norm(o.secretaria_identificada);
+    const sol = norm(o.solicitante);
+    const fone = normPhone(o.contato_solicitante);
+    const assTokens = tokens(o.assunto || "");
+    pre.push({ o, end, bairro, sec, sol, fone, assTokens });
+
+    pushIdx(byEnd, end, i);
+    if (fone.length >= 8) pushIdx(byFone, fone, i);
+    pushIdx(bySol, sol, i);
+    pushIdx(bySec, sec, i);
+    pushIdx(byBairro, bairro, i);
   }
+
+  const simTokens = (a: Set<string>, b: Set<string>): number => {
+    if (a.size === 0 || b.size === 0) return 0;
+    let inter = 0;
+    const [small, big] = a.size <= b.size ? [a, b] : [b, a];
+    small.forEach((t) => big.has(t) && inter++);
+    const union = a.size + b.size - inter;
+    return union ? inter / union : 0;
+  };
+
+  for (let i = 0; i < pre.length; i++) {
+    const t = pre[i];
+    if (!t) continue;
+
+    // Coleta candidatos via índices invertidos (não compara contra todos)
+    const candIdx = new Set<number>();
+    const addAll = (idxs?: number[]) => {
+      if (!idxs) return;
+      for (const j of idxs) if (j !== i) candIdx.add(j);
+    };
+    if (t.end) addAll(byEnd.get(t.end));
+    if (t.fone.length >= 8) addAll(byFone.get(t.fone));
+    if (t.sol) addAll(bySol.get(t.sol));
+    if (t.sec) addAll(bySec.get(t.sec));
+    if (t.bairro) addAll(byBairro.get(t.bairro));
+
+    if (candIdx.size === 0) continue;
+
+    const matches: DuplicateMatch[] = [];
+    candIdx.forEach((j) => {
+      const c = pre[j];
+      if (!c) return;
+
+      const reasons: string[] = [];
+      let score = 0;
+
+      if (t.end && c.end && (t.end === c.end || (t.end.length > 6 && (c.end.includes(t.end) || t.end.includes(c.end))))) {
+        reasons.push("Mesmo endereço/local");
+        score += 0.45;
+      }
+
+      if (t.fone && c.fone && t.fone.length >= 8 && t.fone === c.fone) {
+        reasons.push("Mesmo telefone do solicitante");
+        score += 0.4;
+      } else if (t.sol && c.sol && t.sol === c.sol) {
+        reasons.push("Mesmo solicitante");
+        score += 0.3;
+      }
+
+      let sim = -1;
+      if (t.sec && c.sec && t.sec === c.sec) {
+        sim = simTokens(t.assTokens, c.assTokens);
+        if (sim >= threshold) {
+          reasons.push(`Mesma secretaria + assunto similar (${Math.round(sim * 100)}%)`);
+          score += 0.35;
+        }
+      }
+      if (t.bairro && c.bairro && t.bairro === c.bairro) {
+        if (sim < 0) sim = simTokens(t.assTokens, c.assTokens);
+        if (sim >= threshold) {
+          reasons.push(`Mesmo bairro + assunto similar (${Math.round(sim * 100)}%)`);
+          score += 0.3;
+        }
+      }
+
+      if (reasons.length > 0) {
+        matches.push({ oficio: c.o, reasons, score: Math.min(1, score) });
+      }
+    });
+
+    if (matches.length > 0) {
+      matches.sort((a, b) => b.score - a.score);
+      map.set(t.o.id, matches);
+    }
+  }
+
   return map;
 }
