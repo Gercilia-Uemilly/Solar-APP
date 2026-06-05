@@ -454,8 +454,8 @@ export default function Ajuda() {
             <BookOpen className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Manual Rápido</h1>
-            <p className="text-sm text-muted-foreground">Problemas e Soluções do Sistema</p>
+            <h1 className="text-xl font-bold text-foreground">Ajuda e Suporte</h1>
+            <p className="text-sm text-muted-foreground">Manual rápido, chamados e soluções do sistema</p>
           </div>
         </div>
 
