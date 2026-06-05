@@ -164,6 +164,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       "/configuracoes": "Configurações",
       "/lembretes": "Lembretes",
       "/sobre": "Sobre",
+      "/ajuda": "Ajuda e Suporte",
     };
     return pathMap[location.pathname] || "Solar";
   };
