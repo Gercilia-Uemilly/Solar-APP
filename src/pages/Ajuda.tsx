@@ -433,7 +433,7 @@ export default function Ajuda() {
   const [ticketOpen, setTicketOpen] = useState(false);
 
   useEffect(() => {
-    document.title = "Ajuda — Manual Rápido";
+    document.title = "Ajuda e Suporte";
 
     // Abre o modal automaticamente quando o ErrorBoundary redireciona para cá
     const handler = () => setTicketOpen(true);
