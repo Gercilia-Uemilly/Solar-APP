@@ -42,17 +42,19 @@ const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 0,
-      gcTime: 0,
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
+      // Realtime já mantém os dados sincronizados, então não precisamos
+      // refazer fetch a cada navegação/foco. Isso evita o "tudo lento ao trocar de página".
+      staleTime: 60_000,           // 1 min sem refetch desnecessário
+      gcTime: 5 * 60_000,          // mantém cache por 5 min entre navegações
+      refetchOnMount: false,       // se já temos dados frescos, não busca de novo
+      refetchOnWindowFocus: false, // Realtime cobre isso
       refetchOnReconnect: true,
-      retry: 3,
-      retryDelay: 1000,
+      retry: 1,                    // antes 3 → travava 4s em cada falha
+      retryDelay: 800,
     },
     mutations: {
-      retry: 2,
-      retryDelay: 1000,
+      retry: 1,
+      retryDelay: 800,
     },
   },
 });
