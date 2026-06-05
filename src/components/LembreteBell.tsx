@@ -34,12 +34,12 @@ export default function LembreteBell() {
 
   useEffect(() => {
     fetchLembretes();
-    const interval = setInterval(fetchLembretes, 5 * 60 * 1000); // 5 min polling
     const ch = supabase
       .channel("lembrete-bell")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "lembretes" }, () => fetchLembretes())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "lembretes" }, () => fetchLembretes())
       .subscribe();
-    return () => { clearInterval(interval); supabase.removeChannel(ch); };
+    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
   const unread = lembretes.filter(l => !l.lido_por?.includes(user?.id || ""));

@@ -45,7 +45,7 @@ export default function MultiDeviceWarning() {
       setCount(fingerprints.size);
     };
     check();
-    const id = setInterval(check, 5 * 60 * 1000); // re-check every 5 min
+    const id = setInterval(check, 30 * 60 * 1000); // re-check every 30 min
     return () => clearInterval(id);
   }, [user]);
 
