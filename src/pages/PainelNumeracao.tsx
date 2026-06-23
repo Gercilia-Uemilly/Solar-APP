@@ -69,13 +69,24 @@ export default function PainelNumeracao() {
 
   const fetchNumeros = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("oficio_numeracao" as any)
-      .select("*")
-      .eq("ano", ano)
-      .order("numero", { ascending: true })
-      .range(0, 4999);
-    if (!error && data) setNumeros(data as unknown as NumRow[]);
+    const pageSize = 1000;
+    let from = 0;
+    const all: NumRow[] = [];
+    // Paginate to bypass PostgREST max-rows cap (default 1000)
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data, error } = await supabase
+        .from("oficio_numeracao" as any)
+        .select("*")
+        .eq("ano", ano)
+        .order("numero", { ascending: true })
+        .range(from, from + pageSize - 1);
+      if (error || !data || data.length === 0) break;
+      all.push(...(data as unknown as NumRow[]));
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    setNumeros(all);
     setLoading(false);
   }, [ano]);
 
