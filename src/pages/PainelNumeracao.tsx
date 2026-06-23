@@ -72,7 +72,8 @@ export default function PainelNumeracao() {
       .from("oficio_numeracao" as any)
       .select("*")
       .eq("ano", ano)
-      .order("numero", { ascending: true });
+      .order("numero", { ascending: true })
+      .range(0, 4999);
     if (!error && data) setNumeros(data as unknown as NumRow[]);
     setLoading(false);
   }, [ano]);
