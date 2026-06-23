@@ -65,6 +65,7 @@ export default function PainelNumeracao() {
   const [ano] = useState(new Date().getFullYear());
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [sortMode, setSortMode] = useState<"num_asc" | "num_desc" | "date_asc" | "date_desc">("num_asc");
+  const [rangeMode, setRangeMode] = useState<"1_1000" | "1001_2000" | "all">("1001_2000");
 
   const fetchNumeros = useCallback(async () => {
     setLoading(true);
@@ -164,8 +165,14 @@ export default function PainelNumeracao() {
   // Show all numbers from 1 to 2000 (or beyond if já usados/reservados)
   const visibleNumbers = numeros.filter(n => n.numero <= 2000 || n.status !== "disponivel");
 
+  const rangedNumbers = useMemo(() => {
+    if (rangeMode === "1_1000") return visibleNumbers.filter(n => n.numero <= 1000);
+    if (rangeMode === "1001_2000") return visibleNumbers.filter(n => n.numero >= 1001 && n.numero <= 2000);
+    return visibleNumbers;
+  }, [visibleNumbers, rangeMode]);
+
   const sortedNumbers = useMemo(() => {
-    const arr = [...visibleNumbers];
+    const arr = [...rangedNumbers];
     switch (sortMode) {
       case "num_desc":
         return arr.sort((a, b) => b.numero - a.numero);
@@ -190,7 +197,7 @@ export default function PainelNumeracao() {
       default:
         return arr.sort((a, b) => a.numero - b.numero);
     }
-  }, [visibleNumbers, sortMode]);
+  }, [rangedNumbers, sortMode]);
 
   const getStatusBadge = (status: string) => {
     const colorMap: Record<string, string> = {
@@ -219,6 +226,16 @@ export default function PainelNumeracao() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={rangeMode} onValueChange={(v) => setRangeMode(v as any)}>
+            <SelectTrigger className="h-8 w-[150px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1_1000">1–1000</SelectItem>
+              <SelectItem value="1001_2000">1001–2000</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
             <SelectTrigger className="h-8 w-[180px] text-xs">
               <SelectValue />
