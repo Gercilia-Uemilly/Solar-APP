@@ -138,15 +138,19 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth: require valid Supabase JWT (operador autenticado)
+    // Auth: require valid Supabase JWT (operador autenticado) OU service role (chamadas internas, ex.: auto-generate-oficio-whatsapp)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-    const { data: { user: _u } } = await _sb.auth.getUser();
-    if (!_u) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const token = authHeader.slice("Bearer ".length).trim();
+    const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!serviceRole || token !== serviceRole) {
+      const _sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+      const { data: { user: _u } } = await _sb.auth.getUser();
+      if (!_u) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     const { assunto, destinatario, descricao, tipo, solicitante, bairro, prioridade, local } = await req.json();
