@@ -421,6 +421,34 @@ function makeImageTableXml(
   const rowHeightTwips = Math.round(slotMaxHeight / EMU_PER_TWIP);
   for (let i = 0; i < images.length; i += 2) {
     const pair = images.slice(i, i + 2);
+    // Linha com apenas 1 imagem (caso ímpar, ex: 3 imagens): renderiza
+    // ocupando as duas colunas (gridSpan=2) usando contain (sem corte e
+    // sem distorção) para evitar a imagem ser "esticada" no slot vazio
+    // ou jogada para outra página com proporção errada.
+    if (pair.length === 1) {
+      const img = pair[0];
+      const fit = containFit(img.width, img.height, CONTENT_WIDTH_EMU, slotMaxHeight);
+      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
+      rows.push(`
+<w:tr>
+  <w:trPr><w:trHeight w:val="${rowHeightTwips}" w:hRule="exact"/><w:cantSplit/></w:trPr>
+  <w:tc>
+    <w:tcPr>
+      <w:tcW w:w="${Math.round(CONTENT_WIDTH_EMU / EMU_PER_TWIP)}" w:type="dxa"/>
+      <w:gridSpan w:val="2"/>
+      <w:vAlign w:val="center"/>
+    </w:tcPr>
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center"/>
+        <w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>
+      </w:pPr>
+      ${run}
+    </w:p>
+  </w:tc>
+</w:tr>`);
+      continue;
+    }
     const cells = [0, 1].map((cellIndex) => {
       const img = pair[cellIndex];
       if (!img) {
