@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import * as pdfjsLib from "pdfjs-dist";
+import mammoth from "mammoth";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
@@ -215,6 +216,29 @@ async function extractDocxText(blob: Blob) {
   return paragraphs.join("\n\n").trim();
 }
 
+async function extractDocxHtml(blob: Blob): Promise<string> {
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const result = await mammoth.convertToHtml(
+      { arrayBuffer },
+      {
+        styleMap: [
+          "p[style-name='Title'] => h1:fresh",
+          "p[style-name='Heading 1'] => h1:fresh",
+          "p[style-name='Heading 2'] => h2:fresh",
+          "p[style-name='Heading 3'] => h3:fresh",
+          "b => strong",
+          "i => em",
+          "u => u",
+        ],
+      } as any,
+    );
+    return (result?.value || "").trim();
+  } catch {
+    return "";
+  }
+}
+
 function detectExternalType(nameOrUrl?: string, explicitType?: string) {
   const source = `${explicitType || ""} ${nameOrUrl || ""}`.toLowerCase();
   if (source.includes("docx") || source.endsWith(".docx")) return "docx";
@@ -228,7 +252,12 @@ export async function extractExternalOficioFileToHtml(file: File) {
 
 export async function extractExternalOficioFileData(file: File): Promise<ExtractedExternalOficio> {
   const type = detectExternalType(file.name, file.type);
-  const text = type === "docx" ? await extractDocxText(file) : await extractPdfText(file);
+  if (type === "docx") {
+    const [richHtml, text] = await Promise.all([extractDocxHtml(file), extractDocxText(file)]);
+    const parsed = parseExternalOficioText(text);
+    return { ...parsed, html: richHtml || parsed.html };
+  }
+  const text = await extractPdfText(file);
   return parseExternalOficioText(text);
 }
 
@@ -242,6 +271,11 @@ export async function extractExternalOficioUrlData(url: string, name?: string, e
 
   const blob = await response.blob();
   const type = detectExternalType(name || url, explicitType || blob.type);
-  const text = type === "docx" ? await extractDocxText(blob) : await extractPdfText(blob);
+  if (type === "docx") {
+    const [richHtml, text] = await Promise.all([extractDocxHtml(blob), extractDocxText(blob)]);
+    const parsed = parseExternalOficioText(text);
+    return { ...parsed, html: richHtml || parsed.html };
+  }
+  const text = await extractPdfText(blob);
   return parseExternalOficioText(text);
 }
