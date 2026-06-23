@@ -194,6 +194,168 @@ async function extractPdfText(blob: Blob) {
   return pages.join("\n\n").trim();
 }
 
+interface PdfRichSpan {
+  text: string;
+  bold: boolean;
+  italic: boolean;
+}
+
+interface PdfRichLine {
+  spans: PdfRichSpan[];
+  text: string;
+}
+
+async function extractPdfRich(blob: Blob): Promise<PdfRichLine[][]> {
+  const buffer = await blob.arrayBuffer();
+  const data = new Uint8Array(buffer);
+  let pdf: pdfjsLib.PDFDocumentProxy;
+  try {
+    pdf = await pdfjsLib.getDocument({ data }).promise;
+  } catch {
+    pdf = await pdfjsLib.getDocument({ data, disableWorker: true } as any).promise;
+  }
+
+  const pages: PdfRichLine[][] = [];
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const styles: Record<string, any> = (content as any).styles || {};
+
+    const items = (content.items as any[])
+      .map((item: any) => {
+        const fontName: string = item?.fontName || "";
+        const fontFamily: string = styles[fontName]?.fontFamily || fontName || "";
+        const fontKey = `${fontName} ${fontFamily}`;
+        return {
+          text: String(item?.str || ""),
+          x: Number(item?.transform?.[4] || 0),
+          y: Number(item?.transform?.[5] || 0),
+          bold: /bold|black|heavy|semibold/i.test(fontKey),
+          italic: /italic|oblique/i.test(fontKey),
+        };
+      })
+      .filter((item) => item.text && item.text.trim());
+
+    const grouped: Array<{ y: number; items: typeof items }> = [];
+    items
+      .sort((a, b) => b.y - a.y || a.x - b.x)
+      .forEach((item) => {
+        const line = grouped.find((group) => Math.abs(group.y - item.y) <= 3);
+        if (line) line.items.push(item);
+        else grouped.push({ y: item.y, items: [item] });
+      });
+
+    const lines: PdfRichLine[] = grouped
+      .sort((a, b) => b.y - a.y)
+      .map((line) => {
+        const sorted = line.items.sort((a, b) => a.x - b.x);
+        const spans: PdfRichSpan[] = [];
+        sorted.forEach((it, idx) => {
+          const prev = spans[spans.length - 1];
+          const sep = idx === 0 ? "" : " ";
+          if (prev && prev.bold === it.bold && prev.italic === it.italic) {
+            prev.text += sep + it.text;
+          } else {
+            spans.push({ text: (prev ? sep : "") + it.text, bold: it.bold, italic: it.italic });
+          }
+        });
+        spans.forEach((s) => { s.text = s.text.replace(/\s+/g, " "); });
+        const text = spans.map((s) => s.text).join("").trim();
+        return { spans, text };
+      })
+      .filter((line) => line.text);
+
+    pages.push(lines);
+  }
+
+  return pages;
+}
+
+function richSpansToHtml(spans: PdfRichSpan[]): string {
+  return spans
+    .map((s) => {
+      let html = escapeHtml(s.text);
+      if (s.bold) html = `<strong>${html}</strong>`;
+      if (s.italic) html = `<em>${html}</em>`;
+      return html;
+    })
+    .join("");
+}
+
+const BULLET_RE = /^([•●◦▪■\-*·])\s+(.*)$/;
+const NUMBERED_RE = /^(\d{1,3}[.)]|[a-zA-Z][.)])\s+(.*)$/;
+
+function pdfRichToHtml(pages: PdfRichLine[][]): string {
+  const allLines: PdfRichLine[] = [];
+  pages.forEach((p, i) => {
+    if (i > 0) allLines.push({ spans: [], text: "" });
+    allLines.push(...p);
+  });
+
+  const out: string[] = [];
+  let listType: "ul" | "ol" | null = null;
+
+  const closeList = () => {
+    if (listType) {
+      out.push(`</${listType}>`);
+      listType = null;
+    }
+  };
+
+  for (const line of allLines) {
+    if (!line.text) {
+      closeList();
+      continue;
+    }
+    if (isNoiseLine(line.text)) continue;
+
+    const bulletMatch = line.text.match(BULLET_RE);
+    const numberedMatch = !bulletMatch && line.text.match(NUMBERED_RE);
+
+    if (bulletMatch || numberedMatch) {
+      const wanted: "ul" | "ol" = bulletMatch ? "ul" : "ol";
+      if (listType !== wanted) {
+        closeList();
+        out.push(`<${wanted}>`);
+        listType = wanted;
+      }
+      // Rebuild spans dropping the bullet/number prefix from the first span
+      const prefix = (bulletMatch || numberedMatch)![0].slice(0, (bulletMatch || numberedMatch)![0].length - (bulletMatch || numberedMatch)![2].length);
+      const spans = line.spans.length ? [...line.spans] : [{ text: line.text, bold: false, italic: false }];
+      let remaining = prefix.length;
+      const trimmed: PdfRichSpan[] = [];
+      for (const s of spans) {
+        if (remaining <= 0) { trimmed.push(s); continue; }
+        if (s.text.length <= remaining) { remaining -= s.text.length; continue; }
+        trimmed.push({ ...s, text: s.text.slice(remaining) });
+        remaining = 0;
+      }
+      out.push(`<li>${richSpansToHtml(trimmed).trim() || escapeHtml((bulletMatch || numberedMatch)![2])}</li>`);
+    } else {
+      closeList();
+      const inner = line.spans.length ? richSpansToHtml(line.spans) : escapeHtml(line.text);
+      out.push(`<p>${inner}</p>`);
+    }
+  }
+  closeList();
+  return out.join("");
+}
+
+async function extractPdfHtml(blob: Blob): Promise<{ html: string; text: string }> {
+  try {
+    const pages = await extractPdfRich(blob);
+    const text = pages
+      .map((lines) => lines.map((l) => l.text).join("\n"))
+      .join("\n\n")
+      .trim();
+    const html = pdfRichToHtml(pages);
+    return { html, text };
+  } catch {
+    const text = await extractPdfText(blob);
+    return { html: "", text };
+  }
+}
+
 async function extractDocxText(blob: Blob) {
   const zip = await JSZip.loadAsync(await blob.arrayBuffer());
   const documentXml = await zip.file("word/document.xml")?.async("string");
@@ -257,8 +419,9 @@ export async function extractExternalOficioFileData(file: File): Promise<Extract
     const parsed = parseExternalOficioText(text);
     return { ...parsed, html: richHtml || parsed.html };
   }
-  const text = await extractPdfText(file);
-  return parseExternalOficioText(text);
+  const { html: richHtml, text } = await extractPdfHtml(file);
+  const parsed = parseExternalOficioText(text);
+  return { ...parsed, html: richHtml || parsed.html };
 }
 
 export async function extractExternalOficioUrlToHtml(url: string, name?: string, explicitType?: string) {
@@ -276,6 +439,7 @@ export async function extractExternalOficioUrlData(url: string, name?: string, e
     const parsed = parseExternalOficioText(text);
     return { ...parsed, html: richHtml || parsed.html };
   }
-  const text = await extractPdfText(blob);
-  return parseExternalOficioText(text);
+  const { html: richHtml, text } = await extractPdfHtml(blob);
+  const parsed = parseExternalOficioText(text);
+  return { ...parsed, html: richHtml || parsed.html };
 }
