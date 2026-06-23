@@ -457,9 +457,9 @@ function makeImageTableXml(
 
       const maxWidth = MAX_SIDE_WIDTH;
       const maxHeight = pair.length === 1 ? MAX_SIDE_HEIGHT : MAX_GRID_HEIGHT;
-      // cover: preenche o slot uniformemente (corte mínimo) para alinhamento visual entre imagens
-      const fit = coverFit(img.width, img.height, maxWidth, maxHeight);
-      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS, fit.crop);
+      // contain: preserva imagem inteira (sem corte, sem distorção) e centralizada no slot
+      const fit = containFit(img.width, img.height, maxWidth, maxHeight);
+      const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
       return makeImageTableCellXml(run, W);
     });
 
