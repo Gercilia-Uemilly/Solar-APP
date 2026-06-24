@@ -31,17 +31,36 @@ function resolveZapiSendUrl(instance?: string | null, token?: string | null) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { resposta_id, oficio_id } = await req.json();
+    const { resposta_id, oficio_id: oficioIdInput } = await req.json();
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Buscar resposta primeiro para resolver oficio_id (e usar resumo)
+    const { data: resposta } = await sb.from("oficio_respostas")
+      .select("oficio_id, resumo_ia, orgao_respondente, arquivo_nome, uploaded_by_nome, tipo_origem")
+      .eq("id", resposta_id).maybeSingle();
+
+    const oficio_id = oficioIdInput || resposta?.oficio_id;
+    if (!oficio_id) {
+      return new Response(JSON.stringify({ ok: false, skipped: "sem_oficio_id" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Não notificar importações em massa (histórico)
+    if (resposta?.tipo_origem && resposta.tipo_origem !== "manual") {
+      return new Response(JSON.stringify({ ok: true, skipped: "nao_manual" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: oficio } = await sb.from("oficios")
       .select("id, numero, assunto, destinatario, secretaria_destino, author_id, operador_nome")
-      .eq("id", oficio_id).single();
-    if (!oficio) throw new Error("Ofício não encontrado");
-
-    const { data: resposta } = await sb.from("oficio_respostas")
-      .select("resumo_ia, orgao_respondente, arquivo_nome, uploaded_by_nome")
-      .eq("id", resposta_id).single();
+      .eq("id", oficio_id).maybeSingle();
+    if (!oficio) {
+      return new Response(JSON.stringify({ ok: false, skipped: "oficio_nao_encontrado" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Buscar telefones do autor (select tolerante a colunas opcionais)
     let profile: any = null;
