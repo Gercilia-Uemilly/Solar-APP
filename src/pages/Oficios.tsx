@@ -1957,6 +1957,8 @@ export default function Oficios() {
 
             {/* TAB: HISTÓRICO */}
             <TabsContent value="historico" className="space-y-4 mt-4">
+              {/* placeholder anchor */}
+              <div className="hidden" />
               <div className="bg-muted rounded-lg p-4 space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Informações do Ofício</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
