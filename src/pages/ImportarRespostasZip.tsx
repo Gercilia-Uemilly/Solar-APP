@@ -58,17 +58,22 @@ export default function ImportarRespostasZip() {
       setRows([...next]);
       try {
         if (!r.numero) { next[i] = { ...r, status: "not_found", error: "Número não identificado" }; setRows([...next]); continue; }
-        // Find oficio by numero (exact or contains)
-        const { data: ofs } = await (supabase.from("oficios") as any)
+        // Find oficio by EXACT numero match (ex: "193/2026" não pode casar com "1193/2026").
+        const [numStr, anoStr] = r.numero.split("/");
+        const { data: candidates } = await (supabase.from("oficios") as any)
           .select("id, numero")
-          .or(`numero.eq.${r.numero},numero.ilike.%${r.numero}%`)
-          .limit(1);
-        if (!ofs?.length) {
+          .ilike("numero", `%${numStr}/${anoStr}%`)
+          .is("deleted_at", null)
+          .limit(50);
+        const oficio = (candidates || []).find((o: any) => {
+          const m = String(o.numero || "").match(/(\d+)\/(\d{4})/);
+          return m && m[1] === numStr && m[2] === anoStr;
+        });
+        if (!oficio) {
           next[i] = { ...r, status: "not_found", error: `Ofício ${r.numero} não encontrado` };
           setRows([...next]);
           continue;
         }
-        const oficio = ofs[0];
         // Find file inside zip
         let entry: any = null;
         zip.forEach((_p, e) => { if (!entry && (e.name.split("/").pop() === r.filename)) entry = e; });

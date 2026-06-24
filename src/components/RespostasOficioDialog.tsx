@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Trash2, Loader2, Eye, Upload } from "lucide-react";
+import { FileText, Download, Trash2, Loader2, Eye, Upload, ExternalLink } from "lucide-react";
 import { useRespostas, getRespostaSignedUrl, type OficioResposta } from "@/hooks/useRespostas";
 import { useToast } from "@/hooks/use-toast";
 import UploadRespostaModal from "./UploadRespostaModal";
@@ -23,6 +23,11 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
   const handleView = async (r: OficioResposta) => {
     const url = r.arquivo_path ? await getRespostaSignedUrl(r.arquivo_path) : r.arquivo_url;
     if (url) setPreviewUrl(url);
+  };
+
+  const handleOpenNewTab = async (r: OficioResposta) => {
+    const url = r.arquivo_path ? await getRespostaSignedUrl(r.arquivo_path) : r.arquivo_url;
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleDownload = async (r: OficioResposta) => {
@@ -81,6 +86,7 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => handleView(r)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
+                      <button onClick={() => handleOpenNewTab(r)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Abrir em nova aba"><ExternalLink size={16} /></button>
                       <button onClick={() => handleDownload(r)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Baixar"><Download size={16} /></button>
                       <button onClick={() => handleDelete(r)} className="p-1.5 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
                     </div>
