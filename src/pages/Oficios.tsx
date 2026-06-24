@@ -32,6 +32,8 @@ import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import { extractExternalOficioUrlData } from "@/lib/externalOficioText";
+import { useRespostas, uploadRespostaArquivo } from "@/hooks/useRespostas";
+import { Inbox, MessageSquareReply, FileText as FileTextIcon, Trash2 as Trash2Icon } from "lucide-react";
 
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Enviado", "Respondido", "Atendido", "Arquivado"];
@@ -1448,9 +1450,10 @@ export default function Oficios() {
           </DialogHeader>
 
           <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
-            <TabsList className="w-full bg-muted grid grid-cols-3">
+            <TabsList className="w-full bg-muted grid grid-cols-4">
               <TabsTrigger value="dados" className="text-xs">📋 Dados</TabsTrigger>
               <TabsTrigger value="preview" className="text-xs">👁️ Visualizar</TabsTrigger>
+              <TabsTrigger value="resposta" className="text-xs">📬 Resposta</TabsTrigger>
               <TabsTrigger value="historico" className="text-xs">📜 Histórico</TabsTrigger>
             </TabsList>
 
