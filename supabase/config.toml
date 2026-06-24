@@ -68,3 +68,12 @@ verify_jwt = false
 
 [functions.extract-print-demanda]
 verify_jwt = false
+
+[functions.processar-resposta-oficio]
+verify_jwt = true
+
+[functions.notificar-resposta-whatsapp]
+verify_jwt = false
+
+[functions.importar-respostas-excel]
+verify_jwt = true
