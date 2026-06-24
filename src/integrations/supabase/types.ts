@@ -522,6 +522,83 @@ export type Database = {
         }
         Relationships: []
       }
+      oficio_respostas: {
+        Row: {
+          arquivo_nome: string
+          arquivo_path: string | null
+          arquivo_url: string
+          conteudo_extraido: string | null
+          created_at: string
+          data_resposta: string | null
+          id: string
+          match_confianca: number | null
+          match_metodo: string | null
+          match_status: string | null
+          mime_type: string | null
+          oficio_id: string
+          orgao_respondente: string | null
+          resumo_ia: string | null
+          sha256: string | null
+          tamanho_bytes: number | null
+          tipo_origem: string
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_nome: string | null
+        }
+        Insert: {
+          arquivo_nome: string
+          arquivo_path?: string | null
+          arquivo_url: string
+          conteudo_extraido?: string | null
+          created_at?: string
+          data_resposta?: string | null
+          id?: string
+          match_confianca?: number | null
+          match_metodo?: string | null
+          match_status?: string | null
+          mime_type?: string | null
+          oficio_id: string
+          orgao_respondente?: string | null
+          resumo_ia?: string | null
+          sha256?: string | null
+          tamanho_bytes?: number | null
+          tipo_origem?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+        }
+        Update: {
+          arquivo_nome?: string
+          arquivo_path?: string | null
+          arquivo_url?: string
+          conteudo_extraido?: string | null
+          created_at?: string
+          data_resposta?: string | null
+          id?: string
+          match_confianca?: number | null
+          match_metodo?: string | null
+          match_status?: string | null
+          mime_type?: string | null
+          oficio_id?: string
+          orgao_respondente?: string | null
+          resumo_ia?: string | null
+          sha256?: string | null
+          tamanho_bytes?: number | null
+          tipo_origem?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oficio_respostas_oficio_id_fkey"
+            columns: ["oficio_id"]
+            isOneToOne: false
+            referencedRelation: "oficios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oficios: {
         Row: {
           ano: number | null
@@ -562,11 +639,13 @@ export type Database = {
           operador_nome: string | null
           origem: string | null
           protocolado_em: string | null
+          respondido_em: string | null
           resposta_cidadao: string | null
           secretaria_identificada: string | null
           solicitante: string | null
           status: string
           tipo_demanda: string | null
+          total_respostas: number
           updated_at: string
           uploaded_at: string | null
           uploaded_by_email: string | null
@@ -613,11 +692,13 @@ export type Database = {
           operador_nome?: string | null
           origem?: string | null
           protocolado_em?: string | null
+          respondido_em?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
           status?: string
           tipo_demanda?: string | null
+          total_respostas?: number
           updated_at?: string
           uploaded_at?: string | null
           uploaded_by_email?: string | null
@@ -664,11 +745,13 @@ export type Database = {
           operador_nome?: string | null
           origem?: string | null
           protocolado_em?: string | null
+          respondido_em?: string | null
           resposta_cidadao?: string | null
           secretaria_identificada?: string | null
           solicitante?: string | null
           status?: string
           tipo_demanda?: string | null
+          total_respostas?: number
           updated_at?: string
           uploaded_at?: string | null
           uploaded_by_email?: string | null
