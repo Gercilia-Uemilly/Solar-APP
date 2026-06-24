@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,9 @@ import { FileText, Download, Trash2, Loader2, Eye, Upload, ExternalLink } from "
 import { useRespostas, getRespostaSignedUrl, type OficioResposta } from "@/hooks/useRespostas";
 import { useToast } from "@/hooks/use-toast";
 import UploadRespostaModal from "./UploadRespostaModal";
+import * as pdfjsLib from "pdfjs-dist";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 interface Props {
   open: boolean;
@@ -17,10 +20,10 @@ interface Props {
 export default function RespostasOficioDialog({ open, onOpenChange, oficioId, oficioNumero }: Props) {
   const { toast } = useToast();
   const { respostas, loading, remove } = useRespostas(open ? oficioId : null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ blob: Blob; name: string; mime: string } | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const fetchAsBlobUrl = async (r: OficioResposta): Promise<string | null> => {
+  const fetchAsBlob = async (r: OficioResposta): Promise<Blob | null> => {
     const url = r.arquivo_path ? await getRespostaSignedUrl(r.arquivo_path) : r.arquivo_url;
     if (!url) return null;
     try {
@@ -28,33 +31,36 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
       if (!res.ok) throw new Error(String(res.status));
       const blob = await res.blob();
       const type = blob.type || (r.arquivo_nome.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
-      return URL.createObjectURL(new Blob([blob], { type }));
+      return new Blob([blob], { type });
     } catch {
-      return url;
+      return null;
     }
   };
 
   const handleView = async (r: OficioResposta) => {
-    const url = await fetchAsBlobUrl(r);
-    if (url) setPreviewUrl(url);
+    const blob = await fetchAsBlob(r);
+    if (blob) setPreviewFile({ blob, name: r.arquivo_nome, mime: blob.type || r.mime_type || "application/pdf" });
     else toast({ title: "Não foi possível abrir o arquivo", variant: "destructive" });
   };
 
   const handleOpenNewTab = async (r: OficioResposta) => {
     // Open window synchronously to avoid popup blockers, then navigate when blob is ready
     const win = window.open("about:blank", "_blank");
-    const url = await fetchAsBlobUrl(r);
-    if (!url) { win?.close(); toast({ title: "Não foi possível abrir o arquivo", variant: "destructive" }); return; }
+    const blob = await fetchAsBlob(r);
+    if (!blob) { win?.close(); toast({ title: "Não foi possível abrir o arquivo", variant: "destructive" }); return; }
+    const url = URL.createObjectURL(blob);
     if (win) win.location.href = url;
     else window.location.href = url;
   };
 
   const handleDownload = async (r: OficioResposta) => {
-    const url = await fetchAsBlobUrl(r);
-    if (!url) return;
+    const blob = await fetchAsBlob(r);
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = r.arquivo_nome;
     document.body.appendChild(a); a.click(); a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const handleDelete = async (r: OficioResposta) => {
@@ -124,12 +130,106 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
         oficioNumero={oficioNumero}
       />
 
-      <Dialog open={!!previewUrl} onOpenChange={(v) => !v && setPreviewUrl(null)}>
+      <Dialog open={!!previewFile} onOpenChange={(v) => !v && setPreviewFile(null)}>
         <DialogContent className="max-w-5xl h-[85vh] p-2">
           <DialogHeader className="px-2"><DialogTitle>Pré-visualização</DialogTitle></DialogHeader>
-          {previewUrl && <iframe src={previewUrl} className="w-full h-full border rounded" />}
+          {previewFile && <RespostaPreview file={previewFile} />}
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function RespostaPreview({ file }: { file: { blob: Blob; name: string; mime: string } }) {
+  const [pages, setPages] = useState<string[]>([]);
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const urlsToRevoke: string[] = [];
+
+    const renderPdf = async () => {
+      setLoading(true);
+      setError(null);
+      setPages([]);
+      setObjectUrl(null);
+
+      const isPdf = file.mime.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
+      if (!isPdf) {
+        const url = URL.createObjectURL(file.blob);
+        urlsToRevoke.push(url);
+        if (!cancelled) {
+          setObjectUrl(url);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const data = new Uint8Array(await file.blob.arrayBuffer());
+        let pdf: pdfjsLib.PDFDocumentProxy;
+        try {
+          pdf = await pdfjsLib.getDocument({ data }).promise;
+        } catch {
+          pdf = await pdfjsLib.getDocument({ data, disableWorker: true } as any).promise;
+        }
+
+        const renderedPages: string[] = [];
+        const maxWidth = 980;
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+          if (cancelled) return;
+          const page = await pdf.getPage(pageNumber);
+          const viewportBase = page.getViewport({ scale: 1 });
+          const scale = Math.min(1.7, maxWidth / viewportBase.width);
+          const viewport = page.getViewport({ scale });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const url = canvas.toDataURL("image/png");
+          renderedPages.push(url);
+          canvas.width = 0;
+          canvas.height = 0;
+        }
+
+        if (!cancelled) setPages(renderedPages);
+      } catch {
+        if (!cancelled) setError("Não foi possível gerar a pré-visualização deste PDF.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    renderPdf();
+    return () => {
+      cancelled = true;
+      urlsToRevoke.forEach(URL.revokeObjectURL);
+    };
+  }, [file]);
+
+  if (loading) {
+    return <div className="flex h-full items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  }
+
+  if (error) {
+    return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">{error}</div>;
+  }
+
+  if (objectUrl) {
+    return <img src={objectUrl} alt={file.name} className="max-h-full max-w-full object-contain mx-auto rounded border" />;
+  }
+
+  return (
+    <div className="h-full overflow-y-auto rounded border bg-muted/40 p-3">
+      <div className="mx-auto flex max-w-[980px] flex-col gap-4">
+        {pages.map((src, index) => (
+          <img key={index} src={src} alt={`${file.name} página ${index + 1}`} className="w-full rounded border bg-background shadow-sm" />
+        ))}
+      </div>
+    </div>
   );
 }
