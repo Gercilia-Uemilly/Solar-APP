@@ -43,14 +43,13 @@ serve(async (req) => {
       .select("resumo_ia, orgao_respondente, arquivo_nome, uploaded_by_nome")
       .eq("id", resposta_id).single();
 
-    // Buscar telefones do autor
-    const { data: profile } = await sb.from("profiles")
-      .select("nome, celular, telefone1, telefone2, telefone3, notificar_whatsapp")
-      .eq("id", oficio.author_id).maybeSingle();
-
-    if (profile && (profile as any).notificar_whatsapp === false) {
-      return new Response(JSON.stringify({ ok: true, skipped: "opt-out" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    // Buscar telefones do autor (select tolerante a colunas opcionais)
+    let profile: any = null;
+    try {
+      const r = await sb.from("profiles")
+        .select("nome, celular, telefone1, telefone2, telefone3").eq("id", oficio.author_id).maybeSingle();
+      profile = r.data;
+    } catch { /* */ }
 
     const candidates = [profile?.celular, profile?.telefone1, profile?.telefone2, profile?.telefone3]
       .map((p) => normalizePhone(p || "")).filter(Boolean) as string[];
