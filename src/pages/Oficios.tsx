@@ -33,7 +33,7 @@ import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import { extractExternalOficioUrlData } from "@/lib/externalOficioText";
 import { useRespostas, uploadRespostaArquivo } from "@/hooks/useRespostas";
-import { Inbox, MessageSquareReply, FileText as FileTextIcon, Trash2 as Trash2Icon } from "lucide-react";
+import { Inbox, MessageSquareReply } from "lucide-react";
 
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Enviado", "Respondido", "Atendido", "Arquivado"];
@@ -2140,6 +2140,75 @@ export default function Oficios() {
         }}
         onExportarMesmoAssim={() => setRevisaoOpen(false)}
       />
+    </div>
+  );
+}
+
+function RespostaTabContent({ oficioId, numero }: { oficioId: string | null; numero: string }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { respostas, loading, refetch, remove } = useRespostas(oficioId);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  if (!oficioId) {
+    return <p className="text-sm text-muted-foreground p-4 text-center">Salve o ofício primeiro para anexar respostas.</p>;
+  }
+
+  const handleFiles = async (list: FileList | null) => {
+    if (!list || !user) return;
+    const arr = Array.from(list).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+    if (!arr.length) { toast({ title: "Apenas PDFs são aceitos", variant: "destructive" }); return; }
+    setUploading(true);
+    const userName = (user.user_metadata as any)?.full_name || user.email || "Operador";
+    let ok = 0;
+    for (const f of arr) {
+      try { await uploadRespostaArquivo(oficioId, f, user.id, userName); ok++; }
+      catch (e: any) { toast({ title: "Falha ao subir", description: e?.message, variant: "destructive" }); }
+    }
+    setUploading(false);
+    if (ok > 0) toast({ title: `${ok} resposta(s) anexada(s)`, description: "Operador será notificado." });
+    refetch();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg p-3">
+        <div className="text-sm">
+          <p className="font-medium flex items-center gap-2"><Inbox size={14} /> Respostas do ofício {numero || ""}</p>
+          <p className="text-xs text-muted-foreground">{respostas.length} resposta(s) anexada(s)</p>
+        </div>
+        <Button size="sm" onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-primary text-primary-foreground">
+          {uploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <MessageSquareReply size={14} className="mr-1" />} Subir Resposta (PDF)
+        </Button>
+        <input ref={inputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={e => { handleFiles(e.target.files); e.target.value = ""; }} />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-6"><Loader2 className="animate-spin" size={16} /></div>
+      ) : respostas.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-8 text-center border border-dashed rounded-lg">Nenhuma resposta anexada ainda.</p>
+      ) : (
+        <div className="space-y-2">
+          {respostas.map(r => (
+            <div key={r.id} className="flex items-center gap-2 p-3 border border-border rounded-lg">
+              <FileText size={16} className="text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <a href={r.arquivo_url} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline truncate block">{r.arquivo_nome}</a>
+                <p className="text-[11px] text-muted-foreground">
+                  {new Date(r.created_at).toLocaleString("pt-BR")}
+                  {r.uploaded_by_nome ? ` · ${r.uploaded_by_nome}` : ""}
+                  {r.orgao_respondente ? ` · ${r.orgao_respondente}` : ""}
+                </p>
+                {r.resumo_ia && <p className="text-xs mt-1 text-muted-foreground line-clamp-2">{r.resumo_ia}</p>}
+              </div>
+              <button onClick={() => { if (confirm("Excluir esta resposta?")) remove(r); }} className="p-1 text-muted-foreground hover:text-destructive" title="Excluir">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
