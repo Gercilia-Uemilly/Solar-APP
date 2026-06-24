@@ -1955,6 +1955,11 @@ export default function Oficios() {
               </div>
             </TabsContent>
 
+            {/* TAB: RESPOSTA */}
+            <TabsContent value="resposta" className="space-y-4 mt-4">
+              <RespostaTabContent oficioId={editingOficioId} numero={numero} />
+            </TabsContent>
+
             {/* TAB: HISTÓRICO */}
             <TabsContent value="historico" className="space-y-4 mt-4">
               <div className="bg-muted rounded-lg p-4 space-y-3">
