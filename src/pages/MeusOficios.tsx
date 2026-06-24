@@ -84,6 +84,8 @@ export default function MeusOficios() {
   const [pendingExportAction, setPendingExportAction] = useState<(() => void) | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadPreSelectedId, setUploadPreSelectedId] = useState<string | null>(null);
+  const [respostaUploadFor, setRespostaUploadFor] = useState<{ id: string; numero?: string | null } | null>(null);
+  const [respostasListFor, setRespostasListFor] = useState<{ id: string; numero?: string | null } | null>(null);
 
   useEffect(() => {
     if (!user) return;
