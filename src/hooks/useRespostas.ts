@@ -74,11 +74,9 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     sha256 = Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, "0")).join("");
   } catch { /* ignore */ }
 
-  const { data: pub } = supabase.storage.from("respostas-oficios").getPublicUrl(path);
-
   const { data: row, error } = await (supabase as any).from("oficio_respostas").insert({
     oficio_id: oficioId,
-    arquivo_url: pub.publicUrl,
+    arquivo_url: `storage://respostas-oficios/${path}`,
     arquivo_path: path,
     arquivo_nome: file.name,
     tamanho_bytes: file.size,
@@ -111,6 +109,46 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
 }
 
 export async function getRespostaSignedUrl(path: string) {
-  const { data } = await supabase.storage.from("respostas-oficios").createSignedUrl(path, 3600);
+  const cleanPath = normalizeRespostaPath(path);
+  if (!cleanPath) return null;
+  const { data } = await supabase.storage.from("respostas-oficios").createSignedUrl(cleanPath, 3600);
   return data?.signedUrl || null;
+}
+
+export function normalizeRespostaPath(pathOrUrl: string | null | undefined) {
+  if (!pathOrUrl) return null;
+  const value = pathOrUrl.trim();
+  const marker = "/respostas-oficios/";
+  const markerIndex = value.indexOf(marker);
+  if (markerIndex >= 0) return decodeURIComponent(value.slice(markerIndex + marker.length));
+
+  try {
+    const url = new URL(value);
+    const objectMarker = "/storage/v1/object/";
+    const objectIndex = url.pathname.indexOf(objectMarker);
+    if (objectIndex >= 0) {
+      const rest = url.pathname.slice(objectIndex + objectMarker.length);
+      const parts = rest.split("/");
+      const bucketIndex = parts.indexOf("respostas-oficios");
+      if (bucketIndex >= 0) return decodeURIComponent(parts.slice(bucketIndex + 1).join("/"));
+    }
+    return null;
+  } catch {
+    // already a storage path
+  }
+
+  return value.replace(/^\/+/, "");
+}
+
+export async function fetchRespostaBlob(resposta: Pick<OficioResposta, "arquivo_path" | "arquivo_url" | "arquivo_nome" | "mime_type">) {
+  const path = normalizeRespostaPath(resposta.arquivo_path) || normalizeRespostaPath(resposta.arquivo_url);
+  const url = path ? await getRespostaSignedUrl(path) : resposta.arquivo_url;
+  if (!url) return null;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(res.status === 404 ? "Arquivo não encontrado no armazenamento." : `Falha ao carregar arquivo (${res.status}).`);
+
+  const blob = await res.blob();
+  const type = blob.type || resposta.mime_type || (resposta.arquivo_nome.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
+  return new Blob([blob], { type });
 }

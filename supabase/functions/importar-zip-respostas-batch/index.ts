@@ -70,10 +70,9 @@ Deno.serve(async (req) => {
         const hashBuf = await crypto.subtle.digest("SHA-256", blob);
         const sha256 = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 
-        const pub = admin.storage.from("respostas-oficios").getPublicUrl(storagePath);
         const { error: insErr } = await admin.from("oficio_respostas").insert({
           oficio_id: oficioId,
-          arquivo_url: pub.data.publicUrl,
+          arquivo_url: `storage://respostas-oficios/${storagePath}`,
           arquivo_path: storagePath,
           arquivo_nome: name,
           tamanho_bytes: blob.byteLength,
