@@ -333,10 +333,12 @@ export default function Configuracoes() {
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Linha 3</label>
           <Input value={tel3} onChange={e => setTel3(e.target.value)} placeholder="(34) 99999-0003" className="bg-secondary border-border" />
         </div>
+        <div className="flex justify-end pt-2">
+          <Button onClick={handleSave} disabled={saving} size="sm" className="bg-primary text-primary-foreground">
+            <Save size={14} className="mr-1" /> Salvar linhas
+          </Button>
+        </div>
       </div>
-
-      {/* 2FA via SMS */}
-      <TwoFactorSection />
 
       {/* Google Drive */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
