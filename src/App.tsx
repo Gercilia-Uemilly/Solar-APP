@@ -36,6 +36,8 @@ const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 const Lembretes = lazy(() => import("./pages/Lembretes"));
 const Ajuda = lazy(() => import("./pages/Ajuda"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
+const ImportarRespostasZip = lazy(() => import("./pages/ImportarRespostasZip"));
+const DashboardRespostas = lazy(() => import("./pages/DashboardRespostas"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -114,6 +116,8 @@ const AppRoutes = () => {
         <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
         <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
         <Route path="/respostas" element={<ProtectedRoute><AppLayout><Respostas /></AppLayout></ProtectedRoute>} />
+        <Route path="/respostas/dashboard" element={<ProtectedRoute><AppLayout><DashboardRespostas /></AppLayout></ProtectedRoute>} />
+        <Route path="/respostas/importar" element={<ProtectedRoute><AppLayout><ImportarRespostasZip /></AppLayout></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><AppLayout><ChatInterno /></AppLayout></ProtectedRoute>} />
         <Route path="/operadores" element={<AdminRoute><AppLayout><Operadores /></AppLayout></AdminRoute>} />
         <Route path="/relatorios" element={<AdminRoute><AppLayout><Relatorios /></AppLayout></AdminRoute>} />
