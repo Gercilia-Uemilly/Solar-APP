@@ -1029,7 +1029,26 @@ export default function MeusOficios() {
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <VersionHistoryDialog oficioId={o.id} oficioNumero={o.numero} onRestored={fetchOficios} />
-                    
+                    <button
+                      onClick={() => setRespostasListFor({ id: o.id, numero: o.numero })}
+                      className="relative p-2 text-muted-foreground hover:text-foreground"
+                      title={`Respostas${(o as any).total_respostas ? ` (${(o as any).total_respostas})` : ""}`}
+                    >
+                      <Inbox size={16} />
+                      {((o as any).total_respostas || 0) > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[9px] rounded-full min-w-[14px] h-[14px] px-1 flex items-center justify-center font-bold">
+                          {(o as any).total_respostas}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setRespostaUploadFor({ id: o.id, numero: o.numero })}
+                      className="p-2 text-muted-foreground hover:text-foreground"
+                      title="Subir Resposta (PDF)"
+                    >
+                      <MessageSquareReply size={16} />
+                    </button>
+
                     <button
                       onClick={async () => {
                         if (!o.conteudo) return;
@@ -1379,6 +1398,21 @@ export default function MeusOficios() {
           buildExportData(viewOficio).contatoSolicitante,
           (buildExportData(viewOficio) as any).origem,
         )}.pdf` : "previa-oficio.pdf"}
+      />
+
+      <UploadRespostaModal
+        open={!!respostaUploadFor}
+        onOpenChange={(v) => !v && setRespostaUploadFor(null)}
+        oficioId={respostaUploadFor?.id || null}
+        oficioNumero={respostaUploadFor?.numero || null}
+        onUploaded={() => { fetchOficios(); }}
+      />
+
+      <RespostasOficioDialog
+        open={!!respostasListFor}
+        onOpenChange={(v) => !v && setRespostasListFor(null)}
+        oficioId={respostasListFor?.id || null}
+        oficioNumero={respostasListFor?.numero || null}
       />
     </div>
   );
