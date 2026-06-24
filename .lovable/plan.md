@@ -1,65 +1,144 @@
 
+## Visão geral
 
-## Plan: Fix 3 Urgent Issues + Improve Realtime Sync
-
-### Problem Summary
-1. **"Novo Oficio" button unresponsive** after saving — the full-screen dialog closes but focus/state isn't fully reset
-2. **Tutorial opens too often** — currently shows on every first load per user, but should only show once (first login ever)
-3. **Chat notifications missing** — no toast/sound when another operator sends a message
-4. **Slow sync** — aggressive cache (5min staleTime) and incomplete realtime coverage
+Adiciona o conceito de **Resposta** a um ofício: o órgão respondeu → operador anexa o PDF (1 ou vários), o sistema marca como **Respondido**, notifica o operador (sino + WhatsApp) e permite importar respostas antigas em massa via IA semântica.
 
 ---
 
-### 1. Fix "Novo Oficio" Button
+## 1. Banco de dados
 
-**Root cause**: The dialog uses `onOpenChange` which calls `resetForm()` on close. The `autoOpenedRef` logic auto-opens the dialog on page load, but after closing+reopening the page component persists so the ref stays `true`. The real issue is likely focus trapped in the closed dialog or body overflow locked.
+### Nova tabela `oficio_respostas`
+- `oficio_id` (FK oficios)
+- `arquivo_url` (storage)
+- `arquivo_nome`, `tamanho_bytes`, `mime_type`
+- `tipo_origem`: `manual` | `whatsapp` | `import_excel`
+- `data_resposta` (data informada do documento)
+- `orgao_respondente` (texto)
+- `resumo_ia` (texto extraído/resumido pela IA)
+- `match_confianca` (0-1, só para import)
+- `match_metodo` (`ia_semantica` | `manual`)
+- `uploaded_by`, `uploaded_by_nome`
+- `created_at`
 
-**Changes in `src/pages/Oficios.tsx`**:
-- In `resetForm()`, add `document.activeElement.blur()` and `document.body.style.overflow = 'auto'`
-- Add cleanup `useEffect` that resets body styles on unmount
-- Remove the auto-open on page load (`autoOpenedRef` block) — let the user click "Novo Oficio" explicitly
+RLS: leitura para autenticados; insert/delete para autor do ofício, admin ou operador. Storage bucket novo: `respostas-oficios` (privado).
 
-### 2. Tutorial — Show Only on First Login Ever
-
-**Changes in `src/components/AppLayout.tsx`**:
-- Current logic already checks `tutorial_visto_{userId}` in localStorage and only shows if not set — this is correct for "first time only"
-- The issue is the key may be getting cleared or the check is running before `user.id` is available
-- Simplify: keep current logic as-is (it already only shows once per user), ensure no other code triggers `setTourOpen(true)` automatically
-
-Actually the current code at lines 37-44 looks correct — it shows once per user ID and sets the flag. No change needed unless there's another trigger. Will verify no other auto-open exists.
-
-### 3. Chat Notifications with Toast + Sound
-
-**Changes in `src/components/AppLayout.tsx`**:
-- Add a realtime subscription for `mensagens` table filtered by `para_user_id=eq.{user.id}` and `para_user_id=is.null`
-- On new message (not from self): show toast notification with sender name and message preview
-- Play notification sound (use Web Audio API beep, no external file needed)
-- The sidebar badge already exists in `AppSidebar.tsx` — it already tracks unread count with realtime
-
-### 4. Reduce Cache + Expand Realtime Sync
-
-**Changes in `src/App.tsx`**:
-- Reduce `staleTime` from 5 minutes to 0
-- Set `refetchOnWindowFocus: true`
-- Keep `gcTime` at 5 minutes (for memory, not staleness)
-
-**Changes in `src/hooks/useGlobalSync.ts`**:
-- Add listeners for `oficios`, `oficio_numeracao`, `mensagens`, `scripts`, `base_conhecimento` tables
-- On change: invalidate relevant query keys
-
-**Database migration**:
-- Add tables to `supabase_realtime` publication: `oficios`, `oficio_numeracao`, `mensagens`, `scripts`, `base_conhecimento`
-
-No polling/auto-refresh every 10 seconds — realtime + refetchOnWindowFocus is sufficient and more efficient.
+### Alterações em `oficios`
+- Novo status válido: `Respondido`
+- Coluna `respondido_em` (timestamp)
+- Coluna `total_respostas` (int, atualizado via trigger)
 
 ---
 
-### Technical Details
+## 2. UI — botões "Resposta" e "Subir Resposta"
 
-**Files to modify**:
-- `src/pages/Oficios.tsx` — fix resetForm, remove auto-open
-- `src/components/AppLayout.tsx` — add chat notification subscription
-- `src/App.tsx` — reduce cache settings
-- `src/hooks/useGlobalSync.ts` — expand realtime to all key tables
-- Database migration — add tables to realtime publication
+**Lista de Ofícios (`MeusOficios.tsx`, `Oficios.tsx`)** — adicionar ao lado de "Histórico" e "Editar":
+- **Resposta** (badge com contador) → abre modal listando respostas anexadas, com preview PDF, download, excluir.
+- **Subir Resposta** → abre `UploadRespostaModal` (drag-drop múltiplos PDFs).
 
+**Modal de detalhe do ofício (`RealPreviewDialog` / aba nova)** — mesma dupla de botões e uma aba "Respostas".
+
+**Indicador visual** na linha do ofício: ícone ✉️ quando `total_respostas > 0` + status `Respondido` em verde.
+
+---
+
+## 3. Upload de resposta (`UploadRespostaModal`)
+
+- Aceita múltiplos PDFs (até 20MB cada).
+- Para cada arquivo: upload no bucket `respostas-oficios/{oficio_id}/...`, insert em `oficio_respostas`.
+- Chama edge function `processar-resposta-oficio` que:
+  1. Extrai texto do PDF (pdf.js no client OU Gemini no servidor).
+  2. Gera `resumo_ia` (2-3 linhas) e detecta `orgao_respondente` e `data_resposta`.
+  3. Atualiza `oficios.status = 'Respondido'`, `respondido_em = now()`.
+  4. Dispara notificação (sino + WhatsApp via Z-API para o `telefone` do `profiles` do `author_id`).
+
+---
+
+## 4. Notificações
+
+- **Sino in-app**: insert em `notificacoes` (já existe) com tipo `resposta_recebida`, link para o ofício.
+- **WhatsApp**: edge function `notificar-resposta-whatsapp` usa Z-API (já configurada). Mensagem:
+  > 📬 *Resposta recebida* — Ofício GVF-2026-820 (Assunto X) foi respondido por [Órgão]. Acesse o sistema para visualizar.
+
+Só envia se `profiles.telefone` estiver preenchido. Falha silenciosa com log em `error_logs`.
+
+---
+
+## 5. Importação histórica via IA semântica (Excel)
+
+Nova página/aba **"Importar Respostas Históricas"** (admin only):
+
+1. Operador faz upload do `.xlsx` (cada linha = 1 resposta, com colunas livres tipo Assunto/Destinatário/Data/Texto/Anexo).
+2. Edge function `import-respostas-historico`:
+   - Parse com SheetJS (npm xlsx).
+   - Para cada linha, busca os 10 ofícios mais similares via comparação semântica (embeddings ou GPT-4o com lote de candidatos por janela de data + secretaria).
+   - Pede ao GPT-4o: "qual destes 10 ofícios casa com esta resposta? Retorne id + confiança 0-1 + justificativa. Se nenhum casa bem, retorne null".
+   - Se `confianca >= 0.75` → cria automaticamente em `oficio_respostas` com `match_metodo='ia_semantica'`.
+   - Se `0.4 <= confianca < 0.75` → fica em **fila de revisão manual** (UI lista para aprovar/rejeitar/reassignar).
+   - Se `< 0.4` → marca como "sem match" para o admin reatribuir.
+3. Relatório final: X auto-vinculadas, Y para revisão, Z sem match.
+
+---
+
+## 6. Prompt da IA (matching de respostas)
+
+```
+Você está vinculando uma RESPOSTA antiga de órgão público ao OFÍCIO original
+que a gerou. Receba a resposta + 10 candidatos.
+
+Critérios de match (em ordem de peso):
+1. Assunto/tema (peso 40%) — sinônimos contam (ex: "poda" ≈ "supressão de árvore").
+2. Destinatário/secretaria respondente vs. secretaria do ofício (peso 25%).
+3. Local/bairro citado (peso 15%).
+4. Janela temporal: resposta deve ser POSTERIOR ao ofício, idealmente em até 180 dias (peso 10%).
+5. Solicitante/cidadão mencionado (peso 10%).
+
+Retorne JSON: { "oficio_id": "uuid"|null, "confianca": 0.0-1.0, "justificativa": "..." }
+Seja conservador: prefira null a chutar. Confiança >= 0.75 só com pelo menos
+3 critérios fortes alinhados.
+```
+
+---
+
+## 7. Dicas de melhoria que aplicarei
+
+- **Versionamento**: permitir múltiplas respostas por ofício (já contemplado) com ordenação cronológica.
+- **Preview inline**: visualizar PDF da resposta dentro do modal sem baixar.
+- **Busca**: indexar `resumo_ia` para buscar ofícios por conteúdo da resposta.
+- **Auditoria**: cada upload registra em `audit_log` (quem subiu, quando, IP).
+- **Rastreabilidade**: badge "Respondido em X dias" no dashboard (tempo médio de resposta por secretaria — métrica nova para Relatórios).
+- **Anti-duplicata**: hash SHA-256 do PDF; bloqueia upload do mesmo arquivo duas vezes no mesmo ofício.
+- **OCR fallback**: se PDF for scaneado (sem texto extraível), passa por Whisper-like OCR (Gemini Vision) para gerar resumo.
+- **Reabrir**: botão "Reabrir ofício" caso resposta seja insuficiente — volta para status anterior.
+
+---
+
+## 8. Arquivos a criar/editar
+
+**Novos**
+- `supabase/functions/processar-resposta-oficio/index.ts`
+- `supabase/functions/notificar-resposta-whatsapp/index.ts`
+- `supabase/functions/import-respostas-historico/index.ts`
+- `src/components/UploadRespostaModal.tsx`
+- `src/components/RespostasOficioDialog.tsx`
+- `src/pages/ImportarRespostas.tsx`
+- `src/hooks/useRespostas.ts`
+
+**Editados**
+- `src/pages/MeusOficios.tsx`, `src/pages/Oficios.tsx` — botões na linha
+- `src/components/RealPreviewDialog.tsx` — aba Respostas
+- `src/components/AppSidebar.tsx` — link "Importar Respostas" (admin)
+- `src/types/index.ts` — tipos
+- Migração SQL (tabela + bucket + trigger contador)
+
+---
+
+## 9. Ordem de execução
+
+1. Migração DB + bucket + grants/RLS.
+2. Hook + componentes UI (modal upload, modal listar).
+3. Botões nas duas telas.
+4. Edge function de processamento + notificação.
+5. Página de importação histórica + edge function de matching IA.
+6. Testes e ajuste do prompt.
+
+Tudo OK para implementar?
