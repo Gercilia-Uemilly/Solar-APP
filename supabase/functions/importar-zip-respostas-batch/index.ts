@@ -8,7 +8,7 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { zip_bucket, zip_path, uploaded_by, uploaded_by_nome } = await req.json();
+    const { zip_bucket, zip_path, uploaded_by, uploaded_by_nome, offset = 0, limit = 20 } = await req.json();
     if (!zip_bucket || !zip_path) {
       return new Response(JSON.stringify({ error: "zip_bucket/zip_path required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -41,13 +41,15 @@ Deno.serve(async (req) => {
     const ts = Date.now();
     let i = 0;
 
-    const entries: { name: string; entry: any }[] = [];
+    const allEntries: { name: string; entry: any }[] = [];
     zip.forEach((_p, e) => {
       if (e.dir) return;
       const name = e.name.split("/").pop() || e.name;
       if (!name.toLowerCase().endsWith(".pdf")) return;
-      entries.push({ name, entry: e });
+      allEntries.push({ name, entry: e });
     });
+    allEntries.sort((a, b) => a.name.localeCompare(b.name));
+    const entries = allEntries.slice(offset, offset + limit);
 
     for (const { name, entry } of entries) {
       const m = name.match(/^(\d+)[.\-_ ]2026/);
@@ -98,7 +100,10 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      total: entries.length,
+      total_in_zip: allEntries.length,
+      processed: entries.length,
+      offset, limit,
+      next_offset: offset + entries.length < allEntries.length ? offset + entries.length : null,
       imported: imported.length,
       not_found: notFound.length,
       errors: errors.length,
