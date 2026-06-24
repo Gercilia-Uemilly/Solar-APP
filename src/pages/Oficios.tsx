@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen, SearchCheck } from "lucide-react";
+import { Plus, Search, Sparkles, Loader2, Copy, MessageSquare, AlertTriangle, CheckCircle2, Landmark, FileText, Download, Trash2, Calendar, User, MapPin, Phone, X, Pencil, Upload, CloudUpload, Paperclip, Lightbulb, ArrowRight, Undo2, Redo2, Save, BookOpen, SearchCheck, Eye } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
 import PreviewFormatToolbar, { FormatOptions, defaultFormatOptions } from "@/components/PreviewFormatToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,8 +32,9 @@ import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import { extractExternalOficioUrlData } from "@/lib/externalOficioText";
-import { useRespostas, uploadRespostaArquivo } from "@/hooks/useRespostas";
+import { useRespostas, uploadRespostaArquivo, fetchRespostaBlob, type OficioResposta } from "@/hooks/useRespostas";
 import { Inbox, MessageSquareReply } from "lucide-react";
+import RespostaArquivoPreview, { type RespostaPreviewFile } from "@/components/RespostaArquivoPreview";
 
 
 const statusOptions = ["Rascunho", "Salvo", "Exportado", "Enviado", "Respondido", "Atendido", "Arquivado"];
@@ -2149,6 +2150,7 @@ function RespostaTabContent({ oficioId, numero }: { oficioId: string | null; num
   const { toast } = useToast();
   const { respostas, loading, refetch, remove } = useRespostas(oficioId);
   const [uploading, setUploading] = useState(false);
+  const [previewFile, setPreviewFile] = useState<RespostaPreviewFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (!oficioId) {
@@ -2171,7 +2173,36 @@ function RespostaTabContent({ oficioId, numero }: { oficioId: string | null; num
     refetch();
   };
 
+  const fetchAsBlob = async (resposta: OficioResposta) => {
+    try {
+      return await fetchRespostaBlob(resposta);
+    } catch (error: any) {
+      toast({ title: "Não foi possível carregar a resposta", description: error?.message, variant: "destructive" });
+      return null;
+    }
+  };
+
+  const visualizarResposta = async (resposta: OficioResposta) => {
+    const blob = await fetchAsBlob(resposta);
+    if (!blob) return;
+    setPreviewFile({ blob, name: resposta.arquivo_nome, mime: blob.type || resposta.mime_type || "application/pdf" });
+  };
+
+  const baixarResposta = async (resposta: OficioResposta) => {
+    const blob = await fetchAsBlob(resposta);
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = resposta.arquivo_nome;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   return (
+    <>
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg p-3">
         <div className="text-sm">
@@ -2194,7 +2225,7 @@ function RespostaTabContent({ oficioId, numero }: { oficioId: string | null; num
             <div key={r.id} className="flex items-center gap-2 p-3 border border-border rounded-lg">
               <FileText size={16} className="text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
-                <a href={r.arquivo_url} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline truncate block">{r.arquivo_nome}</a>
+                <button type="button" onClick={() => visualizarResposta(r)} className="text-sm font-medium hover:underline truncate block text-left max-w-full">{r.arquivo_nome}</button>
                 <p className="text-[11px] text-muted-foreground">
                   {new Date(r.created_at).toLocaleString("pt-BR")}
                   {r.uploaded_by_nome ? ` · ${r.uploaded_by_nome}` : ""}
@@ -2202,6 +2233,12 @@ function RespostaTabContent({ oficioId, numero }: { oficioId: string | null; num
                 </p>
                 {r.resumo_ia && <p className="text-xs mt-1 text-muted-foreground line-clamp-2">{r.resumo_ia}</p>}
               </div>
+              <button onClick={() => visualizarResposta(r)} className="p-1 text-muted-foreground hover:text-foreground" title="Visualizar">
+                <Eye size={14} />
+              </button>
+              <button onClick={() => baixarResposta(r)} className="p-1 text-muted-foreground hover:text-foreground" title="Baixar">
+                <Download size={14} />
+              </button>
               <button onClick={() => { if (confirm("Excluir esta resposta?")) remove(r); }} className="p-1 text-muted-foreground hover:text-destructive" title="Excluir">
                 <Trash2 size={14} />
               </button>
@@ -2210,5 +2247,12 @@ function RespostaTabContent({ oficioId, numero }: { oficioId: string | null; num
         </div>
       )}
     </div>
+    <Dialog open={!!previewFile} onOpenChange={(v) => !v && setPreviewFile(null)}>
+      <DialogContent className="max-w-5xl h-[85vh] p-2">
+        <DialogHeader className="px-2"><DialogTitle>Pré-visualização</DialogTitle></DialogHeader>
+        {previewFile && <RespostaArquivoPreview file={previewFile} />}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
