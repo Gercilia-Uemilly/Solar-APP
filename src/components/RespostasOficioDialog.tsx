@@ -20,21 +20,40 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const handleView = async (r: OficioResposta) => {
+  const fetchAsBlobUrl = async (r: OficioResposta): Promise<string | null> => {
     const url = r.arquivo_path ? await getRespostaSignedUrl(r.arquivo_path) : r.arquivo_url;
+    if (!url) return null;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const type = blob.type || (r.arquivo_nome.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
+      return URL.createObjectURL(new Blob([blob], { type }));
+    } catch {
+      return url;
+    }
+  };
+
+  const handleView = async (r: OficioResposta) => {
+    const url = await fetchAsBlobUrl(r);
     if (url) setPreviewUrl(url);
+    else toast({ title: "Não foi possível abrir o arquivo", variant: "destructive" });
   };
 
   const handleOpenNewTab = async (r: OficioResposta) => {
-    const url = r.arquivo_path ? await getRespostaSignedUrl(r.arquivo_path) : r.arquivo_url;
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    // Open window synchronously to avoid popup blockers, then navigate when blob is ready
+    const win = window.open("about:blank", "_blank");
+    const url = await fetchAsBlobUrl(r);
+    if (!url) { win?.close(); toast({ title: "Não foi possível abrir o arquivo", variant: "destructive" }); return; }
+    if (win) win.location.href = url;
+    else window.location.href = url;
   };
 
   const handleDownload = async (r: OficioResposta) => {
-    const url = r.arquivo_path ? await getRespostaSignedUrl(r.arquivo_path) : r.arquivo_url;
+    const url = await fetchAsBlobUrl(r);
     if (!url) return;
     const a = document.createElement("a");
-    a.href = url; a.download = r.arquivo_nome; a.target = "_blank";
+    a.href = url; a.download = r.arquivo_nome;
     document.body.appendChild(a); a.click(); a.remove();
   };
 
