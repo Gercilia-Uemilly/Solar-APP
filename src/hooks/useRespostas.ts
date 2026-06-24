@@ -102,6 +102,11 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     body: { resposta_id: row.id },
   }).catch(() => { /* falha silenciosa, ofício ainda salvou */ });
 
+  // dispara notificação ao operador autor (WhatsApp + in-app)
+  supabase.functions.invoke("notificar-resposta-whatsapp", {
+    body: { resposta_id: row.id, oficio_id: oficioId },
+  }).catch(() => { /* silencioso */ });
+
   return row.id as string;
 }
 
