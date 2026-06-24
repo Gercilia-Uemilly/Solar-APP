@@ -733,28 +733,36 @@ export default function MeusOficios() {
     setCurrentPage(1);
   };
 
-  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados">("rascunhos");
+  const [abaAtiva, setAbaAtiva] = useState<"rascunhos" | "finalizados" | "respondidos">("rascunhos");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
-  const handleAbaChange = (aba: "rascunhos" | "finalizados") => {
+  const handleAbaChange = (aba: "rascunhos" | "finalizados" | "respondidos") => {
     setAbaAtiva(aba);
     setCurrentPage(1);
   };
 
   const statusFinalizados = ["Protocolado", "Respondido", "Atendido", "Impresso"];
-  const { finalizados, rascunhos } = useMemo(() => {
+  const { finalizados, rascunhos, respondidos } = useMemo(() => {
     const fin: OficioRow[] = [];
     const ras: OficioRow[] = [];
+    const resp: OficioRow[] = [];
     for (const o of filtered) {
       if (statusFinalizados.includes(o.status)) fin.push(o);
       else ras.push(o);
+      if (o.status === "Respondido") resp.push(o);
     }
-    return { finalizados: fin, rascunhos: ras };
+    return { finalizados: fin, rascunhos: ras, respondidos: resp };
   }, [filtered]);
   // Se há busca ativa, mostra todos os resultados independente da aba
   const hasBusca = search.trim().length > 0;
-  const listaBase = hasBusca ? filtered : (abaAtiva === "rascunhos" ? rascunhos : finalizados);
+  const listaBase = hasBusca
+    ? filtered
+    : abaAtiva === "rascunhos"
+      ? rascunhos
+      : abaAtiva === "respondidos"
+        ? respondidos
+        : finalizados;
 
   const listaCompleta = useMemo(() => {
     const arr = [...listaBase];
@@ -818,6 +826,12 @@ export default function MeusOficios() {
           className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "finalizados" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
         >
           📬 Finalizados ({finalizados.length})
+        </button>
+        <button
+          onClick={() => { setAbaAtiva("respondidos"); setCurrentPage(1); }}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", abaAtiva === "respondidos" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}
+        >
+          💬 Respondidos ({respondidos.length})
         </button>
       </div>
 
