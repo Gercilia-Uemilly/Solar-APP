@@ -1,6 +1,6 @@
 import { useState } from "react";
 import JSZip from "jszip";
-import { Loader2, Upload, CheckCircle2, AlertCircle, FileArchive } from "lucide-react";
+import { Loader2, Upload, CheckCircle2, AlertCircle, FileArchive, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +29,24 @@ export default function ImportarRespostasZip() {
   const [rows, setRows] = useState<Row[]>([]);
   const [processing, setProcessing] = useState(false);
   const [zipFile, setZipFile] = useState<File | null>(null);
+  const [loadingBatch, setLoadingBatch] = useState<string | null>(null);
+
+  const PREPARED_BATCHES = Array.from({ length: 10 }, (_, i) => `c0${i}.zip`);
+
+  const loadPreparedBatch = async (path: string) => {
+    try {
+      setLoadingBatch(path);
+      const { data, error } = await supabase.storage.from("import-zips").download(path);
+      if (error || !data) throw error || new Error("Arquivo não encontrado");
+      const file = new File([data], path, { type: "application/zip" });
+      await handleZip(file);
+      toast({ title: `Lote ${path} carregado`, description: "Clique em Importar para processar." });
+    } catch (e: any) {
+      toast({ title: "Falha ao carregar lote", description: e?.message || String(e), variant: "destructive" });
+    } finally {
+      setLoadingBatch(null);
+    }
+  };
 
   const handleZip = async (file: File) => {
     setZipFile(file);
@@ -112,6 +130,27 @@ export default function ImportarRespostasZip() {
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+          <div>
+            <p className="text-sm font-semibold">📦 Lotes prontos no servidor (292 PDFs)</p>
+            <p className="text-xs text-muted-foreground">Respostas extraídas do arquivo .rar e organizadas em 10 lotes. Carregue um lote por vez e clique em Importar.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {PREPARED_BATCHES.map((p) => (
+              <Button
+                key={p}
+                variant="outline"
+                size="sm"
+                disabled={loadingBatch === p || processing}
+                onClick={() => loadPreparedBatch(p)}
+              >
+                {loadingBatch === p ? <Loader2 className="animate-spin mr-2" size={14} /> : <Download size={14} className="mr-2" />}
+                {p}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         <label className="block border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-accent/30">
           <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm font-medium">Selecione o arquivo ZIP</p>
