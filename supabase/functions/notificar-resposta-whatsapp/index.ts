@@ -32,12 +32,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { resposta_id, oficio_id: oficioIdInput } = await req.json();
-    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const SRV_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const SB_URL = Deno.env.get("SUPABASE_URL") || "";
+    console.log("notificar: env", { hasUrl: !!SB_URL, hasKey: !!SRV_KEY, keyLen: SRV_KEY.length });
+    const sb = createClient(SB_URL, SRV_KEY, { auth: { persistSession: false } });
 
     // Buscar resposta primeiro para resolver oficio_id (e usar resumo)
-    const { data: resposta } = await sb.from("oficio_respostas")
-      .select("oficio_id, resumo_ia, orgao_respondente, arquivo_nome, uploaded_by_nome, tipo_origem")
+    const { data: resposta, error: errResp } = await sb.from("oficio_respostas")
+      .select("oficio_id, resumo_ia, orgao_respondente, arquivo_nome, uploaded_by, uploaded_by_nome, tipo_origem")
       .eq("id", resposta_id).maybeSingle();
+    if (errResp) console.error("notificar: erro buscar resposta", errResp);
+    console.log("notificar: resposta", { resposta_id, oficio_id: resposta?.oficio_id, tipo_origem: resposta?.tipo_origem });
 
     const oficio_id = oficioIdInput || resposta?.oficio_id;
     if (!oficio_id) {
@@ -53,25 +58,30 @@ serve(async (req) => {
       });
     }
 
-    const { data: oficio } = await sb.from("oficios")
-      .select("id, numero, assunto, destinatario, secretaria_destino, author_id, operador_nome")
+    const { data: oficio, error: errOf } = await sb.from("oficios")
+      .select("id, numero, assunto, destinatario, secretaria_identificada, author_id, operador_nome")
       .eq("id", oficio_id).maybeSingle();
+    if (errOf) console.error("notificar: erro buscar oficio", errOf);
+    console.log("notificar: oficio", { oficio_id, encontrado: !!oficio, author_id: oficio?.author_id });
     if (!oficio) {
       return new Response(JSON.stringify({ ok: false, skipped: "oficio_nao_encontrado" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Buscar telefones do autor (select tolerante a colunas opcionais)
-    let profile: any = null;
+    // Buscar telefones do autor e (fallback) de quem fez o upload
+    const idsParaNotificar = Array.from(new Set([oficio.author_id, resposta?.uploaded_by].filter(Boolean) as string[]));
+    let profiles: any[] = [];
     try {
       const r = await sb.from("profiles")
-        .select("nome, celular, telefone1, telefone2, telefone3").eq("id", oficio.author_id).maybeSingle();
-      profile = r.data;
+        .select("id, full_name, celular, telefone1, telefone2, telefone3").in("id", idsParaNotificar);
+      profiles = r.data || [];
     } catch { /* */ }
 
-    const candidates = [profile?.celular, profile?.telefone1, profile?.telefone2, profile?.telefone3]
+    const candidates = profiles.flatMap((p) => [p?.celular, p?.telefone1, p?.telefone2, p?.telefone3])
       .map((p) => normalizePhone(p || "")).filter(Boolean) as string[];
+    const uniqueCandidates = Array.from(new Set(candidates));
+    console.log("notificar: telefones", { ids: idsParaNotificar, total: uniqueCandidates.length });
 
     // Notificação in-app (tabela notifications se existir)
     try {
@@ -92,23 +102,23 @@ serve(async (req) => {
     const msg =
       `📬 *Resposta recebida*\n` +
       `Ofício *${oficio.numero || "(s/nº)"}* — ${oficio.assunto || ""}\n` +
-      `Destinatário: ${oficio.destinatario || oficio.secretaria_destino || "-"}\n` +
+      `Destinatário: ${oficio.destinatario || oficio.secretaria_identificada || "-"}\n` +
       (resposta?.orgao_respondente ? `Órgão: ${resposta.orgao_respondente}\n` : "") +
       (resposta?.resumo_ia ? `\n📝 ${resposta.resumo_ia}\n` : "") +
       `\nAcesse o Solar para ver o documento.`;
 
     const results: any[] = [];
-    if (zapiUrl && candidates.length > 0) {
-      for (const phone of candidates) {
+    if (zapiUrl && uniqueCandidates.length > 0) {
+      for (const phone of uniqueCandidates) {
         const headers: any = { "Content-Type": "application/json" };
         if (ZAPI_CLIENT_TOKEN) headers["Client-Token"] = ZAPI_CLIENT_TOKEN;
         const r = await fetch(zapiUrl, { method: "POST", headers, body: JSON.stringify({ phone, message: msg }) });
-        results.push({ phone, status: r.status });
-        if (r.ok) break; // basta enviar para um telefone válido
+        const txt = await r.text().catch(() => "");
+        results.push({ phone, status: r.status, body: txt.slice(0, 200) });
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, notificados: results, msg_phones: candidates.length }), {
+    return new Response(JSON.stringify({ ok: true, notificados: results, msg_phones: uniqueCandidates.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
