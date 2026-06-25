@@ -7,6 +7,7 @@ import { useRespostas, fetchRespostaBlob, type OficioResposta } from "@/hooks/us
 import { useToast } from "@/hooks/use-toast";
 import UploadRespostaModal from "./UploadRespostaModal";
 import RespostaArquivoPreview, { type RespostaPreviewFile } from "./RespostaArquivoPreview";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,7 @@ function getErrorMessage(error: unknown) {
 
 export default function RespostasOficioDialog({ open, onOpenChange, oficioId, oficioNumero }: Props) {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const { respostas, loading, remove } = useRespostas(open ? oficioId : null);
   const [previewFile, setPreviewFile] = useState<RespostaPreviewFile | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -67,11 +69,17 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex justify-end">
-            <Button size="sm" onClick={() => setUploadOpen(true)}>
-              <Upload size={14} className="mr-1" /> Subir Resposta
-            </Button>
-          </div>
+          {isAdmin ? (
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => setUploadOpen(true)}>
+                <Upload size={14} className="mr-1" /> Subir Resposta
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-right">
+              Apenas administradores podem anexar respostas.
+            </p>
+          )}
 
           {loading ? (
             <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div>
@@ -100,7 +108,9 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => handleView(r)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
                       <button onClick={() => handleDownload(r)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Baixar"><Download size={16} /></button>
-                      <button onClick={() => handleDelete(r)} className="p-1.5 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
+                      {isAdmin && (
+                        <button onClick={() => handleDelete(r)} className="p-1.5 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
+                      )}
                     </div>
                   </div>
                 </div>

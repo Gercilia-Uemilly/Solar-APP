@@ -91,59 +91,71 @@ Deno.serve(async (req) => {
     const entries = allEntries.slice(offset, offset + limit);
 
     for (const { name, entry } of entries) {
-      const m = name.match(/^(\d+)[.\-_ ]2026/);
-      const numero = m?.[1];
-      if (!numero) { notFound.push({ filename: name, reason: "sem_numero" }); continue; }
-      const oficio = map[numero];
-      const oficioId = oficio?.id;
-      if (!oficioId) { notFound.push({ filename: name, numero }); continue; }
+      // Pula respostas de Indicação/Proposição (não são ofícios)
+      const lower = name.toLowerCase();
+      const isOficio = /of[ií]cio/i.test(name) || !/(\bind[\s\(]|indica[cç][aã]o|proposi[cç][aã]o|requerimento)/i.test(lower);
+      if (!isOficio) { notFound.push({ filename: name, reason: "nao_eh_oficio" }); continue; }
+
+      // Captura TODOS os números no formato "N-2026" ou "N/2026" (suporta multi: "1187 e 1201-2026")
+      const numeros = Array.from(name.matchAll(/\b(\d{1,5})\s*[\-\/]\s*2026\b/g)).map(m => m[1]);
+      // Caso "1187 e 1201-2026" - o regex pega só "1201"; complementa pegando dígitos isolados antes
+      const headMatch = name.match(/(?:of[ií]cio\s+)?((?:\d{1,5}[^0-9\-\/]+)*\d{1,5})\s*[\-\/]\s*2026/i);
+      if (headMatch) {
+        const extras = headMatch[1].match(/\d{1,5}/g) || [];
+        for (const n of extras) if (!numeros.includes(n)) numeros.push(n);
+      }
+      if (numeros.length === 0) { notFound.push({ filename: name, reason: "sem_numero" }); continue; }
+
+      // Resolve oficios correspondentes (exato)
+      const matches = numeros.map(n => ({ numero: n, oficio: map[n] })).filter(x => x.oficio);
+      if (matches.length === 0) { notFound.push({ filename: name, numeros }); continue; }
+
       try {
         const blob = await entry.async("uint8array");
         const pdfBuffer = blob.buffer.slice(blob.byteOffset, blob.byteOffset + blob.byteLength);
         const conteudoExtraido = await extractPdfText(pdfBuffer);
-        if (looksLikeOriginalOficioPdf(conteudoExtraido, oficio.numero)) {
-          errors.push({ filename: name, numero, error: "arquivo_eh_o_proprio_oficio" });
-          continue;
-        }
 
-        const storagePath = `${oficioId}/${ts + i}-zip.pdf`;
-        i++;
-        const up = await admin.storage.from("respostas-oficios").upload(storagePath, blob, {
-          contentType: "application/pdf", upsert: false,
-        });
-        if (up.error) { errors.push({ filename: name, error: up.error.message }); continue; }
-
-        // sha256
+        // sha256 do conteúdo (mesmo para todos os ofícios vinculados)
         const hashBuf = await crypto.subtle.digest("SHA-256", blob);
         const sha256 = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 
-        const { error: insErr } = await admin.from("oficio_respostas").insert({
-          oficio_id: oficioId,
-          arquivo_url: `storage://respostas-oficios/${storagePath}`,
-          arquivo_path: storagePath,
-          arquivo_nome: name,
-          tamanho_bytes: blob.byteLength,
-          mime_type: "application/pdf",
-          sha256,
-          tipo_origem: "import_excel",
-          conteudo_extraido: conteudoExtraido || null,
-          match_status: "confirmado",
-          match_metodo: conteudoExtraido ? "numero_exato_conteudo_validado" : "numero_exato_sem_texto",
-          match_confianca: 1,
-          uploaded_by: uploaded_by ?? null,
-          uploaded_by_nome: uploaded_by_nome ?? "Importação ZIP",
-        });
-        if (insErr) {
-          if ((insErr as any).code === "23505") {
-            await admin.storage.from("respostas-oficios").remove([storagePath]);
-            errors.push({ filename: name, error: "duplicado" });
-          } else {
-            await admin.storage.from("respostas-oficios").remove([storagePath]);
-            errors.push({ filename: name, error: insErr.message });
+        for (const { numero, oficio } of matches) {
+          const oficioId = oficio!.id;
+          if (looksLikeOriginalOficioPdf(conteudoExtraido, oficio!.numero)) {
+            errors.push({ filename: name, numero, error: "arquivo_eh_o_proprio_oficio" });
+            continue;
           }
-          continue;
+
+          const storagePath = `${oficioId}/${ts + i}-zip.pdf`;
+          i++;
+          const up = await admin.storage.from("respostas-oficios").upload(storagePath, blob, {
+            contentType: "application/pdf", upsert: false,
+          });
+          if (up.error) { errors.push({ filename: name, numero, error: up.error.message }); continue; }
+
+          const { error: insErr } = await admin.from("oficio_respostas").insert({
+            oficio_id: oficioId,
+            arquivo_url: `storage://respostas-oficios/${storagePath}`,
+            arquivo_path: storagePath,
+            arquivo_nome: name,
+            tamanho_bytes: blob.byteLength,
+            mime_type: "application/pdf",
+            sha256,
+            tipo_origem: "import_excel",
+            conteudo_extraido: conteudoExtraido || null,
+            match_status: "confirmado",
+            match_metodo: conteudoExtraido ? "numero_exato_conteudo_validado" : "numero_exato_sem_texto",
+            match_confianca: 1,
+            uploaded_by: uploaded_by ?? null,
+            uploaded_by_nome: uploaded_by_nome ?? "Importação ZIP",
+          });
+          if (insErr) {
+            await admin.storage.from("respostas-oficios").remove([storagePath]);
+            errors.push({ filename: name, numero, error: (insErr as any).code === "23505" ? "duplicado" : insErr.message });
+            continue;
+          }
+          imported.push({ filename: name, numero, oficio_id: oficioId });
         }
-        imported.push({ filename: name, numero, oficio_id: oficioId });
       } catch (e: any) {
         errors.push({ filename: name, error: e?.message || "falha" });
       }
