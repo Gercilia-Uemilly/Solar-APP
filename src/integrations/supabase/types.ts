@@ -1359,6 +1359,8 @@ export type Database = {
         Returns: number
       }
       resetar_numeracao_anual: { Args: never; Returns: undefined }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       usar_numero: {
         Args: {
           p_ano: number
