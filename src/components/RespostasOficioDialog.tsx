@@ -98,7 +98,7 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
                       </div>
                       <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
                         <span>{new Date(r.created_at).toLocaleString("pt-BR")}</span>
-                        {r.uploaded_by_nome && <span>por {r.uploaded_by_nome}</span>}
+                        {/* autor da resposta omitido — autoria do ofício é preservada */}
                         {r.orgao_respondente && <span>· {r.orgao_respondente}</span>}
                       </div>
                       {r.resumo_ia && (
