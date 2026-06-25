@@ -32,12 +32,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { resposta_id, oficio_id: oficioIdInput } = await req.json();
-    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const SRV_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const SB_URL = Deno.env.get("SUPABASE_URL") || "";
+    console.log("notificar: env", { hasUrl: !!SB_URL, hasKey: !!SRV_KEY, keyLen: SRV_KEY.length });
+    const sb = createClient(SB_URL, SRV_KEY, { auth: { persistSession: false } });
 
     // Buscar resposta primeiro para resolver oficio_id (e usar resumo)
-    const { data: resposta } = await sb.from("oficio_respostas")
+    const { data: resposta, error: errResp } = await sb.from("oficio_respostas")
       .select("oficio_id, resumo_ia, orgao_respondente, arquivo_nome, uploaded_by_nome, tipo_origem")
       .eq("id", resposta_id).maybeSingle();
+    if (errResp) console.error("notificar: erro buscar resposta", errResp);
+    console.log("notificar: resposta", { resposta_id, oficio_id: resposta?.oficio_id, tipo_origem: resposta?.tipo_origem });
 
     const oficio_id = oficioIdInput || resposta?.oficio_id;
     if (!oficio_id) {
@@ -53,9 +58,11 @@ serve(async (req) => {
       });
     }
 
-    const { data: oficio } = await sb.from("oficios")
+    const { data: oficio, error: errOf } = await sb.from("oficios")
       .select("id, numero, assunto, destinatario, secretaria_destino, author_id, operador_nome")
       .eq("id", oficio_id).maybeSingle();
+    if (errOf) console.error("notificar: erro buscar oficio", errOf);
+    console.log("notificar: oficio", { oficio_id, encontrado: !!oficio, author_id: oficio?.author_id });
     if (!oficio) {
       return new Response(JSON.stringify({ ok: false, skipped: "oficio_nao_encontrado" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
