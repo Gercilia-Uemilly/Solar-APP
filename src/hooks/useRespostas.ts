@@ -33,6 +33,7 @@ export function useRespostas(oficioId: string | null | undefined) {
       .from("oficio_respostas")
       .select("*")
       .eq("oficio_id", oficioId)
+      .in("match_status", ["confirmado", "pendente_processamento"])
       .order("created_at", { ascending: false });
     setRespostas((data as OficioResposta[]) || []);
     setLoading(false);
@@ -87,6 +88,9 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     mime_type: file.type || "application/pdf",
     sha256,
     tipo_origem: "manual",
+    match_status: "pendente_processamento",
+    match_metodo: "upload_manual_aguardando_analise",
+    match_confianca: null,
     uploaded_by: userId,
     uploaded_by_nome: userName,
   }).select("id").single();
@@ -103,11 +107,6 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
   supabase.functions.invoke("processar-resposta-oficio", {
     body: { resposta_id: row.id },
   }).catch(() => { /* falha silenciosa, ofício ainda salvou */ });
-
-  // dispara notificação ao operador autor (WhatsApp + in-app)
-  supabase.functions.invoke("notificar-resposta-whatsapp", {
-    body: { resposta_id: row.id, oficio_id: oficioId },
-  }).catch(() => { /* silencioso */ });
 
   return row.id as string;
 }

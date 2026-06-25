@@ -81,6 +81,7 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-sm truncate">{r.arquivo_nome}</p>
                         {r.tipo_origem === "import_excel" && <Badge variant="outline" className="text-xs">Histórico</Badge>}
+                        {r.match_status === "pendente_processamento" && <Badge variant="secondary" className="text-xs">Processando</Badge>}
                         {r.match_status === "pendente_revisao" && <Badge variant="secondary" className="text-xs">Revisar</Badge>}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
