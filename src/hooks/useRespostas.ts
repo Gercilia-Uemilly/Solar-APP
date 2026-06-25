@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const RESPOSTAS_BUCKET = "respostas-oficios";
+const STORAGE_PREFIX = `storage://${RESPOSTAS_BUCKET}/`;
+
 export interface OficioResposta {
   id: string;
   oficio_id: string;
@@ -47,8 +50,9 @@ export function useRespostas(oficioId: string | null | undefined) {
   }, [oficioId, fetchAll]);
 
   const remove = async (resposta: OficioResposta) => {
-    if (resposta.arquivo_path) {
-      await supabase.storage.from("respostas-oficios").remove([resposta.arquivo_path]);
+    const path = normalizeRespostaPath(resposta.arquivo_path) || normalizeRespostaPath(resposta.arquivo_url);
+    if (path) {
+      await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
     }
     await (supabase as any).from("oficio_respostas").delete().eq("id", resposta.id);
     await fetchAll();
@@ -60,7 +64,7 @@ export function useRespostas(oficioId: string | null | undefined) {
 export async function uploadRespostaArquivo(oficioId: string, file: File, userId: string, userName: string) {
   const ext = file.name.split(".").pop() || "pdf";
   const path = `${oficioId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
-  const up = await supabase.storage.from("respostas-oficios").upload(path, file, {
+  const up = await supabase.storage.from(RESPOSTAS_BUCKET).upload(path, file, {
     contentType: file.type || "application/pdf",
     upsert: false,
   });
@@ -76,7 +80,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
 
   const { data: row, error } = await (supabase as any).from("oficio_respostas").insert({
     oficio_id: oficioId,
-    arquivo_url: `storage://respostas-oficios/${path}`,
+    arquivo_url: `${STORAGE_PREFIX}${path}`,
     arquivo_path: path,
     arquivo_nome: file.name,
     tamanho_bytes: file.size,
@@ -89,7 +93,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
 
   if (error) {
     if ((error as any).code === "23505") {
-      await supabase.storage.from("respostas-oficios").remove([path]);
+      await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
       throw new Error("Este arquivo já foi anexado a este ofício.");
     }
     throw error;
@@ -111,44 +115,75 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
 export async function getRespostaSignedUrl(path: string) {
   const cleanPath = normalizeRespostaPath(path);
   if (!cleanPath) return null;
-  const { data } = await supabase.storage.from("respostas-oficios").createSignedUrl(cleanPath, 3600);
+  const { data } = await supabase.storage.from(RESPOSTAS_BUCKET).createSignedUrl(cleanPath, 3600);
   return data?.signedUrl || null;
+}
+
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 export function normalizeRespostaPath(pathOrUrl: string | null | undefined) {
   if (!pathOrUrl) return null;
   const value = pathOrUrl.trim();
-  const marker = "/respostas-oficios/";
+
+  if (value.startsWith(STORAGE_PREFIX)) {
+    return safeDecode(value.slice(STORAGE_PREFIX.length).replace(/^\/+/, ""));
+  }
+
+  if (value.startsWith(`${RESPOSTAS_BUCKET}/`)) {
+    return safeDecode(value.slice(RESPOSTAS_BUCKET.length + 1).replace(/^\/+/, ""));
+  }
+
+  const marker = `/${RESPOSTAS_BUCKET}/`;
   const markerIndex = value.indexOf(marker);
-  if (markerIndex >= 0) return decodeURIComponent(value.slice(markerIndex + marker.length));
+  if (markerIndex >= 0) return safeDecode(value.slice(markerIndex + marker.length));
 
   try {
     const url = new URL(value);
+    if (url.protocol === "storage:" && url.hostname === RESPOSTAS_BUCKET) {
+      return safeDecode(url.pathname.replace(/^\/+/, ""));
+    }
+
     const objectMarker = "/storage/v1/object/";
     const objectIndex = url.pathname.indexOf(objectMarker);
     if (objectIndex >= 0) {
       const rest = url.pathname.slice(objectIndex + objectMarker.length);
       const parts = rest.split("/");
-      const bucketIndex = parts.indexOf("respostas-oficios");
-      if (bucketIndex >= 0) return decodeURIComponent(parts.slice(bucketIndex + 1).join("/"));
+      const bucketIndex = parts.indexOf(RESPOSTAS_BUCKET);
+      if (bucketIndex >= 0) return safeDecode(parts.slice(bucketIndex + 1).join("/"));
     }
     return null;
   } catch {
     // already a storage path
   }
 
-  return value.replace(/^\/+/, "");
+  return safeDecode(value.replace(/^\/+/, ""));
 }
 
 export async function fetchRespostaBlob(resposta: Pick<OficioResposta, "arquivo_path" | "arquivo_url" | "arquivo_nome" | "mime_type">) {
   const path = normalizeRespostaPath(resposta.arquivo_path) || normalizeRespostaPath(resposta.arquivo_url);
-  const url = path ? await getRespostaSignedUrl(path) : resposta.arquivo_url;
-  if (!url) return null;
+  let blob: Blob;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(res.status === 404 ? "Arquivo não encontrado no armazenamento." : `Falha ao carregar arquivo (${res.status}).`);
+  if (path) {
+    const { data, error } = await supabase.storage.from(RESPOSTAS_BUCKET).download(path);
+    if (error) {
+      const message = error.message?.toLowerCase() || "";
+      throw new Error(message.includes("not found") || message.includes("404") ? "Arquivo não encontrado no armazenamento." : error.message);
+    }
+    blob = data;
+  } else if (resposta.arquivo_url?.startsWith("http")) {
+    const res = await fetch(resposta.arquivo_url);
+    if (!res.ok) throw new Error(res.status === 404 ? "Arquivo não encontrado no armazenamento." : `Falha ao carregar arquivo (${res.status}).`);
+    blob = await res.blob();
+  } else {
+    throw new Error("Caminho do arquivo da resposta inválido.");
+  }
 
-  const blob = await res.blob();
   const type = blob.type || resposta.mime_type || (resposta.arquivo_nome.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
   return new Blob([blob], { type });
 }
