@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import JSZip from "jszip";
 import { Loader2, Upload, CheckCircle2, AlertCircle, FileArchive, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,15 @@ export default function ImportarRespostasZip() {
   const [processing, setProcessing] = useState(false);
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [loadingBatch, setLoadingBatch] = useState<string | null>(null);
+  const [availableBatches, setAvailableBatches] = useState<{ name: string; size: number }[]>([]);
 
-  const PREPARED_BATCHES = Array.from({ length: 10 }, (_, i) => `c0${i}.zip`);
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.storage.from("import-zips").list("", { limit: 100, sortBy: { column: "name", order: "asc" } });
+      if (error) return;
+      setAvailableBatches((data || []).filter(f => f.name.toLowerCase().endsWith(".zip")).map(f => ({ name: f.name, size: (f.metadata as any)?.size || 0 })));
+    })();
+  }, []);
 
   const loadPreparedBatch = async (path: string) => {
     try {
@@ -130,26 +137,30 @@ export default function ImportarRespostasZip() {
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
-          <div>
-            <p className="text-sm font-semibold">📦 Lotes prontos no servidor (292 PDFs)</p>
-            <p className="text-xs text-muted-foreground">Respostas extraídas do arquivo .rar e organizadas em 10 lotes. Carregue um lote por vez e clique em Importar.</p>
+        {availableBatches.length > 0 && (
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold">📦 ZIPs disponíveis no servidor</p>
+              <p className="text-xs text-muted-foreground">Clique para carregar e depois em Importar.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {availableBatches.map((b) => (
+                <Button
+                  key={b.name}
+                  variant="outline"
+                  size="sm"
+                  disabled={loadingBatch === b.name || processing}
+                  onClick={() => loadPreparedBatch(b.name)}
+                  className="justify-start"
+                >
+                  {loadingBatch === b.name ? <Loader2 className="animate-spin mr-2" size={14} /> : <Download size={14} className="mr-2" />}
+                  <span className="truncate">{b.name}</span>
+                  <span className="ml-auto text-muted-foreground">{(b.size / 1024 / 1024).toFixed(1)} MB</span>
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {PREPARED_BATCHES.map((p) => (
-              <Button
-                key={p}
-                variant="outline"
-                size="sm"
-                disabled={loadingBatch === p || processing}
-                onClick={() => loadPreparedBatch(p)}
-              >
-                {loadingBatch === p ? <Loader2 className="animate-spin mr-2" size={14} /> : <Download size={14} className="mr-2" />}
-                {p}
-              </Button>
-            ))}
-          </div>
-        </div>
+        )}
 
         <label className="block border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-accent/30">
           <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
