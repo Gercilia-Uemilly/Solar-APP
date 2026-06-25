@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can read import-zips" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'import-zips' AND public.is_admin(auth.uid()));
