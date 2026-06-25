@@ -391,7 +391,6 @@ export default function Configuracoes() {
         <p className="text-xs text-muted-foreground">Ferramentas administrativas para gerir respostas recebidas.</p>
         <div className="flex flex-wrap gap-2">
           <Link to="/respostas/dashboard"><Button variant="outline" size="sm"><BarChart3 size={14} className="mr-1" /> Dashboard de Respostas</Button></Link>
-          <Link to="/respostas/importar"><Button variant="outline" size="sm"><FileArchive size={14} className="mr-1" /> Importar respostas (ZIP)</Button></Link>
         </div>
       </div>
 
