@@ -19,6 +19,40 @@ async function extractPdfText(buf: ArrayBuffer): Promise<string> {
   }
 }
 
+function normalizeText(value: string | null | undefined) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getNumeroParts(numero: string | null | undefined) {
+  const value = numero || "";
+  const match = value.match(/(\d{1,5})\s*\/\s*(20\d{2})/) || value.match(/(\d{1,5}).*?(20\d{2})/);
+  return match ? { numero: match[1], ano: match[2] } : null;
+}
+
+function looksLikeOriginalOficioPdf(conteudo: string, oficio: any) {
+  const text = normalizeText(conteudo);
+  if (!text) return false;
+
+  const parts = getNumeroParts(oficio?.numero);
+  const sameNumber = parts ? text.includes(`${parts.numero}/${parts.ano}`) || (text.includes(parts.numero) && text.includes(parts.ano)) : false;
+  if (!sameNumber) return false;
+
+  const markers = [
+    text.includes("oficio gvf"),
+    text.includes("destinatario:"),
+    text.includes("assunto:"),
+    text.includes("vereador que a este subscreve") || text.includes("este gabinete") || text.includes("exercicio de suas atribuicoes parlamentares"),
+    text.includes("uberlandia"),
+  ].filter(Boolean).length;
+
+  return markers >= 3;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -36,7 +70,7 @@ serve(async (req) => {
     if (rErr || !resposta) throw new Error("Resposta não encontrada");
 
     const { data: oficio } = await adminSb
-      .from("oficios").select("id, numero, assunto, secretaria_destino, destinatario, author_id, operador_nome")
+      .from("oficios").select("id, numero, assunto, secretaria_identificada, destinatario, author_id, operador_nome, conteudo")
       .eq("id", resposta.oficio_id).single();
 
     // Baixar PDF
@@ -52,6 +86,22 @@ serve(async (req) => {
       }
     }
 
+    if (looksLikeOriginalOficioPdf(conteudo, oficio)) {
+      await adminSb.from("oficio_respostas").update({
+        conteudo_extraido: conteudo || null,
+        resumo_ia: "Arquivo ignorado: o PDF anexado é o próprio ofício, não uma resposta do órgão.",
+        orgao_respondente: null,
+        match_status: "arquivo_invalido",
+        match_metodo: "conteudo_eh_proprio_oficio",
+        match_confianca: 0,
+        data_resposta: resposta.data_resposta || new Date().toISOString().slice(0, 10),
+      }).eq("id", resposta_id);
+
+      return new Response(JSON.stringify({ ok: true, skipped: "arquivo_eh_o_proprio_oficio" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Gerar resumo com IA (Lovable AI)
     const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (conteudo && LOVABLE_KEY) {
@@ -63,7 +113,7 @@ serve(async (req) => {
             model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: "Você analisa respostas oficiais a ofícios. Responda em JSON: {\"resumo\":\"resumo em até 3 linhas, claro e direto\",\"orgao\":\"nome do órgão respondente se identificável\",\"posicionamento\":\"deferido|indeferido|em_analise|informativo\"}" },
-              { role: "user", content: `Ofício nº ${oficio?.numero || ""} sobre "${oficio?.assunto || ""}" enviado a ${oficio?.destinatario || oficio?.secretaria_destino || ""}.\n\nTexto da resposta:\n${conteudo.slice(0, 8000)}` },
+              { role: "user", content: `Ofício nº ${oficio?.numero || ""} sobre "${oficio?.assunto || ""}" enviado a ${oficio?.destinatario || oficio?.secretaria_identificada || ""}.\n\nTexto da resposta:\n${conteudo.slice(0, 8000)}` },
             ],
             response_format: { type: "json_object" },
           }),
@@ -81,6 +131,9 @@ serve(async (req) => {
       conteudo_extraido: conteudo || null,
       resumo_ia: resumo || null,
       orgao_respondente: orgao,
+      match_status: "confirmado",
+      match_metodo: resposta.match_metodo || "conteudo_validado",
+      match_confianca: resposta.match_confianca ?? 1,
       data_resposta: resposta.data_resposta || new Date().toISOString().slice(0, 10),
     }).eq("id", resposta_id);
 

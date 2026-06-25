@@ -5,6 +5,45 @@ import JSZip from "npm:jszip@3.10.1";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+async function extractPdfText(buf: ArrayBuffer): Promise<string> {
+  try {
+    const { extractText, getDocumentProxy } = await import("https://esm.sh/unpdf@0.12.1");
+    const pdf = await getDocumentProxy(new Uint8Array(buf));
+    const { text } = await extractText(pdf, { mergePages: true });
+    return (Array.isArray(text) ? text.join("\n") : text || "").slice(0, 12000);
+  } catch {
+    return "";
+  }
+}
+
+function normalizeText(value: string | null | undefined) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function looksLikeOriginalOficioPdf(conteudo: string, numeroOficio: string | null | undefined) {
+  const text = normalizeText(conteudo);
+  if (!text) return false;
+
+  const match = String(numeroOficio || "").match(/(\d{1,5})\s*\/\s*(20\d{2})/) || String(numeroOficio || "").match(/(\d{1,5}).*?(20\d{2})/);
+  const sameNumber = match ? text.includes(`${match[1]}/${match[2]}`) || (text.includes(match[1]) && text.includes(match[2])) : false;
+  if (!sameNumber) return false;
+
+  const markers = [
+    text.includes("oficio gvf"),
+    text.includes("destinatario:"),
+    text.includes("assunto:"),
+    text.includes("vereador que a este subscreve") || text.includes("este gabinete") || text.includes("exercicio de suas atribuicoes parlamentares"),
+    text.includes("uberlandia"),
+  ].filter(Boolean).length;
+
+  return markers >= 3;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -29,10 +68,10 @@ Deno.serve(async (req) => {
       .eq("ano", 2026)
       .is("deleted_at", null);
     if (ofErr) throw ofErr;
-    const map: Record<string, string> = {};
+    const map: Record<string, { id: string; numero: string | null }> = {};
     for (const o of ofs ?? []) {
       const m = String(o.numero || "").match(/(\d+)\/2026/);
-      if (m && !map[m[1]]) map[m[1]] = o.id as string;
+      if (m && !map[m[1]]) map[m[1]] = { id: o.id as string, numero: o.numero as string | null };
     }
 
     const imported: any[] = [];
@@ -55,10 +94,18 @@ Deno.serve(async (req) => {
       const m = name.match(/^(\d+)[.\-_ ]2026/);
       const numero = m?.[1];
       if (!numero) { notFound.push({ filename: name, reason: "sem_numero" }); continue; }
-      const oficioId = map[numero];
+      const oficio = map[numero];
+      const oficioId = oficio?.id;
       if (!oficioId) { notFound.push({ filename: name, numero }); continue; }
       try {
         const blob = await entry.async("uint8array");
+        const pdfBuffer = blob.buffer.slice(blob.byteOffset, blob.byteOffset + blob.byteLength);
+        const conteudoExtraido = await extractPdfText(pdfBuffer);
+        if (looksLikeOriginalOficioPdf(conteudoExtraido, oficio.numero)) {
+          errors.push({ filename: name, numero, error: "arquivo_eh_o_proprio_oficio" });
+          continue;
+        }
+
         const storagePath = `${oficioId}/${ts + i}-zip.pdf`;
         i++;
         const up = await admin.storage.from("respostas-oficios").upload(storagePath, blob, {
@@ -79,6 +126,10 @@ Deno.serve(async (req) => {
           mime_type: "application/pdf",
           sha256,
           tipo_origem: "import_excel",
+          conteudo_extraido: conteudoExtraido || null,
+          match_status: "confirmado",
+          match_metodo: conteudoExtraido ? "numero_exato_conteudo_validado" : "numero_exato_sem_texto",
+          match_confianca: 1,
           uploaded_by: uploaded_by ?? null,
           uploaded_by_nome: uploaded_by_nome ?? "Importação ZIP",
         });

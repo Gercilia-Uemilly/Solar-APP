@@ -29,10 +29,11 @@ export function useRespostas(oficioId: string | null | undefined) {
   const fetchAll = useCallback(async () => {
     if (!oficioId) { setRespostas([]); return; }
     setLoading(true);
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("oficio_respostas")
       .select("*")
       .eq("oficio_id", oficioId)
+      .in("match_status", ["confirmado", "pendente_processamento"])
       .order("created_at", { ascending: false });
     setRespostas((data as OficioResposta[]) || []);
     setLoading(false);
@@ -54,7 +55,7 @@ export function useRespostas(oficioId: string | null | undefined) {
     if (path) {
       await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
     }
-    await (supabase as any).from("oficio_respostas").delete().eq("id", resposta.id);
+    await supabase.from("oficio_respostas").delete().eq("id", resposta.id);
     await fetchAll();
   };
 
@@ -78,7 +79,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     sha256 = Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, "0")).join("");
   } catch { /* ignore */ }
 
-  const { data: row, error } = await (supabase as any).from("oficio_respostas").insert({
+  const { data: row, error } = await supabase.from("oficio_respostas").insert({
     oficio_id: oficioId,
     arquivo_url: `${STORAGE_PREFIX}${path}`,
     arquivo_path: path,
@@ -87,12 +88,15 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     mime_type: file.type || "application/pdf",
     sha256,
     tipo_origem: "manual",
+    match_status: "pendente_processamento",
+    match_metodo: "upload_manual_aguardando_analise",
+    match_confianca: null,
     uploaded_by: userId,
     uploaded_by_nome: userName,
   }).select("id").single();
 
   if (error) {
-    if ((error as any).code === "23505") {
+    if (error.code === "23505") {
       await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
       throw new Error("Este arquivo já foi anexado a este ofício.");
     }
@@ -103,11 +107,6 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
   supabase.functions.invoke("processar-resposta-oficio", {
     body: { resposta_id: row.id },
   }).catch(() => { /* falha silenciosa, ofício ainda salvou */ });
-
-  // dispara notificação ao operador autor (WhatsApp + in-app)
-  supabase.functions.invoke("notificar-resposta-whatsapp", {
-    body: { resposta_id: row.id, oficio_id: oficioId },
-  }).catch(() => { /* silencioso */ });
 
   return row.id as string;
 }

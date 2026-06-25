@@ -21,7 +21,11 @@ export default function DashboardRespostas() {
       setLoading(true);
       const [{ data: ofs }, { data: rps }] = await Promise.all([
         (supabase.from("oficios") as any).select("id, numero, secretaria_identificada, created_at, respondido_em, total_respostas").limit(5000),
-        (supabase.from("oficio_respostas") as any).select("id, oficio_id, arquivo_nome, resumo_ia, orgao_respondente, created_at").order("created_at", { ascending: false }).limit(2000),
+        (supabase.from("oficio_respostas") as any)
+          .select("id, oficio_id, arquivo_nome, resumo_ia, orgao_respondente, created_at")
+          .eq("match_status", "confirmado")
+          .order("created_at", { ascending: false })
+          .limit(2000),
       ]);
       setOficios((ofs as OficioRow[]) || []);
       setRespostas((rps as RespostaRow[]) || []);
