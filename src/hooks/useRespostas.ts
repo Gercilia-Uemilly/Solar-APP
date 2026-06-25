@@ -29,7 +29,7 @@ export function useRespostas(oficioId: string | null | undefined) {
   const fetchAll = useCallback(async () => {
     if (!oficioId) { setRespostas([]); return; }
     setLoading(true);
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("oficio_respostas")
       .select("*")
       .eq("oficio_id", oficioId)
@@ -55,7 +55,7 @@ export function useRespostas(oficioId: string | null | undefined) {
     if (path) {
       await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
     }
-    await (supabase as any).from("oficio_respostas").delete().eq("id", resposta.id);
+    await supabase.from("oficio_respostas").delete().eq("id", resposta.id);
     await fetchAll();
   };
 
@@ -79,7 +79,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     sha256 = Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, "0")).join("");
   } catch { /* ignore */ }
 
-  const { data: row, error } = await (supabase as any).from("oficio_respostas").insert({
+  const { data: row, error } = await supabase.from("oficio_respostas").insert({
     oficio_id: oficioId,
     arquivo_url: `${STORAGE_PREFIX}${path}`,
     arquivo_path: path,
@@ -96,7 +96,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
   }).select("id").single();
 
   if (error) {
-    if ((error as any).code === "23505") {
+    if (error.code === "23505") {
       await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
       throw new Error("Este arquivo já foi anexado a este ofício.");
     }

@@ -15,6 +15,10 @@ interface Props {
   oficioNumero?: string | null;
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Erro inesperado.";
+}
+
 export default function RespostasOficioDialog({ open, onOpenChange, oficioId, oficioNumero }: Props) {
   const { toast } = useToast();
   const { respostas, loading, remove } = useRespostas(open ? oficioId : null);
@@ -24,8 +28,8 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
   const fetchAsBlob = async (r: OficioResposta): Promise<Blob | null> => {
     try {
       return await fetchRespostaBlob(r);
-    } catch (error: any) {
-      toast({ title: "Não foi possível carregar o arquivo", description: error?.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Não foi possível carregar o arquivo", description: getErrorMessage(error), variant: "destructive" });
       return null;
     }
   };
@@ -49,7 +53,7 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
   const handleDelete = async (r: OficioResposta) => {
     if (!confirm(`Excluir "${r.arquivo_nome}"?`)) return;
     try { await remove(r); toast({ title: "Resposta excluída" }); }
-    catch (e: any) { toast({ title: "Falha ao excluir", description: e?.message, variant: "destructive" }); }
+    catch (error) { toast({ title: "Falha ao excluir", description: getErrorMessage(error), variant: "destructive" }); }
   };
 
   return (
