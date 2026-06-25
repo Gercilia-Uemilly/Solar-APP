@@ -59,7 +59,7 @@ serve(async (req) => {
     }
 
     const { data: oficio, error: errOf } = await sb.from("oficios")
-      .select("id, numero, assunto, destinatario, secretaria_destino, author_id, operador_nome")
+      .select("id, numero, assunto, destinatario, secretaria_identificada, author_id, operador_nome")
       .eq("id", oficio_id).maybeSingle();
     if (errOf) console.error("notificar: erro buscar oficio", errOf);
     console.log("notificar: oficio", { oficio_id, encontrado: !!oficio, author_id: oficio?.author_id });
@@ -99,7 +99,7 @@ serve(async (req) => {
     const msg =
       `📬 *Resposta recebida*\n` +
       `Ofício *${oficio.numero || "(s/nº)"}* — ${oficio.assunto || ""}\n` +
-      `Destinatário: ${oficio.destinatario || oficio.secretaria_destino || "-"}\n` +
+      `Destinatário: ${oficio.destinatario || oficio.secretaria_identificada || "-"}\n` +
       (resposta?.orgao_respondente ? `Órgão: ${resposta.orgao_respondente}\n` : "") +
       (resposta?.resumo_ia ? `\n📝 ${resposta.resumo_ia}\n` : "") +
       `\nAcesse o Solar para ver o documento.`;
