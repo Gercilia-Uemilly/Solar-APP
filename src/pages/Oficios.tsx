@@ -135,6 +135,7 @@ export default function Oficios() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [appliedSuggestionId, setAppliedSuggestionId] = useState<string | null>(null);
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const kbCacheRef = useRef<Map<string, { data: any[]; at: number }>>(new Map());
 
   // Knowledge base suggestions
   const [kbSuggestions, setKbSuggestions] = useState<{ id: string; titulo: string; descricao: string | null; orgao: string | null; bairro: string | null; fonte: string | null; modelo: boolean }[]>([]);
@@ -245,7 +246,7 @@ export default function Oficios() {
 
   const searchSimilarOficios = useCallback(async (query: string) => {
     if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
-    if (!query || query.length < 3) {
+    if (!query || query.length < 4) {
       setSuggestions([]);
       setKbSuggestions([]);
       setShowSuggestions(false);
@@ -267,18 +268,25 @@ export default function Oficios() {
         .slice(0, 3) as OficioRow[];
 
       const searchTerm = words.slice(0, 3).join(" ");
-      const { data: kbData } = await supabase
-        .from("base_conhecimento" as any)
-        .select("id, titulo, descricao, orgao, bairro, fonte, modelo")
-        .or(`titulo.ilike.%${searchTerm}%,descricao.ilike.%${searchTerm}%`)
-        .order("modelo", { ascending: false })
-        .limit(3);
-
-      const kbMatches = (kbData as any[] || []);
+      let kbMatches: any[] = [];
+      const cacheKey = searchTerm;
+      const cached = kbCacheRef.current.get(cacheKey);
+      if (cached && Date.now() - cached.at < 5 * 60 * 1000) {
+        kbMatches = cached.data;
+      } else {
+        const { data: kbData } = await supabase
+          .from("base_conhecimento" as any)
+          .select("id, titulo, descricao, orgao, bairro, fonte, modelo")
+          .or(`titulo.ilike.%${searchTerm}%,descricao.ilike.%${searchTerm}%`)
+          .order("modelo", { ascending: false })
+          .limit(3);
+        kbMatches = (kbData as any[] || []);
+        kbCacheRef.current.set(cacheKey, { data: kbMatches, at: Date.now() });
+      }
       setKbSuggestions(kbMatches);
       setSuggestions(matches);
       setShowSuggestions(matches.length > 0 || kbMatches.length > 0);
-    }, 400);
+    }, 600);
   }, [oficios, editingOficioId]);
 
   const applySuggestion = (o: OficioRow) => {
