@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buscarTelefonePorOrigemCodigo } from "../_shared/zapReqContatos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,7 +60,7 @@ serve(async (req) => {
     }
 
     const { data: oficio, error: errOf } = await sb.from("oficios")
-      .select("id, numero, assunto, destinatario, secretaria_identificada, author_id, operador_nome, telefone_recebimento")
+      .select("id, numero, assunto, destinatario, secretaria_identificada, author_id, operador_nome, telefone_recebimento, origem, codigo_z")
       .eq("id", oficio_id).maybeSingle();
     if (errOf) console.error("notificar: erro buscar oficio", errOf);
     console.log("notificar: oficio", { oficio_id, encontrado: !!oficio, author_id: oficio?.author_id });
@@ -78,16 +79,28 @@ serve(async (req) => {
       profiles = r.data || [];
     } catch { /* */ }
 
-    // Se o ofício foi originado por um zap específico do operador, notifica APENAS esse número.
-    const telRecebPreferido = normalizePhone(oficio.telefone_recebimento || "");
+    // Prioridade para identificar o telefone do operador a ser notificado:
+    // 1) telefone_recebimento explícito no ofício
+    // 2) telefone mapeado pela origem + código_z na planilha de contatos (ZAP/REQ)
+    let telRecebPreferido = normalizePhone(oficio.telefone_recebimento || "");
+    if (!telRecebPreferido) {
+      const telPlanilha = buscarTelefonePorOrigemCodigo(oficio.origem, oficio.codigo_z);
+      if (telPlanilha) {
+        telRecebPreferido = telPlanilha;
+        console.log("notificar: telefone resolvido pela planilha", { origem: oficio.origem, codigo_z: oficio.codigo_z, telefone: telPlanilha });
+      }
+    }
     const todos = profiles.flatMap((p) => [p?.celular, p?.telefone1, p?.telefone2, p?.telefone3])
       .map((p) => normalizePhone(p || "")).filter(Boolean) as string[];
     let uniqueCandidates: string[];
     if (telRecebPreferido && todos.includes(telRecebPreferido)) {
       uniqueCandidates = [telRecebPreferido];
-      console.log("notificar: usando telefone de recebimento do ofício", telRecebPreferido);
+      console.log("notificar: notificando APENAS o zap correspondente", telRecebPreferido);
     } else {
       uniqueCandidates = Array.from(new Set(todos));
+      if (telRecebPreferido) {
+        console.log("notificar: telefone da planilha não está cadastrado nas 3 linhas do operador — fallback para todas", telRecebPreferido);
+      }
     }
     console.log("notificar: telefones", { ids: idsParaNotificar, total: uniqueCandidates.length });
 
