@@ -19,6 +19,8 @@ interface OficioRow {
   operador_nome: string | null;
   linha_telefonica: string | null;
   created_at: string;
+  origem?: string | null;
+  codigo_z?: string | null;
 }
 
 interface SessionRow {
@@ -83,7 +85,7 @@ export default function Relatorios() {
   useEffect(() => {
     const fetchData = async () => {
       const [oficiosRes, sessionsRes, profilesRes, attemptsRes] = await Promise.all([
-        supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, created_at").is("deleted_at" as any, null),
+        supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, origem, codigo_z, created_at").is("deleted_at" as any, null),
         supabase.from("user_sessions").select("id, user_id, logged_in_at, ip_address, user_agent").order("logged_in_at", { ascending: false }).limit(1000),
         supabase.from("profiles").select("id, full_name, email"),
         (supabase.from("login_attempts" as any).select("id, identifier, success, motivo, ip_address, user_agent, created_at").order("created_at", { ascending: false }).limit(500))
@@ -140,6 +142,20 @@ export default function Relatorios() {
     }
   });
   const linhaData = Object.entries(linhaCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
+
+  // Volume por origem + código (Zap/Req/etc.) — usado pra saber qual linha mais recebe
+  const origemCodigoCounts: Record<string, number> = {};
+  filtered.forEach(o => {
+    if (!o.origem) return;
+    const cod = (o.codigo_z || "").toString().trim();
+    const label = cod
+      ? (o.origem === "Requerimento" ? `REQ ${cod.padStart(2, "0")}` : `${o.origem} ${cod}`)
+      : o.origem;
+    origemCodigoCounts[label] = (origemCodigoCounts[label] || 0) + 1;
+  });
+  const origemCodigoData = Object.entries(origemCodigoCounts)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
 
   // User access summary
   const profileMap = new Map(profiles.map(p => [p.id, p]));
@@ -315,6 +331,24 @@ export default function Relatorios() {
                     <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Bar dataKey="value" fill="hsl(var(--chart-4))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="bg-card rounded-xl border border-border p-5 lg:col-span-2">
+              <h3 className="text-sm font-medium text-foreground mb-1">Volume por Linha de Origem (Zap / REQ / etc.)</h3>
+              <p className="text-xs text-muted-foreground mb-4">Quantidade de ofícios recebidos por cada código de origem — útil para medir o fluxo de cada número.</p>
+              {origemCodigoData.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum ofício com origem/código registrado ainda.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={Math.max(220, origemCodigoData.length * 28)}>
+                  <BarChart data={origemCodigoData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
