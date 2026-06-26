@@ -335,6 +335,24 @@ export default function Relatorios() {
                 </ResponsiveContainer>
               )}
             </div>
+
+            <div className="bg-card rounded-xl border border-border p-5 lg:col-span-2">
+              <h3 className="text-sm font-medium text-foreground mb-1">Volume por Linha de Origem (Zap / REQ / etc.)</h3>
+              <p className="text-xs text-muted-foreground mb-4">Quantidade de ofícios recebidos por cada código de origem — útil para medir o fluxo de cada número.</p>
+              {origemCodigoData.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum ofício com origem/código registrado ainda.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={Math.max(220, origemCodigoData.length * 28)}>
+                  <BarChart data={origemCodigoData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
         </TabsContent>
 
