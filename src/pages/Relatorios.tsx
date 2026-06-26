@@ -143,6 +143,20 @@ export default function Relatorios() {
   });
   const linhaData = Object.entries(linhaCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
 
+  // Volume por origem + código (Zap/Req/etc.) — usado pra saber qual linha mais recebe
+  const origemCodigoCounts: Record<string, number> = {};
+  filtered.forEach(o => {
+    if (!o.origem) return;
+    const cod = (o.codigo_z || "").toString().trim();
+    const label = cod
+      ? (o.origem === "Requerimento" ? `REQ ${cod.padStart(2, "0")}` : `${o.origem} ${cod}`)
+      : o.origem;
+    origemCodigoCounts[label] = (origemCodigoCounts[label] || 0) + 1;
+  });
+  const origemCodigoData = Object.entries(origemCodigoCounts)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
   // User access summary
   const profileMap = new Map(profiles.map(p => [p.id, p]));
   const userAccessMap = new Map<string, UserAccessSummary>();
