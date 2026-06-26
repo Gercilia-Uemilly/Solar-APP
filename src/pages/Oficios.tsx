@@ -1546,11 +1546,12 @@ export default function Oficios() {
                     {(() => {
                       const cleanedNum = numero.replace(/^(Ofício GVF n°\s*)+/i, "").trim().replace(/\//, '-').replace(/[^0-9-]/g, '');
                       const base = cleanedNum || 'rascunho';
-                      const ORIGENS_COM_Z = ["Zap", "Requerimento", "Conecta Jovem", "Empregador", "DI"];
+                      // Nomenclatura original: apenas Zap usa o prefixo Z<n> no nome do arquivo.
+                      // O código REQ/Conecta/etc. é usado SOMENTE para roteamento de notificação.
+                      const ORIGENS_COM_Z = ["Zap", "Conecta Jovem", "Empregador", "DI"];
                       if (ORIGENS_COM_Z.includes(origemOficio) && codigoZ) {
                         const cel = contatoSolicitante.replace(/\D/g, '').slice(-4);
-                        const prefix = origemOficio === "Requerimento" ? `REQ${String(codigoZ).padStart(2, "0")}` : `Z${codigoZ}`;
-                        return [base, prefix, cel].filter(Boolean).join(' ') + '.pdf';
+                        return [base, `Z${codigoZ}`, cel].filter(Boolean).join(' ') + '.pdf';
                       }
                       const solCode = solicitante.trim().split(/\s+/)[0] || "";
                       return `${base}${solCode ? ` ${solCode}` : ''}.pdf`;
