@@ -19,6 +19,8 @@ interface OficioRow {
   operador_nome: string | null;
   linha_telefonica: string | null;
   created_at: string;
+  origem?: string | null;
+  codigo_z?: string | null;
 }
 
 interface SessionRow {
