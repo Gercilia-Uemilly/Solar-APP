@@ -644,6 +644,7 @@ export type Database = {
           secretaria_identificada: string | null
           solicitante: string | null
           status: string
+          telefone_recebimento: string | null
           tipo_demanda: string | null
           total_respostas: number
           updated_at: string
@@ -697,6 +698,7 @@ export type Database = {
           secretaria_identificada?: string | null
           solicitante?: string | null
           status?: string
+          telefone_recebimento?: string | null
           tipo_demanda?: string | null
           total_respostas?: number
           updated_at?: string
@@ -750,6 +752,7 @@ export type Database = {
           secretaria_identificada?: string | null
           solicitante?: string | null
           status?: string
+          telefone_recebimento?: string | null
           tipo_demanda?: string | null
           total_respostas?: number
           updated_at?: string

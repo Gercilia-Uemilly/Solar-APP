@@ -319,10 +319,12 @@ export default function Configuracoes() {
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground flex items-center gap-2"><Phone size={16} /> Linhas Telefônicas (WhatsApp)</h3>
         <p className="text-xs text-muted-foreground -mt-2">
-          📬 A <strong>Linha 1</strong> é o número usado para receber notificações de respostas aos seus ofícios. Inclua DDD. Se vazia, o sistema tenta Linha 2 e 3.
+          📬 Cadastre até 3 números de WhatsApp que você usa para receber demandas dos cidadãos.
+          Quando um ofício chegar pelo WhatsApp, o sistema identifica em <strong>qual desses 3 números</strong> a mensagem foi recebida
+          e envia a notificação de resposta exatamente para esse mesmo zap. Se não conseguir identificar, tenta a Linha 1, depois a 2 e a 3. Sempre inclua o DDD.
         </p>
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Linha 1 <span className="text-primary">(notificações)</span></label>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Linha 1 <span className="text-primary">(principal)</span></label>
           <Input value={tel1} onChange={e => setTel1(e.target.value)} placeholder="(34) 99999-0001" className="bg-secondary border-border" />
         </div>
         <div>

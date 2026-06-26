@@ -59,7 +59,7 @@ serve(async (req) => {
     }
 
     const { data: oficio, error: errOf } = await sb.from("oficios")
-      .select("id, numero, assunto, destinatario, secretaria_identificada, author_id, operador_nome")
+      .select("id, numero, assunto, destinatario, secretaria_identificada, author_id, operador_nome, telefone_recebimento")
       .eq("id", oficio_id).maybeSingle();
     if (errOf) console.error("notificar: erro buscar oficio", errOf);
     console.log("notificar: oficio", { oficio_id, encontrado: !!oficio, author_id: oficio?.author_id });
@@ -78,9 +78,17 @@ serve(async (req) => {
       profiles = r.data || [];
     } catch { /* */ }
 
-    const candidates = profiles.flatMap((p) => [p?.celular, p?.telefone1, p?.telefone2, p?.telefone3])
+    // Se o ofício foi originado por um zap específico do operador, notifica APENAS esse número.
+    const telRecebPreferido = normalizePhone(oficio.telefone_recebimento || "");
+    const todos = profiles.flatMap((p) => [p?.celular, p?.telefone1, p?.telefone2, p?.telefone3])
       .map((p) => normalizePhone(p || "")).filter(Boolean) as string[];
-    const uniqueCandidates = Array.from(new Set(candidates));
+    let uniqueCandidates: string[];
+    if (telRecebPreferido && todos.includes(telRecebPreferido)) {
+      uniqueCandidates = [telRecebPreferido];
+      console.log("notificar: usando telefone de recebimento do ofício", telRecebPreferido);
+    } else {
+      uniqueCandidates = Array.from(new Set(todos));
+    }
     console.log("notificar: telefones", { ids: idsParaNotificar, total: uniqueCandidates.length });
 
     // Notificação in-app (tabela notifications se existir)
