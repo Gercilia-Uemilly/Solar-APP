@@ -1,0 +1,3 @@
+ALTER TABLE public.oficios ADD COLUMN IF NOT EXISTS telefone_recebimento text;
+COMMENT ON COLUMN public.oficios.telefone_recebimento IS 'Número (de 1 a 3) do operador que recebeu a mensagem WhatsApp originadora do ofício. Usado para notificar a resposta no mesmo zap.';
+CREATE INDEX IF NOT EXISTS idx_oficios_telefone_recebimento ON public.oficios(telefone_recebimento) WHERE telefone_recebimento IS NOT NULL;
