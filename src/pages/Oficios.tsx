@@ -135,6 +135,7 @@ export default function Oficios() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [appliedSuggestionId, setAppliedSuggestionId] = useState<string | null>(null);
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const kbCacheRef = useRef<Map<string, { data: any[]; at: number }>>(new Map());
 
   // Knowledge base suggestions
   const [kbSuggestions, setKbSuggestions] = useState<{ id: string; titulo: string; descricao: string | null; orgao: string | null; bairro: string | null; fonte: string | null; modelo: boolean }[]>([]);
