@@ -81,16 +81,22 @@ export function useOficios() {
     const handleFocus = () => {
       if (!isMounted.current) return;
       const now = Date.now();
-      if (now - lastFetchRef.current < 30000) return;
+      if (now - lastFetchRef.current < 10000) return;
       lastFetchRef.current = now;
       fetchOficios();
     };
     window.addEventListener("focus", handleFocus);
+    const handleVisibility = () => {
+      if (document.hidden) return;
+      handleFocus();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       isMounted.current = false;
       supabase.removeChannel(channel);
       window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [fetchOficios]);
 
