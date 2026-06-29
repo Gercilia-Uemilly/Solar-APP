@@ -56,6 +56,11 @@ export function useGlobalSync() {
         queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
       })
 
+      .on("postgres_changes", { event: "*", schema: "public", table: "oficio_respostas" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["respostas"] });
+        queryClient.invalidateQueries({ queryKey: ["oficios"] });
+      })
+
       .subscribe((status) => {
         console.log("[Solar] Realtime sync:", status);
       });
