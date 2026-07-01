@@ -79,7 +79,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     sha256 = Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, "0")).join("");
   } catch { /* ignore */ }
 
-  const { data: row, error } = await supabase.from("oficio_respostas").insert({
+  const insertPayload = {
     oficio_id: oficioId,
     arquivo_url: `${STORAGE_PREFIX}${path}`,
     arquivo_path: path,
@@ -93,15 +93,39 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     match_confianca: null,
     uploaded_by: userId,
     uploaded_by_nome: userName,
-  }).select("id").single();
+  };
 
-  if (error) {
-    if (error.code === "23505") {
+  let insertRes = await supabase.from("oficio_respostas").insert(insertPayload).select("id").single();
+
+  if (insertRes.error?.code === "23505" && sha256) {
+    // Já existe um registro com o mesmo hash para este ofício.
+    // Se estiver em estado inválido/oculto (ex.: arquivo_invalido), remove e tenta de novo.
+    const { data: existing } = await supabase
+      .from("oficio_respostas")
+      .select("id, match_status, arquivo_path, arquivo_url")
+      .eq("oficio_id", oficioId)
+      .eq("sha256", sha256)
+      .maybeSingle();
+
+    const visivel = existing && ["confirmado", "pendente_processamento", "pendente_revisao"].includes(existing.match_status);
+
+    if (existing && !visivel) {
+      const oldPath = normalizeRespostaPath(existing.arquivo_path) || normalizeRespostaPath(existing.arquivo_url);
+      if (oldPath) await supabase.storage.from(RESPOSTAS_BUCKET).remove([oldPath]).catch(() => {});
+      await supabase.from("oficio_respostas").delete().eq("id", existing.id);
+      insertRes = await supabase.from("oficio_respostas").insert(insertPayload).select("id").single();
+    } else {
       await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
       throw new Error("Este arquivo já foi anexado a este ofício.");
     }
-    throw error;
   }
+
+  if (insertRes.error) {
+    await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]).catch(() => {});
+    throw insertRes.error;
+  }
+
+  const row = insertRes.data!;
 
   // dispara processamento assíncrono (não bloqueia)
   supabase.functions.invoke("processar-resposta-oficio", {
