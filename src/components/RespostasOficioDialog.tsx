@@ -23,7 +23,7 @@ function getErrorMessage(error: unknown) {
 export default function RespostasOficioDialog({ open, onOpenChange, oficioId, oficioNumero }: Props) {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
-  const { respostas, loading, remove } = useRespostas(open ? oficioId : null);
+  const { respostas, loading, remove, refetch } = useRespostas(open ? oficioId : null);
   const [previewFile, setPreviewFile] = useState<RespostaPreviewFile | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
@@ -125,6 +125,7 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
         onOpenChange={setUploadOpen}
         oficioId={oficioId}
         oficioNumero={oficioNumero}
+        onUploaded={() => { refetch(); }}
       />
 
       <Dialog open={!!previewFile} onOpenChange={(v) => !v && setPreviewFile(null)}>
