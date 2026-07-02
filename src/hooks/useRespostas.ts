@@ -34,7 +34,6 @@ export function useRespostas(oficioId: string | null | undefined) {
         .from("oficio_respostas")
         .select("*")
         .eq("oficio_id", oficioId)
-        .in("match_status", ["confirmado", "pendente_processamento", "pendente_revisao", "arquivo_invalido"])
         .order("created_at", { ascending: false });
       setRespostas((data as OficioResposta[]) || []);
     } finally {
