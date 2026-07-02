@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import {
   Bold,
   Italic,
@@ -50,8 +51,12 @@ export default function OficioPreviewEditor({
     }
     // Never overwrite while the editor is focused — this prevents cursor jumps
     if (document.activeElement === editorRef.current) return;
-    if (editorRef.current.innerHTML !== content) {
-      editorRef.current.innerHTML = content || "";
+    const sanitized = DOMPurify.sanitize(content || "", {
+      ALLOWED_TAGS: ["p","strong","b","em","i","u","ul","ol","li","h1","h2","h3","h4","br","div","span","img","font","a","table","thead","tbody","tr","td","th"],
+      ALLOWED_ATTR: ["src","alt","style","class","href","target","rel","align","size","color","face","width","height"],
+    });
+    if (editorRef.current.innerHTML !== sanitized) {
+      editorRef.current.innerHTML = sanitized;
     }
   }, [content]);
 
