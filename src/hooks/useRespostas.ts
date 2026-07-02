@@ -114,49 +114,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
     uploaded_by_nome: userName,
   };
 
-  let insertRes = await supabase.from("oficio_respostas").insert(insertPayload).select("id").single();
-
-  if (insertRes.error?.code === "23505" && sha256) {
-    // Já existe um registro com o mesmo hash para este ofício.
-    // Em vez de bloquear o operador, reaproveita o registro existente e força reprocessamento quando ele estava oculto/inválido.
-    const { data: existing } = await supabase
-      .from("oficio_respostas")
-      .select("id, match_status, arquivo_path, arquivo_url")
-      .eq("oficio_id", oficioId)
-      .eq("sha256", sha256)
-      .maybeSingle();
-
-    if (existing) {
-      const oldPath = normalizeRespostaPath(existing.arquivo_path) || normalizeRespostaPath(existing.arquivo_url);
-      const jaConfirmado = existing.match_status === "confirmado";
-      const { error: updateError } = await supabase
-        .from("oficio_respostas")
-        .update({
-          arquivo_url: `${STORAGE_PREFIX}${path}`,
-          arquivo_path: path,
-          arquivo_nome: file.name,
-          tamanho_bytes: file.size,
-          mime_type: file.type || "application/pdf",
-          tipo_origem: "manual",
-          match_status: jaConfirmado ? "confirmado" : "pendente_processamento",
-          match_metodo: jaConfirmado ? "upload_manual_reanexado" : "upload_manual_reprocessado",
-          uploaded_by: userId,
-          uploaded_by_nome: userName,
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]).catch(() => {});
-        throw updateError;
-      }
-
-      if (oldPath && oldPath !== path) await supabase.storage.from(RESPOSTAS_BUCKET).remove([oldPath]).catch(() => {});
-      insertRes = { data: { id: existing.id }, error: null } as typeof insertRes;
-    } else {
-      await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
-      throw new Error("Este arquivo já foi anexado a este ofício.");
-    }
-  }
+  const insertRes = await supabase.from("oficio_respostas").insert(insertPayload).select("id").single();
 
   if (insertRes.error) {
     await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]).catch(() => {});
