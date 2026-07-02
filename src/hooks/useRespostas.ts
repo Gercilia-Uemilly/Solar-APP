@@ -62,7 +62,23 @@ export function useRespostas(oficioId: string | null | undefined) {
     await fetchAll();
   };
 
-  return { respostas, loading, refetch: fetchAll, remove };
+  const reprocessar = async (resposta: OficioResposta) => {
+    const { error } = await supabase
+      .from("oficio_respostas")
+      .update({
+        match_status: "pendente_processamento",
+        match_metodo: "reprocessamento_manual",
+        resumo_ia: null,
+      })
+      .eq("id", resposta.id);
+    if (error) throw error;
+    await supabase.functions
+      .invoke("processar-resposta-oficio", { body: { resposta_id: resposta.id } })
+      .catch(() => { /* processamento em background */ });
+    await fetchAll();
+  };
+
+  return { respostas, loading, refetch: fetchAll, remove, reprocessar };
 }
 
 export async function uploadRespostaArquivo(oficioId: string, file: File, userId: string, userName: string) {

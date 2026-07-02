@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Trash2, Loader2, Eye, Upload } from "lucide-react";
+import { FileText, Download, Trash2, Loader2, Eye, Upload, RefreshCw } from "lucide-react";
 import { useRespostas, fetchRespostaBlob, type OficioResposta } from "@/hooks/useRespostas";
 import { useToast } from "@/hooks/use-toast";
 import UploadRespostaModal from "./UploadRespostaModal";
@@ -23,9 +23,10 @@ function getErrorMessage(error: unknown) {
 export default function RespostasOficioDialog({ open, onOpenChange, oficioId, oficioNumero }: Props) {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
-  const { respostas, loading, remove, refetch } = useRespostas(open ? oficioId : null);
+  const { respostas, loading, remove, refetch, reprocessar } = useRespostas(open ? oficioId : null);
   const [previewFile, setPreviewFile] = useState<RespostaPreviewFile | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [reprocessandoId, setReprocessandoId] = useState<string | null>(null);
 
   const fetchAsBlob = async (r: OficioResposta): Promise<Blob | null> => {
     try {
@@ -56,6 +57,18 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
     if (!confirm(`Excluir "${r.arquivo_nome}"?`)) return;
     try { await remove(r); toast({ title: "Resposta excluída" }); }
     catch (error) { toast({ title: "Falha ao excluir", description: getErrorMessage(error), variant: "destructive" }); }
+  };
+
+  const handleReprocessar = async (r: OficioResposta) => {
+    setReprocessandoId(r.id);
+    try {
+      await reprocessar(r);
+      toast({ title: "Reprocessamento iniciado", description: "A IA vai reanalisar este PDF em segundos." });
+    } catch (error) {
+      toast({ title: "Falha ao reprocessar", description: getErrorMessage(error), variant: "destructive" });
+    } finally {
+      setReprocessandoId(null);
+    }
   };
 
   return (
@@ -108,6 +121,18 @@ export default function RespostasOficioDialog({ open, onOpenChange, oficioId, of
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => handleView(r)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Visualizar"><Eye size={16} /></button>
                       <button onClick={() => handleDownload(r)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Baixar"><Download size={16} /></button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleReprocessar(r)}
+                          disabled={reprocessandoId === r.id}
+                          className="p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                          title="Reprocessar com IA"
+                        >
+                          {reprocessandoId === r.id
+                            ? <Loader2 size={16} className="animate-spin" />
+                            : <RefreshCw size={16} />}
+                        </button>
+                      )}
                       {isAdmin && (
                         <button onClick={() => handleDelete(r)} className="p-1.5 text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={16} /></button>
                       )}
