@@ -224,6 +224,13 @@ export default function Respostas() {
       return;
     }
     const safe = texto.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const escapeHtml = (s: string) =>
+      (s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Resposta ao Cidadão</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: 0 auto; }
@@ -235,8 +242,8 @@ export default function Respostas() {
       </style></head><body>
       <h1>Resposta ao Cidadão</h1>
       <div class="meta">
-        ${nome ? `<div><strong>Cidadão:</strong> ${nome}</div>` : ""}
-        <div><strong>Data:</strong> ${dataStr || new Date().toLocaleString("pt-BR")}</div>
+        ${nome ? `<div><strong>Cidadão:</strong> ${escapeHtml(nome)}</div>` : ""}
+        <div><strong>Data:</strong> ${escapeHtml(dataStr || new Date().toLocaleString("pt-BR"))}</div>
       </div>
       <div class="body">${safe}</div>
       <div class="footer">Solar — Sistema de Gerenciamento de Mandato</div>

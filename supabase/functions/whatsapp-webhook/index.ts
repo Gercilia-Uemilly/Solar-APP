@@ -243,6 +243,19 @@ serve(async (req) => {
   }
 
   try {
+    // Validate Z-API Client-Token to prevent unauthenticated payload injection
+    const expectedClientToken = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
+    if (expectedClientToken) {
+      const provided = (req.headers.get("Client-Token") || req.headers.get("client-token") || "").trim();
+      if (provided !== expectedClientToken) {
+        console.warn("whatsapp-webhook: Client-Token inválido/ausente — rejeitando payload");
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
