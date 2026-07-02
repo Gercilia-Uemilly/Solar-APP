@@ -29,14 +29,17 @@ export function useRespostas(oficioId: string | null | undefined) {
   const fetchAll = useCallback(async () => {
     if (!oficioId) { setRespostas([]); return; }
     setLoading(true);
-    const { data } = await supabase
-      .from("oficio_respostas")
-      .select("*")
-      .eq("oficio_id", oficioId)
-      .in("match_status", ["confirmado", "pendente_processamento"])
-      .order("created_at", { ascending: false });
-    setRespostas((data as OficioResposta[]) || []);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from("oficio_respostas")
+        .select("*")
+        .eq("oficio_id", oficioId)
+        .in("match_status", ["confirmado", "pendente_processamento", "pendente_revisao", "arquivo_invalido"])
+        .order("created_at", { ascending: false });
+      setRespostas((data as OficioResposta[]) || []);
+    } finally {
+      setLoading(false);
+    }
   }, [oficioId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -99,7 +102,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
 
   if (insertRes.error?.code === "23505" && sha256) {
     // Já existe um registro com o mesmo hash para este ofício.
-    // Se estiver em estado inválido/oculto (ex.: arquivo_invalido), remove e tenta de novo.
+    // Em vez de bloquear o operador, reaproveita o registro existente e força reprocessamento quando ele estava oculto/inválido.
     const { data: existing } = await supabase
       .from("oficio_respostas")
       .select("id, match_status, arquivo_path, arquivo_url")
@@ -107,13 +110,40 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
       .eq("sha256", sha256)
       .maybeSingle();
 
-    const visivel = existing && ["confirmado", "pendente_processamento", "pendente_revisao"].includes(existing.match_status);
+    const reprocessavel = existing && ["arquivo_invalido", "rejeitado", "sem_match"].includes(existing.match_status);
 
-    if (existing && !visivel) {
+    if (existing && reprocessavel) {
       const oldPath = normalizeRespostaPath(existing.arquivo_path) || normalizeRespostaPath(existing.arquivo_url);
+      const { error: updateError } = await supabase
+        .from("oficio_respostas")
+        .update({
+          arquivo_url: `${STORAGE_PREFIX}${path}`,
+          arquivo_path: path,
+          arquivo_nome: file.name,
+          tamanho_bytes: file.size,
+          mime_type: file.type || "application/pdf",
+          tipo_origem: "manual",
+          match_status: "pendente_processamento",
+          match_metodo: "upload_manual_reprocessado",
+          match_confianca: null,
+          resumo_ia: null,
+          orgao_respondente: null,
+          data_resposta: null,
+          uploaded_by: userId,
+          uploaded_by_nome: userName,
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]).catch(() => {});
+        throw updateError;
+      }
+
       if (oldPath) await supabase.storage.from(RESPOSTAS_BUCKET).remove([oldPath]).catch(() => {});
-      await supabase.from("oficio_respostas").delete().eq("id", existing.id);
-      insertRes = await supabase.from("oficio_respostas").insert(insertPayload).select("id").single();
+      insertRes = { data: { id: existing.id }, error: null } as typeof insertRes;
+    } else if (existing) {
+      await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]).catch(() => {});
+      insertRes = { data: { id: existing.id }, error: null } as typeof insertRes;
     } else {
       await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
       throw new Error("Este arquivo já foi anexado a este ofício.");

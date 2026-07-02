@@ -30,6 +30,7 @@ export default function UploadRespostaModal({ open, onOpenChange, oficioId, ofic
       toast({ title: "Apenas PDFs são aceitos", variant: "destructive" });
     }
     setFiles(prev => [...prev, ...arr.map(f => ({ file: f, status: "queued" as const }))]);
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   const removeFile = (idx: number) => setFiles(prev => prev.filter((_, i) => i !== idx));
@@ -105,8 +106,16 @@ export default function UploadRespostaModal({ open, onOpenChange, oficioId, ofic
                 {f.status === "queued" && !uploading && (
                   <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-foreground"><X size={14} /></button>
                 )}
+                {f.status === "error" && !uploading && (
+                  <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-foreground"><X size={14} /></button>
+                )}
               </div>
             ))}
+            {files.some(f => f.status === "error") && (
+              <p className="text-xs text-destructive">
+                {files.find(f => f.status === "error")?.error || "Falha ao anexar resposta."}
+              </p>
+            )}
           </div>
         )}
 

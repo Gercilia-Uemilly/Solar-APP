@@ -38,6 +38,17 @@ function looksLikeOriginalOficioPdf(conteudo: string, oficio: any) {
   const text = normalizeText(conteudo);
   if (!text) return false;
 
+  const responseMarkers = [
+    "responde oficio",
+    "resposta ao oficio",
+    "em atencao ao oficio",
+    "em resposta ao oficio",
+    "informamos que",
+    "esclarecemos que",
+    "encaminhamos resposta",
+  ];
+  if (responseMarkers.some((marker) => text.includes(marker))) return false;
+
   const parts = getNumeroParts(oficio?.numero);
   const sameNumber = parts ? text.includes(`${parts.numero}/${parts.ano}`) || (text.includes(parts.numero) && text.includes(parts.ano)) : false;
   if (!sameNumber) return false;
