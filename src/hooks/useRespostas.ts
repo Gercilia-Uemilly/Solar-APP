@@ -110,10 +110,9 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
       .eq("sha256", sha256)
       .maybeSingle();
 
-    const reprocessavel = existing && ["arquivo_invalido", "rejeitado", "sem_match"].includes(existing.match_status);
-
-    if (existing && reprocessavel) {
+    if (existing) {
       const oldPath = normalizeRespostaPath(existing.arquivo_path) || normalizeRespostaPath(existing.arquivo_url);
+      const jaConfirmado = existing.match_status === "confirmado";
       const { error: updateError } = await supabase
         .from("oficio_respostas")
         .update({
@@ -123,12 +122,8 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
           tamanho_bytes: file.size,
           mime_type: file.type || "application/pdf",
           tipo_origem: "manual",
-          match_status: "pendente_processamento",
-          match_metodo: "upload_manual_reprocessado",
-          match_confianca: null,
-          resumo_ia: null,
-          orgao_respondente: null,
-          data_resposta: null,
+          match_status: jaConfirmado ? "confirmado" : "pendente_processamento",
+          match_metodo: jaConfirmado ? "upload_manual_reanexado" : "upload_manual_reprocessado",
           uploaded_by: userId,
           uploaded_by_nome: userName,
         })
@@ -139,10 +134,7 @@ export async function uploadRespostaArquivo(oficioId: string, file: File, userId
         throw updateError;
       }
 
-      if (oldPath) await supabase.storage.from(RESPOSTAS_BUCKET).remove([oldPath]).catch(() => {});
-      insertRes = { data: { id: existing.id }, error: null } as typeof insertRes;
-    } else if (existing) {
-      await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]).catch(() => {});
+      if (oldPath && oldPath !== path) await supabase.storage.from(RESPOSTAS_BUCKET).remove([oldPath]).catch(() => {});
       insertRes = { data: { id: existing.id }, error: null } as typeof insertRes;
     } else {
       await supabase.storage.from(RESPOSTAS_BUCKET).remove([path]);
