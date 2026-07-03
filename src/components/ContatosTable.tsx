@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
-import { Search, Phone, Copy, Check, Filter } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Phone, Copy, Check, Filter, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 interface ScriptRow {
@@ -27,7 +29,8 @@ interface ContatoExtraido {
   tipo: "Telefone" | "WhatsApp" | "Ambos";
   categoria: string;
   scriptTitulo: string;
-  origem?: "Script" | "Planilha";
+  origem?: "Script" | "Planilha" | "Manual";
+  id?: string;
 }
 
 const CONTATOS_PLANILHA: ContatoExtraido[] = [
@@ -97,6 +100,24 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("Todas");
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
+  const [customContatos, setCustomContatos] = useState<ContatoExtraido[]>(() => {
+    try {
+      const raw = localStorage.getItem("contatos_manuais_v1");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [openNovo, setOpenNovo] = useState(false);
+  const [novo, setNovo] = useState<{ nome: string; telefone: string; tipo: "Telefone" | "WhatsApp" | "Ambos"; categoria: string; observacao: string }>(
+    { nome: "", telefone: "", tipo: "WhatsApp", categoria: "Gabinete", observacao: "" }
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("contatos_manuais_v1", JSON.stringify(customContatos));
+    } catch {}
+  }, [customContatos]);
 
   const contatos = useMemo(() => {
     const fromScripts = extrairContatos(scripts).map(c => ({ ...c, origem: "Script" as const }));
@@ -108,8 +129,10 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
       seen.add(cleaned);
       return true;
     });
-    return [...fromScripts, ...fromPlanilha].sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
-  }, [scripts]);
+    return [...fromScripts, ...fromPlanilha, ...customContatos].sort(
+      (a, b) => a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome)
+    );
+  }, [scripts, customContatos]);
 
   const categorias = useMemo(() => {
     const s = new Set(contatos.map((c) => c.categoria));
@@ -137,6 +160,32 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
     setCopiedPhone(phone);
     toast.success("Número copiado!");
     setTimeout(() => setCopiedPhone(null), 2000);
+  };
+
+  const handleSalvarNovo = () => {
+    if (!novo.nome.trim() || !novo.telefone.trim()) {
+      toast.error("Preencha nome e telefone.");
+      return;
+    }
+    const contato: ContatoExtraido = {
+      id: crypto.randomUUID(),
+      nome: novo.nome.trim(),
+      telefone: novo.telefone.trim(),
+      tipo: novo.tipo,
+      categoria: novo.categoria.trim() || "Outros",
+      scriptTitulo: novo.observacao.trim() || "Contato cadastrado manualmente",
+      origem: "Manual",
+    };
+    setCustomContatos((prev) => [...prev, contato]);
+    toast.success("Contato cadastrado!");
+    setNovo({ nome: "", telefone: "", tipo: "WhatsApp", categoria: "Gabinete", observacao: "" });
+    setOpenNovo(false);
+  };
+
+  const handleRemoverManual = (id?: string) => {
+    if (!id) return;
+    setCustomContatos((prev) => prev.filter((c) => c.id !== id));
+    toast.success("Contato removido.");
   };
 
   if (loading) {
@@ -174,6 +223,53 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
           <Phone size={12} className="mr-1" />
           {filtered.length} contato(s)
         </Badge>
+        <Dialog open={openNovo} onOpenChange={setOpenNovo}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="h-8 gap-1.5">
+              <Plus size={14} /> Cadastrar novo contato
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Cadastrar novo contato</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="nc-nome">Nome</Label>
+                <Input id="nc-nome" value={novo.nome} onChange={(e) => setNovo((p) => ({ ...p, nome: e.target.value }))} placeholder="Ex: João da Silva" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="nc-tel">Telefone / WhatsApp</Label>
+                <Input id="nc-tel" value={novo.telefone} onChange={(e) => setNovo((p) => ({ ...p, telefone: e.target.value }))} placeholder="(34) 99999-9999" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Tipo</Label>
+                  <Select value={novo.tipo} onValueChange={(v) => setNovo((p) => ({ ...p, tipo: v as typeof novo.tipo }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                      <SelectItem value="Telefone">Telefone</SelectItem>
+                      <SelectItem value="Ambos">Ambos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="nc-cat">Categoria</Label>
+                  <Input id="nc-cat" value={novo.categoria} onChange={(e) => setNovo((p) => ({ ...p, categoria: e.target.value }))} placeholder="Gabinete" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="nc-obs">Observação (opcional)</Label>
+                <Input id="nc-obs" value={novo.observacao} onChange={(e) => setNovo((p) => ({ ...p, observacao: e.target.value }))} placeholder="Ex: Contato do setor jurídico" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setOpenNovo(false)}>Cancelar</Button>
+              <Button onClick={handleSalvarNovo}>Salvar contato</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -226,19 +322,28 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
                       <Badge variant="outline" className={
                         c.origem === "Planilha"
                           ? "border-orange-500/30 text-orange-600 bg-orange-500/10 text-[10px]"
+                          : c.origem === "Manual"
+                          ? "border-primary/30 text-primary bg-primary/10 text-[10px]"
                           : "border-muted-foreground/30 text-[10px]"
                       }>
                         {c.origem || "Script"}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(c.telefone)}>
-                        {copiedPhone === c.telefone ? (
-                          <Check size={14} className="text-green-500" />
-                        ) : (
-                          <Copy size={14} />
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(c.telefone)}>
+                          {copiedPhone === c.telefone ? (
+                            <Check size={14} className="text-green-500" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                        </Button>
+                        {c.origem === "Manual" && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoverManual(c.id)} title="Remover contato">
+                            <Trash2 size={14} />
+                          </Button>
                         )}
-                      </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
