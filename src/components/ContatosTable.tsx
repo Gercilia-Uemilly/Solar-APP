@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Phone, Copy, Check, Filter, Plus, Trash2 } from "lucide-react";
+import { Search, Phone, Copy, Check, Filter, Plus, Trash2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -112,6 +112,7 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
   const [novo, setNovo] = useState<{ nome: string; telefone: string; tipo: "Telefone" | "WhatsApp" | "Ambos"; categoria: string; observacao: string }>(
     { nome: "", telefone: "", tipo: "WhatsApp", categoria: "Gabinete", observacao: "" }
   );
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -167,19 +168,45 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
       toast.error("Preencha nome e telefone.");
       return;
     }
-    const contato: ContatoExtraido = {
-      id: crypto.randomUUID(),
-      nome: novo.nome.trim(),
-      telefone: novo.telefone.trim(),
-      tipo: novo.tipo,
-      categoria: novo.categoria.trim() || "Outros",
-      scriptTitulo: novo.observacao.trim() || "Contato cadastrado manualmente",
-      origem: "Manual",
-    };
-    setCustomContatos((prev) => [...prev, contato]);
-    toast.success("Contato cadastrado!");
+    if (editandoId) {
+      setCustomContatos((prev) => prev.map((c) => c.id === editandoId ? {
+        ...c,
+        nome: novo.nome.trim(),
+        telefone: novo.telefone.trim(),
+        tipo: novo.tipo,
+        categoria: novo.categoria.trim() || "Outros",
+        scriptTitulo: novo.observacao.trim() || "Contato cadastrado manualmente",
+      } : c));
+      toast.success("Contato atualizado!");
+    } else {
+      const contato: ContatoExtraido = {
+        id: crypto.randomUUID(),
+        nome: novo.nome.trim(),
+        telefone: novo.telefone.trim(),
+        tipo: novo.tipo,
+        categoria: novo.categoria.trim() || "Outros",
+        scriptTitulo: novo.observacao.trim() || "Contato cadastrado manualmente",
+        origem: "Manual",
+      };
+      setCustomContatos((prev) => [...prev, contato]);
+      toast.success("Contato cadastrado!");
+    }
     setNovo({ nome: "", telefone: "", tipo: "WhatsApp", categoria: "Gabinete", observacao: "" });
+    setEditandoId(null);
     setOpenNovo(false);
+  };
+
+  const handleEditarManual = (c: ContatoExtraido) => {
+    if (!c.id) return;
+    setEditandoId(c.id);
+    setNovo({
+      nome: c.nome,
+      telefone: c.telefone,
+      tipo: c.tipo,
+      categoria: c.categoria,
+      observacao: c.scriptTitulo && c.scriptTitulo !== "Contato cadastrado manualmente" ? c.scriptTitulo : "",
+    });
+    setOpenNovo(true);
   };
 
   const handleRemoverManual = (id?: string) => {
@@ -223,7 +250,13 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
           <Phone size={12} className="mr-1" />
           {filtered.length} contato(s)
         </Badge>
-        <Dialog open={openNovo} onOpenChange={setOpenNovo}>
+        <Dialog open={openNovo} onOpenChange={(o) => {
+          setOpenNovo(o);
+          if (!o) {
+            setEditandoId(null);
+            setNovo({ nome: "", telefone: "", tipo: "WhatsApp", categoria: "Gabinete", observacao: "" });
+          }
+        }}>
           <DialogTrigger asChild>
             <Button size="sm" className="h-8 gap-1.5">
               <Plus size={14} /> Cadastrar novo contato
@@ -231,7 +264,7 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Cadastrar novo contato</DialogTitle>
+              <DialogTitle>{editandoId ? "Editar contato" : "Cadastrar novo contato"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
               <div className="space-y-1.5">
@@ -266,7 +299,7 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setOpenNovo(false)}>Cancelar</Button>
-              <Button onClick={handleSalvarNovo}>Salvar contato</Button>
+              <Button onClick={handleSalvarNovo}>{editandoId ? "Salvar alterações" : "Salvar contato"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -339,9 +372,14 @@ export default function ContatosTable({ scripts, knowledgeEntries = [], loading 
                           )}
                         </Button>
                         {c.origem === "Manual" && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoverManual(c.id)} title="Remover contato">
-                            <Trash2 size={14} />
-                          </Button>
+                          <>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditarManual(c)} title="Editar contato">
+                              <Pencil size={14} />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoverManual(c.id)} title="Remover contato">
+                              <Trash2 size={14} />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </TableCell>
