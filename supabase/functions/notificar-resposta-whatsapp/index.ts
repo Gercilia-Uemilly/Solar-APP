@@ -93,8 +93,8 @@ serve(async (req) => {
       });
     }
 
-    // Buscar telefones do autor e (fallback) de quem fez o upload
-    const idsParaNotificar = Array.from(new Set([oficio.author_id, resposta?.uploaded_by].filter(Boolean) as string[]));
+    // Notificar APENAS o autor do ofício (nunca quem fez o upload)
+    const idsParaNotificar = [oficio.author_id].filter(Boolean) as string[];
     let profiles: any[] = [];
     try {
       const r = await sb.from("profiles")

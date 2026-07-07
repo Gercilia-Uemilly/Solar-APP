@@ -549,7 +549,7 @@ export default function Oficios() {
           setHistoryIndex(0);
         }
 
-        await supabase.from("oficios").update(updatePayload).eq("id", editingOficioId);
+        await supabase.from("oficios").update(updatePayload as any).eq("id", editingOficioId);
         setDescSaveStatus("✓ Salvo automaticamente");
       } catch {
         setDescSaveStatus("✗ Erro ao salvar");
@@ -836,7 +836,7 @@ export default function Oficios() {
     let error;
     let oficioId = editingOficioId;
     if (editingOficioId) {
-      ({ error } = await supabase.from("oficios").update(payload).eq("id", editingOficioId));
+      ({ error } = await supabase.from("oficios").update(payload as any).eq("id", editingOficioId));
     } else {
       const { data: insertData, error: insertError } = await supabase.from("oficios").insert({ ...payload, author_id: user.id, editing_by: user.id, editing_by_name: profileName || user.user_metadata?.full_name || user.email || null, editing_since: new Date().toISOString() }).select("id").single();
       error = insertError;
@@ -1414,7 +1414,7 @@ export default function Oficios() {
         last_edited_at: new Date().toISOString(),
       };
       if (editingOficioId) {
-        await supabase.from("oficios").update(payload).eq("id", editingOficioId);
+        await supabase.from("oficios").update(payload as any).eq("id", editingOficioId);
       } else {
         const { data: insertData } = await supabase.from("oficios").insert({ ...payload, operador_nome: profileName || user.user_metadata?.full_name || user.email || null, author_id: user.id }).select("id").single();
         if (insertData) {
@@ -2104,7 +2104,7 @@ export default function Oficios() {
               : campo === "cargo_destinatario" ? "cargo_destinatario"
               : null;
             if (dbField) {
-              supabase.from("oficios").update({ [dbField]: correcao }).eq("id", editingOficioId).then(() => {});
+              supabase.from("oficios").update({ [dbField]: correcao } as any).eq("id", editingOficioId).then(() => {});
             }
           }
 
@@ -2148,7 +2148,7 @@ export default function Oficios() {
           }
 
           if (editingOficioId && Object.keys(updates).length > 0) {
-            supabase.from("oficios").update(updates).eq("id", editingOficioId).then(() => {});
+            supabase.from("oficios").update(updates as any).eq("id", editingOficioId).then(() => {});
           }
 
           toast({ title: "✅ Todas as correções aplicadas!" });
