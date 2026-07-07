@@ -47,6 +47,29 @@ function looksLikeOriginalOficioPdf(conteudo: string, numeroOficio: string | nul
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    // Require authenticated user OR internal shared secret
+    const expectedSecret = Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
+    const providedSecret = req.headers.get("x-internal-secret") || "";
+    const authHeader = req.headers.get("Authorization") || "";
+    let authorized = expectedSecret && providedSecret === expectedSecret;
+    if (!authorized && authHeader.startsWith("Bearer ")) {
+      try {
+        const sbAuth = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const token = authHeader.replace("Bearer ", "");
+        const { data, error } = await sbAuth.auth.getClaims(token);
+        authorized = !!(data?.claims?.sub) && !error;
+      } catch { /* ignore */ }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { zip_bucket, zip_path, uploaded_by, uploaded_by_nome, offset = 0, limit = 20 } = await req.json();
     if (!zip_bucket || !zip_path) {
       return new Response(JSON.stringify({ error: "zip_bucket/zip_path required" }), {
