@@ -68,6 +68,29 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Require authenticated user OR internal shared secret
+    const expectedSecret = Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
+    const providedSecret = req.headers.get("x-internal-secret") || "";
+    const authHeader = req.headers.get("Authorization") || "";
+    let authorized = expectedSecret && providedSecret === expectedSecret;
+    if (!authorized && authHeader.startsWith("Bearer ")) {
+      try {
+        const sbAuth = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const token = authHeader.replace("Bearer ", "");
+        const { data, error } = await sbAuth.auth.getClaims(token);
+        authorized = !!(data?.claims?.sub) && !error;
+      } catch { /* ignore */ }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { resposta_id } = await req.json();
     if (!resposta_id) throw new Error("resposta_id obrigatório");
 
@@ -152,6 +175,7 @@ serve(async (req) => {
     try {
       await adminSb.functions.invoke("notificar-resposta-whatsapp", {
         body: { resposta_id, oficio_id: resposta.oficio_id },
+        headers: { "x-internal-secret": expectedSecret },
       });
     } catch (e) { console.warn("Notificação falhou:", (e as any)?.message); }
 

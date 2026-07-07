@@ -32,6 +32,29 @@ function resolveZapiSendUrl(instance?: string | null, token?: string | null) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
+    // Auth: allow only authenticated users OR internal callers (shared secret)
+    const expectedSecret = Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
+    const providedSecret = req.headers.get("x-internal-secret") || "";
+    const authHeader = req.headers.get("Authorization") || "";
+    let authorized = expectedSecret && providedSecret === expectedSecret;
+    if (!authorized && authHeader.startsWith("Bearer ")) {
+      try {
+        const sbAuth = createClient(
+          Deno.env.get("SUPABASE_URL") || "",
+          Deno.env.get("SUPABASE_ANON_KEY") || "",
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const token = authHeader.replace("Bearer ", "");
+        const { data, error } = await sbAuth.auth.getClaims(token);
+        authorized = !!(data?.claims?.sub) && !error;
+      } catch { /* ignore */ }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { resposta_id, oficio_id: oficioIdInput } = await req.json();
     const SRV_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const SB_URL = Deno.env.get("SUPABASE_URL") || "";
