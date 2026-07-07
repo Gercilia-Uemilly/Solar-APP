@@ -249,7 +249,7 @@ export default function MeusOficios() {
       last_edited_by_name: profileName || user?.email || null,
       last_edited_at: new Date().toISOString(),
     };
-    const { error } = await supabase.from("oficios").update(updatePayload).eq("id", viewOficio.id);
+    const { error } = await supabase.from("oficios").update(updatePayload as any).eq("id", viewOficio.id);
     if (error) {
       setSaveStatus("error");
       const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
@@ -304,7 +304,7 @@ export default function MeusOficios() {
       last_edited_by_name: profileName || user?.email || null,
       last_edited_at: new Date().toISOString(),
     };
-    const { error } = await supabase.from("oficios").update(updatePayload).eq("id", latestViewOficio.id);
+    const { error } = await supabase.from("oficios").update(updatePayload as any).eq("id", latestViewOficio.id);
     if (error) {
       setSaveStatus("error");
       const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
@@ -386,7 +386,7 @@ export default function MeusOficios() {
       statusPayload.protocolado_em = new Date().toISOString();
     }
 
-    const { error } = await supabase.from("oficios").update(statusPayload).eq("id", oficioId);
+    const { error } = await supabase.from("oficios").update(statusPayload as any).eq("id", oficioId);
     if (error) {
       const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
       toast({ title: "Erro ao alterar status", description: msg, variant: "destructive" });
