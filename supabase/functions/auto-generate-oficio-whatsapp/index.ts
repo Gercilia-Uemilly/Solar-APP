@@ -59,7 +59,9 @@ serve(async (req) => {
     // Segurança: só processa o que veio do bot e ainda não foi gerado pela IA.
     // (Não dependemos mais de ia_pendente: o n8n às vezes envia false e
     //  os ofícios ficavam com o template cru.)
-    if (oficio.origem !== "whatsapp_bot" || oficio.ia_gerada === true) {
+    const origemNormalizada = (oficio.origem || "").toLowerCase();
+    const origensAceitas = ["whatsapp_bot", "whatsapp"];
+    if (!origensAceitas.includes(origemNormalizada) || oficio.ia_gerada === true) {
       return new Response(JSON.stringify({ skipped: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -166,7 +168,10 @@ serve(async (req) => {
       conteudo: oficioText,
       ia_pendente: false,
       ia_gerada: true,
-      status: "Finalizado",
+      // Ofícios do Agente Jr (origem: "whatsapp") ficam com status "concluido"
+      // para o n8n detectar e enviar de volta ao WhatsApp originador.
+      // Demais (whatsapp_bot / tapa-buraco) seguem como "Finalizado".
+      status: origemNormalizada === "whatsapp" ? "concluido" : "Finalizado",
       resposta_cidadao: oficio.resposta_cidadao || data.resposta_cidadao || null,
       updated_at: new Date().toISOString(),
     };
