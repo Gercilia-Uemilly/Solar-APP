@@ -61,8 +61,18 @@ serve(async (req) => {
     //  os ofícios ficavam com o template cru.)
     const origemNormalizada = (oficio.origem || "").toLowerCase();
     const origensAceitas = ["whatsapp_bot", "whatsapp"];
-    if (!origensAceitas.includes(origemNormalizada) || oficio.ia_gerada === true) {
-      return new Response(JSON.stringify({ skipped: true }), {
+    const elegivel =
+      origensAceitas.includes(origemNormalizada) &&
+      oficio.ia_pendente === true &&
+      oficio.ia_gerada !== true;
+    if (!elegivel) {
+      return new Response(JSON.stringify({
+        skipped: true,
+        reason: "não elegível para geração automática",
+        origem: oficio.origem,
+        ia_pendente: oficio.ia_pendente,
+        ia_gerada: oficio.ia_gerada,
+      }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
