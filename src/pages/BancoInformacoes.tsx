@@ -221,6 +221,11 @@ export default function BancoInformacoes() {
   const [importing, setImporting] = useState(false);
   const [scraping, setScraping] = useState(false);
   const [search, setSearch] = useState("");
+  // Resultados de busca no servidor — necessário porque a base tem mais linhas
+  // do que o cache local (limit: 1000) e a pesquisa por título/descrição
+  // precisa alcançar TODA a tabela.
+  const [serverSearchResults, setServerSearchResults] = useState<KnowledgeEntry[] | null>(null);
+  const [serverSearchLoading, setServerSearchLoading] = useState(false);
   const [fonteFilter, setFonteFilter] = useState("Todas");
   const [dateFilter, setDateFilter] = useState("Todas");
   const [themeFilter, setThemeFilter] = useState("Todos");
@@ -291,7 +296,17 @@ export default function BancoInformacoes() {
   const dateOptions = ["Todas", "Hoje", "7 dias", "30 dias", "90 dias"];
 
   const filtered = useMemo(() => {
-    let result = [...entries];
+    // Fonte base: quando há termo de busca, usa a união entre o cache local
+    // e os resultados vindos do servidor (para cobrir linhas fora do cache).
+    const base: KnowledgeEntry[] = search && serverSearchResults
+      ? (() => {
+          const map = new Map<string, KnowledgeEntry>();
+          for (const e of entries) map.set(e.id, e);
+          for (const e of serverSearchResults) map.set(e.id, e);
+          return Array.from(map.values());
+        })()
+      : [...entries];
+    let result = base;
     if (fonteFilter !== "Todas") result = result.filter(e => e.fonte === fonteFilter);
     if (themeFilter !== "Todos") result = result.filter(e => e.categoria === themeFilter);
     if (dateFilter !== "Todas") {
@@ -314,7 +329,41 @@ export default function BancoInformacoes() {
       const db = new Date(b.data_publicacao || b.created_at).getTime();
       return sortOrder === "desc" ? db - da : da - db;
     });
-  }, [entries, search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+  }, [entries, serverSearchResults, search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+
+  // Busca no servidor com debounce — cobre linhas que ficam fora do cache local
+  // quando a tabela ultrapassa o limite de 1000.
+  useEffect(() => {
+    const term = search.trim();
+    if (term.length < 2) {
+      setServerSearchResults(null);
+      setServerSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setServerSearchLoading(true);
+    const timer = setTimeout(async () => {
+      const escaped = term.replace(/[%,]/g, " ");
+      const like = `%${escaped}%`;
+      const { data, error } = await supabase
+        .from("base_conhecimento" as any)
+        .select("id,titulo,descricao,palavras_chave,orgao,bairro,data_publicacao,link,fonte,categoria,modelo,created_at")
+        .or(
+          `titulo.ilike.${like},descricao.ilike.${like},orgao.ilike.${like},bairro.ilike.${like}`
+        )
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (cancelled) return;
+      if (error) {
+        console.error("Busca no banco falhou:", error);
+        setServerSearchResults([]);
+      } else {
+        setServerSearchResults((data as unknown as KnowledgeEntry[]) || []);
+      }
+      setServerSearchLoading(false);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [search]);
 
   const sosEntries = useMemo(() => {
     let result = entries.filter(e => e.fonte === "SOS Uberlândia");
