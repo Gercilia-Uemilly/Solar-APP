@@ -230,6 +230,9 @@ export default function BancoInformacoes() {
   const [dateFilter, setDateFilter] = useState("Todas");
   const [themeFilter, setThemeFilter] = useState("Todos");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  // Paginação da aba Base — permite navegar por TODOS os registros da lista filtrada
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 30;
   const [sosSearch, setSosSearch] = useState("");
   const [sosSortOrder, setSosSortOrder] = useState<"desc" | "asc">("desc");
   const [mainTab, setMainTab] = useState("base");
@@ -330,6 +333,16 @@ export default function BancoInformacoes() {
       return sortOrder === "desc" ? db - da : da - db;
     });
   }, [entries, serverSearchResults, search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+
+  // Reseta paginação sempre que a lista filtrada muda por busca/filtros/ordem
+  useEffect(() => { setPage(1); }, [search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage]
+  );
 
   // Busca no servidor com debounce — cobre linhas que ficam fora do cache local
   // quando a tabela ultrapassa o limite de 1000.
@@ -1125,7 +1138,12 @@ export default function BancoInformacoes() {
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setFonteFilter("Todas"); setThemeFilter("Todos"); setDateFilter("Todas"); }}>Limpar</Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">{filtered.length} resultado(s)</p>
+              <p className="text-xs text-muted-foreground">
+                {filtered.length} resultado(s)
+                {filtered.length > PAGE_SIZE && (
+                  <> · Página {currentPage} de {totalPages}</>
+                )}
+              </p>
             </CardContent>
           </Card>
 
@@ -1138,7 +1156,7 @@ export default function BancoInformacoes() {
               <div className="col-span-full text-center py-12 text-muted-foreground">
                 <Library size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhuma entrada encontrada</p>
               </div>
-            ) : filtered.map(entry => (
+            ) : paginated.map(entry => (
               <Card key={entry.id} className={`group hover:shadow-md transition-all ${isAdmin && entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -1173,6 +1191,50 @@ export default function BancoInformacoes() {
               </Card>
             ))}
           </div>
+
+          {filtered.length > PAGE_SIZE && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(1)}
+              >
+                « Primeira
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                ‹ Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground px-2">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              >
+                Próxima ›
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage(totalPages)}
+              >
+                Última »
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         {/* ═══════════ TAB: SCRIPTS ═══════════ */}
