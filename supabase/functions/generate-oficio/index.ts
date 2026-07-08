@@ -189,6 +189,57 @@ serve(async (req) => {
     }
     const numeroLogradouro = extrairNumeroLogradouro(`${local || ""} ${descricao || ""}`);
 
+    // ═══════════════════════════════════════════════════
+    // EXTRAÇÃO DE DATAS (para validação pós-geração)
+    // Padrões suportados: "DD de mês [de AAAA]" e "DD/MM[/AAAA]".
+    // Cada data é normalizada em "DD/MM" (+ ano quando presente) para
+    // comparar o que a IA gerou com o que existe no texto original.
+    // ═══════════════════════════════════════════════════
+    const MESES_PT: Record<string, string> = {
+      janeiro: "01", fevereiro: "02", "março": "03", marco: "03",
+      abril: "04", maio: "05", junho: "06", julho: "07",
+      agosto: "08", setembro: "09", outubro: "10", novembro: "11", dezembro: "12",
+    };
+    function extrairDatas(texto: string): Set<string> {
+      const out = new Set<string>();
+      if (!texto) return out;
+      const limpo = texto.replace(/<[^>]+>/g, " ");
+      // "DD de mês [de AAAA]"
+      const re1 = /\b(\d{1,2})\s+de\s+(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s+de\s+(\d{4}))?\b/gi;
+      let m: RegExpExecArray | null;
+      while ((m = re1.exec(limpo)) !== null) {
+        const dia = m[1].padStart(2, "0");
+        const mes = MESES_PT[m[2].toLowerCase()] || "";
+        if (mes) {
+          out.add(m[3] ? `${dia}/${mes}/${m[3]}` : `${dia}/${mes}`);
+        }
+      }
+      // "DD/MM[/AAAA]" ou "DD-MM[-AAAA]"
+      const re2 = /\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/g;
+      while ((m = re2.exec(limpo)) !== null) {
+        const dia = m[1].padStart(2, "0");
+        const mes = m[2].padStart(2, "0");
+        if (Number(dia) < 1 || Number(dia) > 31) continue;
+        if (Number(mes) < 1 || Number(mes) > 12) continue;
+        let ano = m[3];
+        if (ano && ano.length === 2) ano = (Number(ano) > 50 ? "19" : "20") + ano;
+        out.add(ano ? `${dia}/${mes}/${ano}` : `${dia}/${mes}`);
+      }
+      return out;
+    }
+    function datasDivergentes(orig: Set<string>, geradas: Set<string>): string[] {
+      const divergencias: string[] = [];
+      // Índice das datas do original ignorando o ano (para comparar "DD/MM").
+      const origDM = new Set<string>();
+      for (const d of orig) origDM.add(d.split("/").slice(0, 2).join("/"));
+      for (const g of geradas) {
+        const dm = g.split("/").slice(0, 2).join("/");
+        if (!origDM.has(dm)) divergencias.push(g);
+      }
+      return divergencias;
+    }
+    const datasOriginais = extrairDatas(`${descricao || ""} ${assunto || ""} ${local || ""}`);
+
     const tipoNormalizado = typeof tipo === "string" ? tipo.trim() : "";
     const tipoValidoComoSecretaria = tipoNormalizado && !["solicitação", "reclamação", "requerimento"].includes(tipoNormalizado.toLowerCase());
     const secretariaDetectada = (tipoValidoComoSecretaria ? tipoNormalizado : "") || detectSecretaria(textoCompleto) || "Serviços Urbanos";
@@ -267,7 +318,7 @@ Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágra
 
     const { systemInstruction, messages } = toGeminiMessages(SYSTEM_PROMPT, userPrompt);
     // gpt-4o-mini: rápido e estável para JSON, atende ao requisito de geração ágil.
-    const result = await callGemini({ model: "gpt-4o-mini", systemInstruction, messages });
+    let result = await callGemini({ model: "gpt-4o-mini", systemInstruction, messages });
 
     if (!result.text || result.text.trim().length < 20) {
       console.error("IA retornou resposta vazia. Raw:", JSON.stringify(result.raw)?.slice(0, 500));
@@ -332,6 +383,56 @@ Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágra
       if (!parsed.oficio.includes(numeroLogradouro)) {
         parsed.sugestoes_melhoria = parsed.sugestoes_melhoria || [];
         parsed.sugestoes_melhoria.push(`⚠️ O número "${numeroLogradouro}" do logradouro não foi incluído pela IA. Adicione manualmente no §1.`);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // VALIDAÇÃO PÓS-GERAÇÃO: DATAS
+    // Se a IA gerou alguma data (DD/MM ou "DD de mês") que NÃO existe no texto
+    // original, regenera UMA vez usando o texto de referência como fonte única
+    // de verdade. Se ainda assim divergir, registra aviso em sugestoes_melhoria.
+    // ═══════════════════════════════════════════════════
+    if (typeof parsed.oficio === "string" && datasOriginais.size >= 0) {
+      const datasGeradas = extrairDatas(parsed.oficio);
+      const divergentes = datasDivergentes(datasOriginais, datasGeradas);
+      if (divergentes.length > 0) {
+        console.warn(`[generate-oficio] Datas divergentes detectadas: ${JSON.stringify(divergentes)}. Datas no original: ${JSON.stringify([...datasOriginais])}. Regenerando...`);
+        const datasListadas = [...datasOriginais].join(", ") || "(nenhuma data explícita informada)";
+        const reforcoPrompt = `${userPrompt}
+
+═══ ATENÇÃO — CORREÇÃO OBRIGATÓRIA DE DATAS ═══
+Na geração anterior você inseriu a(s) data(s) ${divergentes.join(", ")} que NÃO existe(m) no CONTEÚDO RECEBIDO.
+O CONTEÚDO RECEBIDO é a ÚNICA FONTE DE VERDADE.
+Datas encontradas no original: ${datasListadas}.
+Regras:
+- Use SOMENTE datas literalmente presentes no CONTEÚDO RECEBIDO.
+- NUNCA altere dia, mês ou ano (ex.: "02 de dezembro" jamais pode virar "02 de novembro").
+- Se nenhuma data for necessária ao entendimento, OMITA a data — não invente.
+Regenere o ofício respeitando estas regras.`;
+        const retry = toGeminiMessages(SYSTEM_PROMPT, reforcoPrompt);
+        try {
+          const result2 = await callGemini({ model: "gpt-4o-mini", systemInstruction: retry.systemInstruction, messages: retry.messages });
+          const cleaned2 = (result2.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
+          let parsed2: any;
+          try { parsed2 = JSON.parse(cleaned2); } catch { parsed2 = null; }
+          if (parsed2?.oficio && typeof parsed2.oficio === "string") {
+            parsed2.oficio = parsed2.oficio
+              .replace(/^\s*\{\s*"oficio"\s*:\s*"/, "")
+              .replace(/["}\s,]+$/g, "")
+              .trim();
+            const divergentes2 = datasDivergentes(datasOriginais, extrairDatas(parsed2.oficio));
+            if (divergentes2.length === 0) {
+              parsed = { ...parsed, ...parsed2 };
+            } else {
+              parsed.sugestoes_melhoria = parsed.sugestoes_melhoria || [];
+              parsed.sugestoes_melhoria.push(`⚠️ Datas possivelmente divergentes do original: ${divergentes2.join(", ")}. Confira antes de enviar.`);
+            }
+          }
+        } catch (e) {
+          console.error("[generate-oficio] Falha ao regenerar por divergência de datas:", e);
+          parsed.sugestoes_melhoria = parsed.sugestoes_melhoria || [];
+          parsed.sugestoes_melhoria.push(`⚠️ Datas possivelmente divergentes do original: ${divergentes.join(", ")}. Confira antes de enviar.`);
+        }
       }
     }
 
