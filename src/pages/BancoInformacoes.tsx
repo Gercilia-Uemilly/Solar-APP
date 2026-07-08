@@ -334,6 +334,16 @@ export default function BancoInformacoes() {
     });
   }, [entries, serverSearchResults, search, fonteFilter, themeFilter, dateFilter, sortOrder]);
 
+  // Reseta paginação sempre que a lista filtrada muda por busca/filtros/ordem
+  useEffect(() => { setPage(1); }, [search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage]
+  );
+
   // Busca no servidor com debounce — cobre linhas que ficam fora do cache local
   // quando a tabela ultrapassa o limite de 1000.
   useEffect(() => {
