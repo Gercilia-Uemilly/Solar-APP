@@ -230,6 +230,9 @@ export default function BancoInformacoes() {
   const [dateFilter, setDateFilter] = useState("Todas");
   const [themeFilter, setThemeFilter] = useState("Todos");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  // Paginação da aba Base — permite navegar por TODOS os registros da lista filtrada
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 30;
   const [sosSearch, setSosSearch] = useState("");
   const [sosSortOrder, setSosSortOrder] = useState<"desc" | "asc">("desc");
   const [mainTab, setMainTab] = useState("base");
