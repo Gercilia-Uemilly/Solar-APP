@@ -1138,7 +1138,12 @@ export default function BancoInformacoes() {
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setFonteFilter("Todas"); setThemeFilter("Todos"); setDateFilter("Todas"); }}>Limpar</Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">{filtered.length} resultado(s)</p>
+              <p className="text-xs text-muted-foreground">
+                {filtered.length} resultado(s)
+                {filtered.length > PAGE_SIZE && (
+                  <> · Página {currentPage} de {totalPages}</>
+                )}
+              </p>
             </CardContent>
           </Card>
 
@@ -1151,7 +1156,7 @@ export default function BancoInformacoes() {
               <div className="col-span-full text-center py-12 text-muted-foreground">
                 <Library size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhuma entrada encontrada</p>
               </div>
-            ) : filtered.map(entry => (
+            ) : paginated.map(entry => (
               <Card key={entry.id} className={`group hover:shadow-md transition-all ${isAdmin && entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -1186,6 +1191,50 @@ export default function BancoInformacoes() {
               </Card>
             ))}
           </div>
+
+          {filtered.length > PAGE_SIZE && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(1)}
+              >
+                « Primeira
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                ‹ Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground px-2">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              >
+                Próxima ›
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage(totalPages)}
+              >
+                Última »
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         {/* ═══════════ TAB: SCRIPTS ═══════════ */}
