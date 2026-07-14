@@ -387,6 +387,13 @@ export default function MeusOficios() {
       statusPayload.protocolado_em = new Date().toISOString();
     }
 
+    if (user) {
+      statusPayload.last_edited_by = user.id;
+      statusPayload.last_edited_by_name =
+        user.user_metadata?.full_name || user.email || null;
+      statusPayload.last_edited_at = new Date().toISOString();
+    }
+
     const { error } = await supabase.from("oficios").update(statusPayload as any).eq("id", oficioId);
     if (error) {
       const msg = error.message?.includes("row-level security") ? "Você só pode editar seus próprios ofícios." : error.message;
