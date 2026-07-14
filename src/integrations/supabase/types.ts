@@ -599,6 +599,44 @@ export type Database = {
           },
         ]
       }
+      oficio_status_history: {
+        Row: {
+          alterado_em: string
+          alterado_por: string | null
+          alterado_por_nome: string | null
+          id: string
+          oficio_id: string
+          status_anterior: string | null
+          status_novo: string
+        }
+        Insert: {
+          alterado_em?: string
+          alterado_por?: string | null
+          alterado_por_nome?: string | null
+          id?: string
+          oficio_id: string
+          status_anterior?: string | null
+          status_novo: string
+        }
+        Update: {
+          alterado_em?: string
+          alterado_por?: string | null
+          alterado_por_nome?: string | null
+          id?: string
+          oficio_id?: string
+          status_anterior?: string | null
+          status_novo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oficio_status_history_oficio_id_fkey"
+            columns: ["oficio_id"]
+            isOneToOne: false
+            referencedRelation: "oficios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oficios: {
         Row: {
           ano: number | null
