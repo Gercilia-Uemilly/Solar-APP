@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Loader2, ArrowRight, Calendar, User } from "lucide-react";
+import { Activity, Loader2, ArrowRight, Calendar, User, HelpCircle } from "lucide-react";
 
 interface StatusHistoryRow {
   id: string;
@@ -10,6 +10,7 @@ interface StatusHistoryRow {
   status_novo: string;
   alterado_por_nome: string | null;
   alterado_em: string;
+  estimado?: boolean;
 }
 
 interface Props {
@@ -27,7 +28,7 @@ export default function StatusHistoryDialog({ oficioId, oficioNumero }: Props) {
     setLoading(true);
     const { data } = await (supabase as any)
       .from("oficio_status_history")
-      .select("id,status_anterior,status_novo,alterado_por_nome,alterado_em")
+      .select("id,status_anterior,status_novo,alterado_por_nome,alterado_em,estimado")
       .eq("oficio_id", oficioId)
       .order("alterado_em", { ascending: false });
     setRows((data as StatusHistoryRow[]) || []);
@@ -98,6 +99,14 @@ export default function StatusHistoryDialog({ oficioId, oficioNumero }: Props) {
                     <span className="flex items-center gap-1">
                       <Calendar size={12} /> {fmt(r.alterado_em)}
                     </span>
+                    {r.estimado && (
+                      <span
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                        title="Registro anterior ao rastreamento automático. O nome foi inferido a partir de dados existentes e pode não corresponder a quem realmente alterou o status."
+                      >
+                        <HelpCircle size={11} /> atribuição estimada
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
