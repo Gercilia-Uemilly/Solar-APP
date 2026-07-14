@@ -25,6 +25,7 @@ import { type OficioRow, getVocativo, cleanNumero } from "@/lib/oficioUtils";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import VersionHistoryDialog from "@/components/VersionHistoryDialog";
+import StatusHistoryDialog from "@/components/StatusHistoryDialog";
 import { saveBackupBeforeEdit } from "@/lib/oficioBackup";
 import UploadOficioModal from "@/components/UploadOficioModal";
 import UploadRespostaModal from "@/components/UploadRespostaModal";
@@ -1033,6 +1034,7 @@ export default function MeusOficios() {
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <VersionHistoryDialog oficioId={o.id} oficioNumero={o.numero} onRestored={fetchOficios} />
+                    <StatusHistoryDialog oficioId={o.id} oficioNumero={o.numero} />
                     <button
                       onClick={() => setRespostasListFor({ id: o.id, numero: o.numero })}
                       className="relative p-2 text-muted-foreground hover:text-foreground"
