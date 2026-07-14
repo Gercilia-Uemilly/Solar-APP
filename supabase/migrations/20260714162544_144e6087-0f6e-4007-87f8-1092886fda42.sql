@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Bot pode inserir oficios" ON public.oficios; REVOKE INSERT ON public.oficios FROM anon;
