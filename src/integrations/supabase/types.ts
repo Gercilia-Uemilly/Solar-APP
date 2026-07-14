@@ -604,6 +604,7 @@ export type Database = {
           alterado_em: string
           alterado_por: string | null
           alterado_por_nome: string | null
+          estimado: boolean
           id: string
           oficio_id: string
           status_anterior: string | null
@@ -613,6 +614,7 @@ export type Database = {
           alterado_em?: string
           alterado_por?: string | null
           alterado_por_nome?: string | null
+          estimado?: boolean
           id?: string
           oficio_id: string
           status_anterior?: string | null
@@ -622,6 +624,7 @@ export type Database = {
           alterado_em?: string
           alterado_por?: string | null
           alterado_por_nome?: string | null
+          estimado?: boolean
           id?: string
           oficio_id?: string
           status_anterior?: string | null
