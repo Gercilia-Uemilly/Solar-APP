@@ -15,6 +15,45 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+function normalizePhoneBR(raw: string | null | undefined): string {
+  if (!raw) return "";
+  let d = String(raw).replace(/\D/g, "");
+  if (!d) return "";
+  if (d.length >= 10 && d.length <= 11 && !d.startsWith("55")) d = "55" + d;
+  return d;
+}
+
+function resolveZapiSendUrl(instance?: string | null, token?: string | null) {
+  const inst = (instance || "").trim();
+  const tok = (token || "").trim();
+  if (!inst || !tok) return "";
+  if (/^https?:\/\//i.test(inst)) {
+    try {
+      const u = new URL(inst);
+      const m = u.pathname.match(/\/instances\/([^/]+)\/token\/([^/]+)/i);
+      if (m) return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
+    } catch { /* */ }
+  }
+  return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
+}
+
+function htmlToPlainText(html: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li)>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
