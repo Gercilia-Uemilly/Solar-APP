@@ -5,6 +5,7 @@
 // edge function with the same payload, then writes the result back.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { buscarContatoPorTelefone, normalizePhoneBR as normalizePhonePlanilha } from "../_shared/zapReqContatos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,7 +21,7 @@ function normalizePhoneBR(raw: string | null | undefined): string {
   let d = String(raw).replace(/\D/g, "");
   if (!d) return "";
   if (d.length >= 10 && d.length <= 11 && !d.startsWith("55")) d = "55" + d;
-  return d;
+  return d.length >= 12 ? d : "";
 }
 
 function resolveZapiSendUrl(instance?: string | null, token?: string | null) {
@@ -129,6 +130,12 @@ serve(async (req) => {
     // Sempre passa "Solicitação" como tipo para que a detecção automática de
     // secretaria pelo conteúdo da descrição seja usada (evita mapeamentos
     // errados vindos do n8n, ex.: tapa-buraco -> "Obras").
+    const contatoPlanilha =
+      buscarContatoPorTelefone(oficio.linha_telefonica) ||
+      buscarContatoPorTelefone(oficio.telefone_recebimento);
+    const telefonePlanilha = contatoPlanilha ? normalizePhonePlanilha(contatoPlanilha.telefone) : "";
+    const operadorResolvido = contatoPlanilha?.nome || oficio.operador_nome || "Agente JR";
+
     const payload = {
       assunto: oficio.assunto || "",
       destinatario: oficio.destinatario || "",
@@ -204,7 +211,7 @@ serve(async (req) => {
       const { data: numData, error: numErr } = await admin.rpc("reservar_proximo_numero", {
         p_ano: ano,
         p_user_id: oficio.author_id || "00000000-0000-0000-0000-000000000000",
-        p_user_nome: oficio.operador_nome || "WhatsApp Bot",
+        p_user_nome: operadorResolvido,
       });
       if (!numErr && numData) {
         numeroReservado = `Ofício GVF n° ${numData}/${ano}`;
@@ -217,14 +224,15 @@ serve(async (req) => {
       conteudo: oficioText,
       ia_pendente: false,
       ia_gerada: true,
-      // Ofícios do Agente Jr (origem: "whatsapp") ficam com status "concluido"
-      // para o n8n detectar e enviar de volta ao WhatsApp originador.
-      // Demais (whatsapp_bot / tapa-buraco) seguem como "Finalizado".
-      status: origemNormalizada === "whatsapp" ? "concluido" : "Finalizado",
+      // Status reconhecido pelo Solar como finalizado e que marca a numeração como usada.
+      status: "Protocolado",
       resposta_cidadao: oficio.resposta_cidadao || data.resposta_cidadao || null,
+      operador_nome: operadorResolvido,
       updated_at: new Date().toISOString(),
     };
     if (numeroReservado) updatePayload.numero = numeroReservado;
+    if (telefonePlanilha && !oficio.telefone_recebimento) updatePayload.telefone_recebimento = telefonePlanilha;
+    if (contatoPlanilha?.codigo && !oficio.codigo_z) updatePayload.codigo_z = contatoPlanilha.codigo;
     if (data.assunto_sugerido && !oficio.assunto) updatePayload.assunto = data.assunto_sugerido;
     if (data.secretaria_identificada && !oficio.secretaria_identificada) {
       updatePayload.secretaria_identificada = data.secretaria_identificada;
@@ -241,15 +249,14 @@ serve(async (req) => {
       .eq("id", oficioId);
     if (updErr) throw updErr;
 
-    // Devolver o ofício finalizado via WhatsApp para o número originador
-    // (linha_telefonica ou telefone_recebimento). Apenas para origem 'whatsapp'
-    // (Agente Jr). Ofícios do bot tapa-buraco continuam sendo tratados pelo n8n.
+    // Devolver o ofício finalizado via WhatsApp para a linha do operador que originou a demanda.
     let whatsappEnvio: any = { skipped: true };
     try {
-      if (origemNormalizada === "whatsapp") {
+      if (origensAceitas.includes(origemNormalizada)) {
         const destino =
           normalizePhoneBR(oficio.linha_telefonica) ||
-          normalizePhoneBR(oficio.telefone_recebimento);
+          normalizePhoneBR(oficio.telefone_recebimento) ||
+          telefonePlanilha;
         const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
         const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
         const ZAPI_CLIENT_TOKEN = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
@@ -277,7 +284,7 @@ serve(async (req) => {
           }
           whatsappEnvio = { destino, partes: partes.length, respostas };
         } else {
-          whatsappEnvio = { skipped: true, motivo: !destino ? "sem_telefone_origem" : "zapi_nao_configurada" };
+          whatsappEnvio = { skipped: true, motivo: !destino ? "sem_telefone_operador" : "zapi_nao_configurada" };
         }
       }
     } catch (sendErr: any) {

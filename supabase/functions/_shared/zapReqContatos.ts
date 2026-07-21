@@ -34,12 +34,23 @@ export function normalizePhoneBR(raw: string | null | undefined): string {
   let d = raw.replace(/\D/g, "");
   if (!d) return "";
   if (d.length >= 10 && d.length <= 11 && !d.startsWith("55")) d = "55" + d;
-  return d;
+  return d.length >= 12 ? d : "";
+}
+
+export function buscarContatoPorOrigemCodigo(origem: string | null | undefined, codigo: string | null | undefined): ContatoPlanilha | null {
+  if (!origem || !codigo) return null;
+  const origemNormalizada = String(origem).trim().toLowerCase();
+  const c = String(codigo).replace(/\D/g, "");
+  return CONTATOS_ZAP_REQ.find((x) => x.origem.toLowerCase() === origemNormalizada && x.codigo === c) || null;
+}
+
+export function buscarContatoPorTelefone(telefone: string | null | undefined): ContatoPlanilha | null {
+  const alvo = normalizePhoneBR(telefone);
+  if (!alvo) return null;
+  return CONTATOS_ZAP_REQ.find((x) => normalizePhoneBR(x.telefone) === alvo) || null;
 }
 
 export function buscarTelefonePorOrigemCodigo(origem: string | null | undefined, codigo: string | null | undefined): string | null {
-  if (!origem || !codigo) return null;
-  const c = String(codigo).replace(/\D/g, "");
-  const found = CONTATOS_ZAP_REQ.find(x => x.origem === origem && x.codigo === c);
+  const found = buscarContatoPorOrigemCodigo(origem, codigo);
   return found ? normalizePhoneBR(found.telefone) : null;
 }
