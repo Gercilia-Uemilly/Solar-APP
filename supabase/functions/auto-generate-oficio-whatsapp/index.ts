@@ -241,7 +241,51 @@ serve(async (req) => {
       .eq("id", oficioId);
     if (updErr) throw updErr;
 
-    return new Response(JSON.stringify({ success: true, oficio_id: oficioId }), {
+    // Devolver o ofício finalizado via WhatsApp para o número originador
+    // (linha_telefonica ou telefone_recebimento). Apenas para origem 'whatsapp'
+    // (Agente Jr). Ofícios do bot tapa-buraco continuam sendo tratados pelo n8n.
+    let whatsappEnvio: any = { skipped: true };
+    try {
+      if (origemNormalizada === "whatsapp") {
+        const destino =
+          normalizePhoneBR(oficio.linha_telefonica) ||
+          normalizePhoneBR(oficio.telefone_recebimento);
+        const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
+        const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+        const ZAPI_CLIENT_TOKEN = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
+        const zapiUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+        if (destino && zapiUrl) {
+          const numeroFinal = numeroReservado || oficio.numero || "(s/nº)";
+          const corpo = htmlToPlainText(oficioText);
+          const header = `✅ *Ofício finalizado*\n${numeroFinal}\nAssunto: ${updatePayload.assunto || oficio.assunto || "-"}\n\n`;
+          // WhatsApp trunca mensagens muito grandes; envie em blocos de ~3500 chars
+          const partes: string[] = [];
+          const full = header + corpo;
+          const CHUNK = 3500;
+          for (let i = 0; i < full.length; i += CHUNK) partes.push(full.slice(i, i + CHUNK));
+          const headers: any = { "Content-Type": "application/json" };
+          if (ZAPI_CLIENT_TOKEN) headers["Client-Token"] = ZAPI_CLIENT_TOKEN;
+          const respostas: any[] = [];
+          for (const p of partes) {
+            const r = await fetch(zapiUrl, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ phone: destino, message: p }),
+            });
+            const t = await r.text().catch(() => "");
+            respostas.push({ status: r.status, body: t.slice(0, 200) });
+          }
+          whatsappEnvio = { destino, partes: partes.length, respostas };
+        } else {
+          whatsappEnvio = { skipped: true, motivo: !destino ? "sem_telefone_origem" : "zapi_nao_configurada" };
+        }
+      }
+    } catch (sendErr: any) {
+      console.error("Falha ao enviar WhatsApp de devolução:", sendErr?.message || sendErr);
+      whatsappEnvio = { error: sendErr?.message || String(sendErr) };
+    }
+
+    return new Response(JSON.stringify({ success: true, oficio_id: oficioId, whatsapp: whatsappEnvio }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
