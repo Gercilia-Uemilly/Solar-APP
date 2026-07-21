@@ -15,6 +15,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ORIGENS_AUTOMATICAS = ["whatsapp_bot", "whatsapp", "whatsapp_equipe", "whatsapp ia"];
 
 function normalizePhoneBR(raw: string | null | undefined): string {
   if (!raw) return "";
@@ -100,7 +101,7 @@ serve(async (req) => {
     // (Não dependemos mais de ia_pendente: o n8n às vezes envia false e
     //  os ofícios ficavam com o template cru.)
     const origemNormalizada = (oficio.origem || "").toLowerCase();
-    const origensAceitas = ["whatsapp_bot", "whatsapp"];
+    const origensAceitas = ORIGENS_AUTOMATICAS;
     const elegivel =
       origensAceitas.includes(origemNormalizada) &&
       oficio.ia_pendente === true &&
