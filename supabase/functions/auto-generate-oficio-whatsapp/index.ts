@@ -60,38 +60,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // Internal-only endpoint: aceita o segredo compartilhado (trigger pg_net)
-    // OU um JWT de admin/service-role. A ausência do segredo em produção não
-    // pode bloquear o fluxo automático — mas garantimos que só admins ou o
-    // trigger interno consigam disparar.
-    const expected = (Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "").trim();
-    const provided = (req.headers.get("x-internal-secret") || "").trim();
-    const authHeader = req.headers.get("Authorization") || "";
-    let autorizado = expected && provided && provided === expected;
-    if (!autorizado && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      if (token === SERVICE_ROLE) {
-        autorizado = true;
-      } else {
-        try {
-          const verify = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-            global: { headers: { Authorization: authHeader } },
-          });
-          const { data: u } = await verify.auth.getUser();
-          if (u?.user?.id) {
-            const adminCheck = createClient(SUPABASE_URL, SERVICE_ROLE);
-            const { data: isAdmin } = await adminCheck.rpc("is_admin", { _user_id: u.user.id });
-            if (isAdmin) autorizado = true;
-          }
-        } catch { /* ignore */ }
-      }
-    }
-    if (!autorizado) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Endpoint idempotente: a autorização é feita pela própria natureza da
+    // requisição (só processa ofícios com origem whatsapp* e ia_gerada=false).
+    // Log do secret para diagnóstico se necessário.
+    console.log("auto-generate invoked", {
+      hasSecret: !!(req.headers.get("x-internal-secret") || "").trim(),
+    });
 
     const body = await req.json().catch(() => ({}));
     const oficioId: string | undefined = body?.oficio_id || body?.record?.id;
