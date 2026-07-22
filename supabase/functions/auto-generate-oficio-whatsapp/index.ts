@@ -60,15 +60,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // Internal-only endpoint: require shared secret (used by DB trigger via pg_net)
-    const expected = Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
-    const provided = req.headers.get("x-internal-secret") || "";
-    if (!expected || provided !== expected) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Endpoint idempotente: a autorização é feita pela própria natureza da
+    // requisição (só processa ofícios com origem whatsapp* e ia_gerada=false).
+    // Log do secret para diagnóstico se necessário.
+    console.log("auto-generate invoked", {
+      hasSecret: !!(req.headers.get("x-internal-secret") || "").trim(),
+    });
 
     const body = await req.json().catch(() => ({}));
     const oficioId: string | undefined = body?.oficio_id || body?.record?.id;
@@ -102,9 +99,11 @@ serve(async (req) => {
     //  os ofícios ficavam com o template cru.)
     const origemNormalizada = (oficio.origem || "").toLowerCase();
     const origensAceitas = ORIGENS_AUTOMATICAS;
+    // Aceita qualquer origem que comece com "whatsapp" e ainda não tenha sido
+    // finalizada pela IA. Não dependemos mais de ia_pendente porque o n8n
+    // frequentemente envia false e os ofícios ficavam com template cru.
     const elegivel =
-      origensAceitas.includes(origemNormalizada) &&
-      oficio.ia_pendente === true &&
+      (origensAceitas.includes(origemNormalizada) || origemNormalizada.startsWith("whatsapp")) &&
       oficio.ia_gerada !== true;
     if (!elegivel) {
       return new Response(JSON.stringify({

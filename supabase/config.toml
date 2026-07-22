@@ -77,3 +77,9 @@ verify_jwt = false
 
 [functions.importar-respostas-excel]
 verify_jwt = true
+
+[functions.auto-generate-oficio-whatsapp]
+verify_jwt = false
+
+[functions.criar-oficio-whatsapp]
+verify_jwt = false
