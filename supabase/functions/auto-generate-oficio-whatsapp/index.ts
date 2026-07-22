@@ -102,9 +102,11 @@ serve(async (req) => {
     //  os ofícios ficavam com o template cru.)
     const origemNormalizada = (oficio.origem || "").toLowerCase();
     const origensAceitas = ORIGENS_AUTOMATICAS;
+    // Aceita qualquer origem que comece com "whatsapp" e ainda não tenha sido
+    // finalizada pela IA. Não dependemos mais de ia_pendente porque o n8n
+    // frequentemente envia false e os ofícios ficavam com template cru.
     const elegivel =
-      origensAceitas.includes(origemNormalizada) &&
-      oficio.ia_pendente === true &&
+      (origensAceitas.includes(origemNormalizada) || origemNormalizada.startsWith("whatsapp")) &&
       oficio.ia_gerada !== true;
     if (!elegivel) {
       return new Response(JSON.stringify({
