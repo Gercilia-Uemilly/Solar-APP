@@ -38,6 +38,11 @@ serve(async (req) => {
   try {
     const expected = Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
     const provided = req.headers.get("x-internal-secret") || "";
+    console.log("[criar-oficio-whatsapp] auth diagnostic", {
+      has_secret_env: !!expected,
+      env_len: expected.length,
+      header_len: provided.length,
+    });
     if (!expected || provided !== expected) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
