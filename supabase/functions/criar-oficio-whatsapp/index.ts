@@ -36,12 +36,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const expected = Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
+    const expected = Deno.env.get("INTERNAL_WEBHOOK_SECRET_N8N") || Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
     const provided = req.headers.get("x-internal-secret") || "";
     console.log("[criar-oficio-whatsapp] auth diagnostic", {
       has_secret_env: !!expected,
       env_len: expected.length,
       header_len: provided.length,
+      env_name: Deno.env.get("INTERNAL_WEBHOOK_SECRET_N8N") ? "INTERNAL_WEBHOOK_SECRET_N8N" : "INTERNAL_WEBHOOK_SECRET",
     });
     if (!expected || provided !== expected) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
