@@ -317,8 +317,8 @@ ENCAMINHAMENTO FIXO (use LITERALMENTE como §5 e §6, em 2 tags <p> separadas): 
 Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágrafos do encaminhamento fixo. NÃO mencione solicitante. NÃO repita bairro/endereço fora do §1. NÃO invente dados não fornecidos. ${numeroLogradouro ? `O número "${numeroLogradouro}" DEVE aparecer no §1.` : ""} Retorne apenas JSON válido.`;
 
     const { systemInstruction, messages } = toGeminiMessages(SYSTEM_PROMPT, userPrompt);
-    // gpt-4o-mini: rápido e estável para JSON, atende ao requisito de geração ágil.
-    let result = await callGemini({ model: "gpt-4o-mini", systemInstruction, messages });
+    // gpt-5.5: modelo mais atual, reduz alucinação e melhora fidelidade ao CONTEÚDO RECEBIDO.
+    let result = await callGemini({ model: "gpt-5.5", systemInstruction, messages });
 
     if (!result.text || result.text.trim().length < 20) {
       console.error("IA retornou resposta vazia. Raw:", JSON.stringify(result.raw)?.slice(0, 500));
@@ -411,7 +411,7 @@ Regras:
 Regenere o ofício respeitando estas regras.`;
         const retry = toGeminiMessages(SYSTEM_PROMPT, reforcoPrompt);
         try {
-          const result2 = await callGemini({ model: "gpt-4o-mini", systemInstruction: retry.systemInstruction, messages: retry.messages });
+          const result2 = await callGemini({ model: "gpt-5.5", systemInstruction: retry.systemInstruction, messages: retry.messages });
           const cleaned2 = (result2.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
           let parsed2: any;
           try { parsed2 = JSON.parse(cleaned2); } catch { parsed2 = null; }
