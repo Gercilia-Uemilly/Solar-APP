@@ -278,6 +278,9 @@ ${ehMudancaDirecao ? `\n${TEMPLATE_MUDANCA_DIRECAO}\n` : ''}
 8. SEMPRE use "redutor de velocidade" no lugar de "quebra-mola", "quebra mola" ou "lombada".
 9. PRESERVE LITERALMENTE números de logradouro (nº/número da casa). Se o endereço informado contiver "nº 1234" ou ", 1234", esse número DEVE aparecer EXATAMENTE igual no §1, no formato "nº 1234". NUNCA arredonde, omita ou altere o número.
 10. PRESERVE LITERALMENTE nomes de ruas, bairros e pontos de referência fornecidos. Não traduza, não abrevie, não complete com palavras adicionais.
+11. NUNCA mude o TEMA/ASSUNTO do CONTEÚDO RECEBIDO. Se o operador descreveu "acidente de trânsito", o ofício trata de acidente de trânsito — não de travessia de pedestres, fluxo intenso, semáforo, iluminação ou qualquer outro tema que NÃO tenha sido citado. É PROIBIDO substituir o problema descrito por um problema "parecido" do mesmo bairro/rua.
+12. NUNCA acrescente causas, agravantes, estatísticas ("fluxo alto", "horário de pico", "grande número de pedestres", "escolas próximas", "idosos", "crianças") que NÃO estejam explicitamente no CONTEÚDO RECEBIDO.
+13. Se o CONTEÚDO RECEBIDO for curto ou pouco detalhado, escreva um ofício também curto e fiel — NUNCA preencha espaço com fatos inventados.
 
 ═══ ESTRUTURA OBRIGATÓRIA — EXATAMENTE 4 PARÁGRAFOS + CONCLUSÃO FIXA ═══
 §1 (INTRODUÇÃO COM SOLICITAÇÃO): Iniciar com "Este parlamentar, no uso de suas prerrogativas legais e regimentais, vem respeitosamente solicitar...". Citar a ação, o local (rua + número quando informado) e o bairro UMA ÚNICA VEZ. Quando houver número de logradouro, escreva no formato "Rua XXX, nº NNNN". Destacar com <strong> o tipo de serviço, a rua (com número) e o bairro.
