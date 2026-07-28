@@ -28,18 +28,24 @@ interface GeminiResponse {
 }
 
 function mapModel(m?: string): string {
-  if (!m) return "gpt-4o";
+  if (!m) return "gpt-5.5";
   const modelMap: Record<string, string> = {
     "gemini-2.5-flash": "gpt-4o-mini",
     "gemini-2.5-flash-lite": "gpt-4o-mini",
-    "gemini-2.5-pro": "gpt-4o",
+    "gemini-2.5-pro": "gpt-5.5",
     "openai/gpt-5": "gpt-5",
     "gpt-5": "gpt-5",
     "openai/gpt-5-mini": "gpt-5-mini",
     "openai/gpt-5-nano": "gpt-4o-mini",
+    "openai/gpt-5.5": "gpt-5.5",
+    "gpt-5.5": "gpt-5.5",
+    "openai/gpt-5.4": "gpt-5.4",
+    "gpt-5.4": "gpt-5.4",
+    "openai/gpt-5.4-mini": "gpt-5.4-mini",
+    "gpt-5.4-mini": "gpt-5.4-mini",
     "google/gemini-2.5-flash": "gpt-4o-mini",
     "google/gemini-2.5-flash-lite": "gpt-4o-mini",
-    "google/gemini-2.5-pro": "gpt-4o",
+    "google/gemini-2.5-pro": "gpt-5.5",
     "google/gemini-3-flash-preview": "gpt-4o-mini",
   };
   return modelMap[m] || "gpt-4o-mini";
@@ -122,7 +128,7 @@ export async function callGemini(opts: GeminiRequest): Promise<GeminiResponse> {
     // gpt-5 only supports default temperature and uses max_completion_tokens
     body.max_completion_tokens = 8192;
   } else {
-    body.temperature = 0.7;
+    body.temperature = 0.2;
     body.max_tokens = 8192;
   }
 
