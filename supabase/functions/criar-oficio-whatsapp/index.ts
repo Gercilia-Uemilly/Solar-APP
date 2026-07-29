@@ -122,6 +122,28 @@ serve(async (req) => {
     const origemAutomacao = origemInformada === "whatsapp_bot" ? "whatsapp_bot" : "whatsapp";
     const localResolvido = asText(local_demanda) || asText(endereco) || asText(endereco_completo) || asText(local);
 
+    // Fallback obrigatório para author_id: quando o ofício vem do bot/n8n não há
+    // usuário logado. A coluna é NOT NULL, então usamos um admin do sistema como
+    // autor padrão para não violar a constraint.
+    let authorIdFinal: string | null = (profileAutor?.id as string) || null;
+    if (!authorIdFinal) {
+      const { data: adminRow } = await admin
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      authorIdFinal = (adminRow?.user_id as string) || null;
+      if (!authorIdFinal) {
+        console.error("[criar-oficio-whatsapp] nenhum admin encontrado para author_id fallback");
+        return new Response(JSON.stringify({ error: "Nenhum usuário admin cadastrado para autoria padrão" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const insertPayload: Record<string, unknown> = {
       assunto: asText(assunto) || "Demanda via WhatsApp",
       destinatario: asText(destinatario) || asText(secretaria_identificada) || null,
@@ -139,7 +161,7 @@ serve(async (req) => {
       codigo_z: contatoPlanilha?.codigo || codigoPlanilha || null,
       origem: origemAutomacao,
       operador_nome: operadorResolvido,
-      author_id: profileAutor?.id || null,
+      author_id: authorIdFinal,
       status: "Rascunho",
       ia_pendente: true,
       ia_gerada: false,
