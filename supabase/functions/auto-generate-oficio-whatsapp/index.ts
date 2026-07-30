@@ -225,7 +225,7 @@ serve(async (req) => {
       ia_pendente: false,
       ia_gerada: true,
       // Status reconhecido pelo Solar como finalizado e que marca a numeração como usada.
-      status: "Protocolado",
+      status: "Salvo",
       resposta_cidadao: oficio.resposta_cidadao || data.resposta_cidadao || null,
       operador_nome: operadorResolvido,
       updated_at: new Date().toISOString(),
