@@ -21,6 +21,7 @@ interface TipTapOficioEditorProps {
   fontSize?: number;
   lineSpacing?: number;
   showToolbar?: boolean;
+  syncContentWhileFocused?: boolean;
 }
 
 export default function TipTapOficioEditor({
@@ -30,6 +31,7 @@ export default function TipTapOficioEditor({
   fontSize = 10,
   lineSpacing = 1.5,
   showToolbar = true,
+  syncContentWhileFocused = false,
 }: TipTapOficioEditorProps) {
   // Track whether a change originated from user typing inside the editor
   const userEditingRef = useRef(false);
@@ -98,8 +100,11 @@ export default function TipTapOficioEditor({
     if (!editor) return;
     // If this update was triggered by the editor's own onChange, skip it
     if (userEditingRef.current) return;
-    // If editor is focused, user is actively typing — don't disrupt
-    if (editor.isFocused) return;
+    // In paginated previews, a reflow may replace this page with only the
+    // portion that actually fits. That update must be applied even if the
+    // editor still has focus, otherwise the old full paragraph remains
+    // painted underneath the footer.
+    if (editor.isFocused && !syncContentWhileFocused) return;
     // If the prop content is the same as what we last set, skip
     if (content === lastPropContentRef.current) return;
     // If the prop content matches what the editor already has, skip
@@ -111,7 +116,7 @@ export default function TipTapOficioEditor({
     lastPropContentRef.current = content;
     lastEmittedRef.current = content;
     editor.commands.setContent(content || "<p></p>", { emitUpdate: false });
-  }, [content, editor]);
+  }, [content, editor, syncContentWhileFocused]);
 
   // Reset on unmount
   useEffect(() => {
