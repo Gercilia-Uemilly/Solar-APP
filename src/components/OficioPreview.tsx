@@ -53,6 +53,9 @@ const MARGIN_LEFT = 113;
 const MARGIN_RIGHT = 76;
 const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
 const CONTENT_W = PAGE_W_PX - MARGIN_LEFT - MARGIN_RIGHT;
+// Folga de segurança: evita que arredondamentos de medição joguem a última
+// linha do parágrafo para baixo da margem inferior na prévia.
+const PAGE_SAFETY_PX = 18;
 
 function ImageGrid({ urls }: { urls: string[] }) {
   const count = urls.length;
