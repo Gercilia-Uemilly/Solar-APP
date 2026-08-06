@@ -550,7 +550,36 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
         if (best <= 0 || best >= totalLength) return null;
         const priorWhitespace = plainText.lastIndexOf(" ", best);
-        const splitAt = priorWhitespace > Math.max(0, best - 80) ? priorWhitespace + 1 : best;
+        let splitAt = priorWhitespace > Math.max(0, best - 80) ? priorWhitespace + 1 : best;
+
+        // Nunca quebrar no meio de conectivos ("Diante disso", "Por fim"...).
+        // Se o corte cair dentro de uma dessas expressões, recua para antes dela.
+        const CONECTIVOS = [
+          "Diante disso", "Diante do exposto", "Por fim", "Por isso", "Dessa forma",
+          "Desta forma", "Sendo assim", "Isto posto", "Ante o exposto", "Assim sendo",
+          "Nesse sentido", "Neste sentido", "Portanto", "Além disso", "Dessa maneira",
+        ];
+        for (const termo of CONECTIVOS) {
+          const lowerText = plainText.toLowerCase();
+          const lowerTermo = termo.toLowerCase();
+          let from = 0;
+          for (;;) {
+            const idx = lowerText.indexOf(lowerTermo, from);
+            if (idx === -1) break;
+            const end = idx + lowerTermo.length;
+            if (splitAt > idx && splitAt < end) {
+              splitAt = idx;
+            }
+            from = end;
+          }
+        }
+        // Evita deixar o conectivo órfão no fim da página: se sobrou apenas ele,
+        // recua para o fim da frase anterior.
+        const tail = plainText.slice(0, splitAt).trimEnd();
+        if (CONECTIVOS.some((t) => tail.toLowerCase().endsWith(t.toLowerCase()))) {
+          const prevSentence = plainText.lastIndexOf(". ", Math.max(0, splitAt - 1));
+          if (prevSentence > 0) splitAt = prevSentence + 2;
+        }
         if (splitAt <= 0 || splitAt >= totalLength) return null;
         return [sliceBlock(0, splitAt), sliceBlock(splitAt, totalLength)];
       };
