@@ -552,6 +552,20 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         const priorWhitespace = plainText.lastIndexOf(" ", best);
         let splitAt = priorWhitespace > Math.max(0, best - 80) ? priorWhitespace + 1 : best;
 
+        // Regra geral para QUALQUER texto grande: preferir quebrar no fim de uma
+        // frase (. ! ? ; :) quando houver uma perto do limite da página. Assim a
+        // continuação na próxima folha começa em um ponto natural de leitura,
+        // e nunca no meio de uma expressão.
+        const sentenceWindow = Math.max(160, Math.floor(splitAt * 0.28));
+        let sentenceEnd = -1;
+        for (const mark of [". ", "! ", "? ", "; ", ": "]) {
+          const idx = plainText.lastIndexOf(mark, Math.max(0, splitAt - 1));
+          if (idx > sentenceEnd) sentenceEnd = idx + mark.length > splitAt ? sentenceEnd : idx + mark.length;
+        }
+        if (sentenceEnd > 0 && splitAt - sentenceEnd <= sentenceWindow) {
+          splitAt = sentenceEnd;
+        }
+
         // Nunca quebrar no meio de conectivos ("Diante disso", "Por fim"...).
         // Se o corte cair dentro de uma dessas expressões, recua para antes dela.
         const CONECTIVOS = [
