@@ -802,6 +802,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                         fontSize={effectiveFontSize}
                         lineSpacing={effectiveLineSpacing}
                         showToolbar={pageIdx === 0}
+                        syncContentWhileFocused
                       />
                     ) : (
                       <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(segment || "<p></p>") }} />
