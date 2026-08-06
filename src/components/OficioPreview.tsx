@@ -1,4 +1,4 @@
-import { forwardRef, useMemo, useRef, useState, useEffect, useCallback } from "react";
+import { forwardRef, useMemo, useRef, useState, useEffect, useLayoutEffect, useCallback } from "react";
 import DOMPurify from "dompurify";
 import logoCamara from "@/assets/logo-camara-docx.jpeg";
 import logoFabao from "@/assets/logo-fabao-docx.png";
@@ -170,6 +170,9 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
     const [localDestinatario, setLocalDestinatario] = useState(defaultDestinatarioCompleto);
     const [localAssunto, setLocalAssunto] = useState(defaultAssuntoFormatado);
     const [bodyPageSegments, setBodyPageSegments] = useState<string[]>([conteudo.startsWith("<") ? conteudo : "<p></p>"]);
+    // Ajuste automático baseado na altura REAL renderizada. Fontes, toolbar e o
+    // ProseMirror podem ocupar alguns pixels a mais que o medidor isolado.
+    const [paginationSafety, setPaginationSafety] = useState(PAGE_SAFETY_PX);
     // Track when content changes come from the editor (user editing) vs external
     const editorOriginatedChangeRef = useRef(false);
     const lastConteudoForPaginationRef = useRef(conteudo);
@@ -566,8 +569,8 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         }
       }
 
-      const firstCap = Math.max(120, CONTENT_H - firstChrome.offsetHeight - toolbarHeight - PAGE_SAFETY_PX);
-      const continuationCap = Math.max(120, CONTENT_H - continuationChrome.offsetHeight - PAGE_SAFETY_PX);
+      const firstCap = Math.max(120, CONTENT_H - firstChrome.offsetHeight - toolbarHeight - paginationSafety);
+      const continuationCap = Math.max(120, CONTENT_H - continuationChrome.offsetHeight - paginationSafety);
       const endingHeight = ending.offsetHeight;
 
       const nextPages: string[][] = [[]];
@@ -651,7 +654,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         }
         return resolvedPages;
       });
-    }, [editable, effectiveFontSize, effectiveLineSpacing, fmt.fontFamily]);
+    }, [editable, effectiveFontSize, effectiveLineSpacing, fmt.fontFamily, paginationSafety]);
 
     useEffect(() => {
       // If this conteudo change came from the editor (user typing), skip re-pagination
@@ -674,6 +677,21 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       }, 700);
       return () => window.clearTimeout(timer);
     }, [bodyPageSegments, paginateHtml]);
+
+    // Confere as folhas prontas, antes de pintar na tela. Se qualquer conteúdo
+    // ultrapassar a caixa útil, aumenta a reserva pela diferença observada e
+    // pagina novamente. Isso elimina sobreposição mesmo com diferenças de fonte
+    // ou zoom do navegador.
+    useLayoutEffect(() => {
+      const pages = Array.from(document.querySelectorAll<HTMLElement>(".oficio-preview-content-box"));
+      let largestOverflow = 0;
+      pages.forEach((page) => {
+        largestOverflow = Math.max(largestOverflow, page.scrollHeight - page.clientHeight);
+      });
+      if (largestOverflow > 1) {
+        setPaginationSafety((current) => Math.min(220, current + Math.ceil(largestOverflow) + 12));
+      }
+    }, [bodyPageSegments, effectiveFontSize, effectiveLineSpacing, localData, localNumero, localDestinatario, localAssunto, fechamento]);
 
     const handlePageContentChange = useCallback((pageIndex: number, newPageHtml: string) => {
       setBodyPageSegments((prev) => {
@@ -759,6 +777,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                 </div>
 
                 <div
+                  className="oficio-preview-content-box"
                   style={{
                     position: "absolute",
                     inset: 0,
