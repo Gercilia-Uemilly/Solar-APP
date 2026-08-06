@@ -1,3 +1,4 @@
+import PreviewProbe from "./pages/__PreviewProbe";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -112,6 +113,7 @@ const AppRoutes = () => {
         <Route path="/auth/google/callback" element={<GoogleDriveCallback />} />
         <Route path="/privacidade" element={<PoliticaPrivacidade />} />
         <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route path="/__preview-probe" element={<PreviewProbe />} />
         <Route path="/oficios" element={<ProtectedRoute><AppLayout><Oficios /></AppLayout></ProtectedRoute>} />
         <Route path="/meus-oficios" element={<ProtectedRoute><AppLayout><MeusOficios /></AppLayout></ProtectedRoute>} />
         <Route path="/respostas" element={<ProtectedRoute><AppLayout><Respostas /></AppLayout></ProtectedRoute>} />
