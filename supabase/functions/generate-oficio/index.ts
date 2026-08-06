@@ -296,7 +296,11 @@ Obrigatório nos §1, §2, §3 e §4 para destacar: tipo de serviço, rua/local,
 Apenas tags <p> e <strong>. Sem style inline, sem <b>, sem <div>, sem listas. Cada parágrafo é um <p>.
 
 ═══ ASSUNTO ═══
-Resumido e objetivo. Prioridade: tipo de ação > rua > bairro. O bairro é OBRIGATÓRIO no assunto. NUNCA incluir endereço completo no assunto.
+Resumido e objetivo. Prioridade: tipo de ação > rua > bairro. Inclua o bairro APENAS se ele tiver sido informado. NUNCA incluir endereço completo no assunto.
+PROIBIDO escrever "Bairro não informado", "bairro a definir", "[BAIRRO]" ou qualquer marcador equivalente — no assunto OU no corpo. Se o bairro não foi informado, simplesmente OMITA a menção ao bairro em todo o documento.
+
+═══ FIDELIDADE ÀS INFORMAÇÕES RECEBIDAS ═══
+Todas as informações concretas presentes no CONTEÚDO RECEBIDO (locais, datas, números, nomes, pedidos, queixas) DEVEM aparecer no ofício. É PROIBIDO descartar a informação principal do relato para deixar o texto mais curto ou mais elegante. Antes de finalizar, confira mentalmente item por item do conteúdo recebido e garanta que nenhum foi omitido.
 
 ═══ TRATAMENTO DE ENTRADAS RUINS ═══
 Se a entrada for curta, confusa, coloquial ou em formato de comando: interpretar a intenção, completar de forma coerente e reescrever em linguagem institucional formal. Nunca reproduzir texto original como está.
@@ -309,8 +313,8 @@ VOCATIVO: ${vocativo}
 ÓRGÃO: ${nomeOrgao}
 DESTINATÁRIO: ${destinatario || "A identificar"}
 CONTEÚDO RECEBIDO (texto institucional ou comando do operador): ${descricaoLimpa}
-BAIRRO: ${bairro || "Não informado"}
-ENDEREÇO/LOCAL: ${local || "Não informado"}
+${bairro ? `BAIRRO: ${bairro}` : `BAIRRO: não informado — NÃO citar bairro em lugar nenhum, NÃO escrever "Bairro não informado"`}
+${local ? `ENDEREÇO/LOCAL: ${local}` : `ENDEREÇO/LOCAL: não informado — NÃO inventar endereço`}
 ${numeroLogradouro ? `NÚMERO DO LOGRADOURO (OBRIGATÓRIO usar EXATAMENTE este valor no §1, no formato "nº ${numeroLogradouro}"): ${numeroLogradouro}` : "NÚMERO DO LOGRADOURO: não informado — NÃO inventar"}
 PRIORIDADE: ${prioridade || "Normal"}
 ASSUNTO: ${assunto || "Gerar automaticamente"}

@@ -53,6 +53,9 @@ const MARGIN_LEFT = 113;
 const MARGIN_RIGHT = 76;
 const CONTENT_H = PAGE_H_PX - MARGIN_TOP - MARGIN_BOT;
 const CONTENT_W = PAGE_W_PX - MARGIN_LEFT - MARGIN_RIGHT;
+// Folga de segurança: evita que arredondamentos de medição joguem a última
+// linha do parágrafo para baixo da margem inferior na prévia.
+const PAGE_SAFETY_PX = 18;
 
 function ImageGrid({ urls }: { urls: string[] }) {
   const count = urls.length;
@@ -462,23 +465,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       </>
     );
 
-    useEffect(() => {
-      // If this conteudo change came from the editor (user typing), skip re-pagination
-      // to prevent the loop: edit → onContentChange → conteudo prop changes → re-paginate → setContent → duplicate
-      if (editorOriginatedChangeRef.current && conteudo === lastConteudoForPaginationRef.current) {
-        editorOriginatedChangeRef.current = false;
-        return;
-      }
-      editorOriginatedChangeRef.current = false;
-      lastConteudoForPaginationRef.current = conteudo;
-
+    const paginateHtml = useCallback((fullHtml: string) => {
       const measureRoot = measureBodyRef.current;
       const firstChrome = measureFirstChromeRef.current;
       const continuationChrome = measureContinuationChromeRef.current;
       const ending = measureEndingRef.current;
       if (!measureRoot || !firstChrome || !continuationChrome || !ending) return;
 
-      const fullHtml = buildEditorContent(conteudo);
       const blocks = splitHtmlIntoBlocks(fullHtml);
       const cache = new Map<string, number>();
 
@@ -494,8 +487,22 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         return height;
       };
 
-      const firstCap = Math.max(120, CONTENT_H - firstChrome.offsetHeight);
-      const continuationCap = Math.max(120, CONTENT_H - continuationChrome.offsetHeight);
+      // A barra de ferramentas do editor ocupa espaço REAL dentro da 1ª página.
+      // Sem descontar isso, o texto ultrapassava a margem inferior na prévia.
+      let toolbarHeight = 0;
+      if (editable) {
+        const editorEl = document.querySelector<HTMLElement>(
+          ".oficio-preview-page-body .tiptap-oficio-editor"
+        );
+        const wrapper = editorEl?.parentElement;
+        const maybeToolbar = wrapper?.firstElementChild as HTMLElement | undefined;
+        if (maybeToolbar && !maybeToolbar.classList.contains("tiptap-oficio-editor")) {
+          toolbarHeight = maybeToolbar.offsetHeight || 0;
+        }
+      }
+
+      const firstCap = Math.max(120, CONTENT_H - firstChrome.offsetHeight - toolbarHeight - PAGE_SAFETY_PX);
+      const continuationCap = Math.max(120, CONTENT_H - continuationChrome.offsetHeight - PAGE_SAFETY_PX);
       const endingHeight = ending.offsetHeight;
 
       const nextPages: string[][] = [[]];
@@ -550,7 +557,29 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         }
         return resolvedPages;
       });
-    }, [conteudo, buildEditorContent, effectiveFontSize, effectiveLineSpacing, fmt.fontFamily, localData, localNumero, localDestinatario, localAssunto, fechamento]);
+    }, [editable, effectiveFontSize, effectiveLineSpacing, fmt.fontFamily]);
+
+    useEffect(() => {
+      // If this conteudo change came from the editor (user typing), skip re-pagination
+      // to prevent the loop: edit → onContentChange → conteudo prop changes → re-paginate → setContent → duplicate
+      if (editorOriginatedChangeRef.current && conteudo === lastConteudoForPaginationRef.current) {
+        editorOriginatedChangeRef.current = false;
+        return;
+      }
+      editorOriginatedChangeRef.current = false;
+      lastConteudoForPaginationRef.current = conteudo;
+
+      paginateHtml(buildEditorContent(conteudo));
+    }, [conteudo, buildEditorContent, paginateHtml, localData, localNumero, localDestinatario, localAssunto, fechamento]);
+
+    // Reflow: após o usuário editar, reavalia se o texto ainda cabe na página
+    // (evita parágrafo cortado abaixo da margem inferior).
+    useEffect(() => {
+      const timer = window.setTimeout(() => {
+        paginateHtml(bodyPageSegments.join(""));
+      }, 700);
+      return () => window.clearTimeout(timer);
+    }, [bodyPageSegments, paginateHtml]);
 
     const handlePageContentChange = useCallback((pageIndex: number, newPageHtml: string) => {
       setBodyPageSegments((prev) => {
