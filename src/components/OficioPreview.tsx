@@ -487,6 +487,71 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         return height;
       };
 
+      // Divide parágrafos longos no ponto exato que cabe na página. Antes, cada
+      // <p> era tratado como um bloco indivisível; por isso um parágrafo alto
+      // ficava escondido pelo overflow da folha em vez de continuar na próxima.
+      const splitBlockToFit = (html: string, maxHeight: number): [string, string] | null => {
+        const source = document.createElement("div");
+        source.innerHTML = html;
+        const block = source.firstElementChild as HTMLElement | null;
+        if (!block || !["P", "DIV", "BLOCKQUOTE"].includes(block.tagName)) return null;
+
+        const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+        const textNodes: Text[] = [];
+        let totalLength = 0;
+        let current = walker.nextNode();
+        while (current) {
+          const textNode = current as Text;
+          textNodes.push(textNode);
+          totalLength += textNode.data.length;
+          current = walker.nextNode();
+        }
+        if (totalLength < 2) return null;
+
+        const pointAt = (absoluteOffset: number) => {
+          let traversed = 0;
+          for (const node of textNodes) {
+            const next = traversed + node.data.length;
+            if (absoluteOffset <= next) return { node, offset: absoluteOffset - traversed };
+            traversed = next;
+          }
+          const last = textNodes[textNodes.length - 1];
+          return { node: last, offset: last.data.length };
+        };
+
+        const sliceBlock = (start: number, end: number) => {
+          const range = document.createRange();
+          const startPoint = pointAt(start);
+          const endPoint = pointAt(end);
+          range.setStart(startPoint.node, startPoint.offset);
+          range.setEnd(endPoint.node, endPoint.offset);
+          const clone = block.cloneNode(false) as HTMLElement;
+          clone.appendChild(range.cloneContents());
+          return clone.outerHTML;
+        };
+
+        const plainText = block.textContent || "";
+        let low = 1;
+        let high = totalLength - 1;
+        let best = 0;
+        while (low <= high) {
+          const middle = Math.floor((low + high) / 2);
+          const candidate = sliceBlock(0, middle);
+          if (measureBlockHeight(candidate) <= maxHeight) {
+            best = middle;
+            low = middle + 1;
+          } else {
+            high = middle - 1;
+          }
+        }
+
+        if (best <= 0 || best >= totalLength) return null;
+        const priorWhitespace = plainText.lastIndexOf(" ", best);
+        const splitAt = priorWhitespace > Math.max(0, best - 80) ? priorWhitespace + 1 : best;
+        if (splitAt <= 0 || splitAt >= totalLength) return null;
+        return [sliceBlock(0, splitAt), sliceBlock(splitAt, totalLength)];
+      };
+
       // A barra de ferramentas do editor ocupa espaço REAL dentro da 1ª página.
       // Sem descontar isso, o texto ultrapassava a margem inferior na prévia.
       let toolbarHeight = 0;
@@ -507,20 +572,49 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
       const nextPages: string[][] = [[]];
       const usedHeights: number[] = [0];
+      const pendingBlocks = [...blocks];
 
-      blocks.forEach((block) => {
+      while (pendingBlocks.length > 0) {
+        const block = pendingBlocks.shift();
+        if (!block) continue;
         const blockHeight = measureBlockHeight(block);
         const currentIndex = nextPages.length - 1;
         const currentCap = currentIndex === 0 ? firstCap : continuationCap;
+        const availableHeight = currentCap - usedHeights[currentIndex];
 
-        if (nextPages[currentIndex].length > 0 && usedHeights[currentIndex] + blockHeight > currentCap) {
-          nextPages.push([block]);
-          usedHeights.push(blockHeight);
+        if (blockHeight <= availableHeight) {
+          nextPages[currentIndex].push(block);
+          usedHeights[currentIndex] += blockHeight;
+          continue;
+        }
+
+        if (nextPages[currentIndex].length > 0) {
+          nextPages.push([]);
+          usedHeights.push(0);
+          pendingBlocks.unshift(block);
+          continue;
+        }
+
+        const split = splitBlockToFit(block, currentCap);
+        if (split) {
+          const [fittingPart, remainder] = split;
+          nextPages[currentIndex].push(fittingPart);
+          usedHeights[currentIndex] = measureBlockHeight(fittingPart);
+          nextPages.push([]);
+          usedHeights.push(0);
+          pendingBlocks.unshift(remainder);
         } else {
+          // Elementos indivisíveis (imagem/tabela) permanecem juntos.
           nextPages[currentIndex].push(block);
           usedHeights[currentIndex] += blockHeight;
         }
-      });
+      }
+
+      // Remove a página vazia criada após a última divisão exata.
+      if (nextPages.length > 1 && nextPages[nextPages.length - 1].length === 0) {
+        nextPages.pop();
+        usedHeights.pop();
+      }
 
       let lastIndex = nextPages.length - 1;
       while (usedHeights[lastIndex] + endingHeight > (lastIndex === 0 ? firstCap : continuationCap) && nextPages[lastIndex].length > 0) {
