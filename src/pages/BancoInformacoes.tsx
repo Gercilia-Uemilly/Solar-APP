@@ -1,3 +1,4 @@
+import { CardGridSkeleton, ListSkeleton } from "@/components/ui/skeletons";
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Copy, Share2, Calendar, Tag, Globe, Headphones, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Info, Smartphone, Monitor, Plus, Pencil, MessageSquareText, Eye, Check, X } from "lucide-react";
 import ScriptsExplorer from "@/components/ScriptsExplorer";
@@ -1149,8 +1150,8 @@ export default function BancoInformacoes() {
 
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {loading ? (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                <Loader2 size={32} className="mx-auto mb-3 animate-spin opacity-40" /><p>Carregando...</p>
+              <div className="col-span-full">
+                <CardGridSkeleton items={6} />
               </div>
             ) : filtered.length === 0 ? (
               <div className="col-span-full text-center py-12 text-muted-foreground">
@@ -1337,9 +1338,8 @@ export default function BancoInformacoes() {
           <div className="space-y-3">
             {audioLoading ? (
               <Card>
-                <CardContent className="text-center py-12 text-muted-foreground">
-                  <Loader2 size={32} className="mx-auto mb-3 animate-spin opacity-40" />
-                  <p>Carregando áudios...</p>
+                <CardContent className="py-6">
+                  <ListSkeleton items={4} />
                 </CardContent>
               </Card>
             ) : audioEntries.length === 0 ? (

@@ -1,3 +1,4 @@
+import { ListSkeleton } from "@/components/ui/skeletons";
 import { useState, useCallback, useEffect } from "react";
 import {
   Heart, Copy, Sparkles, Loader2, Send, RefreshCw, Check,
@@ -643,8 +644,8 @@ export default function Respostas() {
           </div>
 
           {loadingHistorico ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
-              <Loader2 size={16} className="animate-spin" /> Carregando...
+            <div className="py-6">
+              <ListSkeleton items={6} />
             </div>
           ) : filteredHistorico.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

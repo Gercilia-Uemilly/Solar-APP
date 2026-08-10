@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.tsx", "src/App.tsx", "e2e/**/*.spec.ts", "src/**/*.test.{ts,tsx}"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": [
+    "src/components/ui/**",
+    "src/integrations/supabase/types.ts",
+    "supabase/functions/**"
+  ],
+  "ignoreDependencies": ["tailwindcss-animate", "@tailwindcss/typography", "autoprefixer", "postcss"],
+  "ignoreBinaries": ["stryker", "depcruise"]
+}

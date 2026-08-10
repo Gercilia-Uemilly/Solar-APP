@@ -387,3 +387,45 @@ body {
     grid-template-columns: repeat(4, 1fr) !important;
   }
 }
+
+/* ===== Motion layer (design-motion-principles) =====
+   Durações curtas para UI de produtividade; nada decorativo.
+   Fonte única de verdade das animações do sistema. */
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 260ms;
+  --motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Transição de conteúdo entre rotas: entrada discreta, sem deslocamento grande */
+.page-enter {
+  animation: page-enter var(--motion-base) var(--motion-ease) both;
+}
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ===== Acessibilidade: prefers-reduced-motion =====
+   Desliga movimento e mantém apenas mudanças de opacidade instantâneas. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Spinners e pulsos viram estado estático legível */
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
+  .animate-pulse {
+    opacity: 0.6;
+  }
+}

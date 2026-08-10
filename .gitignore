@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Ferramentas de qualidade
+coverage/
+reports/
+.stryker-tmp/
+playwright-report/
+test-results/
+motion-audits/
