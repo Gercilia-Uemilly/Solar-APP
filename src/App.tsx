@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useGlobalSync } from "@/hooks/useGlobalSync";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { ReactNode, lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import { PageSkeleton } from "@/components/ui/skeletons";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -58,11 +58,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <Loader2 className="animate-spin text-primary" size={32} />
-  </div>
-);
+const PageLoader = () => <PageSkeleton />;
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading, profileStatus } = useAuth();
@@ -103,7 +99,7 @@ const AppRoutes = () => {
   useSessionTimeout(!!user);
 
   return (
-    <Suspense fallback={<PageLoader />}>
+    <Suspense fallback={<PageSkeleton />}>
       <Routes>
         <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
         <Route path="/aguardando-aprovacao" element={<WaitingRoute><AguardandoAprovacao /></WaitingRoute>} />
