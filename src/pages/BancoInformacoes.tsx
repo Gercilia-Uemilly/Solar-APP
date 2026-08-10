@@ -1,3 +1,4 @@
+import { CardGridSkeleton, ListSkeleton } from "@/components/ui/skeletons";
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Search, Download, Trash2, RefreshCw, Loader2, ExternalLink, MapPin, Landmark, Clock, Sparkles, MessageSquare, AlertTriangle, Filter, Star, StarOff, FileText, FileSpreadsheet, Copy, Share2, Calendar, Tag, Globe, Headphones, ImageIcon, UploadCloud, Rss, Instagram as InstagramIcon, Library, Info, Smartphone, Monitor, Plus, Pencil, MessageSquareText, Eye, Check, X } from "lucide-react";
 import ScriptsExplorer from "@/components/ScriptsExplorer";
