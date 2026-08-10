@@ -533,67 +533,52 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           return clone.outerHTML;
         };
 
+        // Fonte de verdade ÚNICA: altura REAL medida no container oculto com as
+        // mesmas dimensões da folha exportada (A4, mesma fonte/tamanho/entrelinha
+        // e mesma largura útil). Nada de heurística de frases/palavras — o corte
+        // acontece exatamente no último limite de palavra cuja altura medida
+        // ainda cabe na altura útil da página.
         const plainText = block.textContent || "";
-        let low = 1;
-        let high = totalLength - 1;
-        let best = 0;
-        while (low <= high) {
-          const middle = Math.floor((low + high) / 2);
-          const candidate = sliceBlock(0, middle);
-          if (measureBlockHeight(candidate) <= maxHeight) {
-            best = middle;
-            low = middle + 1;
-          } else {
-            high = middle - 1;
-          }
+
+        // Limites de quebra permitidos = início de cada palavra (como o Word faz).
+        const boundaries: number[] = [];
+        for (let i = 1; i < totalLength; i++) {
+          if (/\s/.test(plainText[i - 1]) && !/\s/.test(plainText[i])) boundaries.push(i);
         }
 
-        if (best <= 0 || best >= totalLength) return null;
-        const priorWhitespace = plainText.lastIndexOf(" ", best);
-        let splitAt = priorWhitespace > Math.max(0, best - 80) ? priorWhitespace + 1 : best;
+        const fits = (offset: number) => measureBlockHeight(sliceBlock(0, offset)) <= maxHeight;
 
-        // Regra geral para QUALQUER texto grande: preferir quebrar no fim de uma
-        // frase (. ! ? ; :) quando houver uma perto do limite da página. Assim a
-        // continuação na próxima folha começa em um ponto natural de leitura,
-        // e nunca no meio de uma expressão.
-        const sentenceWindow = Math.max(160, Math.floor(splitAt * 0.28));
-        let sentenceEnd = -1;
-        for (const mark of [". ", "! ", "? ", "; ", ": "]) {
-          const idx = plainText.lastIndexOf(mark, Math.max(0, splitAt - 1));
-          if (idx > sentenceEnd) sentenceEnd = idx + mark.length > splitAt ? sentenceEnd : idx + mark.length;
-        }
-        if (sentenceEnd > 0 && splitAt - sentenceEnd <= sentenceWindow) {
-          splitAt = sentenceEnd;
-        }
-
-        // Nunca quebrar no meio de conectivos ("Diante disso", "Por fim"...).
-        // Se o corte cair dentro de uma dessas expressões, recua para antes dela.
-        const CONECTIVOS = [
-          "Diante disso", "Diante do exposto", "Por fim", "Por isso", "Dessa forma",
-          "Desta forma", "Sendo assim", "Isto posto", "Ante o exposto", "Assim sendo",
-          "Nesse sentido", "Neste sentido", "Portanto", "Além disso", "Dessa maneira",
-        ];
-        for (const termo of CONECTIVOS) {
-          const lowerText = plainText.toLowerCase();
-          const lowerTermo = termo.toLowerCase();
-          let from = 0;
-          for (;;) {
-            const idx = lowerText.indexOf(lowerTermo, from);
-            if (idx === -1) break;
-            const end = idx + lowerTermo.length;
-            if (splitAt > idx && splitAt < end) {
-              splitAt = idx;
+        let splitAt = 0;
+        if (boundaries.length > 0) {
+          let low = 0;
+          let high = boundaries.length - 1;
+          while (low <= high) {
+            const middle = Math.floor((low + high) / 2);
+            if (fits(boundaries[middle])) {
+              splitAt = boundaries[middle];
+              low = middle + 1;
+            } else {
+              high = middle - 1;
             }
-            from = end;
           }
         }
-        // Evita deixar o conectivo órfão no fim da página: se sobrou apenas ele,
-        // recua para o fim da frase anterior.
-        const tail = plainText.slice(0, splitAt).trimEnd();
-        if (CONECTIVOS.some((t) => tail.toLowerCase().endsWith(t.toLowerCase()))) {
-          const prevSentence = plainText.lastIndexOf(". ", Math.max(0, splitAt - 1));
-          if (prevSentence > 0) splitAt = prevSentence + 2;
+
+        // Sem nenhum limite de palavra que caiba (palavra única gigante):
+        // corta no caractere exato medido.
+        if (splitAt <= 0) {
+          let low = 1;
+          let high = totalLength - 1;
+          while (low <= high) {
+            const middle = Math.floor((low + high) / 2);
+            if (fits(middle)) {
+              splitAt = middle;
+              low = middle + 1;
+            } else {
+              high = middle - 1;
+            }
+          }
         }
+
         if (splitAt <= 0 || splitAt >= totalLength) return null;
         return [sliceBlock(0, splitAt), sliceBlock(splitAt, totalLength)];
       };
