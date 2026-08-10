@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, TicketCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { reportError } from "@/lib/observability";
 
 interface Props {
   children: ReactNode;
@@ -20,6 +21,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Solar Error Boundary:", error, info.componentStack);
+    reportError(error, { componentStack: info.componentStack });
     this.logRemoto(error, info);
   }
 
