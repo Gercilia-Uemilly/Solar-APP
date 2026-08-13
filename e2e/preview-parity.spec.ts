@@ -48,10 +48,15 @@ async function margensDoPdf(bytes: Uint8Array) {
     let minY = Infinity;
     let maxY = -Infinity;
 
+    // Ignora as faixas de cabeçalho/rodapé do Word (logos e número da página):
+    // elas vivem na margem e não fazem parte da caixa útil comparada.
+    const FAIXA_CHROME = 60;
+
     for (const item of content.items as Array<any>) {
       if (!item.str || !item.str.trim()) continue;
       const x = item.transform[4];
       const y = item.transform[5];
+      if (y < FAIXA_CHROME || y > height - FAIXA_CHROME) continue;
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x + (item.width || 0));
       minY = Math.min(minY, y);
@@ -136,10 +141,18 @@ test.describe("paridade preview x PDF", () => {
             falhas.push(`Ofício ${oficio.numero} pág. ${index + 1}: margem ${nome} difere ${delta.toFixed(1)}pt`);
           }
         };
-        comparar("topo", preview[index].top, pdfPage.top);
         comparar("esquerda", preview[index].left, pdfPage.left);
         comparar("direita", preview[index].right, pdfPage.right);
-        comparar("rodapé", preview[index].bottom, pdfPage.bottom);
+        comparar("topo", preview[index].top, pdfPage.top);
+
+        // O rodapé é uma margem mínima: o texto do PDF nunca pode descer abaixo
+        // da margem reservada no preview (o inverso — página que termina antes —
+        // é legítimo na última folha).
+        const rodapePreviewPt = preview[index].bottom * PT_PER_PX;
+        relatorio.push(`  pág.${index + 1} rodapé: preview ${rodapePreviewPt.toFixed(1)}pt x pdf ${pdfPage.bottom.toFixed(1)}pt`);
+        if (pdfPage.bottom < rodapePreviewPt - TOLERANCIA_PT) {
+          falhas.push(`Ofício ${oficio.numero} pág. ${index + 1}: texto do PDF invade a margem inferior (${pdfPage.bottom.toFixed(1)}pt < ${rodapePreviewPt.toFixed(1)}pt)`);
+        }
       });
     }
 
