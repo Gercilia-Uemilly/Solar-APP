@@ -109,7 +109,8 @@ test.describe("paridade preview x PDF", () => {
 
       const base64 = await page.evaluate(async () => window.__parity!.buildPdfBase64());
       const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-      writeFileSync(`reports/parity/oficio-${oficio.numero || oficio.id}.pdf`, bytes);
+      const slug = String(oficio.numero || oficio.id).replace(/[^a-zA-Z0-9-]+/g, "-");
+      writeFileSync(`reports/parity/oficio-${slug}.pdf`, bytes);
 
       const pdfDoc = await PDFDocument.load(bytes);
       const paginasPdf = pdfDoc.getPageCount();
