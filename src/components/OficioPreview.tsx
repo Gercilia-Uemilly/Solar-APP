@@ -696,6 +696,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       paginateHtml(buildEditorContent(conteudo));
     }, [conteudo, buildEditorContent, paginateHtml, localData, localNumero, localDestinatario, localAssunto, fechamento]);
 
+    // Ao trocar de ofício ou de formatação, a folga volta ao padrão. Sem isso a
+    // reserva acumulada de um documento anterior continuava encurtando as
+    // páginas do próximo.
+    useEffect(() => {
+      setPaginationSafety(PAGE_SAFETY_PX);
+    }, [conteudo, effectiveFontSize, effectiveLineSpacing]);
+
     // Reflow: após o usuário editar, reavalia se o texto ainda cabe na página
     // (evita parágrafo cortado abaixo da margem inferior).
     useEffect(() => {
