@@ -13,6 +13,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const DevParityAudit = lazy(() => import("./pages/DevParityAudit"));
 const AppLayout = lazy(() => import("./components/AppLayout"));
 const Oficios = lazy(() => import("./pages/Oficios"));
 const MeusOficios = lazy(() => import("./pages/MeusOficios"));
@@ -125,6 +126,9 @@ const AppRoutes = () => {
         <Route path="/instalar" element={<ProtectedRoute><AppLayout><InstalarApp /></AppLayout></ProtectedRoute>} />
         <Route path="/lixeira" element={<ProtectedRoute><AppLayout><Lixeira /></AppLayout></ProtectedRoute>} />
         <Route path="/backups" element={<AdminRoute><AppLayout><Backups /></AppLayout></AdminRoute>} />
+        {import.meta.env.DEV && (
+          <Route path="/dev/parity" element={<ProtectedRoute><DevParityAudit /></ProtectedRoute>} />
+        )}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
