@@ -126,6 +126,9 @@ const AppRoutes = () => {
         <Route path="/instalar" element={<ProtectedRoute><AppLayout><InstalarApp /></AppLayout></ProtectedRoute>} />
         <Route path="/lixeira" element={<ProtectedRoute><AppLayout><Lixeira /></AppLayout></ProtectedRoute>} />
         <Route path="/backups" element={<AdminRoute><AppLayout><Backups /></AppLayout></AdminRoute>} />
+        {import.meta.env.DEV && (
+          <Route path="/dev/parity" element={<ProtectedRoute><DevParityAudit /></ProtectedRoute>} />
+        )}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
