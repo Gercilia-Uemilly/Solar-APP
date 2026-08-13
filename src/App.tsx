@@ -13,6 +13,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const DevParityAudit = lazy(() => import("./pages/DevParityAudit"));
 const AppLayout = lazy(() => import("./components/AppLayout"));
 const Oficios = lazy(() => import("./pages/Oficios"));
 const MeusOficios = lazy(() => import("./pages/MeusOficios"));
