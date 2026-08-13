@@ -777,7 +777,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           }
         `}</style>
 
-        <div aria-hidden style={{ position: "absolute", left: "-99999px", top: 0, visibility: "hidden", pointerEvents: "none", width: `${CONTENT_W}px`, fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`, fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing), color: "#000" }}>
+        <div ref={measureShellRef} aria-hidden style={{ position: "absolute", left: "-99999px", top: 0, visibility: "hidden", pointerEvents: "none", width: `${CONTENT_W}px`, fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`, fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing), color: "#000" }}>
           <div ref={measureFirstChromeRef}>{renderFirstPageIntro()}</div>
           <div ref={measureContinuationChromeRef}>{renderContinuationChrome()}</div>
           <div ref={measureBodyRef} className="oficio-preview-measure" />
