@@ -716,7 +716,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         largestOverflow = Math.max(largestOverflow, page.scrollHeight - page.clientHeight);
       });
       if (largestOverflow > 1) {
-        setPaginationSafety((current) => Math.min(220, current + Math.ceil(largestOverflow) + 12));
+        // Cresce apenas o necessário e com teto baixo: uma folga grande demais
+        // encurta TODAS as páginas e cria o espaço em branco que não existe na
+        // exportação.
+        setPaginationSafety((current) => Math.min(72, current + Math.ceil(largestOverflow) + 4));
       }
     }, [bodyPageSegments, effectiveFontSize, effectiveLineSpacing, localData, localNumero, localDestinatario, localAssunto, fechamento]);
 
