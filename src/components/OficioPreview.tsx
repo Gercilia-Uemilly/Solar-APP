@@ -184,6 +184,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const measureBodyRef = useRef<HTMLDivElement>(null);
     const measureFirstChromeRef = useRef<HTMLDivElement>(null);
+    const measureShellRef = useRef<HTMLDivElement>(null);
     const measureContinuationChromeRef = useRef<HTMLDivElement>(null);
     const measureEndingRef = useRef<HTMLDivElement>(null);
 
