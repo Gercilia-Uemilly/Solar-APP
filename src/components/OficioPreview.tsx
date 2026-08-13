@@ -478,6 +478,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       const ending = measureEndingRef.current;
       if (!measureRoot || !firstChrome || !continuationChrome || !ending) return;
 
+      // A régua oculta precisa ter EXATAMENTE a largura útil do corpo renderizado
+      // na folha (o editor TipTap tem paddings próprios). Quando as larguras
+      // divergem, o texto real fica mais alto que o medido, o preview transborda
+      // e a folga de segurança cresce em todas as páginas — foi o que gerava o
+      // corte do rodapé em uns ofícios e o espaço em branco enorme em outros.
+      const realBody = document.querySelector<HTMLElement>(".oficio-preview-page-body");
+      const realWidth = realBody?.clientWidth || 0;
+      if (measureShellRef.current && realWidth > 100) {
+        measureShellRef.current.style.width = `${realWidth}px`;
+      }
+
       const blocks = splitHtmlIntoBlocks(fullHtml);
       const cache = new Map<string, number>();
 
