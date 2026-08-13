@@ -184,6 +184,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const measureBodyRef = useRef<HTMLDivElement>(null);
     const measureFirstChromeRef = useRef<HTMLDivElement>(null);
+    const measureShellRef = useRef<HTMLDivElement>(null);
     const measureContinuationChromeRef = useRef<HTMLDivElement>(null);
     const measureEndingRef = useRef<HTMLDivElement>(null);
 
@@ -477,6 +478,17 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       const ending = measureEndingRef.current;
       if (!measureRoot || !firstChrome || !continuationChrome || !ending) return;
 
+      // A régua oculta precisa ter EXATAMENTE a largura útil do corpo renderizado
+      // na folha (o editor TipTap tem paddings próprios). Quando as larguras
+      // divergem, o texto real fica mais alto que o medido, o preview transborda
+      // e a folga de segurança cresce em todas as páginas — foi o que gerava o
+      // corte do rodapé em uns ofícios e o espaço em branco enorme em outros.
+      const realBody = document.querySelector<HTMLElement>(".oficio-preview-page-body");
+      const realWidth = realBody?.clientWidth || 0;
+      if (measureShellRef.current && realWidth > 100) {
+        measureShellRef.current.style.width = `${realWidth}px`;
+      }
+
       const blocks = splitHtmlIntoBlocks(fullHtml);
       const cache = new Map<string, number>();
 
@@ -684,6 +696,13 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       paginateHtml(buildEditorContent(conteudo));
     }, [conteudo, buildEditorContent, paginateHtml, localData, localNumero, localDestinatario, localAssunto, fechamento]);
 
+    // Ao trocar de ofício ou de formatação, a folga volta ao padrão. Sem isso a
+    // reserva acumulada de um documento anterior continuava encurtando as
+    // páginas do próximo.
+    useEffect(() => {
+      setPaginationSafety(PAGE_SAFETY_PX);
+    }, [conteudo, effectiveFontSize, effectiveLineSpacing]);
+
     // Reflow: após o usuário editar, reavalia se o texto ainda cabe na página
     // (evita parágrafo cortado abaixo da margem inferior).
     useEffect(() => {
@@ -704,7 +723,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         largestOverflow = Math.max(largestOverflow, page.scrollHeight - page.clientHeight);
       });
       if (largestOverflow > 1) {
-        setPaginationSafety((current) => Math.min(220, current + Math.ceil(largestOverflow) + 12));
+        // Cresce apenas o necessário e com teto baixo: uma folga grande demais
+        // encurta TODAS as páginas e cria o espaço em branco que não existe na
+        // exportação.
+        setPaginationSafety((current) => Math.min(72, current + Math.ceil(largestOverflow) + 4));
       }
     }, [bodyPageSegments, effectiveFontSize, effectiveLineSpacing, localData, localNumero, localDestinatario, localAssunto, fechamento]);
 
@@ -755,7 +777,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
           }
         `}</style>
 
-        <div aria-hidden style={{ position: "absolute", left: "-99999px", top: 0, visibility: "hidden", pointerEvents: "none", width: `${CONTENT_W}px`, fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`, fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing), color: "#000" }}>
+        <div ref={measureShellRef} aria-hidden style={{ position: "absolute", left: "-99999px", top: 0, visibility: "hidden", pointerEvents: "none", width: `${CONTENT_W}px`, fontFamily: `${fmt.fontFamily}, Arial, Helvetica, sans-serif`, fontSize: `${effectiveFontSize}pt`, lineHeight: String(effectiveLineSpacing), color: "#000" }}>
           <div ref={measureFirstChromeRef}>{renderFirstPageIntro()}</div>
           <div ref={measureContinuationChromeRef}>{renderContinuationChrome()}</div>
           <div ref={measureBodyRef} className="oficio-preview-measure" />
