@@ -333,7 +333,6 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
 
     const renderFirstPageIntro = () => (
       <>
-        {renderHeader()}
         {!editable || !onDataChange ? (
           <p style={{ textAlign: "right", marginBottom: "24px", marginTop: "10px", fontSize: "11pt", lineHeight: "1.5" }}>{localData}</p>
         ) : (
@@ -429,7 +428,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       </>
     );
 
-    const renderContinuationChrome = () => renderHeader();
+    // O cabeçalho do Word/PDF pertence à margem superior da seção e não reduz a
+    // altura útil do corpo. Mantê-lo dentro do fluxo do preview fazia cada
+    // continuação começar cerca de 70px abaixo da posição real da exportação.
+    const renderContinuationChrome = () => null;
 
     const renderEnding = (readOnly = false) => (
       <>
@@ -647,30 +649,15 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         usedHeights.pop();
       }
 
-      let lastIndex = nextPages.length - 1;
-      while (usedHeights[lastIndex] + endingHeight > (lastIndex === 0 ? firstCap : continuationCap) && nextPages[lastIndex].length > 0) {
-        const overflowBlocks: string[] = [];
-        let overflowHeight = 0;
-
-        while (usedHeights[lastIndex] + endingHeight > (lastIndex === 0 ? firstCap : continuationCap) && nextPages[lastIndex].length > 1) {
-          const moved = nextPages[lastIndex].pop();
-          if (!moved) break;
-          const movedHeight = measureBlockHeight(moved);
-          overflowBlocks.unshift(moved);
-          overflowHeight += movedHeight;
-          usedHeights[lastIndex] -= movedHeight;
-        }
-
-        if (overflowBlocks.length === 0) {
-          nextPages.push([]);
-          usedHeights.push(0);
-          lastIndex = nextPages.length - 1;
-          break;
-        }
-
-        nextPages.push(overflowBlocks);
-        usedHeights.push(overflowHeight);
-        lastIndex = nextPages.length - 1;
+      const lastIndex = nextPages.length - 1;
+      const lastCap = lastIndex === 0 ? firstCap : continuationCap;
+      if (usedHeights[lastIndex] + endingHeight > lastCap) {
+        // Na exportação, "Atenciosamente" e a assinatura usam keepNext/keepLines:
+        // quando não cabem, somente o bloco de encerramento vai para a próxima
+        // página. Antes o preview retirava parágrafos inteiros já acomodados,
+        // deixando um grande espaço em branco que não existia no PDF/Word.
+        nextPages.push([]);
+        usedHeights.push(0);
       }
 
       const normalizedPages = nextPages.map((page) => page.join(""));
@@ -802,6 +789,10 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
               >
                 <div style={{ position: "absolute", top: "40px", right: "40px", fontSize: "9pt", color: "#000", fontFamily: "Arial, sans-serif", zIndex: 3 }}>
                   {pageIdx + 1}
+                </div>
+
+                <div style={{ position: "absolute", top: "34px", left: `${MARGIN_LEFT}px`, right: `${MARGIN_RIGHT}px`, zIndex: 2 }}>
+                  {renderHeader()}
                 </div>
 
                 <div
