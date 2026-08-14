@@ -6,6 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buscarContatoPorTelefone, normalizePhoneBR as normalizePhonePlanilha } from "../_shared/zapReqContatos.ts";
+import { enviarWhatsApp, whatsappProviderConfigurado } from "../_shared/whatsappSender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,20 +24,6 @@ function normalizePhoneBR(raw: string | null | undefined): string {
   if (!d) return "";
   if (d.length >= 10 && d.length <= 11 && !d.startsWith("55")) d = "55" + d;
   return d.length >= 12 ? d : "";
-}
-
-function resolveZapiSendUrl(instance?: string | null, token?: string | null) {
-  const inst = (instance || "").trim();
-  const tok = (token || "").trim();
-  if (!inst || !tok) return "";
-  if (/^https?:\/\//i.test(inst)) {
-    try {
-      const u = new URL(inst);
-      const m = u.pathname.match(/\/instances\/([^/]+)\/token\/([^/]+)/i);
-      if (m) return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
-    } catch { /* */ }
-  }
-  return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
 }
 
 function htmlToPlainText(html: string): string {
