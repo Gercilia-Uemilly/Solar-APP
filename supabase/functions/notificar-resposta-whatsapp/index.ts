@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buscarTelefonePorOrigemCodigo } from "../_shared/zapReqContatos.ts";
+import { enviarWhatsApp, whatsappProviderConfigurado } from "../_shared/whatsappSender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,20 +14,6 @@ function normalizePhone(raw: string): string | null {
   if (!d) return null;
   if (d.length >= 10 && d.length <= 11 && !d.startsWith("55")) d = "55" + d;
   return d.length >= 12 ? d : null;
-}
-
-function resolveZapiSendUrl(instance?: string | null, token?: string | null) {
-  const inst = (instance || "").trim();
-  const tok = (token || "").trim();
-  if (!inst || !tok) return "";
-  if (/^https?:\/\//i.test(inst)) {
-    try {
-      const u = new URL(inst);
-      const m = u.pathname.match(/\/instances\/([^/]+)\/token\/([^/]+)/i);
-      if (m) return `${u.protocol}//${u.host}/instances/${m[1]}/token/${m[2]}/send-text`;
-    } catch { /* */ }
-  }
-  return `https://api.z-api.io/instances/${inst}/token/${tok}/send-text`;
 }
 
 serve(async (req) => {
@@ -138,10 +125,8 @@ serve(async (req) => {
       } as any);
     } catch { /* tabela pode não existir */ }
 
-    const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
-    const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
-    const ZAPI_CLIENT_TOKEN = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
-    const zapiUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+    const provider = whatsappProviderConfigurado();
+    console.log("notificar: provider WhatsApp", provider);
 
     const msg =
       `📬 *Resposta recebida*\n` +
@@ -152,17 +137,14 @@ serve(async (req) => {
       `\nAcesse o Solar para ver o documento.`;
 
     const results: any[] = [];
-    if (zapiUrl && uniqueCandidates.length > 0) {
+    if (provider !== "none" && uniqueCandidates.length > 0) {
       for (const phone of uniqueCandidates) {
-        const headers: any = { "Content-Type": "application/json" };
-        if (ZAPI_CLIENT_TOKEN) headers["Client-Token"] = ZAPI_CLIENT_TOKEN;
-        const r = await fetch(zapiUrl, { method: "POST", headers, body: JSON.stringify({ phone, message: msg }) });
-        const txt = await r.text().catch(() => "");
-        results.push({ phone, status: r.status, body: txt.slice(0, 200) });
+        const r = await enviarWhatsApp(phone, msg);
+        results.push({ phone, ...r });
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, notificados: results, msg_phones: uniqueCandidates.length }), {
+    return new Response(JSON.stringify({ ok: true, provider, notificados: results, msg_phones: uniqueCandidates.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
