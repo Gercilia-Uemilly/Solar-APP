@@ -125,10 +125,8 @@ serve(async (req) => {
       } as any);
     } catch { /* tabela pode não existir */ }
 
-    const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
-    const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
-    const ZAPI_CLIENT_TOKEN = (Deno.env.get("ZAPI_CLIENT_TOKEN") || "").trim();
-    const zapiUrl = resolveZapiSendUrl(ZAPI_INSTANCE_ID, ZAPI_TOKEN);
+    const provider = whatsappProviderConfigurado();
+    console.log("notificar: provider WhatsApp", provider);
 
     const msg =
       `📬 *Resposta recebida*\n` +
@@ -139,17 +137,14 @@ serve(async (req) => {
       `\nAcesse o Solar para ver o documento.`;
 
     const results: any[] = [];
-    if (zapiUrl && uniqueCandidates.length > 0) {
+    if (provider !== "none" && uniqueCandidates.length > 0) {
       for (const phone of uniqueCandidates) {
-        const headers: any = { "Content-Type": "application/json" };
-        if (ZAPI_CLIENT_TOKEN) headers["Client-Token"] = ZAPI_CLIENT_TOKEN;
-        const r = await fetch(zapiUrl, { method: "POST", headers, body: JSON.stringify({ phone, message: msg }) });
-        const txt = await r.text().catch(() => "");
-        results.push({ phone, status: r.status, body: txt.slice(0, 200) });
+        const r = await enviarWhatsApp(phone, msg);
+        results.push({ phone, ...r });
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, notificados: results, msg_phones: uniqueCandidates.length }), {
+    return new Response(JSON.stringify({ ok: true, provider, notificados: results, msg_phones: uniqueCandidates.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
