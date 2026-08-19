@@ -115,7 +115,25 @@ export default function TipTapOficioEditor({
 
     lastPropContentRef.current = content;
     lastEmittedRef.current = content;
+
+    // Preserva a posição do cursor quando o conteúdo é sincronizado com o
+    // editor em foco (repaginação do preview). Sem isso, o cursor pula
+    // para o fim da página a cada re-render.
+    const wasFocused = editor.isFocused;
+    const previousAnchor = editor.state.selection.anchor;
+
     editor.commands.setContent(content || "<p></p>", { emitUpdate: false });
+
+    if (wasFocused) {
+      const maxPos = Math.max(1, editor.state.doc.content.size - 1);
+      const restored = Math.min(previousAnchor, maxPos);
+      try {
+        editor.commands.setTextSelection(restored);
+        editor.commands.focus(restored, { scrollIntoView: false });
+      } catch {
+        /* posição não mapeável após a repaginação — mantém o padrão */
+      }
+    }
   }, [content, editor, syncContentWhileFocused]);
 
   // Reset on unmount
