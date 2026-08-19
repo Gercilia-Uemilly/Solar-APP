@@ -261,6 +261,51 @@ const resolveAliasKey = (s: string): string | null => {
   return ORGAO_ALIAS_MAP[key] || null;
 };
 
+/** Remove acentos e normaliza espaços para comparação tolerante */
+const slug = (s: string) =>
+  (s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/[^a-z0-9\/\- ]/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+/**
+ * Converte qualquer nome de órgão (vindo da IA, do n8n ou de um ofício antigo)
+ * na chave canônica de SECRETARIAS_CONFIG, para que o Select de Secretaria
+ * consiga exibir o valor automaticamente. Retorna "" quando não há match.
+ */
+export const resolverChaveSecretaria = (nome: string): string => {
+  if (!nome) return '';
+  if (SECRETARIAS_CONFIG[nome]) return nome;
+
+  const normalized = normalizeSecretariaNome(nome);
+  if (SECRETARIAS_CONFIG[normalized]) return normalized;
+
+  const aliasKey = resolveAliasKey(nome) || resolveAliasKey(normalized);
+  if (aliasKey && SECRETARIAS_CONFIG[aliasKey]) return aliasKey;
+
+  const alvo = slug(normalized) || slug(nome);
+  if (!alvo) return '';
+
+  // Match sem acento contra as chaves conhecidas
+  const exato = LISTA_SECRETARIAS.find((k) => slug(k) === alvo);
+  if (exato) return exato;
+
+  // Match sem acento contra o alias map
+  const aliasHit = Object.keys(ORGAO_ALIAS_MAP).find((k) => slug(k) === alvo);
+  if (aliasHit && SECRETARIAS_CONFIG[ORGAO_ALIAS_MAP[aliasHit]]) return ORGAO_ALIAS_MAP[aliasHit];
+
+  // Match por conteúdo (ex.: "Secretaria de Serviços Urbanos de Uberlândia")
+  const parcial = LISTA_SECRETARIAS.find((k) => {
+    const ks = slug(k);
+    return ks.length >= 4 && (alvo.includes(ks) || ks.includes(alvo));
+  });
+  return parcial || '';
+};
+
 export const getDestinatario = (secretaria: string): string => {
   const normalized = normalizeSecretariaNome(secretaria);
   if (SECRETARIAS_CONFIG[secretaria]) return SECRETARIAS_CONFIG[secretaria].destinatario;
