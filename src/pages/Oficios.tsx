@@ -21,7 +21,7 @@ import { comprimirImagem } from "@/lib/imageCompression";
 import { invokeWithRetry, friendlyInvokeError } from "@/lib/invokeWithRetry";
 import { ensureDriveConnected, getDriveAuthDescription, getDriveErrorMessage, isDriveAuthRequired } from "@/lib/driveUploadStatus";
 
-import { generateOperatorCode, type OficioRow, LISTA_SECRETARIAS, getDestinatario, getVocativo, getNomeOrgao, gerarEncerramentoDinamico } from "@/lib/oficioUtils";
+import { generateOperatorCode, type OficioRow, LISTA_SECRETARIAS, getDestinatario, getVocativo, getNomeOrgao, gerarEncerramentoDinamico, resolverChaveSecretaria } from "@/lib/oficioUtils";
 import RichTextEditor from "@/components/RichTextEditor";
 import FileDropzone, { type AnexoFile } from "@/components/FileDropzone";
 import { useAnexos } from "@/hooks/useAnexos";
@@ -292,10 +292,15 @@ export default function Oficios() {
   const applySuggestion = (o: OficioRow) => {
     if (!destinatario && o.destinatario) setDestinatario(o.destinatario);
     if (!cargoDestinatario && o.cargo_destinatario) setCargoDestinatario(o.cargo_destinatario);
-    if (!secretaria && (o as any).secretaria_identificada) setSecretaria((o as any).secretaria_identificada);
+    if (!secretaria && (o as any).secretaria_identificada) {
+      setSecretaria(resolverChaveSecretaria((o as any).secretaria_identificada));
+    }
     if (!enderecoCompleto && o.bairro) setEnderecoCompleto(o.bairro);
     if (!assunto && o.assunto) setAssunto(o.assunto);
-    if (!secretaria && (o as any).tipo_demanda) setSecretaria((o as any).tipo_demanda);
+    if (!secretaria && (o as any).tipo_demanda) {
+      const chaveTipo = resolverChaveSecretaria((o as any).tipo_demanda);
+      if (chaveTipo) setSecretaria(chaveTipo);
+    }
     setAppliedSuggestionId(o.id);
     setShowSuggestions(false);
     if (user) {
@@ -606,9 +611,11 @@ export default function Oficios() {
       setEditedResposta(data.resposta_cidadao || "");
       if (data.assunto_sugerido) setAssunto(data.assunto_sugerido);
       if (data.secretaria_identificada) {
-        setSecretaria(data.secretaria_identificada);
-        setDestinatario(getDestinatario(data.secretaria_identificada));
-        setCargoDestinatario(getDestinatario(data.secretaria_identificada));
+        const chave = resolverChaveSecretaria(data.secretaria_identificada);
+        if (chave) setSecretaria(chave);
+        const dest = getDestinatario(chave || data.secretaria_identificada);
+        setDestinatario(dest);
+        setCargoDestinatario(dest);
       }
       setFormTab("preview");
       toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
@@ -742,7 +749,9 @@ export default function Oficios() {
     setContatoSolicitante(o.contato_solicitante || "");
     setCodigoZ((o as any).codigo_z || "");
     setOrigemOficio((o as any).origem || "WhatsApp Gabinete");
-    const savedSecretaria = (o as any).secretaria_identificada || "";
+    const savedSecretaria =
+      resolverChaveSecretaria((o as any).secretaria_identificada || "") ||
+      resolverChaveSecretaria((o as any).tipo_demanda || "");
     setSecretaria(savedSecretaria);
     setVocativoCustom((o as any).vocativo || "");
     const content = o.conteudo || "";
