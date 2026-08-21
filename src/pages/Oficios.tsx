@@ -574,6 +574,65 @@ export default function Oficios() {
     return true;
   });
 
+  // ── Usar o texto exatamente como foi digitado/colado (sem IA) ──────────
+  const aplicarTextoExato = (texto: string) => {
+    const html = texto
+      .replace(/\r\n/g, "\n")
+      .split(/\n/)
+      .map(l => l.trim())
+      .map(l => (l ? `<p>${l.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : "<p></p>"))
+      .join("");
+    oficioEditedManuallyRef.current = true;
+    setEditedOficio(html);
+    setOriginalOficio(html);
+    setOficioHistory([html]);
+    setHistoryIndex(0);
+    setFormTab("preview");
+  };
+
+  const handleUsarTextoExato = () => {
+    if (!descricao.trim()) {
+      toast({ title: "Nada para inserir", description: "Cole ou digite o texto do ofício na descrição da demanda.", variant: "destructive" });
+      return;
+    }
+    aplicarTextoExato(descricao);
+    toast({ title: "Texto inserido sem alterações", description: "O conteúdo foi aplicado ao modelo do Solar exatamente como está." });
+  };
+
+  // ── Importar PDF/Word e transformar em ofício (sem reescrita por IA) ────
+  const handleImportarArquivo = async (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 20MB.", variant: "destructive" });
+      return;
+    }
+    setImportandoArquivo(true);
+    try {
+      const extracted = await extractExternalOficioFileData(file);
+      if (!extracted?.html) throw new Error("Não foi possível ler o texto deste arquivo. Envie um .docx ou um PDF com texto selecionável.");
+
+      oficioEditedManuallyRef.current = true;
+      setEditedOficio(extracted.html);
+      setOriginalOficio(extracted.html);
+      setOficioHistory([extracted.html]);
+      setHistoryIndex(0);
+      if (extracted.rawText) setDescricao(extracted.rawText);
+      if (extracted.numero) setNumero(extracted.numero);
+      if (extracted.assunto) setAssunto(extracted.assunto);
+      if (extracted.destinatario) {
+        setDestinatario(extracted.destinatario);
+        setCargoDestinatario(extracted.destinatario);
+        const chave = resolverChaveSecretaria(extracted.destinatario);
+        if (chave) setSecretaria(chave);
+      }
+      setFormTab("preview");
+      toast({ title: "Documento importado!", description: "Conteúdo e dados preenchidos exatamente como no arquivo." });
+    } catch (e: any) {
+      toast({ title: "Erro ao importar", description: e?.message || "Tente outro arquivo.", variant: "destructive" });
+    } finally {
+      setImportandoArquivo(false);
+    }
+  };
+
   const handleGenerateAI = async () => {
     if (!descricao.trim()) {
       toast({ title: "Preencha a descrição", description: "A descrição é necessária para gerar o ofício.", variant: "destructive" });
