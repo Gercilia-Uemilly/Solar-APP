@@ -1164,6 +1164,8 @@ export default function Oficios() {
   const [isExportingWord, setIsExportingWord] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [driveSalvo, setDriveSalvo] = useState(false);
+
 
   const handleUploadToDrive = async (oficio: OficioRow) => {
     if (!editedOficio && !oficio.conteudo) {
