@@ -1995,15 +1995,15 @@ export default function Oficios() {
                 }}>
                   {isExportingPdf ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Download size={14} className="mr-1" />} PDF
                 </Button>
-                <Button size="sm" variant="outline" disabled={isUploading} onClick={async () => {
+                <Button size="sm" variant="default" disabled={isUploading} onClick={async () => {
                   if (!editedOficio) {
                     toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de enviar ao Drive." });
                   }
                   // Auto-save before upload to ensure preview edits are persisted
-                  await handleCreate(false);
+                  const savedId = await handleCreate(false);
                   const snap = getPreviewEditableSnapshot();
                   const tempOficio: OficioRow = {
-                    id: editingOficioId || "",
+                    id: savedId || editingOficioId || "",
                     numero: snap.numero || numero || null,
                     assunto: snap.assunto || assunto || "",
                     destinatario: snap.destinatario || destinatario || "",
@@ -2024,6 +2024,12 @@ export default function Oficios() {
                 }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
+                {driveSalvo && (
+                  <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                    ✓ Salvo no Drive
+                  </span>
+                )}
+
               </div>
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
               <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
