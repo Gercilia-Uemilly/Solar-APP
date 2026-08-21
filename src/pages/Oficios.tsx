@@ -855,11 +855,12 @@ export default function Oficios() {
     return errors;
   };
 
-  const handleCreate = async (closeAfterSave = true) => {
+  const handleCreate = async (closeAfterSave = true): Promise<string | null> => {
     if (!user || !numero) {
       toast({ title: "Aguarde", description: "Número ainda não reservado.", variant: "destructive" });
-      return;
+      return null;
     }
+
 
     const previewSnapshot = getPreviewEditableSnapshot();
     setNumero(previewSnapshot.numero);
@@ -871,8 +872,9 @@ export default function Oficios() {
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setFormTab("dados");
-      return;
+      return null;
     }
+
     setValidationErrors({});
     const fullNumero = previewSnapshot.numero || numero || null;
     const payload: Record<string, any> = {
@@ -915,8 +917,9 @@ export default function Oficios() {
 
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-      return;
+      return null;
     }
+
 
     // Rascunho/salvamento não deve protocolar a numeração.
     // O número só é marcado como usado quando o operador altera o status para "Protocolado".
@@ -945,7 +948,10 @@ export default function Oficios() {
       }
       resetForm();
     }
+
+    return oficioId;
   };
+
 
   const getFileMediaType = (file: File): "image" | "audio" | "video" => {
     if (file.type.startsWith("image/")) return "image";
@@ -1027,7 +1033,9 @@ export default function Oficios() {
   const resetForm = () => {
     setShowDialog(false);
     setEditingOficioId(null);
+    setDriveSalvo(false);
     setIaPendente(false);
+
     destinatarioManualmenteEditadoRef.current = false;
     cargoManualmenteEditadoRef.current = false;
     setNumero("");
@@ -1158,6 +1166,8 @@ export default function Oficios() {
   const [isExportingWord, setIsExportingWord] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [driveSalvo, setDriveSalvo] = useState(false);
+
 
   const handleUploadToDrive = async (oficio: OficioRow) => {
     if (!editedOficio && !oficio.conteudo) {
@@ -1221,17 +1231,20 @@ export default function Oficios() {
         throw new Error(getDriveErrorMessage(err));
       }
       const driveResult = await driveResp.json();
-      if (driveResult.driveLink) {
+      if (oficio.id) {
         await supabase.from("oficios").update({
-          link_pdf_drive: driveResult.driveLink,
+          ...(driveResult.driveLink ? { link_pdf_drive: driveResult.driveLink } : {}),
           status: "Salvo no Drive",
           uploaded_by_name: profileName || user?.email || null,
           uploaded_by_email: user?.email || null,
           uploaded_at: new Date().toISOString(),
         } as any).eq("id", oficio.id);
         optimisticUpdate(oficio.id, { status: "Salvo no Drive", link_pdf_drive: driveResult.driveLink } as any);
+        await fetchOficios();
       }
-      toast({ title: "✅ Enviado ao Drive!", description: "PDF final enviado exatamente como na prévia real." });
+      setDriveSalvo(true);
+      toast({ title: "✅ Enviado ao Drive!", description: "Status atualizado para “Salvo no Drive”." });
+
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
@@ -1984,15 +1997,15 @@ export default function Oficios() {
                 }}>
                   {isExportingPdf ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Download size={14} className="mr-1" />} PDF
                 </Button>
-                <Button size="sm" variant="outline" disabled={isUploading} onClick={async () => {
+                <Button size="sm" variant="default" disabled={isUploading} onClick={async () => {
                   if (!editedOficio) {
                     toast({ title: "⚠️ Sem conteúdo", description: "Gere ou digite o texto do ofício antes de enviar ao Drive." });
                   }
                   // Auto-save before upload to ensure preview edits are persisted
-                  await handleCreate(false);
+                  const savedId = await handleCreate(false);
                   const snap = getPreviewEditableSnapshot();
                   const tempOficio: OficioRow = {
-                    id: editingOficioId || "",
+                    id: savedId || editingOficioId || "",
                     numero: snap.numero || numero || null,
                     assunto: snap.assunto || assunto || "",
                     destinatario: snap.destinatario || destinatario || "",
@@ -2013,6 +2026,12 @@ export default function Oficios() {
                 }}>
                   {isUploading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CloudUpload size={14} className="mr-1" />} Drive
                 </Button>
+                {driveSalvo && (
+                  <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                    ✓ Salvo no Drive
+                  </span>
+                )}
+
               </div>
               <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
               <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
