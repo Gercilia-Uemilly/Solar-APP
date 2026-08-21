@@ -855,11 +855,12 @@ export default function Oficios() {
     return errors;
   };
 
-  const handleCreate = async (closeAfterSave = true) => {
+  const handleCreate = async (closeAfterSave = true): Promise<string | null> => {
     if (!user || !numero) {
       toast({ title: "Aguarde", description: "Número ainda não reservado.", variant: "destructive" });
-      return;
+      return null;
     }
+
 
     const previewSnapshot = getPreviewEditableSnapshot();
     setNumero(previewSnapshot.numero);
