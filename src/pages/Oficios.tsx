@@ -1227,17 +1227,20 @@ export default function Oficios() {
         throw new Error(getDriveErrorMessage(err));
       }
       const driveResult = await driveResp.json();
-      if (driveResult.driveLink) {
+      if (oficio.id) {
         await supabase.from("oficios").update({
-          link_pdf_drive: driveResult.driveLink,
+          ...(driveResult.driveLink ? { link_pdf_drive: driveResult.driveLink } : {}),
           status: "Salvo no Drive",
           uploaded_by_name: profileName || user?.email || null,
           uploaded_by_email: user?.email || null,
           uploaded_at: new Date().toISOString(),
         } as any).eq("id", oficio.id);
         optimisticUpdate(oficio.id, { status: "Salvo no Drive", link_pdf_drive: driveResult.driveLink } as any);
+        await fetchOficios();
       }
-      toast({ title: "✅ Enviado ao Drive!", description: "PDF final enviado exatamente como na prévia real." });
+      setDriveSalvo(true);
+      toast({ title: "✅ Enviado ao Drive!", description: "Status atualizado para “Salvo no Drive”." });
+
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message || "Tente novamente.", variant: "destructive" });
     } finally {
