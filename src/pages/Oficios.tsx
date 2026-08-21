@@ -872,8 +872,9 @@ export default function Oficios() {
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setFormTab("dados");
-      return;
+      return null;
     }
+
     setValidationErrors({});
     const fullNumero = previewSnapshot.numero || numero || null;
     const payload: Record<string, any> = {
