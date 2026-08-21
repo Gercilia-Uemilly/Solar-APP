@@ -74,6 +74,8 @@ export default function Oficios() {
   const cleanAssuntoPrefix = (val: string) => val.replace(/^(?:assunto\s*:\s*)+/i, "").trim();
 
   // Form state
+  const [importandoArquivo, setImportandoArquivo] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
   const [numero, setNumero] = useState("");
   const [dataGeracao, setDataGeracao] = useState(new Date().toISOString().split("T")[0]);
   const [enderecoCompleto, setEnderecoCompleto] = useState("");
