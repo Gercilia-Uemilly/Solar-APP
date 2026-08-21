@@ -31,7 +31,7 @@ import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
-import { extractExternalOficioUrlData } from "@/lib/externalOficioText";
+import { extractExternalOficioUrlData, extractExternalOficioFileData } from "@/lib/externalOficioText";
 import { useRespostas, uploadRespostaArquivo, fetchRespostaBlob, type OficioResposta } from "@/hooks/useRespostas";
 import { Inbox, MessageSquareReply } from "lucide-react";
 import RespostaArquivoPreview, { type RespostaPreviewFile } from "@/components/RespostaArquivoPreview";
