@@ -948,7 +948,10 @@ export default function Oficios() {
       }
       resetForm();
     }
+
+    return oficioId;
   };
+
 
   const getFileMediaType = (file: File): "image" | "audio" | "video" => {
     if (file.type.startsWith("image/")) return "image";
