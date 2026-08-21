@@ -31,7 +31,7 @@ import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
-import { extractExternalOficioUrlData } from "@/lib/externalOficioText";
+import { extractExternalOficioUrlData, extractExternalOficioFileData } from "@/lib/externalOficioText";
 import { useRespostas, uploadRespostaArquivo, fetchRespostaBlob, type OficioResposta } from "@/hooks/useRespostas";
 import { Inbox, MessageSquareReply } from "lucide-react";
 import RespostaArquivoPreview, { type RespostaPreviewFile } from "@/components/RespostaArquivoPreview";
@@ -74,6 +74,8 @@ export default function Oficios() {
   const cleanAssuntoPrefix = (val: string) => val.replace(/^(?:assunto\s*:\s*)+/i, "").trim();
 
   // Form state
+  const [importandoArquivo, setImportandoArquivo] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
   const [numero, setNumero] = useState("");
   const [dataGeracao, setDataGeracao] = useState(new Date().toISOString().split("T")[0]);
   const [enderecoCompleto, setEnderecoCompleto] = useState("");
@@ -573,6 +575,65 @@ export default function Oficios() {
     }
     return true;
   });
+
+  // ── Usar o texto exatamente como foi digitado/colado (sem IA) ──────────
+  const aplicarTextoExato = (texto: string) => {
+    const html = texto
+      .replace(/\r\n/g, "\n")
+      .split(/\n/)
+      .map(l => l.trim())
+      .map(l => (l ? `<p>${l.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : "<p></p>"))
+      .join("");
+    oficioEditedManuallyRef.current = true;
+    setEditedOficio(html);
+    setOriginalOficio(html);
+    setOficioHistory([html]);
+    setHistoryIndex(0);
+    setFormTab("preview");
+  };
+
+  const handleUsarTextoExato = () => {
+    if (!descricao.trim()) {
+      toast({ title: "Nada para inserir", description: "Cole ou digite o texto do ofício na descrição da demanda.", variant: "destructive" });
+      return;
+    }
+    aplicarTextoExato(descricao);
+    toast({ title: "Texto inserido sem alterações", description: "O conteúdo foi aplicado ao modelo do Solar exatamente como está." });
+  };
+
+  // ── Importar PDF/Word e transformar em ofício (sem reescrita por IA) ────
+  const handleImportarArquivo = async (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 20MB.", variant: "destructive" });
+      return;
+    }
+    setImportandoArquivo(true);
+    try {
+      const extracted = await extractExternalOficioFileData(file);
+      if (!extracted?.html) throw new Error("Não foi possível ler o texto deste arquivo. Envie um .docx ou um PDF com texto selecionável.");
+
+      oficioEditedManuallyRef.current = true;
+      setEditedOficio(extracted.html);
+      setOriginalOficio(extracted.html);
+      setOficioHistory([extracted.html]);
+      setHistoryIndex(0);
+      if (extracted.rawText) setDescricao(extracted.rawText);
+      if (extracted.numero) setNumero(extracted.numero);
+      if (extracted.assunto) setAssunto(extracted.assunto);
+      if (extracted.destinatario) {
+        setDestinatario(extracted.destinatario);
+        setCargoDestinatario(extracted.destinatario);
+        const chave = resolverChaveSecretaria(extracted.destinatario);
+        if (chave) setSecretaria(chave);
+      }
+      setFormTab("preview");
+      toast({ title: "Documento importado!", description: "Conteúdo e dados preenchidos exatamente como no arquivo." });
+    } catch (e: any) {
+      toast({ title: "Erro ao importar", description: e?.message || "Tente outro arquivo.", variant: "destructive" });
+    } finally {
+      setImportandoArquivo(false);
+    }
+  };
 
   const handleGenerateAI = async () => {
     if (!descricao.trim()) {
@@ -1627,7 +1688,32 @@ export default function Oficios() {
                   onChange={e => setDescricao(e.target.value)}
                   className="bg-card border-border min-h-[120px]"
                 />
-                <p className="text-[10px] text-muted-foreground mt-0.5">💡 Insira um texto institucional pronto ou um comando direto descrevendo a demanda. A IA reescreverá em padrão institucional.</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">💡 Insira um texto institucional pronto ou um comando direto descrevendo a demanda. A IA reescreverá em padrão institucional — ou use as opções abaixo para manter o texto original.</p>
+
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handleUsarTextoExato} className="border-border">
+                    <FileText size={14} className="mr-1" /> Usar este texto sem IA
+                  </Button>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImportarArquivo(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button type="button" variant="outline" size="sm" disabled={importandoArquivo} onClick={() => importFileRef.current?.click()} className="border-border">
+                    {importandoArquivo
+                      ? <><Loader2 size={14} className="mr-1 animate-spin" /> Importando...</>
+                      : <><Upload size={14} className="mr-1" /> Importar PDF/Word como ofício</>}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  “Usar este texto sem IA” aplica o conteúdo exatamente como está no modelo do Solar. A importação lê número, assunto, destinatário e o texto integral do arquivo.
+                </p>
               </div>
 
               {/* Smart Suggestions */}
