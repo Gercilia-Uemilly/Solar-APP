@@ -1688,7 +1688,32 @@ export default function Oficios() {
                   onChange={e => setDescricao(e.target.value)}
                   className="bg-card border-border min-h-[120px]"
                 />
-                <p className="text-[10px] text-muted-foreground mt-0.5">💡 Insira um texto institucional pronto ou um comando direto descrevendo a demanda. A IA reescreverá em padrão institucional.</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">💡 Insira um texto institucional pronto ou um comando direto descrevendo a demanda. A IA reescreverá em padrão institucional — ou use as opções abaixo para manter o texto original.</p>
+
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handleUsarTextoExato} className="border-border">
+                    <FileText size={14} className="mr-1" /> Usar este texto sem IA
+                  </Button>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImportarArquivo(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button type="button" variant="outline" size="sm" disabled={importandoArquivo} onClick={() => importFileRef.current?.click()} className="border-border">
+                    {importandoArquivo
+                      ? <><Loader2 size={14} className="mr-1 animate-spin" /> Importando...</>
+                      : <><Upload size={14} className="mr-1" /> Importar PDF/Word como ofício</>}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  “Usar este texto sem IA” aplica o conteúdo exatamente como está no modelo do Solar. A importação lê número, assunto, destinatário e o texto integral do arquivo.
+                </p>
               </div>
 
               {/* Smart Suggestions */}
