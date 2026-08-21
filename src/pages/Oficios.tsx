@@ -917,8 +917,9 @@ export default function Oficios() {
 
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-      return;
+      return null;
     }
+
 
     // Rascunho/salvamento não deve protocolar a numeração.
     // O número só é marcado como usado quando o operador altera o status para "Protocolado".
