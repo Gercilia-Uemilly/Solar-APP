@@ -519,53 +519,34 @@ serve(async (req) => {
       console.error("GoogleServiceAccount token failed:", e);
     }
 
-    // ── Tentativa 1: ConvertAPI (primário) ───────────────────────────────────
-    const CONVERTAPI_SECRET = Deno.env.get("CONVERTAPI_SECRET");
-    let primaryOutOfCredits = false;
-    if (CONVERTAPI_SECRET) {
-      configuredProviders.push("ConvertAPI");
+    // ── Tentativa 1: ConvertAPI (chaves em cascata) ──────────────────────────
+    // Ordem: CONVERTAPI_SECRET_3 (mais recente) → CONVERTAPI_SECRET → CONVERTAPI_SECRET_2
+    const convertApiKeys: Array<{ name: string; value: string }> = [];
+    for (const name of ["CONVERTAPI_SECRET_3", "CONVERTAPI_SECRET", "CONVERTAPI_SECRET_2"]) {
+      const value = Deno.env.get(name);
+      if (value && !convertApiKeys.some((k) => k.value === value)) {
+        convertApiKeys.push({ name, value });
+      }
+    }
+
+    for (const key of convertApiKeys) {
+      configuredProviders.push(`ConvertAPI(${key.name})`);
       try {
-        console.log("[convert-to-pdf] 🔑 Tentando ConvertAPI com chave PRIMÁRIA (CONVERTAPI_SECRET)");
-        const pdfBytes = await convertWithConvertApi(docxBytes, filename, CONVERTAPI_SECRET);
-        console.log("[convert-to-pdf] ✅ Sucesso com chave PRIMÁRIA (CONVERTAPI_SECRET)");
+        console.log(`[convert-to-pdf] 🔑 Tentando ConvertAPI com ${key.name}`);
+        const pdfBytes = await convertWithConvertApi(docxBytes, filename, key.value);
+        console.log(`[convert-to-pdf] ✅ Sucesso com ${key.name}`);
         return new Response(pdfBytes, { headers: pdfHeaders });
       } catch (e) {
         const msg = getErrorMessage(e);
-        providerErrors.push(`ConvertAPI: ${msg}`);
+        providerErrors.push(`ConvertAPI(${key.name}): ${msg}`);
         if (/4035|No conversions remaining|trial plan has expired/i.test(msg)) {
-          primaryOutOfCredits = true;
-          console.warn("[convert-to-pdf] ⚠️ Chave PRIMÁRIA sem créditos (4035) — tentando chave RESERVA");
+          console.warn(`[convert-to-pdf] ⚠️ ${key.name} sem créditos (4035) — tentando próxima chave`);
         } else {
-          console.error("[convert-to-pdf] ❌ Chave PRIMÁRIA falhou (não-4035):", msg);
+          console.error(`[convert-to-pdf] ❌ ${key.name} falhou (não-4035):`, msg);
         }
       }
     }
 
-    // ── Tentativa 1.5: ConvertAPI reserva (segunda chave) ────────────────────
-    const CONVERTAPI_SECRET_2 = Deno.env.get("CONVERTAPI_SECRET_2");
-    if (CONVERTAPI_SECRET_2 && CONVERTAPI_SECRET_2 !== CONVERTAPI_SECRET) {
-      configuredProviders.push("ConvertAPI(reserva)");
-      try {
-        console.log(
-          `[convert-to-pdf] 🔑 Tentando ConvertAPI com chave RESERVA (CONVERTAPI_SECRET_2)${
-            primaryOutOfCredits ? " — fallback automático após 4035 da primária" : ""
-          }`,
-        );
-        const pdfBytes = await convertWithConvertApi(docxBytes, filename, CONVERTAPI_SECRET_2);
-        console.log("[convert-to-pdf] ✅ Sucesso com chave RESERVA (CONVERTAPI_SECRET_2)");
-        return new Response(pdfBytes, { headers: pdfHeaders });
-      } catch (e) {
-        const msg = getErrorMessage(e);
-        providerErrors.push(`ConvertAPI(reserva): ${msg}`);
-        if (/4035|No conversions remaining|trial plan has expired/i.test(msg)) {
-          console.warn("[convert-to-pdf] ⚠️ Chave RESERVA também sem créditos (4035)");
-        } else {
-          console.error("[convert-to-pdf] ❌ Chave RESERVA falhou (não-4035):", msg);
-        }
-      }
-    } else if (CONVERTAPI_SECRET_2 && CONVERTAPI_SECRET_2 === CONVERTAPI_SECRET) {
-      console.log("[convert-to-pdf] ⏭️ Pulando ConvertAPI reserva: chave idêntica à primária");
-    }
 
     // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
     const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
