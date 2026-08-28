@@ -302,6 +302,7 @@ export default function Relatorios() {
       <Tabs defaultValue="oficios" className="w-full">
         <TabsList className="bg-secondary">
           <TabsTrigger value="oficios">Ofícios</TabsTrigger>
+          <TabsTrigger value="inteligencia">Inteligência</TabsTrigger>
           <TabsTrigger value="acessos">Acessos de Usuários</TabsTrigger>
           <TabsTrigger value="tentativas">Tentativas de Login</TabsTrigger>
         </TabsList>
