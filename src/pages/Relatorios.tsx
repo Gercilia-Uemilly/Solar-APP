@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { exportToCSV } from "@/lib/exportOficio";
+import { rankearBairros, BAIRRO_NAO_IDENTIFICADO } from "@/lib/bairros";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
