@@ -272,6 +272,8 @@ const slug = (s: string) =>
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    // separa palavras coladas em camelCase/PascalCase (ex: "eTransportes" -> "e Transportes")
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\s*\([^)]*\)\s*/g, ' ')
     .replace(/[^a-z0-9\/\- ]/g, ' ')
     .replace(/\s{2,}/g, ' ')
