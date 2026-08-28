@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { exportToCSV } from "@/lib/exportOficio";
+import { rankearBairros, BAIRRO_NAO_IDENTIFICADO } from "@/lib/bairros";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -21,6 +22,13 @@ interface OficioRow {
   created_at: string;
   origem?: string | null;
   codigo_z?: string | null;
+  bairro?: string | null;
+  endereco_completo?: string | null;
+  local_demanda?: string | null;
+  tipo_demanda?: string | null;
+  secretaria_identificada?: string | null;
+  solicitante?: string | null;
+  contato_solicitante?: string | null;
 }
 
 interface SessionRow {
@@ -71,6 +79,63 @@ function parseUA(ua?: string | null): { device: string; browser: string } {
   return { device, browser };
 }
 
+
+interface BlocoRankingProps {
+  titulo: string;
+  descricao?: string;
+  coluna: string;
+  dados: { name: string; value: number }[];
+  cor: string;
+  arquivo: string;
+  onExport: (nome: string, linhas: { name: string; value: number }[], coluna: string) => void;
+}
+
+function BlocoRanking({ titulo, descricao, coluna, dados, cor, arquivo, onExport }: BlocoRankingProps) {
+  const [verTudo, setVerTudo] = useState(false);
+  const topo = dados.slice(0, verTudo ? 30 : 10);
+  const totalItens = dados.reduce((acc, d) => acc + d.value, 0);
+
+  return (
+    <div className="bg-card rounded-xl border border-border p-5">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="text-sm font-medium text-foreground">{titulo}</h3>
+          {descricao && <p className="text-xs text-muted-foreground mt-0.5">{descricao}</p>}
+        </div>
+        <Button variant="outline" size="sm" onClick={() => onExport(arquivo, dados, coluna)}>
+          <Download size={14} className="mr-1" /> CSV
+        </Button>
+      </div>
+
+      {dados.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período selecionado.</p>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={Math.max(200, topo.length * 26)}>
+            <BarChart data={topo} layout="vertical" margin={{ left: 8, right: 24 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis type="number" allowDecimals={false} />
+              <YAxis dataKey="name" type="category" width={170} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="value" fill={cor} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-xs text-muted-foreground">
+              {dados.length} itens distintos · {totalItens} ofícios
+            </p>
+            {dados.length > 10 && (
+              <Button variant="ghost" size="sm" onClick={() => setVerTudo((v) => !v)}>
+                {verTudo ? "Ver menos" : "Ver mais"}
+              </Button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const COLORS = ["hsl(220,70%,50%)", "hsl(25,80%,50%)", "hsl(145,60%,40%)", "hsl(280,50%,50%)", "hsl(30,60%,40%)", "hsl(0,70%,50%)"];
 
 export default function Relatorios() {
@@ -85,7 +150,7 @@ export default function Relatorios() {
   useEffect(() => {
     const fetchData = async () => {
       const [oficiosRes, sessionsRes, profilesRes, attemptsRes] = await Promise.all([
-        supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, origem, codigo_z, created_at").is("deleted_at" as any, null),
+        supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, origem, codigo_z, created_at, bairro, endereco_completo, local_demanda, tipo_demanda, secretaria_identificada, solicitante, contato_solicitante").is("deleted_at" as any, null),
         supabase.from("user_sessions").select("id, user_id, logged_in_at, ip_address, user_agent").order("logged_in_at", { ascending: false }).limit(1000),
         supabase.from("profiles").select("id, full_name, email"),
         (supabase.from("login_attempts" as any).select("id, identifier, success, motivo, ip_address, user_agent, created_at").order("created_at", { ascending: false }).limit(500))
@@ -156,6 +221,45 @@ export default function Relatorios() {
   const origemCodigoData = Object.entries(origemCodigoCounts)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
+
+  // ===== Inteligência de demandas (auditoria) =====
+  const contar = (fn: (o: OficioRow) => string | null | undefined) => {
+    const map = new Map<string, number>();
+    filtered.forEach((o) => {
+      const raw = (fn(o) || "").toString().trim();
+      if (!raw) return;
+      map.set(raw, (map.get(raw) || 0) + 1);
+    });
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  };
+
+  const bairrosData = rankearBairros(filtered);
+  const bairrosIdentificados = bairrosData
+    .filter((b) => b.name !== BAIRRO_NAO_IDENTIFICADO);
+  const naoIdentificados =
+    bairrosData.find((b) => b.name === BAIRRO_NAO_IDENTIFICADO)?.value || 0;
+  const coberturaBairro = total > 0 ? Math.round(((total - naoIdentificados) / total) * 100) : 0;
+
+  const tiposData = contar((o) => o.tipo_demanda);
+  const secretariasData = contar((o) => o.secretaria_identificada || o.destinatario);
+  const solicitantesData = contar((o) => o.solicitante);
+  const telefonesData = contar((o) => o.contato_solicitante);
+  const operadoresData = contar((o) => o.operador_nome);
+
+  const baixarCSV = (nome: string, linhas: { name: string; value: number }[], coluna: string) => {
+    const csv = [`${coluna};Quantidade`, ...linhas.map((l) => `"${l.name.replace(/"/g, "'")}";${l.value}`)].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${nome}-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
 
   // User access summary
   const profileMap = new Map(profiles.map(p => [p.id, p]));
@@ -255,6 +359,7 @@ export default function Relatorios() {
       <Tabs defaultValue="oficios" className="w-full">
         <TabsList className="bg-secondary">
           <TabsTrigger value="oficios">Ofícios</TabsTrigger>
+          <TabsTrigger value="inteligencia">Inteligência</TabsTrigger>
           <TabsTrigger value="acessos">Acessos de Usuários</TabsTrigger>
           <TabsTrigger value="tentativas">Tentativas de Login</TabsTrigger>
         </TabsList>
@@ -355,6 +460,87 @@ export default function Relatorios() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="inteligencia" className="space-y-6 mt-4">
+          <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap items-center gap-4 justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Qualidade do cadastro de bairros</p>
+              <p className="text-xs text-muted-foreground">
+                {total - naoIdentificados} de {total} ofícios ({coberturaBairro}%) com bairro identificado.
+                O sistema agora deduz o bairro a partir do endereço quando o campo vem preenchido com a rua.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={coberturaBairro >= 70 ? "default" : "secondary"}>{coberturaBairro}% cobertura</Badge>
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
+                <Download size={14} className="mr-1" /> Imprimir / PDF
+              </Button>
+            </div>
+          </div>
+
+          <BlocoRanking
+            titulo="Bairros com mais demandas"
+            descricao="Bairro real identificado no endereço, local ou texto do ofício."
+            coluna="Bairro"
+            dados={bairrosIdentificados}
+            cor="hsl(var(--primary))"
+            onExport={baixarCSV}
+            arquivo="bairros"
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BlocoRanking
+              titulo="Tipos de demanda mais pedidos"
+              coluna="Tipo de demanda"
+              dados={tiposData}
+              cor="hsl(var(--chart-3))"
+              onExport={baixarCSV}
+              arquivo="tipos-demanda"
+            />
+            <BlocoRanking
+              titulo="Secretarias / órgãos mais acionados"
+              coluna="Secretaria"
+              dados={secretariasData}
+              cor="hsl(var(--chart-4))"
+              onExport={baixarCSV}
+              arquivo="secretarias"
+            />
+            <BlocoRanking
+              titulo="Linhas de origem (Zap / REQ)"
+              coluna="Origem"
+              dados={origemCodigoData}
+              cor="hsl(var(--primary))"
+              onExport={baixarCSV}
+              arquivo="origens"
+            />
+            <BlocoRanking
+              titulo="Operadores que mais produzem"
+              coluna="Operador"
+              dados={operadoresData}
+              cor="hsl(var(--chart-3))"
+              onExport={baixarCSV}
+              arquivo="operadores"
+            />
+            <BlocoRanking
+              titulo="Solicitantes mais frequentes"
+              coluna="Solicitante"
+              dados={solicitantesData}
+              cor="hsl(var(--chart-4))"
+              onExport={baixarCSV}
+              arquivo="solicitantes"
+            />
+            <BlocoRanking
+              titulo="Telefones que mais acionam o gabinete"
+              coluna="Telefone"
+              dados={telefonesData}
+              cor="hsl(var(--primary))"
+              onExport={baixarCSV}
+              arquivo="telefones"
+            />
+          </div>
+        </TabsContent>
+
+
 
         <TabsContent value="acessos" className="space-y-6 mt-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
