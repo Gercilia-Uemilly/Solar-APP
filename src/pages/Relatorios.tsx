@@ -288,12 +288,10 @@ export default function Relatorios() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${nome}-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `inteligencia-completa-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
-
-
 
   // User access summary
   const profileMap = new Map(profiles.map(p => [p.id, p]));
