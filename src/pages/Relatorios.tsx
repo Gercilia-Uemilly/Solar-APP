@@ -79,6 +79,63 @@ function parseUA(ua?: string | null): { device: string; browser: string } {
   return { device, browser };
 }
 
+
+interface BlocoRankingProps {
+  titulo: string;
+  descricao?: string;
+  coluna: string;
+  dados: { name: string; value: number }[];
+  cor: string;
+  arquivo: string;
+  onExport: (nome: string, linhas: { name: string; value: number }[], coluna: string) => void;
+}
+
+function BlocoRanking({ titulo, descricao, coluna, dados, cor, arquivo, onExport }: BlocoRankingProps) {
+  const [verTudo, setVerTudo] = useState(false);
+  const topo = dados.slice(0, verTudo ? 30 : 10);
+  const totalItens = dados.reduce((acc, d) => acc + d.value, 0);
+
+  return (
+    <div className="bg-card rounded-xl border border-border p-5">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="text-sm font-medium text-foreground">{titulo}</h3>
+          {descricao && <p className="text-xs text-muted-foreground mt-0.5">{descricao}</p>}
+        </div>
+        <Button variant="outline" size="sm" onClick={() => onExport(arquivo, dados, coluna)}>
+          <Download size={14} className="mr-1" /> CSV
+        </Button>
+      </div>
+
+      {dados.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período selecionado.</p>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={Math.max(200, topo.length * 26)}>
+            <BarChart data={topo} layout="vertical" margin={{ left: 8, right: 24 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis type="number" allowDecimals={false} />
+              <YAxis dataKey="name" type="category" width={170} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="value" fill={cor} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-xs text-muted-foreground">
+              {dados.length} itens distintos · {totalItens} ofícios
+            </p>
+            {dados.length > 10 && (
+              <Button variant="ghost" size="sm" onClick={() => setVerTudo((v) => !v)}>
+                {verTudo ? "Ver menos" : "Ver mais"}
+              </Button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const COLORS = ["hsl(220,70%,50%)", "hsl(25,80%,50%)", "hsl(145,60%,40%)", "hsl(280,50%,50%)", "hsl(30,60%,40%)", "hsl(0,70%,50%)"];
 
 export default function Relatorios() {
