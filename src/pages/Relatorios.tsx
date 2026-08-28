@@ -251,8 +251,11 @@ export default function Relatorios() {
   const telefonesData = contar((o) => o.contato_solicitante);
   const operadoresData = contar((o) => o.operador_nome);
 
+  const montarCSV = (linhas: { name: string; value: number }[], coluna: string) =>
+    [`${coluna};Quantidade`, ...linhas.map((l) => `"${l.name.replace(/"/g, "'")}";${l.value}`)].join("\n");
+
   const baixarCSV = (nome: string, linhas: { name: string; value: number }[], coluna: string) => {
-    const csv = [`${coluna};Quantidade`, ...linhas.map((l) => `"${l.name.replace(/"/g, "'")}";${l.value}`)].join("\n");
+    const csv = montarCSV(linhas, coluna);
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -262,7 +265,33 @@ export default function Relatorios() {
     URL.revokeObjectURL(url);
   };
 
-
+  const exportarTudoCSV = () => {
+    const secoes: [string, { name: string; value: number }[], string][] = [
+      ["BAIRROS COM MAIS DEMANDAS", bairrosData, "Bairro"],
+      ["TIPOS DE DEMANDA MAIS PEDIDOS", tiposData, "Tipo de demanda"],
+      ["SECRETARIAS / ORGAOS MAIS ACIONADOS", secretariasData, "Secretaria"],
+      ["LINHAS DE ORIGEM (ZAP / REQ)", origemCodigoData, "Origem"],
+      ["OPERADORES QUE MAIS PRODUZEM", operadoresData, "Operador"],
+      ["SOLICITANTES MAIS FREQUENTES", solicitantesData, "Solicitante"],
+      ["TELEFONES QUE MAIS ACIONAM O GABINETE", telefonesData, "Telefone"],
+    ];
+    const cabecalho = [
+      `RELATORIO DE INTELIGENCIA - SOLAR`,
+      `Gerado em: ${format(new Date(), "dd/MM/yyyy 'as' HH:mm")}`,
+      `Total de oficios no periodo: ${total}`,
+      "",
+    ].join("\n");
+    const corpo = secoes
+      .map(([titulo, dados, coluna]) => `\n### ${titulo}\n${montarCSV(dados, coluna)}`)
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + cabecalho + corpo], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inteligencia-completa-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // User access summary
   const profileMap = new Map(profiles.map(p => [p.id, p]));
@@ -475,6 +504,9 @@ export default function Relatorios() {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={coberturaBairro >= 70 ? "default" : "secondary"}>{coberturaBairro}% cobertura</Badge>
+              <Button size="sm" onClick={exportarTudoCSV}>
+                <Download size={14} className="mr-1" /> Exportar tudo (CSV)
+              </Button>
               <Button variant="outline" size="sm" onClick={() => window.print()}>
                 <Download size={14} className="mr-1" /> Imprimir / PDF
               </Button>
