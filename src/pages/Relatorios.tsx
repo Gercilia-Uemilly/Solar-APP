@@ -504,6 +504,9 @@ export default function Relatorios() {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={coberturaBairro >= 70 ? "default" : "secondary"}>{coberturaBairro}% cobertura</Badge>
+              <Button size="sm" onClick={exportarTudoCSV}>
+                <Download size={14} className="mr-1" /> Exportar tudo (CSV)
+              </Button>
               <Button variant="outline" size="sm" onClick={() => window.print()}>
                 <Download size={14} className="mr-1" /> Imprimir / PDF
               </Button>
