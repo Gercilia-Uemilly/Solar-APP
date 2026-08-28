@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { exportToCSV } from "@/lib/exportOficio";
 import { rankearBairros, BAIRRO_NAO_IDENTIFICADO } from "@/lib/bairros";
+import { classificarTipoDemanda } from "@/lib/tiposDemanda";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
