@@ -404,6 +404,87 @@ export default function Relatorios() {
           </div>
         </TabsContent>
 
+        <TabsContent value="inteligencia" className="space-y-6 mt-4">
+          <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap items-center gap-4 justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Qualidade do cadastro de bairros</p>
+              <p className="text-xs text-muted-foreground">
+                {total - naoIdentificados} de {total} ofícios ({coberturaBairro}%) com bairro identificado.
+                O sistema agora deduz o bairro a partir do endereço quando o campo vem preenchido com a rua.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={coberturaBairro >= 70 ? "default" : "secondary"}>{coberturaBairro}% cobertura</Badge>
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
+                <Download size={14} className="mr-1" /> Imprimir / PDF
+              </Button>
+            </div>
+          </div>
+
+          <BlocoRanking
+            titulo="Bairros com mais demandas"
+            descricao="Bairro real identificado no endereço, local ou texto do ofício."
+            coluna="Bairro"
+            dados={bairrosIdentificados}
+            cor="hsl(var(--primary))"
+            onExport={baixarCSV}
+            arquivo="bairros"
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BlocoRanking
+              titulo="Tipos de demanda mais pedidos"
+              coluna="Tipo de demanda"
+              dados={tiposData}
+              cor="hsl(var(--chart-3))"
+              onExport={baixarCSV}
+              arquivo="tipos-demanda"
+            />
+            <BlocoRanking
+              titulo="Secretarias / órgãos mais acionados"
+              coluna="Secretaria"
+              dados={secretariasData}
+              cor="hsl(var(--chart-4))"
+              onExport={baixarCSV}
+              arquivo="secretarias"
+            />
+            <BlocoRanking
+              titulo="Linhas de origem (Zap / REQ)"
+              coluna="Origem"
+              dados={origemCodigoData}
+              cor="hsl(var(--primary))"
+              onExport={baixarCSV}
+              arquivo="origens"
+            />
+            <BlocoRanking
+              titulo="Operadores que mais produzem"
+              coluna="Operador"
+              dados={operadoresData}
+              cor="hsl(var(--chart-3))"
+              onExport={baixarCSV}
+              arquivo="operadores"
+            />
+            <BlocoRanking
+              titulo="Solicitantes mais frequentes"
+              coluna="Solicitante"
+              dados={solicitantesData}
+              cor="hsl(var(--chart-4))"
+              onExport={baixarCSV}
+              arquivo="solicitantes"
+            />
+            <BlocoRanking
+              titulo="Telefones que mais acionam o gabinete"
+              coluna="Telefone"
+              dados={telefonesData}
+              cor="hsl(var(--primary))"
+              onExport={baixarCSV}
+              arquivo="telefones"
+            />
+          </div>
+        </TabsContent>
+
+
+
         <TabsContent value="acessos" className="space-y-6 mt-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-card rounded-xl border border-border p-4 text-center">
