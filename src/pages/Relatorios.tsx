@@ -164,6 +164,45 @@ export default function Relatorios() {
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
 
+  // ===== Inteligência de demandas (auditoria) =====
+  const contar = (fn: (o: OficioRow) => string | null | undefined) => {
+    const map = new Map<string, number>();
+    filtered.forEach((o) => {
+      const raw = (fn(o) || "").toString().trim();
+      if (!raw) return;
+      map.set(raw, (map.get(raw) || 0) + 1);
+    });
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  };
+
+  const bairrosData = rankearBairros(filtered);
+  const bairrosIdentificados = bairrosData
+    .filter((b) => b.name !== BAIRRO_NAO_IDENTIFICADO);
+  const naoIdentificados =
+    bairrosData.find((b) => b.name === BAIRRO_NAO_IDENTIFICADO)?.value || 0;
+  const coberturaBairro = total > 0 ? Math.round(((total - naoIdentificados) / total) * 100) : 0;
+
+  const tiposData = contar((o) => o.tipo_demanda);
+  const secretariasData = contar((o) => o.secretaria_identificada || o.destinatario);
+  const solicitantesData = contar((o) => o.solicitante);
+  const telefonesData = contar((o) => o.contato_solicitante);
+  const operadoresData = contar((o) => o.operador_nome);
+
+  const baixarCSV = (nome: string, linhas: { name: string; value: number }[], coluna: string) => {
+    const csv = [`${coluna};Quantidade`, ...linhas.map((l) => `"${l.name.replace(/"/g, "'")}";${l.value}`)].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${nome}-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
+
   // User access summary
   const profileMap = new Map(profiles.map(p => [p.id, p]));
   const userAccessMap = new Map<string, UserAccessSummary>();
