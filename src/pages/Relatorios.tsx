@@ -27,6 +27,7 @@ interface OficioRow {
   endereco_completo?: string | null;
   local_demanda?: string | null;
   tipo_demanda?: string | null;
+  conteudo?: string | null;
   secretaria_identificada?: string | null;
   solicitante?: string | null;
   contato_solicitante?: string | null;
@@ -151,7 +152,7 @@ export default function Relatorios() {
   useEffect(() => {
     const fetchData = async () => {
       const [oficiosRes, sessionsRes, profilesRes, attemptsRes] = await Promise.all([
-        supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, origem, codigo_z, created_at, bairro, endereco_completo, local_demanda, tipo_demanda, secretaria_identificada, solicitante, contato_solicitante").is("deleted_at" as any, null),
+        supabase.from("oficios").select("numero, assunto, status, destinatario, operador_nome, linha_telefonica, origem, codigo_z, created_at, bairro, endereco_completo, local_demanda, tipo_demanda, conteudo, secretaria_identificada, solicitante, contato_solicitante").is("deleted_at" as any, null),
         supabase.from("user_sessions").select("id, user_id, logged_in_at, ip_address, user_agent").order("logged_in_at", { ascending: false }).limit(1000),
         supabase.from("profiles").select("id, full_name, email"),
         (supabase.from("login_attempts" as any).select("id, identifier, success, motivo, ip_address, user_agent, created_at").order("created_at", { ascending: false }).limit(500))
@@ -244,7 +245,7 @@ export default function Relatorios() {
   const coberturaBairro = total > 0 ? Math.round(((total - naoIdentificados) / total) * 100) : 0;
 
   // `tipo_demanda` no banco guarda a SECRETARIA; o tipo real é classificado pelo assunto.
-  const tiposData = contar((o) => classificarTipoDemanda(o.assunto, o.local_demanda));
+  const tiposData = contar((o) => classificarTipoDemanda(o.assunto, o.local_demanda, (o as any).conteudo));
   const secretariasData = contar((o) => o.secretaria_identificada || o.destinatario);
   const solicitantesData = contar((o) => o.solicitante);
   const telefonesData = contar((o) => o.contato_solicitante);
