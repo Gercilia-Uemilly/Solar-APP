@@ -21,6 +21,13 @@ interface OficioRow {
   created_at: string;
   origem?: string | null;
   codigo_z?: string | null;
+  bairro?: string | null;
+  endereco_completo?: string | null;
+  local_demanda?: string | null;
+  tipo_demanda?: string | null;
+  secretaria_identificada?: string | null;
+  solicitante?: string | null;
+  contato_solicitante?: string | null;
 }
 
 interface SessionRow {
