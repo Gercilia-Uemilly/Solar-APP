@@ -14,7 +14,7 @@ const SECRETARIA_MAP: Record<string, string[]> = {
   "Iluminação Pública": ["lâmpada", "poste", "iluminação", "escuro", "luz apagada", "luminária"],
   "Secretaria de Saúde": ["posto de saúde", "UBS", "hospital", "médico", "remédio", "vacina", "saúde", "consulta", "enfermeiro"],
   "Secretaria de Educação": ["escola", "creche", "vaga", "professor", "educação", "matrícula", "ensino"],
-  "Secretaria de Trânsito": ["semáforo", "sinalização", "trânsito", "radar", "faixa de pedestre", "rotatória", "lombada", "quebra-mola", "quebra mola", "redutor de velocidade"],
+  "Trânsito e Transportes (SETTRAN)": ["semáforo", "sinalização", "trânsito", "radar", "faixa de pedestre", "rotatória", "lombada", "quebra-mola", "quebra mola", "redutor de velocidade", "settran", "transporte", "ônibus", "mobilidade", "serviços urbanos"],
   "Secretaria de Assistência Social": ["assistência", "CRAS", "CREAS", "benefício", "bolsa", "vulnerabilidade", "social"],
   "DMAE": ["água", "esgoto", "vazamento", "falta de água", "saneamento", "hidrômetro"],
   "CEMIG": ["energia", "falta de energia", "queda de energia", "rede elétrica", "transformador"],

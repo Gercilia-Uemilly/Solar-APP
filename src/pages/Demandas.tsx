@@ -19,7 +19,7 @@ const origens: DemandaOrigem[] = ["WhatsApp Gabinete", "WhatsApp Vereador", "Req
 
 const secretarias = [
   "Secretaria de Obras", "Secretaria de Meio Ambiente", "Iluminação Pública",
-  "Secretaria de Saúde", "Secretaria de Educação", "Secretaria de Trânsito",
+  "Secretaria de Saúde", "Secretaria de Educação", "Trânsito e Transportes (SETTRAN)",
   "Secretaria de Assistência Social", "DMAE", "CEMIG", "Outro",
 ];
 

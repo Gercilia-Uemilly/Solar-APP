@@ -248,6 +248,11 @@ const ORGAO_ALIAS_MAP: Record<string, string> = {
   'settran': 'Trânsito e Transportes (SETTRAN)',
   'secretaria municipal de trânsito e transportes': 'Trânsito e Transportes (SETTRAN)',
   'trânsito e transportes': 'Trânsito e Transportes (SETTRAN)',
+  'servicos urbanos e transito e transportes': 'Trânsito e Transportes (SETTRAN)',
+  'servicos urbanos transito e transportes': 'Trânsito e Transportes (SETTRAN)',
+  'secretaria municipal de servicos urbanos e transito e transportes': 'Trânsito e Transportes (SETTRAN)',
+  'secretaria municipal de transito e transportes': 'Trânsito e Transportes (SETTRAN)',
+  'transito e transportes': 'Trânsito e Transportes (SETTRAN)',
   'secretaria municipal de meio ambiente e sustentabilidade': 'Gestão Ambiental e Sustentabilidade',
   'ministério público de minas gerais': 'Ministério Público de Minas Gerais',
   'superintendência regional de ensino': 'Superintendência Regional de Ensino',
@@ -267,6 +272,8 @@ const slug = (s: string) =>
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    // separa palavras coladas em camelCase/PascalCase (ex: "eTransportes" -> "e Transportes")
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\s*\([^)]*\)\s*/g, ' ')
     .replace(/[^a-z0-9\/\- ]/g, ' ')
     .replace(/\s{2,}/g, ' ')
