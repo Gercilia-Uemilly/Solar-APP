@@ -74,7 +74,7 @@ export default function Dashboard() {
 
     const bairroMap: Record<string, number> = {};
     doMes.forEach(o => {
-      const b = o.bairro || "Não informado";
+      const b = resolverBairro(o);
       bairroMap[b] = (bairroMap[b] || 0) + 1;
     });
     const porBairro = Object.entries(bairroMap)
@@ -84,7 +84,7 @@ export default function Dashboard() {
 
     const bairroMapAnterior: Record<string, number> = {};
     doMesAnterior.forEach(o => {
-      const b = o.bairro || "Não informado";
+      const b = resolverBairro(o);
       bairroMapAnterior[b] = (bairroMapAnterior[b] || 0) + 1;
     });
     const rankingBairros = Object.entries(bairroMap)
