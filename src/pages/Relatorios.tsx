@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { exportToCSV } from "@/lib/exportOficio";
 import { rankearBairros, BAIRRO_NAO_IDENTIFICADO } from "@/lib/bairros";
+import { classificarTipoDemanda } from "@/lib/tiposDemanda";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -242,7 +243,8 @@ export default function Relatorios() {
     bairrosData.find((b) => b.name === BAIRRO_NAO_IDENTIFICADO)?.value || 0;
   const coberturaBairro = total > 0 ? Math.round(((total - naoIdentificados) / total) * 100) : 0;
 
-  const tiposData = contar((o) => o.tipo_demanda);
+  // `tipo_demanda` no banco guarda a SECRETARIA; o tipo real é classificado pelo assunto.
+  const tiposData = contar((o) => classificarTipoDemanda(o.assunto, o.local_demanda));
   const secretariasData = contar((o) => o.secretaria_identificada || o.destinatario);
   const solicitantesData = contar((o) => o.solicitante);
   const telefonesData = contar((o) => o.contato_solicitante);
