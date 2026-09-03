@@ -294,7 +294,7 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
       {maisUsados.length > 0 && !search && !favOnly && (
         <div className="border border-border rounded-xl bg-card p-3">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-2">
-            <Flame size={12} className="text-primary" /> Mais usados
+            <Flame size={12} className="text-primary" /> Mais procurados
           </p>
           <div className="flex flex-wrap gap-1.5">
             {maisUsados.map(({ s, score }) => (
