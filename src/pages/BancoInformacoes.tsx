@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import ContatosTable from "@/components/ContatosTable";
 import SecretariasReferencia from "@/components/SecretariasReferencia";
+import { getFavoritos, toggleFavorito, getAcessos, registrarAcesso, getHistoricoBusca, registrarBusca } from "@/lib/bancoDestaques";
 
 interface KnowledgeEntry {
   id: string;
@@ -238,6 +239,32 @@ export default function BancoInformacoes() {
   const [sosSortOrder, setSosSortOrder] = useState<"desc" | "asc">("desc");
   const [mainTab, setMainTab] = useState("base");
 
+  // ─── Favoritos / Mais pesquisados / Sugestões (Banco) ───
+  const [favoritos, setFavoritos] = useState<string[]>([]);
+  const [acessos, setAcessos] = useState<Record<string, number>>({});
+  const [historicoBusca, setHistoricoBusca] = useState<string[]>([]);
+  const [onlyFavoritos, setOnlyFavoritos] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    setFavoritos(getFavoritos(user?.id));
+    setAcessos(getAcessos(user?.id));
+    setHistoricoBusca(getHistoricoBusca(user?.id));
+  }, [user?.id]);
+
+  const handleToggleFavorito = useCallback((id: string) => {
+    setFavoritos(toggleFavorito(id, user?.id));
+  }, [user?.id]);
+
+  const handleRegistrarAcesso = useCallback((id: string) => {
+    setAcessos(registrarAcesso(id, user?.id));
+  }, [user?.id]);
+
+  const handleRegistrarBusca = useCallback((term: string) => {
+    setHistoricoBusca(registrarBusca(term, user?.id));
+  }, [user?.id]);
+
+
   const [showDialog, setShowDialog] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -328,15 +355,23 @@ export default function BancoInformacoes() {
         e.palavras_chave?.some(k => k.toLowerCase().includes(s))
       );
     }
+    if (onlyFavoritos) result = result.filter(e => favoritos.includes(e.id));
     return result.sort((a, b) => {
+      // Favoritos e mais pesquisados ganham destaque no topo
+      const fa = favoritos.includes(a.id) ? 1 : 0;
+      const fb = favoritos.includes(b.id) ? 1 : 0;
+      if (fa !== fb) return fb - fa;
+      const ha = acessos[a.id] || 0;
+      const hb = acessos[b.id] || 0;
+      if (ha !== hb) return hb - ha;
       const da = new Date(a.data_publicacao || a.created_at).getTime();
       const db = new Date(b.data_publicacao || b.created_at).getTime();
       return sortOrder === "desc" ? db - da : da - db;
     });
-  }, [entries, serverSearchResults, search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+  }, [entries, serverSearchResults, search, fonteFilter, themeFilter, dateFilter, sortOrder, onlyFavoritos, favoritos, acessos]);
 
   // Reseta paginação sempre que a lista filtrada muda por busca/filtros/ordem
-  useEffect(() => { setPage(1); }, [search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+  useEffect(() => { setPage(1); }, [search, fonteFilter, themeFilter, dateFilter, sortOrder, onlyFavoritos]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -344,6 +379,47 @@ export default function BancoInformacoes() {
     () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
     [filtered, currentPage]
   );
+
+  // Entradas favoritas do operador
+  const favoritosEntries = useMemo(
+    () => entries.filter(e => favoritos.includes(e.id)),
+    [entries, favoritos]
+  );
+
+  // Mais pesquisados/acessados pelo operador
+  const maisAcessados = useMemo(() => {
+    return entries
+      .filter(e => (acessos[e.id] || 0) > 0)
+      .sort((a, b) => (acessos[b.id] || 0) - (acessos[a.id] || 0))
+      .slice(0, 8);
+  }, [entries, acessos]);
+
+  // Sugestões de autocomplete enquanto o operador digita
+  const sugestoes = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (term.length < 2) {
+      return historicoBusca.slice(0, 6).map(h => ({ label: h, tipo: "Histórico" as const }));
+    }
+    const out: { label: string; tipo: "Título" | "Palavra-chave" | "Órgão" | "Bairro" | "Histórico" }[] = [];
+    const seen = new Set<string>();
+    const push = (label: string | null | undefined, tipo: typeof out[number]["tipo"]) => {
+      if (!label) return;
+      const k = label.toLowerCase();
+      if (seen.has(k) || !k.includes(term)) return;
+      seen.add(k);
+      out.push({ label, tipo });
+    };
+    for (const h of historicoBusca) push(h, "Histórico");
+    for (const e of entries) {
+      push(e.titulo, "Título");
+      (e.palavras_chave || []).forEach(k => push(k, "Palavra-chave"));
+      push(e.orgao, "Órgão");
+      push(e.bairro, "Bairro");
+      if (out.length > 40) break;
+    }
+    return out.slice(0, 8);
+  }, [search, entries, historicoBusca]);
+
 
   // Busca no servidor com debounce — cobre linhas que ficam fora do cache local
   // quando a tabela ultrapassa o limite de 1000.
@@ -1111,9 +1187,77 @@ export default function BancoInformacoes() {
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-[200px] relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input placeholder="Buscar por título, órgão, bairro, palavra-chave..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                  <Input
+                    placeholder="Buscar por título, órgão, bairro, palavra-chave..."
+                    value={search}
+                    onChange={e => { setSearch(e.target.value); setShowSuggestions(true); }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                    onKeyDown={e => { if (e.key === "Enter") { handleRegistrarBusca(search); setShowSuggestions(false); } }}
+                    className="pl-9"
+                  />
+                  {showSuggestions && sugestoes.length > 0 && (
+                    <div className="absolute z-30 left-0 right-0 top-full mt-1 rounded-lg border border-border bg-popover shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+                      {sugestoes.map((s, i) => (
+                        <button
+                          key={`${s.label}-${i}`}
+                          onMouseDown={() => { setSearch(s.label); handleRegistrarBusca(s.label); setShowSuggestions(false); }}
+                          className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-muted transition-colors"
+                        >
+                          <span className="flex items-center gap-2 min-w-0">
+                            {s.tipo === "Histórico" ? <Clock size={12} className="text-muted-foreground flex-shrink-0" /> : <Search size={12} className="text-muted-foreground flex-shrink-0" />}
+                            <span className="truncate">{s.label}</span>
+                          </span>
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">{s.tipo}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                <Button
+                  size="sm"
+                  variant={onlyFavoritos ? "default" : "outline"}
+                  className="h-9 gap-1.5 text-xs"
+                  onClick={() => setOnlyFavoritos(v => !v)}
+                >
+                  <Star size={13} fill={onlyFavoritos ? "currentColor" : "none"} /> Favoritos ({favoritos.length})
+                </Button>
               </div>
+
+              {/* Destaques: favoritos e mais pesquisados */}
+              {!search && (favoritosEntries.length > 0 || maisAcessados.length > 0) && (
+                <div className="space-y-2 pt-1">
+                  {favoritosEntries.length > 0 && (
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <span className="text-[11px] font-semibold text-primary flex items-center gap-1 mt-1"><Star size={12} fill="currentColor" /> Favoritos:</span>
+                      {favoritosEntries.slice(0, 8).map(e => (
+                        <button
+                          key={e.id}
+                          onClick={() => { handleRegistrarAcesso(e.id); openDialog(e); }}
+                          className="text-[11px] px-2 py-1 rounded-full border border-primary/30 bg-primary/10 text-foreground hover:bg-primary/20 transition-colors max-w-[220px] truncate"
+                        >
+                          {e.titulo}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {maisAcessados.length > 0 && (
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1 mt-1"><Sparkles size={12} /> Mais pesquisados:</span>
+                      {maisAcessados.map(e => (
+                        <button
+                          key={e.id}
+                          onClick={() => { handleRegistrarAcesso(e.id); openDialog(e); }}
+                          className="text-[11px] px-2 py-1 rounded-full border border-border bg-muted text-foreground hover:bg-muted/70 transition-colors max-w-[220px] truncate"
+                        >
+                          {e.titulo} <span className="text-muted-foreground">·{acessos[e.id]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter size={12} /> Filtros:</div>
                 <Select value={fonteFilter} onValueChange={setFonteFilter}>
@@ -1158,15 +1302,28 @@ export default function BancoInformacoes() {
                 <Library size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhuma entrada encontrada</p>
               </div>
             ) : paginated.map(entry => (
-              <Card key={entry.id} className={`group hover:shadow-md transition-all ${isAdmin && entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
+              <Card key={entry.id} className={`group hover:shadow-md transition-all ${favoritos.includes(entry.id) ? 'border-primary/50 ring-1 ring-primary/20' : ''} ${isAdmin && entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       {categoriaIcon(entry.categoria)}
                       <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{entry.titulo}</h3>
                     </div>
-                    {isAdmin && entry.modelo && <Badge variant="default" className="text-[9px] px-1.5 flex-shrink-0">Modelo</Badge>}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {(acessos[entry.id] || 0) >= 3 && (
+                        <Badge variant="outline" className="text-[9px] px-1.5 gap-1"><Sparkles size={9} /> Top</Badge>
+                      )}
+                      {isAdmin && entry.modelo && <Badge variant="default" className="text-[9px] px-1.5">Modelo</Badge>}
+                      <button
+                        onClick={() => handleToggleFavorito(entry.id)}
+                        title={favoritos.includes(entry.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                        className={`p-1 rounded-md transition-colors ${favoritos.includes(entry.id) ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                      >
+                        <Star size={14} fill={favoritos.includes(entry.id) ? "currentColor" : "none"} />
+                      </button>
+                    </div>
                   </div>
+
                   {entry.descricao && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{entry.descricao}</p>}
                   <div className="flex flex-wrap items-center gap-1.5 mt-3">
                     <span className="inline-flex items-center gap-1 text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-full">
@@ -1184,8 +1341,8 @@ export default function BancoInformacoes() {
                   )}
                   <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border opacity-0 group-hover:opacity-100 transition-opacity">
                     {isAdmin && <button onClick={() => toggleModelo(entry)} className={`p-1.5 rounded-md ${entry.modelo ? 'text-primary' : 'text-muted-foreground hover:text-primary'} hover:bg-muted transition-colors`}>{entry.modelo ? <Star size={14} /> : <StarOff size={14} />}</button>}
-                    <button onClick={() => openDialog(entry)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"><MessageSquare size={14} /></button>
-                    {entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><ExternalLink size={14} /></a>}
+                    <button onClick={() => { handleRegistrarAcesso(entry.id); openDialog(entry); }} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"><MessageSquare size={14} /></button>
+                    {entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer" onClick={() => handleRegistrarAcesso(entry.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><ExternalLink size={14} /></a>}
                     <button onClick={() => handleDelete(entry.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors ml-auto"><Trash2 size={14} /></button>
                   </div>
                 </CardContent>
