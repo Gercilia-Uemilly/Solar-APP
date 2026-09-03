@@ -367,10 +367,10 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
                             >
                               <FileText size={12} className="flex-shrink-0" />
                               <span className="truncate">{s.titulo}</span>
-                              {(acessos[s.id] || 0) >= 5 && (
+                              {scoreScript(s) >= 5 && (
                                 <Flame size={10} className="text-primary flex-shrink-0 ml-auto" />
                               )}
-                              {s.favorito && <Star size={10} fill="currentColor" className={`text-primary flex-shrink-0 ${(acessos[s.id] || 0) >= 5 ? "" : "ml-auto"}`} />}
+                              {s.favorito && <Star size={10} fill="currentColor" className={`text-primary flex-shrink-0 ${scoreScript(s) >= 5 ? "" : "ml-auto"}`} />}
                             </button>
                           ))}
                         </div>
