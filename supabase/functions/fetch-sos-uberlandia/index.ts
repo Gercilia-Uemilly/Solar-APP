@@ -45,27 +45,52 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Auth: aceita (a) token de cron validado no banco, (b) segredo interno (n8n) ou (c) usuário autenticado (botão na interface)
+    const internalSecret = Deno.env.get("INTERNAL_WEBHOOK_SECRET_N8N") || Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
+    const providedSecret = req.headers.get("x-internal-secret") || "";
+    const cronToken = req.headers.get("x-cron-token") || "";
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+    let supabase;
+    let authorized = false;
+
+    // (a) cron: valida token contra a tabela privada
+    if (cronToken) {
+      const admin = createClient(supabaseUrl, serviceKey);
+      const { data: valid } = await admin.rpc("cron_token_valid", { p_token: cronToken });
+      if (valid) {
+        supabase = admin;
+        authorized = true;
+      }
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // (b) segredo interno
+    if (!authorized && internalSecret && providedSecret === internalSecret) {
+      supabase = createClient(supabaseUrl, serviceKey);
+      authorized = true;
+    }
 
-    // Validate user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!authorized) {
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
       });
+      // Validate user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json().catch(() => ({}));
@@ -123,20 +148,53 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Upsert with ignoreDuplicates: relies on the partial unique index
-      // base_conhecimento_sos_link_unique (link) WHERE fonte='SOS Uberlândia'
+      // Mescla manual: o índice único é parcial (só fonte='SOS Uberlândia') e o PostgREST
+      // não aceita ON CONFLICT nele — então buscamos os links existentes, atualizamos
+      // os já cadastrados (corrige datas/títulos) e inserimos apenas os novos.
       if (toInsert.length > 0) {
-        const { data: upserted, error } = await supabase
+        const links = toInsert.map(r => r.link);
+        const { data: existing, error: selErr } = await supabase
           .from("base_conhecimento")
-          .upsert(toInsert, { onConflict: "link", ignoreDuplicates: true })
-          .select("id");
-        if (error) {
-          console.error("Insert error:", error);
-        } else {
-          const newCount = upserted?.length || 0;
-          inserted += newCount;
-          skipped += toInsert.length - newCount;
+          .select("id, link")
+          .eq("fonte", "SOS Uberlândia")
+          .in("link", links);
+        if (selErr) {
+          console.error("Select error:", selErr);
+          continue;
         }
+        const existingMap = new Map((existing || []).map((r: any) => [r.link, r.id]));
+
+        const toUpdate = toInsert.filter(r => existingMap.has(r.link));
+        const toNew = toInsert.filter(r => !existingMap.has(r.link));
+
+        let updated = 0;
+        for (const row of toUpdate) {
+          const { error: updErr } = await supabase
+            .from("base_conhecimento")
+            .update({
+              titulo: row.titulo,
+              descricao: row.descricao,
+              data_publicacao: row.data_publicacao,
+              palavras_chave: row.palavras_chave,
+              bairro: row.bairro,
+            })
+            .eq("id", existingMap.get(row.link));
+          if (updErr) console.error("Update error:", updErr);
+          else updated++;
+        }
+
+        if (toNew.length > 0) {
+          const { data: ins, error: insErr } = await supabase
+            .from("base_conhecimento")
+            .insert(toNew)
+            .select("id");
+          if (insErr) {
+            console.error("Insert error:", insErr);
+          } else {
+            inserted += ins?.length || 0;
+          }
+        }
+        skipped += updated;
       }
     }
 

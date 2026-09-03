@@ -152,13 +152,22 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
     return score;
   }, [acessos, demandaCounts]);
 
-  // Mais usados (dados reais do sistema + acessos do operador)
+  // Mais procurados: categorias fixas de alta procura (Escola/Educação, Saúde, Casas Populares)
+  // + ranking por dados reais do sistema e acessos do operador
   const maisUsados = useMemo(() => {
+    const PINNED = ["educacao", "escola", "saude", "casas populares"];
+    const isPinned = (s: ScriptRow) => {
+      const hay = `${norm(s.categoria)} ${norm(s.titulo)} ${(s.tags || []).map(norm).join(" ")}`;
+      return PINNED.some(p => hay.includes(p));
+    };
     return [...scripts]
-      .map(s => ({ s, score: scoreScript(s) }))
-      .filter(x => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 6);
+      .map(s => ({ s, score: scoreScript(s), pinned: isPinned(s) }))
+      .filter(x => x.score > 0 || x.pinned)
+      .sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return b.score - a.score;
+      })
+      .slice(0, 8);
   }, [scripts, scoreScript]);
 
   // Suggestions: history + titles + categories + tags matching input
@@ -285,7 +294,7 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
       {maisUsados.length > 0 && !search && !favOnly && (
         <div className="border border-border rounded-xl bg-card p-3">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-2">
-            <Flame size={12} className="text-primary" /> Mais usados
+            <Flame size={12} className="text-primary" /> Mais procurados
           </p>
           <div className="flex flex-wrap gap-1.5">
             {maisUsados.map(({ s, score }) => (
