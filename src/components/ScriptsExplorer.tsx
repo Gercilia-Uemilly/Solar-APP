@@ -152,13 +152,22 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
     return score;
   }, [acessos, demandaCounts]);
 
-  // Mais usados (dados reais do sistema + acessos do operador)
+  // Mais procurados: categorias fixas de alta procura (Escola/Educação, Saúde, Casas Populares)
+  // + ranking por dados reais do sistema e acessos do operador
   const maisUsados = useMemo(() => {
+    const PINNED = ["educacao", "escola", "saude", "casas populares"];
+    const isPinned = (s: ScriptRow) => {
+      const hay = `${norm(s.categoria)} ${norm(s.titulo)} ${(s.tags || []).map(norm).join(" ")}`;
+      return PINNED.some(p => hay.includes(p));
+    };
     return [...scripts]
-      .map(s => ({ s, score: scoreScript(s) }))
-      .filter(x => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 6);
+      .map(s => ({ s, score: scoreScript(s), pinned: isPinned(s) }))
+      .filter(x => x.score > 0 || x.pinned)
+      .sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return b.score - a.score;
+      })
+      .slice(0, 8);
   }, [scripts, scoreScript]);
 
   // Suggestions: history + titles + categories + tags matching input
