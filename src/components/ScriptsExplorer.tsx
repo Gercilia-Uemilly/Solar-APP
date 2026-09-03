@@ -1,9 +1,11 @@
-import { useState, useMemo, useCallback } from "react";
-import { Search, FolderOpen, Folder, FileText, Copy, Check, X, ChevronRight, ChevronDown, Star, Pencil, Trash2, Sparkles, Plus } from "lucide-react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { Search, FolderOpen, Folder, FileText, Copy, Check, X, ChevronRight, ChevronDown, Star, Pencil, Trash2, Sparkles, Plus, Flame, Clock, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { getAcessos, registrarAcesso, getHistoricoBusca, registrarBusca } from "@/lib/bancoDestaques";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ScriptRow {
   id: string;
@@ -48,11 +50,26 @@ function getCatColor(cat: string): string {
 }
 
 export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, onToggleFav, onNewScript, onAIScript }: ScriptsExplorerProps) {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [selectedScript, setSelectedScript] = useState<ScriptRow | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [favOnly, setFavOnly] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [acessos, setAcessos] = useState(() => getAcessos(user?.id));
+  const [historico, setHistorico] = useState(() => getHistoricoBusca(user?.id));
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSuggestions(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Group scripts by category
   const grouped = useMemo(() => {
@@ -62,30 +79,62 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(s);
     });
-    // Sort categories alphabetically
-    return new Map([...map.entries()].sort(([a], [b]) => a.localeCompare(b)));
-  }, [scripts]);
+    // Sort categories alphabetically; scripts within: favoritos first, then by access count
+    const sorted = [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+    sorted.forEach(([, items]) => {
+      items.sort((a, b) => {
+        if (a.favorito !== b.favorito) return a.favorito ? -1 : 1;
+        return (acessos[b.id] || 0) - (acessos[a.id] || 0);
+      });
+    });
+    return new Map(sorted);
+  }, [scripts, acessos]);
 
-  // Filter by search
+  // Filter by search + favoritos
   const filteredGrouped = useMemo(() => {
-    if (!search) return grouped;
     const q = search.toLowerCase();
     const result = new Map<string, ScriptRow[]>();
     grouped.forEach((items, cat) => {
-      const catMatch = cat.toLowerCase().includes(q);
-      const filtered = items.filter(s =>
-        catMatch || s.titulo.toLowerCase().includes(q) || s.conteudo.toLowerCase().includes(q) || s.tags?.some(t => t.toLowerCase().includes(q))
+      const catMatch = q && cat.toLowerCase().includes(q);
+      let filtered = items.filter(s =>
+        !q || catMatch || s.titulo.toLowerCase().includes(q) || s.conteudo.toLowerCase().includes(q) || s.tags?.some(t => t.toLowerCase().includes(q))
       );
+      if (favOnly) filtered = filtered.filter(s => s.favorito);
       if (filtered.length > 0) result.set(cat, filtered);
     });
     return result;
-  }, [grouped, search]);
+  }, [grouped, search, favOnly]);
 
   // Auto-open folders when searching
   const visibleFolders = useMemo(() => {
-    if (search) return new Set(filteredGrouped.keys());
+    if (search || favOnly) return new Set(filteredGrouped.keys());
     return openFolders;
-  }, [search, filteredGrouped, openFolders]);
+  }, [search, favOnly, filteredGrouped, openFolders]);
+
+  // Mais usados (top acessos)
+  const maisUsados = useMemo(() => {
+    return [...scripts]
+      .filter(s => (acessos[s.id] || 0) > 0)
+      .sort((a, b) => (acessos[b.id] || 0) - (acessos[a.id] || 0))
+      .slice(0, 6);
+  }, [scripts, acessos]);
+
+  // Suggestions: history + titles + categories + tags matching input
+  const suggestions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const pool = new Set<string>();
+    if (!q) {
+      historico.slice(0, 8).forEach(h => pool.add(h));
+      return [...pool];
+    }
+    historico.filter(h => h.toLowerCase().includes(q)).forEach(h => pool.add(h));
+    scripts.forEach(s => {
+      if (s.titulo.toLowerCase().includes(q)) pool.add(s.titulo);
+      if (s.categoria?.toLowerCase().includes(q)) pool.add(s.categoria);
+      s.tags?.forEach(t => { if (t.toLowerCase().includes(q)) pool.add(t); });
+    });
+    return [...pool].slice(0, 8);
+  }, [search, historico, scripts]);
 
   const toggleFolder = (cat: string) => {
     if (search) return; // Don't toggle during search
@@ -102,14 +151,17 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
   const selectScript = (s: ScriptRow) => {
     setSelectedScript(s);
     setSelectedFolder(s.categoria);
+    setAcessos(registrarAcesso(s.id, user?.id));
+    if (search.trim()) setHistorico(registrarBusca(search, user?.id));
   };
 
   const handleCopy = useCallback((s: ScriptRow) => {
     navigator.clipboard.writeText(s.conteudo);
     setCopiedId(s.id);
+    setAcessos(registrarAcesso(s.id, user?.id));
     toast.success("Script copiado para a área de transferência!");
     setTimeout(() => setCopiedId(null), 2000);
-  }, []);
+  }, [user?.id]);
 
   const totalFiltered = useMemo(() => {
     let count = 0;
@@ -133,20 +185,50 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
     <div className="space-y-4">
       {/* Top bar: search + actions */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative flex-1 min-w-[240px]" ref={searchRef}>
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
           <Input
             placeholder="Buscar script por título, categoria ou palavra-chave..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); setShowSuggestions(true); }}
+            onFocus={() => setShowSuggestions(true)}
             className="pl-11 h-11 text-sm bg-card border-border rounded-xl"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <button onClick={() => setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10">
               <X size={14} />
             </button>
           )}
+          {/* Suggestions dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden">
+              <p className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50">
+                {search.trim() ? "Sugestões" : "Buscas recentes"}
+              </p>
+              {suggestions.map((sug, i) => {
+                const isHistory = historico.some(h => h.toLowerCase() === sug.toLowerCase());
+                return (
+                  <button
+                    key={i}
+                    onClick={() => { setSearch(sug); setShowSuggestions(false); setHistorico(registrarBusca(sug, user?.id)); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-foreground/90 hover:bg-muted transition-colors"
+                  >
+                    {isHistory ? <Clock size={13} className="text-muted-foreground flex-shrink-0" /> : <TrendingUp size={13} className="text-primary flex-shrink-0" />}
+                    <span className="truncate">{sug}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
+        <Button
+          size="sm"
+          variant={favOnly ? "default" : "outline"}
+          onClick={() => setFavOnly(v => !v)}
+          className="gap-1.5 h-9"
+        >
+          <Star size={13} fill={favOnly ? "currentColor" : "none"} /> Favoritos
+        </Button>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={onAIScript} className="gap-1.5 h-9">
             <Sparkles size={13} /> Gerar com IA
@@ -157,10 +239,33 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
         </div>
       </div>
 
+      {/* Mais usados */}
+      {maisUsados.length > 0 && !search && !favOnly && (
+        <div className="border border-border rounded-xl bg-card p-3">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-2">
+            <Flame size={12} className="text-primary" /> Mais usados
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {maisUsados.map(s => (
+              <button
+                key={s.id}
+                onClick={() => selectScript(s)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-muted hover:bg-primary/10 hover:text-primary text-foreground/80 transition-colors"
+              >
+                {s.favorito && <Star size={10} fill="currentColor" className="text-primary" />}
+                <span className="max-w-[220px] truncate">{s.titulo}</span>
+                <span className="text-[10px] text-muted-foreground font-medium">{acessos[s.id]}×</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Count */}
       <p className="text-sm text-muted-foreground">
         <span className="font-bold text-foreground">{totalFiltered}</span> script{totalFiltered !== 1 ? "s" : ""} em{" "}
         <span className="font-bold text-foreground">{filteredGrouped.size}</span> categoria{filteredGrouped.size !== 1 ? "s" : ""}
+        {favOnly && <span className="ml-1 text-primary">(somente favoritos)</span>}
       </p>
 
       {/* Explorer layout */}
@@ -220,7 +325,10 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
                             >
                               <FileText size={12} className="flex-shrink-0" />
                               <span className="truncate">{s.titulo}</span>
-                              {s.favorito && <Star size={10} fill="currentColor" className="text-primary flex-shrink-0 ml-auto" />}
+                              {(acessos[s.id] || 0) >= 5 && (
+                                <Flame size={10} className="text-primary flex-shrink-0 ml-auto" />
+                              )}
+                              {s.favorito && <Star size={10} fill="currentColor" className={`text-primary flex-shrink-0 ${(acessos[s.id] || 0) >= 5 ? "" : "ml-auto"}`} />}
                             </button>
                           ))}
                         </div>
