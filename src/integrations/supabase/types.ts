@@ -1383,7 +1383,13 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      demanda_counts: {
+        Row: {
+          tipo_demanda: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       backup_diario_oficios: { Args: never; Returns: undefined }
