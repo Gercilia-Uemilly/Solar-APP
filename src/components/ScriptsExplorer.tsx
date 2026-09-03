@@ -6,6 +6,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { getAcessos, registrarAcesso, getHistoricoBusca, registrarBusca } from "@/lib/bancoDestaques";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+function norm(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
+/** Palavras-chave que identificam um script: categoria, tags e termos fortes do título */
+function scriptTerms(s: { titulo: string; categoria: string; tags?: string[] }): string[] {
+  const terms = new Set<string>();
+  if (s.categoria) terms.add(norm(s.categoria));
+  (s.tags || []).forEach(t => { const n = norm(t); if (n.length > 3) terms.add(n); });
+  s.titulo.split(/[^A-Za-zÀ-ÿ]+/).forEach(w => {
+    const n = norm(w);
+    if (n.length >= 5 && !["sobre", "para", "como", "solicitacao", "pedido"].includes(n)) terms.add(n);
+  });
+  return [...terms];
+}
 
 interface ScriptRow {
   id: string;
