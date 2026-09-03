@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import ContatosTable from "@/components/ContatosTable";
 import SecretariasReferencia from "@/components/SecretariasReferencia";
+import { getFavoritos, toggleFavorito, getAcessos, registrarAcesso, getHistoricoBusca, registrarBusca } from "@/lib/bancoDestaques";
 
 interface KnowledgeEntry {
   id: string;
