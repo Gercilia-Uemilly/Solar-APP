@@ -148,20 +148,53 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Upsert atualizando registros existentes (corrige datas vazias e títulos antigos);
-      // baseia-se no índice único parcial base_conhecimento_sos_link_unique (link) WHERE fonte='SOS Uberlândia'
+      // Mescla manual: o índice único é parcial (só fonte='SOS Uberlândia') e o PostgREST
+      // não aceita ON CONFLICT nele — então buscamos os links existentes, atualizamos
+      // os já cadastrados (corrige datas/títulos) e inserimos apenas os novos.
       if (toInsert.length > 0) {
-        const { data: upserted, error } = await supabase
+        const links = toInsert.map(r => r.link);
+        const { data: existing, error: selErr } = await supabase
           .from("base_conhecimento")
-          .upsert(toInsert, { onConflict: "link" })
-          .select("id");
-        if (error) {
-          console.error("Insert error:", error);
-        } else {
-          const newCount = upserted?.length || 0;
-          inserted += newCount;
-          skipped += toInsert.length - newCount;
+          .select("id, link")
+          .eq("fonte", "SOS Uberlândia")
+          .in("link", links);
+        if (selErr) {
+          console.error("Select error:", selErr);
+          continue;
         }
+        const existingMap = new Map((existing || []).map((r: any) => [r.link, r.id]));
+
+        const toUpdate = toInsert.filter(r => existingMap.has(r.link));
+        const toNew = toInsert.filter(r => !existingMap.has(r.link));
+
+        let updated = 0;
+        for (const row of toUpdate) {
+          const { error: updErr } = await supabase
+            .from("base_conhecimento")
+            .update({
+              titulo: row.titulo,
+              descricao: row.descricao,
+              data_publicacao: row.data_publicacao,
+              palavras_chave: row.palavras_chave,
+              bairro: row.bairro,
+            })
+            .eq("id", existingMap.get(row.link));
+          if (updErr) console.error("Update error:", updErr);
+          else updated++;
+        }
+
+        if (toNew.length > 0) {
+          const { data: ins, error: insErr } = await supabase
+            .from("base_conhecimento")
+            .insert(toNew)
+            .select("id");
+          if (insErr) {
+            console.error("Insert error:", insErr);
+          } else {
+            inserted += ins?.length || 0;
+          }
+        }
+        skipped += updated;
       }
     }
 
