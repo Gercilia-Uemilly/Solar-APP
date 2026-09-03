@@ -6,6 +6,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { getAcessos, registrarAcesso, getHistoricoBusca, registrarBusca } from "@/lib/bancoDestaques";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+function norm(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
+/** Palavras-chave que identificam um script: categoria, tags e termos fortes do título */
+function scriptTerms(s: { titulo: string; categoria: string; tags?: string[] }): string[] {
+  const terms = new Set<string>();
+  if (s.categoria) terms.add(norm(s.categoria));
+  (s.tags || []).forEach(t => { const n = norm(t); if (n.length > 3) terms.add(n); });
+  s.titulo.split(/[^A-Za-zÀ-ÿ]+/).forEach(w => {
+    const n = norm(w);
+    if (n.length >= 5 && !["sobre", "para", "como", "solicitacao", "pedido"].includes(n)) terms.add(n);
+  });
+  return [...terms];
+}
 
 interface ScriptRow {
   id: string;
@@ -60,7 +77,18 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [acessos, setAcessos] = useState(() => getAcessos(user?.id));
   const [historico, setHistorico] = useState(() => getHistoricoBusca(user?.id));
+  const [demandaCounts, setDemandaCounts] = useState<{ tipo_demanda: string; total: number }[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Busca dados reais do sistema: quantas demandas de cada tipo já foram feitas
+  useEffect(() => {
+    let active = true;
+    (supabase as any)
+      .from("demanda_counts")
+      .select("tipo_demanda, total")
+      .then(({ data }: any) => { if (active && data) setDemandaCounts(data); });
+    return () => { active = false; };
+  }, []);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -111,13 +139,27 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
     return openFolders;
   }, [search, favOnly, filteredGrouped, openFolders]);
 
-  // Mais usados (top acessos)
+  // Score real de uso: demandas do sistema que combinam com o script + acessos locais
+  const scoreScript = useCallback((s: ScriptRow): number => {
+    let score = acessos[s.id] || 0;
+    if (demandaCounts.length > 0) {
+      const terms = scriptTerms(s);
+      demandaCounts.forEach(d => {
+        const dem = norm(d.tipo_demanda);
+        if (terms.some(t => dem.includes(t) || t.includes(dem))) score += d.total;
+      });
+    }
+    return score;
+  }, [acessos, demandaCounts]);
+
+  // Mais usados (dados reais do sistema + acessos do operador)
   const maisUsados = useMemo(() => {
     return [...scripts]
-      .filter(s => (acessos[s.id] || 0) > 0)
-      .sort((a, b) => (acessos[b.id] || 0) - (acessos[a.id] || 0))
+      .map(s => ({ s, score: scoreScript(s) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
       .slice(0, 6);
-  }, [scripts, acessos]);
+  }, [scripts, scoreScript]);
 
   // Suggestions: history + titles + categories + tags matching input
   const suggestions = useMemo(() => {
@@ -246,7 +288,7 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
             <Flame size={12} className="text-primary" /> Mais usados
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {maisUsados.map(s => (
+            {maisUsados.map(({ s, score }) => (
               <button
                 key={s.id}
                 onClick={() => selectScript(s)}
@@ -254,7 +296,7 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
               >
                 {s.favorito && <Star size={10} fill="currentColor" className="text-primary" />}
                 <span className="max-w-[220px] truncate">{s.titulo}</span>
-                <span className="text-[10px] text-muted-foreground font-medium">{acessos[s.id]}×</span>
+                <span className="text-[10px] text-muted-foreground font-medium">{score}×</span>
               </button>
             ))}
           </div>
@@ -325,10 +367,10 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
                             >
                               <FileText size={12} className="flex-shrink-0" />
                               <span className="truncate">{s.titulo}</span>
-                              {(acessos[s.id] || 0) >= 5 && (
+                              {scoreScript(s) >= 5 && (
                                 <Flame size={10} className="text-primary flex-shrink-0 ml-auto" />
                               )}
-                              {s.favorito && <Star size={10} fill="currentColor" className={`text-primary flex-shrink-0 ${(acessos[s.id] || 0) >= 5 ? "" : "ml-auto"}`} />}
+                              {s.favorito && <Star size={10} fill="currentColor" className={`text-primary flex-shrink-0 ${scoreScript(s) >= 5 ? "" : "ml-auto"}`} />}
                             </button>
                           ))}
                         </div>
