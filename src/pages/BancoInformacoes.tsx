@@ -1187,9 +1187,77 @@ export default function BancoInformacoes() {
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-[200px] relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input placeholder="Buscar por título, órgão, bairro, palavra-chave..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                  <Input
+                    placeholder="Buscar por título, órgão, bairro, palavra-chave..."
+                    value={search}
+                    onChange={e => { setSearch(e.target.value); setShowSuggestions(true); }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                    onKeyDown={e => { if (e.key === "Enter") { handleRegistrarBusca(search); setShowSuggestions(false); } }}
+                    className="pl-9"
+                  />
+                  {showSuggestions && sugestoes.length > 0 && (
+                    <div className="absolute z-30 left-0 right-0 top-full mt-1 rounded-lg border border-border bg-popover shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+                      {sugestoes.map((s, i) => (
+                        <button
+                          key={`${s.label}-${i}`}
+                          onMouseDown={() => { setSearch(s.label); handleRegistrarBusca(s.label); setShowSuggestions(false); }}
+                          className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-muted transition-colors"
+                        >
+                          <span className="flex items-center gap-2 min-w-0">
+                            {s.tipo === "Histórico" ? <Clock size={12} className="text-muted-foreground flex-shrink-0" /> : <Search size={12} className="text-muted-foreground flex-shrink-0" />}
+                            <span className="truncate">{s.label}</span>
+                          </span>
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">{s.tipo}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                <Button
+                  size="sm"
+                  variant={onlyFavoritos ? "default" : "outline"}
+                  className="h-9 gap-1.5 text-xs"
+                  onClick={() => setOnlyFavoritos(v => !v)}
+                >
+                  <Star size={13} fill={onlyFavoritos ? "currentColor" : "none"} /> Favoritos ({favoritos.length})
+                </Button>
               </div>
+
+              {/* Destaques: favoritos e mais pesquisados */}
+              {!search && (favoritosEntries.length > 0 || maisAcessados.length > 0) && (
+                <div className="space-y-2 pt-1">
+                  {favoritosEntries.length > 0 && (
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <span className="text-[11px] font-semibold text-primary flex items-center gap-1 mt-1"><Star size={12} fill="currentColor" /> Favoritos:</span>
+                      {favoritosEntries.slice(0, 8).map(e => (
+                        <button
+                          key={e.id}
+                          onClick={() => { handleRegistrarAcesso(e.id); openDialog(e); }}
+                          className="text-[11px] px-2 py-1 rounded-full border border-primary/30 bg-primary/10 text-foreground hover:bg-primary/20 transition-colors max-w-[220px] truncate"
+                        >
+                          {e.titulo}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {maisAcessados.length > 0 && (
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1 mt-1"><Sparkles size={12} /> Mais pesquisados:</span>
+                      {maisAcessados.map(e => (
+                        <button
+                          key={e.id}
+                          onClick={() => { handleRegistrarAcesso(e.id); openDialog(e); }}
+                          className="text-[11px] px-2 py-1 rounded-full border border-border bg-muted text-foreground hover:bg-muted/70 transition-colors max-w-[220px] truncate"
+                        >
+                          {e.titulo} <span className="text-muted-foreground">·{acessos[e.id]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter size={12} /> Filtros:</div>
                 <Select value={fonteFilter} onValueChange={setFonteFilter}>
