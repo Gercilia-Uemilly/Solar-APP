@@ -238,6 +238,32 @@ export default function BancoInformacoes() {
   const [sosSortOrder, setSosSortOrder] = useState<"desc" | "asc">("desc");
   const [mainTab, setMainTab] = useState("base");
 
+  // ─── Favoritos / Mais pesquisados / Sugestões (Banco) ───
+  const [favoritos, setFavoritos] = useState<string[]>([]);
+  const [acessos, setAcessos] = useState<Record<string, number>>({});
+  const [historicoBusca, setHistoricoBusca] = useState<string[]>([]);
+  const [onlyFavoritos, setOnlyFavoritos] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    setFavoritos(getFavoritos(user?.id));
+    setAcessos(getAcessos(user?.id));
+    setHistoricoBusca(getHistoricoBusca(user?.id));
+  }, [user?.id]);
+
+  const handleToggleFavorito = useCallback((id: string) => {
+    setFavoritos(toggleFavorito(id, user?.id));
+  }, [user?.id]);
+
+  const handleRegistrarAcesso = useCallback((id: string) => {
+    setAcessos(registrarAcesso(id, user?.id));
+  }, [user?.id]);
+
+  const handleRegistrarBusca = useCallback((term: string) => {
+    setHistoricoBusca(registrarBusca(term, user?.id));
+  }, [user?.id]);
+
+
   const [showDialog, setShowDialog] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
   const [generating, setGenerating] = useState(false);
