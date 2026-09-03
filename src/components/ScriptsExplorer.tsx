@@ -139,13 +139,27 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
     return openFolders;
   }, [search, favOnly, filteredGrouped, openFolders]);
 
-  // Mais usados (top acessos)
+  // Score real de uso: demandas do sistema que combinam com o script + acessos locais
+  const scoreScript = useCallback((s: ScriptRow): number => {
+    let score = acessos[s.id] || 0;
+    if (demandaCounts.length > 0) {
+      const terms = scriptTerms(s);
+      demandaCounts.forEach(d => {
+        const dem = norm(d.tipo_demanda);
+        if (terms.some(t => dem.includes(t) || t.includes(dem))) score += d.total;
+      });
+    }
+    return score;
+  }, [acessos, demandaCounts]);
+
+  // Mais usados (dados reais do sistema + acessos do operador)
   const maisUsados = useMemo(() => {
     return [...scripts]
-      .filter(s => (acessos[s.id] || 0) > 0)
-      .sort((a, b) => (acessos[b.id] || 0) - (acessos[a.id] || 0))
+      .map(s => ({ s, score: scoreScript(s) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
       .slice(0, 6);
-  }, [scripts, acessos]);
+  }, [scripts, scoreScript]);
 
   // Suggestions: history + titles + categories + tags matching input
   const suggestions = useMemo(() => {
