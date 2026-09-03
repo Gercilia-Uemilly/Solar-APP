@@ -288,7 +288,7 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
             <Flame size={12} className="text-primary" /> Mais usados
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {maisUsados.map(s => (
+            {maisUsados.map(({ s, score }) => (
               <button
                 key={s.id}
                 onClick={() => selectScript(s)}
@@ -296,7 +296,7 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
               >
                 {s.favorito && <Star size={10} fill="currentColor" className="text-primary" />}
                 <span className="max-w-[220px] truncate">{s.titulo}</span>
-                <span className="text-[10px] text-muted-foreground font-medium">{acessos[s.id]}×</span>
+                <span className="text-[10px] text-muted-foreground font-medium">{score}×</span>
               </button>
             ))}
           </div>
