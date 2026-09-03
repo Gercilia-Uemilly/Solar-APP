@@ -355,15 +355,23 @@ export default function BancoInformacoes() {
         e.palavras_chave?.some(k => k.toLowerCase().includes(s))
       );
     }
+    if (onlyFavoritos) result = result.filter(e => favoritos.includes(e.id));
     return result.sort((a, b) => {
+      // Favoritos e mais pesquisados ganham destaque no topo
+      const fa = favoritos.includes(a.id) ? 1 : 0;
+      const fb = favoritos.includes(b.id) ? 1 : 0;
+      if (fa !== fb) return fb - fa;
+      const ha = acessos[a.id] || 0;
+      const hb = acessos[b.id] || 0;
+      if (ha !== hb) return hb - ha;
       const da = new Date(a.data_publicacao || a.created_at).getTime();
       const db = new Date(b.data_publicacao || b.created_at).getTime();
       return sortOrder === "desc" ? db - da : da - db;
     });
-  }, [entries, serverSearchResults, search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+  }, [entries, serverSearchResults, search, fonteFilter, themeFilter, dateFilter, sortOrder, onlyFavoritos, favoritos, acessos]);
 
   // Reseta paginação sempre que a lista filtrada muda por busca/filtros/ordem
-  useEffect(() => { setPage(1); }, [search, fonteFilter, themeFilter, dateFilter, sortOrder]);
+  useEffect(() => { setPage(1); }, [search, fonteFilter, themeFilter, dateFilter, sortOrder, onlyFavoritos]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -371,6 +379,47 @@ export default function BancoInformacoes() {
     () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
     [filtered, currentPage]
   );
+
+  // Entradas favoritas do operador
+  const favoritosEntries = useMemo(
+    () => entries.filter(e => favoritos.includes(e.id)),
+    [entries, favoritos]
+  );
+
+  // Mais pesquisados/acessados pelo operador
+  const maisAcessados = useMemo(() => {
+    return entries
+      .filter(e => (acessos[e.id] || 0) > 0)
+      .sort((a, b) => (acessos[b.id] || 0) - (acessos[a.id] || 0))
+      .slice(0, 8);
+  }, [entries, acessos]);
+
+  // Sugestões de autocomplete enquanto o operador digita
+  const sugestoes = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (term.length < 2) {
+      return historicoBusca.slice(0, 6).map(h => ({ label: h, tipo: "Histórico" as const }));
+    }
+    const out: { label: string; tipo: "Título" | "Palavra-chave" | "Órgão" | "Bairro" | "Histórico" }[] = [];
+    const seen = new Set<string>();
+    const push = (label: string | null | undefined, tipo: typeof out[number]["tipo"]) => {
+      if (!label) return;
+      const k = label.toLowerCase();
+      if (seen.has(k) || !k.includes(term)) return;
+      seen.add(k);
+      out.push({ label, tipo });
+    };
+    for (const h of historicoBusca) push(h, "Histórico");
+    for (const e of entries) {
+      push(e.titulo, "Título");
+      (e.palavras_chave || []).forEach(k => push(k, "Palavra-chave"));
+      push(e.orgao, "Órgão");
+      push(e.bairro, "Bairro");
+      if (out.length > 40) break;
+    }
+    return out.slice(0, 8);
+  }, [search, entries, historicoBusca]);
+
 
   // Busca no servidor com debounce — cobre linhas que ficam fora do cache local
   // quando a tabela ultrapassa o limite de 1000.
