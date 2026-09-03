@@ -46,17 +46,34 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Auth: aceita (a) segredo interno (cron/n8n) ou (b) usuário autenticado (botão na interface)
+    // Auth: aceita (a) token de cron validado no banco, (b) segredo interno (n8n) ou (c) usuário autenticado (botão na interface)
     const internalSecret = Deno.env.get("INTERNAL_WEBHOOK_SECRET_N8N") || Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
     const providedSecret = req.headers.get("x-internal-secret") || "";
+    const cronToken = req.headers.get("x-cron-token") || "";
     const authHeader = req.headers.get("Authorization");
 
     let supabase;
-    if (internalSecret && providedSecret === internalSecret) {
-      // Chamada interna agendada: usa service role para gravar
-      supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    } else {
+    let authorized = false;
+
+    // (a) cron: valida token contra a tabela privada
+    if (cronToken) {
+      const admin = createClient(supabaseUrl, serviceKey);
+      const { data: valid } = await admin.rpc("cron_token_valid", { p_token: cronToken });
+      if (valid) {
+        supabase = admin;
+        authorized = true;
+      }
+    }
+
+    // (b) segredo interno
+    if (!authorized && internalSecret && providedSecret === internalSecret) {
+      supabase = createClient(supabaseUrl, serviceKey);
+      authorized = true;
+    }
+
+    if (!authorized) {
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
