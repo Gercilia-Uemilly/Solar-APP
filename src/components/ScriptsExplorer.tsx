@@ -77,7 +77,18 @@ export default function ScriptsExplorer({ scripts, loading, onEdit, onDelete, on
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [acessos, setAcessos] = useState(() => getAcessos(user?.id));
   const [historico, setHistorico] = useState(() => getHistoricoBusca(user?.id));
+  const [demandaCounts, setDemandaCounts] = useState<{ tipo_demanda: string; total: number }[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Busca dados reais do sistema: quantas demandas de cada tipo já foram feitas
+  useEffect(() => {
+    let active = true;
+    (supabase as any)
+      .from("demanda_counts")
+      .select("tipo_demanda, total")
+      .then(({ data }: any) => { if (active && data) setDemandaCounts(data); });
+    return () => { active = false; };
+  }, []);
 
   // Close suggestions when clicking outside
   useEffect(() => {
