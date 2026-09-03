@@ -1302,15 +1302,28 @@ export default function BancoInformacoes() {
                 <Library size={48} className="mx-auto mb-3 opacity-30" /><p className="font-medium">Nenhuma entrada encontrada</p>
               </div>
             ) : paginated.map(entry => (
-              <Card key={entry.id} className={`group hover:shadow-md transition-all ${isAdmin && entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
+              <Card key={entry.id} className={`group hover:shadow-md transition-all ${favoritos.includes(entry.id) ? 'border-primary/50 ring-1 ring-primary/20' : ''} ${isAdmin && entry.modelo ? 'border-primary/40 bg-primary/5' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       {categoriaIcon(entry.categoria)}
                       <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{entry.titulo}</h3>
                     </div>
-                    {isAdmin && entry.modelo && <Badge variant="default" className="text-[9px] px-1.5 flex-shrink-0">Modelo</Badge>}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {(acessos[entry.id] || 0) >= 3 && (
+                        <Badge variant="outline" className="text-[9px] px-1.5 gap-1"><Sparkles size={9} /> Top</Badge>
+                      )}
+                      {isAdmin && entry.modelo && <Badge variant="default" className="text-[9px] px-1.5">Modelo</Badge>}
+                      <button
+                        onClick={() => handleToggleFavorito(entry.id)}
+                        title={favoritos.includes(entry.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                        className={`p-1 rounded-md transition-colors ${favoritos.includes(entry.id) ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                      >
+                        <Star size={14} fill={favoritos.includes(entry.id) ? "currentColor" : "none"} />
+                      </button>
+                    </div>
                   </div>
+
                   {entry.descricao && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{entry.descricao}</p>}
                   <div className="flex flex-wrap items-center gap-1.5 mt-3">
                     <span className="inline-flex items-center gap-1 text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-full">
