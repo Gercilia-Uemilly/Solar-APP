@@ -45,27 +45,35 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
 
-    // Validate user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Auth: aceita (a) segredo interno (cron/n8n) ou (b) usuário autenticado (botão na interface)
+    const internalSecret = Deno.env.get("INTERNAL_WEBHOOK_SECRET_N8N") || Deno.env.get("INTERNAL_WEBHOOK_SECRET") || "";
+    const providedSecret = req.headers.get("x-internal-secret") || "";
+    const authHeader = req.headers.get("Authorization");
+
+    let supabase;
+    if (internalSecret && providedSecret === internalSecret) {
+      // Chamada interna agendada: usa service role para gravar
+      supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    } else {
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
       });
+      // Validate user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json().catch(() => ({}));
@@ -123,12 +131,12 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Upsert with ignoreDuplicates: relies on the partial unique index
-      // base_conhecimento_sos_link_unique (link) WHERE fonte='SOS Uberlândia'
+      // Upsert atualizando registros existentes (corrige datas vazias e títulos antigos);
+      // baseia-se no índice único parcial base_conhecimento_sos_link_unique (link) WHERE fonte='SOS Uberlândia'
       if (toInsert.length > 0) {
         const { data: upserted, error } = await supabase
           .from("base_conhecimento")
-          .upsert(toInsert, { onConflict: "link", ignoreDuplicates: true })
+          .upsert(toInsert, { onConflict: "link" })
           .select("id");
         if (error) {
           console.error("Insert error:", error);
