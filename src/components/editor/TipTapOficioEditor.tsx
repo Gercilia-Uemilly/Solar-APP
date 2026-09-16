@@ -177,6 +177,14 @@ export default function TipTapOficioEditor({
           padding-left: 2cm;
           margin-bottom: 10px;
         }
+        .tiptap-oficio-editor .tiptap li {
+          padding-left: 0.2cm;
+          text-indent: 0;
+          text-align: justify;
+        }
+        .tiptap-oficio-editor .tiptap li > p {
+          text-indent: 0;
+        }
         .tiptap-oficio-editor .tiptap img {
           max-width: 100%;
           height: auto;

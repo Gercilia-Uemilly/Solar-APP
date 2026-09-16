@@ -96,6 +96,16 @@ function splitHtmlIntoBlocks(html: string) {
     const el = node as HTMLElement;
     const tag = el.tagName.toLowerCase();
 
+    if (tag === "ol" || tag === "ul") {
+      const start = tag === "ol" ? Number.parseInt(el.getAttribute("start") || "1", 10) || 1 : 1;
+      Array.from(el.children).forEach((child, index) => {
+        if (child.tagName.toLowerCase() !== "li") return;
+        const startAttribute = tag === "ol" ? ` start="${start + index}"` : "";
+        blocks.push(`<${tag}${startAttribute}>${child.outerHTML}</${tag}>`);
+      });
+      return;
+    }
+
     if (blockTags.has(tag)) {
       blocks.push(el.outerHTML);
       return;
@@ -767,6 +777,12 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
             margin: 0 0 10px 0;
             font-size: ${effectiveFontSize}pt;
             line-height: ${effectiveLineSpacing};
+          }
+          .oficio-preview-page-body li,
+          .oficio-preview-measure li {
+            padding-left: 0.2cm;
+            text-indent: 0;
+            text-align: justify;
           }
           .oficio-preview-page-body img,
           .oficio-preview-measure img {
