@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Footer, Header, PageNumber } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Footer, Header, PageNumber, LevelFormat } from "docx";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
@@ -217,7 +217,13 @@ interface ParsedImageRun {
 
 type ParsedRun = StyledRun | ParsedImageRun;
 
-function parseHtmlToParagraphs(html: string): ParsedRun[][] {
+interface ParsedParagraph {
+  runs: ParsedRun[];
+  listReference?: string;
+  listLevel?: number;
+}
+
+function parseHtmlToParagraphs(html: string): ParsedParagraph[] {
   if (!html) return [];
 
   if (!html.includes("<")) {
@@ -226,7 +232,7 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
       .map((p) => p.replace(/\n+/g, " ").trim())
       .filter(Boolean)
       .filter((p) => !p.match(/^Excelentíssimo\(a\)\s+Senhor\(a\)/i))
-      .map((p) => [{ text: p }]);
+      .map((p) => ({ runs: [{ text: p }] }));
   }
 
   const root = document.createElement("div");
@@ -249,8 +255,13 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
   const blockTags = new Set(["p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote"]);
   const containerTags = new Set(["div", "section", "article", "main"]);
 
-  const paragraphNodes: HTMLElement[] = [];
+  const paragraphNodes: Array<{
+    node: HTMLElement;
+    listReference?: string;
+    listLevel?: number;
+  }> = [];
   let inlineBuffer: Node[] = [];
+  let listSequence = 0;
 
   const flushInlineBuffer = () => {
     const hasContent = inlineBuffer.some((n) => {
@@ -268,11 +279,11 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
 
     const p = document.createElement("p");
     inlineBuffer.forEach((n) => p.appendChild(n.cloneNode(true)));
-    paragraphNodes.push(p);
+    paragraphNodes.push({ node: p });
     inlineBuffer = [];
   };
 
-  const processNode = (node: Node) => {
+  const processNode = (node: Node, listReference?: string, listLevel = 0) => {
     if (node.nodeType === Node.TEXT_NODE) {
       if ((node.textContent || "").trim()) {
         inlineBuffer.push(node.cloneNode(true));
@@ -292,13 +303,18 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
 
     if (tag === "ul" || tag === "ol") {
       flushInlineBuffer();
-      Array.from(el.children).forEach((child) => processNode(child));
+      const currentReference = `${tag === "ol" ? "oficio-numbered" : "oficio-bullets"}-${listSequence++}`;
+      Array.from(el.children).forEach((child) => processNode(child, currentReference, listLevel));
       return;
     }
 
     if (blockTags.has(tag)) {
       flushInlineBuffer();
-      paragraphNodes.push(el.cloneNode(true) as HTMLElement);
+      paragraphNodes.push({
+        node: el.cloneNode(true) as HTMLElement,
+        listReference: tag === "li" ? listReference : undefined,
+        listLevel: tag === "li" ? listLevel : undefined,
+      });
       return;
     }
 
@@ -311,7 +327,7 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
 
       if (hasNestedBlocks) {
         flushInlineBuffer();
-        Array.from(el.childNodes).forEach((child) => processNode(child));
+        Array.from(el.childNodes).forEach((child) => processNode(child, listReference, listLevel));
       } else {
         inlineBuffer.push(el.cloneNode(true));
       }
@@ -324,7 +340,7 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
   Array.from(root.childNodes).forEach((node) => processNode(node));
   flushInlineBuffer();
 
-  const paragraphs: ParsedRun[][] = [];
+  const paragraphs: ParsedParagraph[] = [];
   const processedImageSrcs = new Set<string>(); // Deduplicate images
 
   const decodeBase64Image = (src: string): ParsedImageRun | null => {
@@ -408,7 +424,7 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
     return runs;
   };
 
-  paragraphNodes.forEach((node) => {
+  paragraphNodes.forEach(({ node, listReference, listLevel }) => {
     const runs = extractRuns(node, {});
     const textOnly = runs
       .filter((r) => "text" in r && !(r as StyledRun).break)
@@ -437,12 +453,12 @@ function parseHtmlToParagraphs(html: string): ParsedRun[][] {
       // Add text paragraph if it has content
       const hasText = textRuns.some(r => 'text' in r && (r as StyledRun).text.trim());
       if (hasText) {
-        paragraphs.push(textRuns);
+        paragraphs.push({ runs: textRuns, listReference, listLevel });
       }
       
       // Add each image as its own paragraph (for proper spacing)
       for (const imgRun of imageRuns) {
-        paragraphs.push([imgRun]);
+        paragraphs.push({ runs: [imgRun] });
       }
     }
   });
@@ -630,7 +646,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   // Collect all inline images separately for grid layout
   const inlineImages: ParsedImageRun[] = [];
   
-  styledParagraphs.forEach((runs) => {
+  styledParagraphs.forEach(({ runs, listReference, listLevel }) => {
     const isImageOnly = runs.length > 0 && runs.every(r => 'image' in r);
     
     if (isImageOnly) {
@@ -660,10 +676,11 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
 
     if (children.length > 0) {
       bodyParagraphs.push(new Paragraph({
-        indent: { firstLine: 709 },
+        indent: listReference ? undefined : { firstLine: 709 },
         alignment: AlignmentType.JUSTIFIED,
         children,
         spacing: { before: 0, after: 0, line: lineSpacing },
+        numbering: listReference ? { reference: listReference, level: listLevel || 0 } : undefined,
       }));
     }
   });
@@ -699,7 +716,25 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     }
   }
 
+  const listReferences = Array.from(new Set(
+    styledParagraphs
+      .map((paragraph) => paragraph.listReference)
+      .filter((reference): reference is string => Boolean(reference)),
+  ));
+
   const doc = new Document({
+    numbering: {
+      config: listReferences.map((reference) => ({
+        reference,
+        levels: [{
+          level: 0,
+          format: reference.startsWith("oficio-numbered") ? LevelFormat.DECIMAL : LevelFormat.BULLET,
+          text: reference.startsWith("oficio-numbered") ? "%1." : "•",
+          alignment: AlignmentType.LEFT,
+          style: { paragraph: { indent: { left: 709, hanging: 360 } } },
+        }],
+      })),
+    },
     sections: [{
       properties: {
         page: {
