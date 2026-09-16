@@ -1416,6 +1416,7 @@ export type Database = {
         }
         Returns: string
       }
+      cron_token_valid: { Args: { p_token: string }; Returns: boolean }
       gerar_numero_protocolo: { Args: { p_ano: number }; Returns: string }
       get_email_by_username: { Args: { _username: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
