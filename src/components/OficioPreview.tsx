@@ -521,7 +521,46 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
         const source = document.createElement("div");
         source.innerHTML = html;
         const block = source.firstElementChild as HTMLElement | null;
-        if (!block || !["P", "DIV", "BLOCKQUOTE"].includes(block.tagName)) return null;
+        if (!block) return null;
+
+        // Listas precisam poder continuar na página seguinte. Tratá-las como
+        // um único bloco fazia a prévia transbordar e podia desestabilizar o
+        // editor durante a repaginação. Mantemos os itens e, em listas
+        // numeradas, continuamos a contagem na página seguinte.
+        if (["OL", "UL"].includes(block.tagName)) {
+          const items = Array.from(block.children);
+          if (items.length < 2) return null;
+
+          const buildList = (children: Element[], start?: number) => {
+            const clone = block.cloneNode(false) as HTMLOListElement | HTMLUListElement;
+            if (clone instanceof HTMLOListElement && start) clone.start = start;
+            children.forEach((child) => clone.appendChild(child.cloneNode(true)));
+            return clone.outerHTML;
+          };
+
+          let low = 1;
+          let high = items.length - 1;
+          let fittingCount = 0;
+          while (low <= high) {
+            const middle = Math.floor((low + high) / 2);
+            if (measureBlockHeight(buildList(items.slice(0, middle))) <= maxHeight) {
+              fittingCount = middle;
+              low = middle + 1;
+            } else {
+              high = middle - 1;
+            }
+          }
+
+          if (fittingCount <= 0 || fittingCount >= items.length) return null;
+          const initialStart = block instanceof HTMLOListElement ? block.start || 1 : undefined;
+          const nextStart = initialStart ? initialStart + fittingCount : undefined;
+          return [
+            buildList(items.slice(0, fittingCount), initialStart),
+            buildList(items.slice(fittingCount), nextStart),
+          ];
+        }
+
+        if (!["P", "DIV", "BLOCKQUOTE"].includes(block.tagName)) return null;
 
         const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
         const textNodes: Text[] = [];
