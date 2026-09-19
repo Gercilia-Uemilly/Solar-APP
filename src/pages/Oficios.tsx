@@ -1282,7 +1282,9 @@ export default function Oficios() {
   function mergeAttachmentFiles(base: File[], incoming: File[]): File[] {
     const merged = new Map<string, File>();
     [...base, ...incoming].forEach((file) => {
-      const key = `${file.name}|${file.size}|${file.lastModified}`;
+      // O mesmo arquivo baixado do armazenamento recebe outro lastModified.
+      // Nome + tamanho impedem que ele seja anexado novamente na exportação.
+      const key = `${file.name}|${file.size}`;
       if (!merged.has(key)) merged.set(key, file);
     });
     return Array.from(merged.values());
@@ -1525,9 +1527,16 @@ export default function Oficios() {
       </div>
 
       {/* Create Dialog with Tabs */}
-      <Dialog open={showDialog} onOpenChange={open => { if (!open) handleDialogClose(); else setShowDialog(true); }}>
+      <Dialog
+        open={showDialog}
+        onOpenChange={(open) => {
+          // Este formulário só fecha por uma ação explícita. Mudanças de foco do
+          // editor, paginação e seletores da barra não podem descartar a edição.
+          if (open) setShowDialog(true);
+        }}
+      >
         <DialogContent
-          className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-3 sm:p-6"
+          className="bg-card border-border !max-w-[100vw] !w-[100vw] !h-[100vh] !max-h-[100vh] !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0 overflow-y-auto p-3 sm:p-6 [&>button]:hidden"
           onInteractOutside={(event) => event.preventDefault()}
           onEscapeKeyDown={(event) => event.preventDefault()}
         >
@@ -1543,6 +1552,9 @@ export default function Oficios() {
                 <Trash2 size={14} className="mr-1" /> Excluir Ofício
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={() => void handleDialogClose()}>
+              <X size={14} className="mr-1" /> Fechar
+            </Button>
           </DialogHeader>
 
           <Tabs value={formTab} onValueChange={setFormTab} className="w-full">

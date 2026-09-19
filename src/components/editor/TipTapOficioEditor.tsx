@@ -177,6 +177,14 @@ export default function TipTapOficioEditor({
           padding-left: 2cm;
           margin-bottom: 10px;
         }
+        .tiptap-oficio-editor .tiptap ul {
+          list-style-type: disc;
+          list-style-position: outside;
+        }
+        .tiptap-oficio-editor .tiptap ol {
+          list-style-type: decimal;
+          list-style-position: outside;
+        }
         .tiptap-oficio-editor .tiptap li {
           padding-left: 0.2cm;
           text-indent: 0;

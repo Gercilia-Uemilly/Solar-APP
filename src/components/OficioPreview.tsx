@@ -661,7 +661,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
       }
 
       const firstCap = Math.max(120, CONTENT_H - firstChrome.offsetHeight - toolbarHeight - paginationSafety);
-      const continuationCap = Math.max(120, CONTENT_H - continuationChrome.offsetHeight - paginationSafety);
+      const continuationCap = Math.max(120, CONTENT_H - continuationChrome.offsetHeight - toolbarHeight - paginationSafety);
       const endingHeight = ending.offsetHeight;
 
       const nextPages: string[][] = [[]];
@@ -897,7 +897,7 @@ const OficioPreview = forwardRef<HTMLDivElement, Props>(
                         fontFamily={fmt.fontFamily}
                         fontSize={effectiveFontSize}
                         lineSpacing={effectiveLineSpacing}
-                        showToolbar={pageIdx === 0}
+                        showToolbar
                         syncContentWhileFocused
                       />
                     ) : (
