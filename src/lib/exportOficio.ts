@@ -221,6 +221,7 @@ interface ParsedParagraph {
   runs: ParsedRun[];
   listReference?: string;
   listLevel?: number;
+  listStart?: number;
 }
 
 function parseHtmlToParagraphs(html: string): ParsedParagraph[] {
@@ -259,6 +260,7 @@ function parseHtmlToParagraphs(html: string): ParsedParagraph[] {
     node: HTMLElement;
     listReference?: string;
     listLevel?: number;
+    listStart?: number;
   }> = [];
   let inlineBuffer: Node[] = [];
   let listSequence = 0;
@@ -283,7 +285,7 @@ function parseHtmlToParagraphs(html: string): ParsedParagraph[] {
     inlineBuffer = [];
   };
 
-  const processNode = (node: Node, listReference?: string, listLevel = 0) => {
+  const processNode = (node: Node, listReference?: string, listLevel = 0, listStart?: number) => {
     if (node.nodeType === Node.TEXT_NODE) {
       if ((node.textContent || "").trim()) {
         inlineBuffer.push(node.cloneNode(true));
@@ -304,7 +306,8 @@ function parseHtmlToParagraphs(html: string): ParsedParagraph[] {
     if (tag === "ul" || tag === "ol") {
       flushInlineBuffer();
       const currentReference = `${tag === "ol" ? "oficio-numbered" : "oficio-bullets"}-${listSequence++}`;
-      Array.from(el.children).forEach((child) => processNode(child, currentReference, listLevel));
+      const initialStart = tag === "ol" ? Number.parseInt(el.getAttribute("start") || "1", 10) || 1 : undefined;
+      Array.from(el.children).forEach((child) => processNode(child, currentReference, listLevel, initialStart));
       return;
     }
 
@@ -314,6 +317,7 @@ function parseHtmlToParagraphs(html: string): ParsedParagraph[] {
         node: el.cloneNode(true) as HTMLElement,
         listReference: tag === "li" ? listReference : undefined,
         listLevel: tag === "li" ? listLevel : undefined,
+        listStart: tag === "li" ? listStart : undefined,
       });
       return;
     }
@@ -424,7 +428,7 @@ function parseHtmlToParagraphs(html: string): ParsedParagraph[] {
     return runs;
   };
 
-  paragraphNodes.forEach(({ node, listReference, listLevel }) => {
+  paragraphNodes.forEach(({ node, listReference, listLevel, listStart }) => {
     const runs = extractRuns(node, {});
     const textOnly = runs
       .filter((r) => "text" in r && !(r as StyledRun).break)
@@ -453,7 +457,7 @@ function parseHtmlToParagraphs(html: string): ParsedParagraph[] {
       // Add text paragraph if it has content
       const hasText = textRuns.some(r => 'text' in r && (r as StyledRun).text.trim());
       if (hasText) {
-        paragraphs.push({ runs: textRuns, listReference, listLevel });
+        paragraphs.push({ runs: textRuns, listReference, listLevel, listStart });
       }
       
       // Add each image as its own paragraph (for proper spacing)
@@ -716,18 +720,22 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
     }
   }
 
-  const listReferences = Array.from(new Set(
+  const listDefinitions = Array.from(new Map(
     styledParagraphs
-      .map((paragraph) => paragraph.listReference)
-      .filter((reference): reference is string => Boolean(reference)),
-  ));
+      .filter((paragraph): paragraph is ParsedParagraph & { listReference: string } => Boolean(paragraph.listReference))
+      .map((paragraph) => [paragraph.listReference, {
+        reference: paragraph.listReference,
+        start: paragraph.listStart || 1,
+      }]),
+  ).values());
 
   const doc = new Document({
     numbering: {
-      config: listReferences.map((reference) => ({
+      config: listDefinitions.map(({ reference, start }) => ({
         reference,
         levels: [{
           level: 0,
+          start,
           format: reference.startsWith("oficio-numbered") ? LevelFormat.DECIMAL : LevelFormat.BULLET,
           text: reference.startsWith("oficio-numbered") ? "%1." : "•",
           alignment: AlignmentType.LEFT,

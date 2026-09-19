@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { AnexoFile } from "@/components/FileDropzone";
@@ -24,6 +24,9 @@ function normalizeAttachmentMime(fileName: string, ...candidates: Array<string |
 export function useAnexos(oficioId: string | null) {
   const [anexos, setAnexos] = useState<AnexoFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const uploadsInProgressRef = useRef(new Set<string>());
+
+  const fileFingerprint = (file: Pick<File, "name" | "size">) => `${file.name}|${file.size}`;
 
   // Load anexos from DB when oficioId changes
   useEffect(() => {
@@ -107,6 +110,10 @@ export function useAnexos(oficioId: string | null) {
   const addFile = useCallback(async (file: File) => {
     if (!oficioId) return;
 
+    const fingerprint = fileFingerprint(file);
+    if (uploadsInProgressRef.current.has(fingerprint)) return;
+    uploadsInProgressRef.current.add(fingerprint);
+
     const toastId = `anexo-${Date.now()}`;
     toast.loading("Salvando anexo...", { id: toastId });
 
@@ -149,6 +156,8 @@ export function useAnexos(oficioId: string | null) {
       toast.success("Anexo salvo!", { id: toastId });
     } catch (err: any) {
       toast.error(`Erro ao salvar anexo: ${err.message}`, { id: toastId });
+    } finally {
+      uploadsInProgressRef.current.delete(fingerprint);
     }
   }, [oficioId]);
 
@@ -202,20 +211,40 @@ export function useAnexos(oficioId: string | null) {
     const localFiles = anexos.filter((a) => a.file && a.id.startsWith("local-"));
     for (const anexo of localFiles) {
       if (!anexo.file) continue;
+      const fingerprint = fileFingerprint(anexo.file);
+      if (uploadsInProgressRef.current.has(fingerprint)) continue;
+      uploadsInProgressRef.current.add(fingerprint);
       const ext = anexo.nome.split(".").pop() || "bin";
       const storagePath = `oficios/${targetOficioId}/${crypto.randomUUID()}.${ext}`;
       const mimeType = normalizeAttachmentMime(anexo.nome, anexo.tipo, anexo.file.type);
 
-      const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, anexo.file, {
-        contentType: mimeType || undefined,
-      });
-      if (!upErr) {
-        await (supabase.from("oficio_anexos") as any).insert({
+      try {
+        const { error: upErr } = await supabase.storage.from("midias").upload(storagePath, anexo.file, {
+          contentType: mimeType || undefined,
+        });
+        if (upErr) throw upErr;
+
+        const { data: inserted, error: dbErr } = await (supabase.from("oficio_anexos") as any).insert({
           oficio_id: targetOficioId,
           storage_path: storagePath,
           file_name: anexo.nome,
           mime_type: mimeType,
-        });
+        }).select().single();
+        if (dbErr) throw dbErr;
+
+        const { data: urlData } = supabase.storage.from("midias").getPublicUrl(storagePath);
+        setAnexos((prev) => prev.map((item) => item.id === anexo.id ? {
+          id: inserted.id,
+          nome: anexo.nome,
+          tipo: mimeType,
+          tamanho: anexo.file?.size || anexo.tamanho,
+          url: urlData.publicUrl,
+          storagePath,
+        } : item));
+      } catch (err: any) {
+        toast.error(`Erro ao salvar ${anexo.nome}: ${err.message}`);
+      } finally {
+        uploadsInProgressRef.current.delete(fingerprint);
       }
     }
   }, [anexos]);
