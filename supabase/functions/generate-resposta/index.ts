@@ -27,6 +27,46 @@ const scoreRelevance = (text: string, keywords: string[]): number => {
   }, 0);
 };
 
+// Material de campanha não entra como referência (a eleição acabou)
+const CAMPANHA_RE = /santinho|43\.?999|\bvot[eo]s?\b|\bvotar\b|\bvotem\b|moldura|campanha/i;
+// Para scripts o filtro é mais estreito: "campanha de vacinação" e "título de eleitor" são assuntos legítimos
+const CAMPANHA_SCRIPT_RE = /santinho|43\.?999|moldura/i;
+
+// Palavras que não dizem qual é o assunto do pedido (usadas só no modo contexto)
+const PALAVRAS_VAZIAS = new Set([
+  "que", "com", "pra", "pro", "para", "por", "uma", "uns", "umas", "dos", "das", "nos", "nas", "meu", "minha", "meus", "minhas",
+  "seu", "sua", "isso", "esse", "essa", "este", "esta", "aqui", "ali", "tem", "ter", "tenho", "está", "esta", "estou", "são",
+  "foi", "ser", "não", "nao", "sim", "mais", "muito", "muita", "como", "qual", "quais", "onde", "quando", "quem", "porque",
+  "preciso", "precisa", "precisando", "quero", "queria", "gostaria", "saber", "pode", "poderia", "consigo", "conseguir", "fazer",
+  "favor", "olá", "ola", "bom", "boa", "dia", "tarde", "noite", "fabão", "fabao", "vereador", "deputado", "gente", "você", "voce",
+  "horário", "horario", "telefone", "endereço", "endereco", "número", "numero", "contato", "informação", "informacao",
+  "rua", "bairro", "casa", "aqui", "tudo", "bem", "ajuda", "ajudar", "ainda", "também", "tambem", "sobre",
+]);
+const palavrasFortes = (texto: string): string[] =>
+  [...new Set(texto.split(/[^a-zà-ÿ0-9]+/i).filter(w => w.length > 3 && !PALAVRAS_VAZIAS.has(w)))];
+const contarPalavras = (texto: string, palavras: string[]): number => {
+  const lower = (texto || "").toLowerCase();
+  return palavras.filter(p => lower.includes(p)).length;
+};
+
+// Troca o nome do cidadão por [NOME] nas respostas antigas (modo contexto: o texto vai para outra pessoa)
+const mascararNome = (texto: string, solicitante?: string | null): string => {
+  let t = texto;
+  const primeiro = (solicitante || "").trim().split(/\s+/)[0];
+  if (primeiro && primeiro.length > 2) {
+    const nomeEscapado = primeiro.replace(/[^A-Za-zÀ-ÿ0-9]/g, "\\$&");
+    t = t.replace(new RegExp("(?<![A-Za-zÀ-ÿ])" + nomeEscapado + "(?![A-Za-zÀ-ÿ])", "gi"), "[NOME]");
+  }
+  // Saudação no começo: "Ô João,", "Oi, Dona Maria!", "Bom dia, Seu José"
+  const saudacao = t.match(/^(\s*(?:ô|oi|olá|ola|opa|e aí|bom dia|boa tarde|boa noite)[,!\s]+)((?:dona|d\.|seu|sr\.?|sra\.?)\s+)?/i);
+  if (saudacao) {
+    const resto = t.slice(saudacao[0].length);
+    const nome = resto.match(/^[A-ZÀ-Ý][a-zà-ÿ]+(?:\s+[A-ZÀ-Ý][a-zà-ÿ]+)?(?=[,!.\s])/);
+    if (nome) t = saudacao[1] + "[NOME]" + resto.slice(nome[0].length);
+  }
+  return t;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -56,24 +96,35 @@ serve(async (req) => {
       }
     }
 
-    const { numero, assunto, destinatario, descricao, solicitante, bairro, local, secretaria, tipo_demanda, urgencia } = await req.json();
+    const { modo: modoPedido, numero, assunto, destinatario, descricao, solicitante, bairro, local, secretaria, tipo_demanda, urgencia } = await req.json();
+
+    // modo "painel" (padrão): gera a sugestão para a tela Respostas.
+    // modo "contexto": só o bot usa; devolve o material encontrado, sem chamar a IA.
+    const modo = modoPedido === "contexto" ? "contexto" : "painel";
+    if (modo === "contexto" && !ehBot) {
+      return new Response(JSON.stringify({ error: "Modo contexto é exclusivo do bot" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // Palavras-chave da demanda para ranquear relevância (filtro > 2 letras)
     const demandaText = `${assunto || ""} ${descricao || ""} ${bairro || ""} ${local || ""} ${secretaria || ""} ${tipo_demanda || ""}`.toLowerCase();
     const keywords = demandaText.split(/\s+/).filter(w => w.length > 2);
 
     // ═══ Buscar dados em paralelo ═══
+    // No modo contexto as mensagens do WhatsApp não são lidas: têm nome e assunto de outros cidadãos.
     const [scriptsRes, baseInfoRes, respostasRes, conversasRes] = await Promise.all([
       supabaseAdmin.from("scripts").select("titulo, conteudo, categoria, tags").order("created_at", { ascending: false }).limit(80),
-      supabaseAdmin.from("base_conhecimento").select("titulo, descricao, categoria, orgao, bairro").order("created_at", { ascending: false }).limit(60),
-      supabaseAdmin.from("oficios").select("resposta_cidadao, assunto, bairro, secretaria_identificada").not("resposta_cidadao", "is", null).order("created_at", { ascending: false }).limit(50),
-      supabaseAdmin.from("whatsapp_messages").select("content, direction, sender_name").eq("direction", "outgoing").not("content", "is", null).order("created_at", { ascending: false }).limit(60),
+      supabaseAdmin.from("base_conhecimento").select("titulo, descricao, categoria, orgao, bairro, link").order("created_at", { ascending: false }).limit(60),
+      supabaseAdmin.from("oficios").select("resposta_cidadao, assunto, bairro, secretaria_identificada, solicitante").not("resposta_cidadao", "is", null).order("created_at", { ascending: false }).limit(50),
+      modo === "contexto"
+        ? Promise.resolve({ data: [] as { content: string | null; direction: string; sender_name: string | null }[] })
+        : supabaseAdmin.from("whatsapp_messages").select("content, direction, sender_name").eq("direction", "outgoing").not("content", "is", null).order("created_at", { ascending: false }).limit(60),
     ]);
 
     const scripts = scriptsRes.data || [];
     const baseInfo = baseInfoRes.data || [];
-    const respostasAnteriores = respostasRes.data?.filter(r => r.resposta_cidadao) || [];
-    const conversasEnviadas = conversasRes.data?.filter(c => c.content && c.content.length > 20) || [];
+    // Mensagens de referência com material de campanha ficam de fora (nos dois modos)
+    const respostasAnteriores = respostasRes.data?.filter(r => r.resposta_cidadao && !CAMPANHA_RE.test(r.resposta_cidadao)) || [];
+    const conversasEnviadas = conversasRes.data?.filter(c => c.content && c.content.length > 20 && !CAMPANHA_RE.test(c.content)) || [];
 
     // ═══ Ranquear scripts por relevância ═══
     const rankedScripts = scripts
@@ -90,10 +141,82 @@ serve(async (req) => {
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
+    // Base de conhecimento ranqueada como os scripts (antes entravam as 10 mais recentes)
+    const rankedBase = baseInfo
+      .map(b => ({ ...b, score: scoreRelevance(`${b.titulo} ${b.descricao || ""} ${b.categoria || ""} ${b.orgao || ""} ${b.bairro || ""}`, keywords) }))
+      .sort((a, b) => b.score - a.score);
+    const topBase = rankedBase.slice(0, 10);
+
     const scriptsCount = scripts.length;
     const baseInfoCount = baseInfo.length;
     const respostasCount = respostasAnteriores.length;
     const conversasCount = conversasEnviadas.length;
+
+    // ═══ Modo contexto (bot): devolve o material, sem gerar texto ═══
+    if (modo === "contexto") {
+      const fortes = palavrasFortes(demandaText);
+      const scriptsCtx = scripts
+        .filter(s => !CAMPANHA_SCRIPT_RE.test(`${s.titulo} ${s.conteudo}`))
+        .map(s => ({
+          ...s,
+          noTitulo: contarPalavras(`${s.titulo} ${(s.tags || []).join(" ")}`, fortes),
+          noTexto: contarPalavras(`${s.titulo} ${s.conteudo} ${(s.tags || []).join(" ")}`, fortes),
+          score: scoreRelevance(`${s.titulo} ${s.conteudo} ${(s.tags || []).join(" ")} ${s.categoria}`, fortes),
+        }))
+        .filter(s => s.score > 0)
+        .sort((a, b) => b.noTitulo - a.noTitulo || b.score - a.score)
+        .slice(0, 8);
+      const baseCtx = baseInfo
+        .map(b => ({
+          ...b,
+          noTitulo: contarPalavras(`${b.titulo}`, fortes),
+          noTexto: contarPalavras(`${b.titulo} ${b.descricao || ""} ${b.orgao || ""}`, fortes),
+          score: scoreRelevance(`${b.titulo} ${b.descricao || ""} ${b.categoria || ""} ${b.orgao || ""} ${b.bairro || ""}`, fortes),
+        }))
+        .filter(b => b.score > 0)
+        .sort((a, b) => b.noTitulo - a.noTitulo || b.score - a.score)
+        .slice(0, 10);
+      const respostasCtx = respostasAnteriores
+        .map(r => ({ ...r, score: scoreRelevance(`${r.assunto} ${r.secretaria_identificada} ${r.resposta_cidadao}`, fortes) }))
+        .filter(r => r.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+
+      // Tem base = o assunto aparece no título de um script/item, ou pelo menos 2 palavras do pedido aparecem no texto
+      const cobre = (i: { noTitulo: number; noTexto: number }) => i.noTitulo >= 1 || i.noTexto >= 2;
+      const temBase = scriptsCtx.some(cobre) || baseCtx.some(cobre);
+
+      const contexto = `
+Respostas anteriores servem só de modelo de tom. Nunca copie nomes, endereços ou números de protocolo delas.
+
+═══ SCRIPTS DO GABINETE (FONTE PRIMÁRIA) ═══
+${scriptsCtx.length > 0
+  ? scriptsCtx.map(s => `[${s.categoria}] ${s.titulo} (relevância: ${s.score}):\n${cobre(s) ? s.conteudo : s.conteudo?.substring(0, 600)}`).join("\n---\n")
+  : "Nenhum script sobre esse assunto."}
+
+═══ BANCO DE INFORMAÇÕES ═══
+${baseCtx.length > 0
+  ? baseCtx.map(b => `[${b.categoria || "Geral"}] ${b.titulo}: ${b.descricao?.substring(0, 600) || ""} ${b.orgao ? `(${b.orgao})` : ""} ${b.link || ""}`.trim()).join("\n")
+  : "Nenhuma informação sobre esse assunto."}
+
+═══ RESPOSTAS JÁ ENVIADAS PELO GABINETE (só modelo de tom) ═══
+${respostasCtx.length > 0
+  ? respostasCtx.map(r => `[${r.secretaria_identificada || "Geral"}]\n${mascararNome(r.resposta_cidadao || "", r.solicitante).substring(0, 400)}`).join("\n---\n")
+  : "Nenhuma resposta anterior parecida."}
+      `.trim();
+
+      const melhores = [
+        ...scriptsCtx.map(s => ({ tipo: "script", titulo: s.titulo, score: s.score })),
+        ...baseCtx.map(b => ({ tipo: "base", titulo: b.titulo, score: b.score })),
+      ].sort((a, b) => b.score - a.score).slice(0, 8);
+
+      return new Response(JSON.stringify({
+        contexto,
+        temBase,
+        fontes: { scripts: scriptsCount, base_info: baseInfoCount, respostas_anteriores: respostasCount },
+        melhores,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // ═══ Montar contexto priorizando scripts relevantes ═══
     const contextoInterno = `
@@ -115,7 +238,7 @@ ${topRespostas.length > 0
 ${conversasEnviadas.slice(0, 20).map(c => c.content?.substring(0, 400)).join("\n---\n") || "Nenhuma conversa encontrada."}
 
 ═══ BANCO DE INFORMAÇÕES ═══
-${baseInfo.slice(0, 10).map(b => `[${b.categoria || "Geral"}] ${b.titulo}: ${b.descricao?.substring(0, 200) || ""} ${b.orgao ? `(${b.orgao})` : ""}`).join("\n") || "Nenhuma informação."}
+${topBase.map(b => `[${b.categoria || "Geral"}] ${b.titulo}: ${b.descricao?.substring(0, 200) || ""} ${b.orgao ? `(${b.orgao})` : ""}`).join("\n") || "Nenhuma informação."}
     `.trim();
 
     const protocolo = numero ? `${numero}` : "ainda não atribuído";
