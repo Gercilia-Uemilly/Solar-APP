@@ -66,7 +66,7 @@ serve(async (req) => {
     const docxBytes = new Uint8Array(await docxFile.arrayBuffer());
     const result = await addAnexoToDocx(docxBytes, images, pdfs);
 
-    return new Response(result, {
+    return new Response(new Uint8Array(result).buffer, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -74,7 +74,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("[add-anexo-images] Error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Erro interno" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

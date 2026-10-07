@@ -100,7 +100,7 @@ function pemPrivateKeyToArrayBuffer(privateKeyPem: string): ArrayBuffer {
     .replace(/\s+/g, "");
 
   const bytes = decodeBase64(base64);
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  return new Uint8Array(bytes).buffer;
 }
 
 async function getServiceAccountAccessToken(): Promise<string | null> {
@@ -473,7 +473,7 @@ serve(async (req) => {
           configuredProviders.push("GoogleDrive");
           try {
             const pdfBytes = await convertWithGoogleDrive(docxBytes, filename, googleAuth.accessToken);
-            return new Response(pdfBytes, { headers: pdfHeaders });
+            return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
           } catch (e) {
             const msg = getErrorMessage(e);
             providerErrors.push(`GoogleDrive: ${msg}`);
@@ -506,7 +506,7 @@ serve(async (req) => {
         configuredProviders.push("GoogleServiceAccount");
         try {
           const pdfBytes = await convertWithGoogleDrive(docxBytes, filename, serviceAccessToken);
-          return new Response(pdfBytes, { headers: pdfHeaders });
+          return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
         } catch (e) {
           const msg = getErrorMessage(e);
           providerErrors.push(`GoogleServiceAccount: ${msg}`);
@@ -535,7 +535,7 @@ serve(async (req) => {
         console.log(`[convert-to-pdf] 🔑 Tentando ConvertAPI com ${key.name}`);
         const pdfBytes = await convertWithConvertApi(docxBytes, filename, key.value);
         console.log(`[convert-to-pdf] ✅ Sucesso com ${key.name}`);
-        return new Response(pdfBytes, { headers: pdfHeaders });
+        return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
       } catch (e) {
         const msg = getErrorMessage(e);
         providerErrors.push(`ConvertAPI(${key.name}): ${msg}`);
@@ -559,7 +559,7 @@ serve(async (req) => {
       configuredProviders.push("CloudConvert");
       try {
         const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
-        return new Response(pdfBytes, { headers: pdfHeaders });
+        return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
       } catch (e) {
         const msg = getErrorMessage(e);
         providerErrors.push(`CloudConvert: ${msg}`);
@@ -575,7 +575,7 @@ serve(async (req) => {
       try {
         tempUpload = await uploadTempDocxAndGetPublicUrl(docxBytes, filename);
         const pdfBytes = await convertWithApi2Pdf(tempUpload.publicUrl, filename, API2PDF_KEY);
-        return new Response(pdfBytes, { headers: pdfHeaders });
+        return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
       } catch (e) {
         const msg = getErrorMessage(e);
         providerErrors.push(`Api2PDF: ${msg}`);
@@ -593,7 +593,7 @@ serve(async (req) => {
       configuredProviders.push("Gotenberg");
       try {
         const pdfBytes = await convertWithGotenberg(docxBytes, filename, GOTENBERG_URL);
-        return new Response(pdfBytes, { headers: pdfHeaders });
+        return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
       } catch (e) {
         const msg = getErrorMessage(e);
         providerErrors.push(`Gotenberg: ${msg}`);
@@ -688,7 +688,7 @@ async function convertWithCloudConvert(
     for (const [key, value] of Object.entries(form.parameters as Record<string, string>)) {
       uploadForm.append(key, value);
     }
-    uploadForm.append("file", new Blob([docxBytes], {
+    uploadForm.append("file", new Blob([new Uint8Array(docxBytes).buffer], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     }), filename);
 
@@ -776,7 +776,7 @@ async function convertWithGotenberg(
   gotenbergUrl: string
 ): Promise<Uint8Array> {
   const form = new FormData();
-  form.append("files", new Blob([docxBytes], {
+  form.append("files", new Blob([new Uint8Array(docxBytes).buffer], {
     type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   }), filename);
 
