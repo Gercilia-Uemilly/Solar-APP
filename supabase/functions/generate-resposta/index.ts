@@ -32,22 +32,56 @@ const CAMPANHA_RE = /santinho|43\.?999|\bvot[eo]s?\b|\bvotar\b|\bvotem\b|moldura
 // Para scripts o filtro é mais estreito: "campanha de vacinação" e "título de eleitor" são assuntos legítimos
 const CAMPANHA_SCRIPT_RE = /santinho|43\.?999|moldura/i;
 
-// Palavras que não dizem qual é o assunto do pedido (usadas só no modo contexto)
+// ─── Relevância do modo contexto (bot) ───
+// O bot responde sozinho, então aqui a busca é mais exigente que a do painel:
+// compara palavra inteira (sem acento, sem plural), ignora palavras que não dizem o
+// assunto, ignora nome de bairro e dá mais peso a palavra rara na base.
+const semAcento = (t: string): string => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const radical = (w: string): string => (w.length > 4 ? w.replace(/s$/, "") : w);
+// "segunda-feira" não é feira
+const palavrasDe = (t: string): string[] =>
+  semAcento(t).replace(/\b(segunda|terca|quarta|quinta|sexta)[\s-]feira\b/g, " ").split(/[^a-z0-9]+/).filter(w => w.length > 2).map(radical);
+
 const PALAVRAS_VAZIAS = new Set([
   "que", "com", "pra", "pro", "para", "por", "uma", "uns", "umas", "dos", "das", "nos", "nas", "meu", "minha", "meus", "minhas",
-  "seu", "sua", "isso", "esse", "essa", "este", "esta", "aqui", "ali", "tem", "ter", "tenho", "está", "esta", "estou", "são",
-  "foi", "ser", "não", "nao", "sim", "mais", "muito", "muita", "como", "qual", "quais", "onde", "quando", "quem", "porque",
+  "seu", "sua", "isso", "esse", "essa", "este", "esta", "aqui", "ali", "tem", "ter", "tenho", "estou", "sao",
+  "foi", "ser", "nao", "sim", "mais", "muito", "muita", "como", "qual", "quais", "onde", "quando", "quem", "porque",
   "preciso", "precisa", "precisando", "quero", "queria", "gostaria", "saber", "pode", "poderia", "consigo", "conseguir", "fazer",
-  "favor", "olá", "ola", "bom", "boa", "dia", "tarde", "noite", "fabão", "fabao", "vereador", "deputado", "gente", "você", "voce",
-  "horário", "horario", "telefone", "endereço", "endereco", "número", "numero", "contato", "informação", "informacao",
-  "rua", "bairro", "casa", "aqui", "tudo", "bem", "ajuda", "ajudar", "ainda", "também", "tambem", "sobre",
-]);
-const palavrasFortes = (texto: string): string[] =>
-  [...new Set(texto.split(/[^a-zà-ÿ0-9]+/i).filter(w => w.length > 3 && !PALAVRAS_VAZIAS.has(w)))];
-const contarPalavras = (texto: string, palavras: string[]): number => {
-  const lower = (texto || "").toLowerCase();
-  return palavras.filter(p => lower.includes(p)).length;
+  "favor", "ola", "bom", "boa", "dia", "tarde", "noite", "fabao", "vereador", "deputado", "gente", "voce",
+  "horario", "telefone", "endereco", "numero", "contato", "informacao", "rua", "avenida", "bairro", "casa", "tudo", "bem",
+  "ajuda", "ajudar", "ainda", "tambem", "sobre", "teste",
+  // palavras comuns em nome de bairro
+  "santa", "santo", "sao", "jardim", "vila", "parque", "novo", "nova", "centro", "cidade", "residencial", "uberlandia",
+].map(radical));
+
+const palavrasFortes = (texto: string, bairros: Set<string>): string[] =>
+  [...new Set(palavrasDe(texto).filter(w => w.length > 3 && !PALAVRAS_VAZIAS.has(w) && !bairros.has(w)))];
+
+type ItemAvaliado = { score: number; rarasTitulo: number; rarasTexto: number; repetida: boolean };
+// Avalia um documento: peso maior pra palavra rara, pra palavra no título e pra palavra repetida
+const avaliar = (titulo: string, texto: string, fortes: string[], df: Map<string, number>, totalDocs: number): ItemAvaliado => {
+  const noTitulo = new Set(palavrasDe(titulo));
+  const contagem = new Map<string, number>();
+  for (const w of palavrasDe(`${titulo} ${texto}`)) contagem.set(w, (contagem.get(w) || 0) + 1);
+  const limiteRara = Math.max(3, Math.round(totalDocs * 0.08));
+  let score = 0, rarasTitulo = 0, rarasTexto = 0, repetida = false;
+  for (const w of fortes) {
+    const n = contagem.get(w) || 0;
+    if (!n) continue;
+    const docsComPalavra = df.get(w) || 1;
+    const rara = docsComPalavra <= limiteRara;
+    const peso = Math.log(1 + totalDocs / docsComPalavra);
+    score += peso * (noTitulo.has(w) ? 2 : 1) * (n >= 2 ? 1.5 : 1);
+    if (rara) {
+      rarasTexto++;
+      if (noTitulo.has(w)) rarasTitulo++;
+      if (n >= 2) repetida = true;
+    }
+  }
+  return { score: Math.round(score * 10) / 10, rarasTitulo, rarasTexto, repetida };
 };
+// Cobre o assunto: palavra rara do pedido no título, ou duas no texto, ou uma repetida no texto
+const cobreAssunto = (i: ItemAvaliado): boolean => i.rarasTitulo >= 1 || i.rarasTexto >= 2 || i.repetida;
 
 // Troca o nome do cidadão por [NOME] nas respostas antigas (modo contexto: o texto vai para outra pessoa)
 const mascararNome = (texto: string, solicitante?: string | null): string => {
@@ -154,49 +188,53 @@ serve(async (req) => {
 
     // ═══ Modo contexto (bot): devolve o material, sem gerar texto ═══
     if (modo === "contexto") {
-      const fortes = palavrasFortes(demandaText);
-      const scriptsCtx = scripts
-        .filter(s => !CAMPANHA_SCRIPT_RE.test(`${s.titulo} ${s.conteudo}`))
-        .map(s => ({
-          ...s,
-          noTitulo: contarPalavras(`${s.titulo} ${(s.tags || []).join(" ")}`, fortes),
-          noTexto: contarPalavras(`${s.titulo} ${s.conteudo} ${(s.tags || []).join(" ")}`, fortes),
-          score: scoreRelevance(`${s.titulo} ${s.conteudo} ${(s.tags || []).join(" ")} ${s.categoria}`, fortes),
-        }))
-        .filter(s => s.score > 0)
-        .sort((a, b) => b.noTitulo - a.noTitulo || b.score - a.score)
-        .slice(0, 8);
-      const baseCtx = baseInfo
-        .map(b => ({
-          ...b,
-          noTitulo: contarPalavras(`${b.titulo}`, fortes),
-          noTexto: contarPalavras(`${b.titulo} ${b.descricao || ""} ${b.orgao || ""}`, fortes),
-          score: scoreRelevance(`${b.titulo} ${b.descricao || ""} ${b.categoria || ""} ${b.orgao || ""} ${b.bairro || ""}`, fortes),
-        }))
-        .filter(b => b.score > 0)
-        .sort((a, b) => b.noTitulo - a.noTitulo || b.score - a.score)
-        .slice(0, 10);
+      // Nomes de bairro não contam como assunto ("buraco no Santa Mônica" é sobre buraco)
+      const bairrosRes = await supabaseAdmin.from("oficios").select("bairro").not("bairro", "is", null).order("created_at", { ascending: false }).limit(400);
+      const bairros = new Set<string>();
+      for (const o of bairrosRes.data || []) for (const w of palavrasDe(o.bairro || "")) bairros.add(w);
+      for (const b of baseInfo) for (const w of palavrasDe(b.bairro || "")) bairros.add(w);
+
+      const fortes = palavrasFortes(demandaText, bairros);
+      const scriptsBot = scripts.filter(s => !CAMPANHA_SCRIPT_RE.test(`${s.titulo} ${s.conteudo}`));
+      // Lista antiga de vagas não serve pro bot (emprego tem resposta própria no WhatsApp)
+      const baseBot = baseInfo.filter(b => !/^\s*vagas\b/i.test(b.titulo || ""));
+
+      // Em quantos documentos cada palavra aparece (palavra rara pesa mais)
+      const textoScript = (s: typeof scripts[number]) => `${s.conteudo || ""} ${(s.tags || []).join(" ")}`;
+      const textoBase = (b: typeof baseInfo[number]) => `${b.descricao || ""} ${b.orgao || ""}`;
+      const df = new Map<string, number>();
+      const docs = [...scriptsBot.map(s => `${s.titulo} ${textoScript(s)}`), ...baseBot.map(b => `${b.titulo} ${textoBase(b)}`)];
+      for (const d of docs) for (const w of new Set(palavrasDe(d))) df.set(w, (df.get(w) || 0) + 1);
+
+      const scriptsCtx = scriptsBot
+        .map(s => ({ ...s, ...avaliar(`${s.titulo} ${(s.tags || []).join(" ")}`, textoScript(s), fortes, df, docs.length) }))
+        .filter(cobreAssunto)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 4);
+      const baseCtx = baseBot
+        .map(b => ({ ...b, ...avaliar(`${b.titulo}`, textoBase(b), fortes, df, docs.length) }))
+        .filter(cobreAssunto)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 4);
       const respostasCtx = respostasAnteriores
-        .map(r => ({ ...r, score: scoreRelevance(`${r.assunto} ${r.secretaria_identificada} ${r.resposta_cidadao}`, fortes) }))
+        .map(r => ({ ...r, ...avaliar(`${r.assunto || ""}`, `${r.secretaria_identificada || ""} ${r.resposta_cidadao || ""}`, fortes, df, docs.length) }))
         .filter(r => r.score > 0)
         .sort((a, b) => b.score - a.score)
-        .slice(0, 5);
+        .slice(0, 3);
 
-      // Tem base = o assunto aparece no título de um script/item, ou pelo menos 2 palavras do pedido aparecem no texto
-      const cobre = (i: { noTitulo: number; noTexto: number }) => i.noTitulo >= 1 || i.noTexto >= 2;
-      const temBase = scriptsCtx.some(cobre) || baseCtx.some(cobre);
+      const temBase = scriptsCtx.length > 0 || baseCtx.length > 0;
 
       const contexto = `
 Respostas anteriores servem só de modelo de tom. Nunca copie nomes, endereços ou números de protocolo delas.
 
 ═══ SCRIPTS DO GABINETE (FONTE PRIMÁRIA) ═══
 ${scriptsCtx.length > 0
-  ? scriptsCtx.map(s => `[${s.categoria}] ${s.titulo} (relevância: ${s.score}):\n${cobre(s) ? s.conteudo : s.conteudo?.substring(0, 600)}`).join("\n---\n")
+  ? scriptsCtx.map(s => `[${s.categoria}] ${s.titulo} (relevância: ${s.score}):\n${(s.conteudo || "").substring(0, 2500)}`).join("\n---\n")
   : "Nenhum script sobre esse assunto."}
 
 ═══ BANCO DE INFORMAÇÕES ═══
 ${baseCtx.length > 0
-  ? baseCtx.map(b => `[${b.categoria || "Geral"}] ${b.titulo}: ${b.descricao?.substring(0, 600) || ""} ${b.orgao ? `(${b.orgao})` : ""} ${b.link || ""}`.trim()).join("\n")
+  ? baseCtx.map(b => `[${b.categoria || "Geral"}] ${b.titulo}: ${b.descricao?.substring(0, 400) || ""} ${b.orgao ? `(${b.orgao})` : ""} ${b.link || ""}`.trim()).join("\n")
   : "Nenhuma informação sobre esse assunto."}
 
 ═══ RESPOSTAS JÁ ENVIADAS PELO GABINETE (só modelo de tom) ═══
@@ -208,13 +246,14 @@ ${respostasCtx.length > 0
       const melhores = [
         ...scriptsCtx.map(s => ({ tipo: "script", titulo: s.titulo, score: s.score })),
         ...baseCtx.map(b => ({ tipo: "base", titulo: b.titulo, score: b.score })),
-      ].sort((a, b) => b.score - a.score).slice(0, 8);
+      ].sort((a, b) => b.score - a.score);
 
       return new Response(JSON.stringify({
         contexto,
         temBase,
         fontes: { scripts: scriptsCount, base_info: baseInfoCount, respostas_anteriores: respostasCount },
         melhores,
+        palavras: fortes,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
