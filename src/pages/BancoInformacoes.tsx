@@ -1184,7 +1184,7 @@ export default function BancoInformacoes() {
         <TabsContent value="base" className="space-y-4">
           <Card>
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-3 flex-wrap" data-file-upload data-file-upload-disabled={uploadingAudio} tabIndex={0}>
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-[200px] relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -1438,7 +1438,7 @@ export default function BancoInformacoes() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap" data-file-upload data-file-upload-disabled={uploadingAudio} tabIndex={0}>
                 <input ref={audioInputRef} type="file" multiple accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.mpeg" onChange={handleAudioUpload} className="hidden" />
                 <Button onClick={() => audioInputRef.current?.click()} disabled={uploadingAudio} className="gap-2">
                   {uploadingAudio ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}

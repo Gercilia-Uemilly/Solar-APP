@@ -15,6 +15,7 @@ export function useFileTransfer() {
     });
     const chooseInput = (target: EventTarget | null, files: File[], fallback: boolean) => {
       const element = target instanceof Element ? target : null;
+      if (element?.closest('[contenteditable="true"]')) return undefined;
       const scope = element?.closest('[data-file-upload]');
       if (scope) return inputsIn(scope.parentElement || scope).find(input =>
         input.closest('[data-file-upload]') === scope && files.some(file => acceptsFile(file, input.accept)));

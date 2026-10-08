@@ -55,6 +55,8 @@ Conventional Commits: `fix: ...`, `feat: ...`, `chore: ...`, `docs: ...`,
 
 ## 5. Padrões técnicos do projeto
 
+- File uploads use scoped `data-file-upload` containers and the shared transfer hook, routing paste/drop through existing input handlers to avoid duplicate uploads and preserve validation.
+
 - Stack: React 18 + Vite + TypeScript + Tailwind + shadcn/ui. Backend: Lovable Cloud (Supabase).
 - **Nunca** use cores hardcoded (`text-white`, `bg-[#fff]`). Use os tokens semânticos do design system (`src/index.css`, `tailwind.config.ts`).
 - Identidade visual: Solar, primário verde `160 45% 28%`, Merriweather (títulos) / Source Sans 3 (corpo).
