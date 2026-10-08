@@ -401,7 +401,7 @@ export default function Clipping() {
             Monitore postagens, matérias e menções ao mandato
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2" data-file-upload data-file-upload-disabled={importing} tabIndex={0}>
           <Button variant="outline" className="gap-2" onClick={() => wpInputRef.current?.click()} disabled={importing}>
             <Upload size={16} /> {importing ? "Importando..." : "Importar WordPress"}
           </Button>
@@ -456,7 +456,7 @@ https://instagr.am/p/example3"
                   </Button>
                 </TabsContent>
                 
-                <TabsContent value="file" className="space-y-4 mt-4">
+                <TabsContent value="file" className="space-y-4 mt-4" data-file-upload data-file-upload-disabled={igImporting} tabIndex={0}>
                   <div className="space-y-2">
                     <Label>Upload de Planilha Excel/CSV</Label>
                     <div className="text-sm text-muted-foreground">

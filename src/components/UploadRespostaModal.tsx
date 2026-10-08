@@ -64,7 +64,7 @@ export default function UploadRespostaModal({ open, onOpenChange, oficioId, ofic
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!uploading) { onOpenChange(v); if (!v) setFiles([]); } }}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" data-file-upload data-file-upload-disabled={uploading} tabIndex={0}>
         <DialogHeader>
           <DialogTitle>Subir Resposta {oficioNumero ? `· ${oficioNumero}` : ""}</DialogTitle>
           <DialogDescription>
@@ -74,8 +74,8 @@ export default function UploadRespostaModal({ open, onOpenChange, oficioId, ofic
 
         <div
           onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
-          onClick={() => inputRef.current?.click()}
+          onDrop={(e) => { e.preventDefault(); if (!uploading) addFiles(e.dataTransfer.files); }}
+          onClick={() => { if (!uploading) inputRef.current?.click(); }}
           className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-accent/30 transition-colors"
         >
           <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
@@ -86,6 +86,7 @@ export default function UploadRespostaModal({ open, onOpenChange, oficioId, ofic
             type="file"
             accept="application/pdf"
             multiple
+            disabled={uploading}
             className="hidden"
             onChange={(e) => addFiles(e.target.files)}
           />

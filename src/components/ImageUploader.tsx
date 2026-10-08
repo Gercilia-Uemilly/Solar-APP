@@ -22,7 +22,7 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-file-upload tabIndex={0} aria-label="Imagens para anexo">
       <label className="text-xs font-medium text-muted-foreground mb-1 block">📎 Imagens para Anexo</label>
       <div className="flex gap-2">
         <input

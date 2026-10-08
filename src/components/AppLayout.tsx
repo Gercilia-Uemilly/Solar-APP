@@ -15,8 +15,10 @@ import NotificationBell from "@/components/NotificationBell";
 import LembreteBell from "@/components/LembreteBell";
 import MultiDeviceWarning from "@/components/MultiDeviceWarning";
 import { setOnDuplicataDetected, type DuplicataInfo } from "@/lib/exportOficio";
+import { useFileTransfer } from "@/hooks/useFileTransfer";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
+  useFileTransfer();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);

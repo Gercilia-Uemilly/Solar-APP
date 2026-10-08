@@ -67,6 +67,7 @@ export default function UploadOficioModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+    if (uploading) return;
     const f = e.dataTransfer.files[0];
     if (f) handleFile(f);
   };
@@ -161,7 +162,7 @@ export default function UploadOficioModal({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="bg-card border-border max-w-lg">
+      <DialogContent className="bg-card border-border max-w-lg" data-file-upload data-file-upload-disabled={uploading} tabIndex={0}>
         {duplicates && pendingInsert ? (
           <>
             <DialogHeader>
@@ -226,6 +227,7 @@ export default function UploadOficioModal({
           ref={inputRef}
           type="file"
           accept={ACCEPTED}
+          disabled={uploading}
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];

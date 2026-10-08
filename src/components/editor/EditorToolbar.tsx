@@ -141,7 +141,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
   };
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-0" data-file-upload data-file-upload-explicit tabIndex={0}>
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageInsert} />
 
       {/* Line 1: History, Font, Styles */}

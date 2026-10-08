@@ -126,7 +126,7 @@ export default function OficioPreviewEditor({
   );
 
   return (
-    <div>
+    <div data-file-upload data-file-upload-explicit tabIndex={0}>
       <div className="flex flex-wrap items-center gap-1 p-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg mb-2 sticky top-0 z-10">
         <ToolBtn onClick={() => exec("undo")} title="Desfazer (Ctrl+Z)">
           <Undo size={14} />
