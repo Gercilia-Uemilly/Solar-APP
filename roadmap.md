@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Corrigir e testar redefinição de senha: usar updateUserById — exceção de Issue/PR autorizada nesta tarefa.
+- [x] Redefinição de senha corrigida com updateUserById, 2 testes passaram e função publicada — exceção de Issue/PR autorizada nesta tarefa.
 
 - [x] SOS Uberlândia: importação agendada corrigida (token de cron seguro + mescla manual) — matérias atualizadas até 02/09/2026
 - [x] Scripts "Mais procurados": Escola/Educação, Saúde e Casas Populares fixadas no topo
