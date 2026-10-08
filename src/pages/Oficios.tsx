@@ -1719,7 +1719,7 @@ export default function Oficios() {
                 />
                 <p className="text-[10px] text-muted-foreground mt-0.5">💡 Insira um texto institucional pronto ou um comando direto descrevendo a demanda. A IA reescreverá em padrão institucional — ou use as opções abaixo para manter o texto original.</p>
 
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2" data-file-upload data-file-upload-disabled={importandoArquivo} tabIndex={0}>
                   <Button type="button" variant="outline" size="sm" onClick={handleUsarTextoExato} className="border-border">
                     <FileText size={14} className="mr-1" /> Usar este texto sem IA
                   </Button>
@@ -2348,7 +2348,7 @@ function RespostaTabContent({ oficioId, numero }: { oficioId: string | null; num
   return (
     <>
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg p-3">
+      <div className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg p-3" data-file-upload data-file-upload-disabled={uploading} tabIndex={0}>
         <div className="text-sm">
           <p className="font-medium flex items-center gap-2"><Inbox size={14} /> Respostas do ofício {numero || ""}</p>
           <p className="text-xs text-muted-foreground">{respostas.length} resposta(s) anexada(s)</p>

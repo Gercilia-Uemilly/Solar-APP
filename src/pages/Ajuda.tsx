@@ -273,7 +273,7 @@ function TicketForm({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="space-y-4" onPaste={handlePaste}>
+    <div className="space-y-4" onPaste={handlePaste} data-file-upload tabIndex={0}>
       <div className="space-y-2">
         <label className="text-sm font-medium">Categoria do problema</label>
         <Select value={category} onValueChange={setCategory}>

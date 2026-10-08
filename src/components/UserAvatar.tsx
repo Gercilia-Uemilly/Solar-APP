@@ -141,7 +141,7 @@ export default function UserAvatar({
   const colorClass = getAvatarColor(fullName);
 
   return (
-    <div className={cn("relative inline-flex group", className)}>
+    <div className={cn("relative inline-flex group", className)} data-file-upload data-file-upload-explicit tabIndex={editable ? 0 : undefined}>
       <Avatar className={cn(sizeMap[size], "ring-2 ring-border shadow-sm")}>
         {resolvedUrl ? (
           <AvatarImage src={resolvedUrl} alt={fullName || "Avatar"} className="object-cover" />

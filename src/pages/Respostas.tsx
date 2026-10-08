@@ -415,7 +415,7 @@ export default function Respostas() {
                         <Upload size={12} /> Áudio ou vídeo (opcional)
                       </label>
                       <div className="flex items-center gap-2">
-                        <label className="flex-1 cursor-pointer">
+                        <label className="flex-1 cursor-pointer" data-file-upload data-file-upload-disabled={transcribing} tabIndex={0}>
                           <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
                             {selectedFile ? (
                               <p className="text-sm text-foreground font-medium">{selectedFile.name}</p>
@@ -448,7 +448,7 @@ export default function Respostas() {
                         <ImageIcon size={12} /> Print de WhatsApp ou imagem (opcional)
                       </label>
                       {!printPreview ? (
-                        <label className="cursor-pointer block">
+                        <label className="cursor-pointer block" data-file-upload tabIndex={0}>
                           <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
                             <p className="text-sm text-muted-foreground">
                               Clique para enviar um print da conversa — a IA extrai a demanda automaticamente

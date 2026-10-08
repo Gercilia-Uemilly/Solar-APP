@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Permitir colar e arrastar arquivos em todas as áreas de envio, sem alterar permissões — exceção de Issue/PR autorizada.
+
 - [x] Redefinição de senha corrigida com updateUserById, 2 testes passaram e função publicada — exceção de Issue/PR autorizada nesta tarefa.
 
 - [x] SOS Uberlândia: importação agendada corrigida (token de cron seguro + mescla manual) — matérias atualizadas até 02/09/2026
