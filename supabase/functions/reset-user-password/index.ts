@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     if (!userId || !newPassword) throw new Error("userId e newPassword são obrigatórios");
     if (newPassword.length < 6) throw new Error("A senha deve ter pelo menos 6 caracteres");
 
-    const { error } = await supabaseAdmin.auth.admin.updateUser(userId, { password: newPassword });
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
     if (error) throw error;
 
     return new Response(JSON.stringify({ success: true }), {
