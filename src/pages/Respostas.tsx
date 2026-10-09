@@ -426,7 +426,7 @@ export default function Respostas() {
                     </div>
 
                     {/* File upload */}
-                    <div data-file-upload data-file-upload-disabled={analisandoPrint || loadingPrints} tabIndex={0}>
+                    <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
                         <Upload size={12} /> Áudio ou vídeo (opcional)
                       </label>
@@ -459,7 +459,7 @@ export default function Respostas() {
                     </div>
 
                     {/* Print / imagem (extração via IA) */}
-                    <div>
+                    <div data-file-upload data-file-upload-disabled={analisandoPrint || loadingPrints} tabIndex={0}>
                       <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
                         <ImageIcon size={12} /> Print de WhatsApp ou imagem (opcional)
                       </label>
@@ -486,9 +486,8 @@ export default function Respostas() {
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-2 mt-2">
                           {prints.map(print => (
-                          <div className="relative inline-block max-w-full">
+                           <div key={print.id} className="relative inline-block max-w-full">
                             <img
-                              key={print.id}
                               src={print.preview}
                               alt="Print enviado"
                               className="max-h-48 rounded-lg border border-border object-contain"

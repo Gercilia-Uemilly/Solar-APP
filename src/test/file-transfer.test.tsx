@@ -16,7 +16,7 @@ beforeEach(() => {
     items = { add: (file: File) => { this.files.push(file); } };
   });
   vi.spyOn(HTMLInputElement.prototype, "files", "set").mockImplementation(function(files) {
-    Object.defineProperty(this, "files", { configurable: true, value: files });
+    Object.defineProperty(this, "files", { configurable: true, writable: true, value: files });
   });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
