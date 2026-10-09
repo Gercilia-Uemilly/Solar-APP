@@ -63,8 +63,9 @@ export default function Respostas() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Print/imagem (extração via IA)
-  const [printFile, setPrintFile] = useState<File | null>(null);
-  const [printPreview, setPrintPreview] = useState<string | null>(null);
+  const [prints, setPrints] = useState<{ id: string; file: File; preview: string }[]>([]);
+  const [loadingPrints, setLoadingPrints] = useState(false);
+  const [printProgress, setPrintProgress] = useState(0);
   const [analisandoPrint, setAnalisandoPrint] = useState(false);
 
   // === Load history ===
@@ -262,8 +263,7 @@ export default function Respostas() {
     setResposta("");
     setFontes(null);
     setSelectedFile(null);
-    setPrintFile(null);
-    setPrintPreview(null);
+    setPrints([]);
   };
 
   // Converte arquivo para base64
@@ -276,39 +276,55 @@ export default function Respostas() {
     });
   };
 
-  const handlePrintSelect = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Arquivo inválido", description: "Selecione uma imagem (PNG, JPG).", variant: "destructive" });
-      return;
+  const handlePrintSelect = async (files: File[]) => {
+    setLoadingPrints(true);
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) {
+          toast({ title: "Imagem inválida", description: `${file.name}: selecione uma imagem de até 10MB.`, variant: "destructive" });
+          continue;
+        }
+        const preview = await fileToBase64(file);
+        setPrints(prev => [...prev, { id: crypto.randomUUID(), file, preview }]);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar prints:", error);
+      toast({ title: "Erro ao carregar imagem", variant: "destructive" });
+    } finally {
+      setLoadingPrints(false);
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "Imagem muito grande", description: "Limite de 10MB.", variant: "destructive" });
-      return;
-    }
-    setPrintFile(file);
-    const dataUrl = await fileToBase64(file);
-    setPrintPreview(dataUrl);
   };
 
   const handleAnalisarPrint = async () => {
-    if (!printFile || !printPreview) {
+    if (!prints.length) {
       toast({ title: "Selecione um print primeiro", variant: "destructive" });
       return;
     }
     setAnalisandoPrint(true);
+    setPrintProgress(0);
     try {
-      const { data, error } = await supabase.functions.invoke("extract-print-demanda", {
-        body: { imageBase64: printPreview, mimeType: printFile.type },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.cidadao_nome && !cidadaoNome) setCidadaoNome(data.cidadao_nome);
-      if (data?.demanda_completa) {
-        setDescricao(prev => prev ? `${prev}\n\n${data.demanda_completa}` : data.demanda_completa);
+      const summaries: string[] = [];
+      let foundName = cidadaoNome;
+      for (const [index, print] of prints.entries()) {
+        const { data, error } = await supabase.functions.invoke("extract-print-demanda", {
+          body: { imageBase64: print.preview, mimeType: print.file.type },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data?.cidadao_nome && !foundName) {
+          foundName = data.cidadao_nome;
+          setCidadaoNome(foundName);
+        }
+        if (data?.demanda_completa) {
+          setDescricao(prev => prev ? `${prev}\n\n${data.demanda_completa}` : data.demanda_completa);
+        }
+        if (data?.resumo) {
+          summaries.push(data.resumo);
+          setResumo(summaries.join("\n\n"));
+        }
+        setPrintProgress(index + 1);
       }
-      if (data?.resumo) setResumo(data.resumo);
-      toast({ title: "✅ Print analisado!", description: "Dados extraídos automaticamente pela IA." });
+      toast({ title: "Prints analisados!", description: "Dados de todas as imagens extraídos pela IA." });
     } catch (e: any) {
       toast({ title: "Erro ao analisar print", description: e.message, variant: "destructive" });
     } finally {
@@ -410,7 +426,7 @@ export default function Respostas() {
                     </div>
 
                     {/* File upload */}
-                    <div>
+                    <div data-file-upload data-file-upload-disabled={analisandoPrint || loadingPrints} tabIndex={0}>
                       <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
                         <Upload size={12} /> Áudio ou vídeo (opcional)
                       </label>
@@ -447,48 +463,59 @@ export default function Respostas() {
                       <label className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
                         <ImageIcon size={12} /> Print de WhatsApp ou imagem (opcional)
                       </label>
-                      {!printPreview ? (
-                        <label className="cursor-pointer block" data-file-upload tabIndex={0}>
+                        <label className="cursor-pointer block">
                           <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
                             <p className="text-sm text-muted-foreground">
-                              Clique para enviar um print da conversa — a IA extrai a demanda automaticamente
+                              {loadingPrints ? "Carregando imagens..." : "Selecionar prints"}
                             </p>
                           </div>
                           <input
                             type="file"
                             accept="image/*"
+                            multiple
+                            disabled={analisandoPrint || loadingPrints}
                             className="hidden"
                             onChange={e => {
-                              const file = e.target.files?.[0];
-                              if (file) handlePrintSelect(file);
+                              const files = Array.from(e.target.files || []);
+                              e.target.value = "";
+                              if (files.length) void handlePrintSelect(files);
                             }}
                           />
                         </label>
-                      ) : (
+                      {prints.length > 0 && (
                         <div className="space-y-2">
+                          <div className="flex flex-wrap gap-2 mt-2">
+                          {prints.map(print => (
                           <div className="relative inline-block max-w-full">
                             <img
-                              src={printPreview}
+                              key={print.id}
+                              src={print.preview}
                               alt="Print enviado"
                               className="max-h-48 rounded-lg border border-border object-contain"
                             />
-                            <button
+                            <Button
                               type="button"
-                              onClick={() => { setPrintFile(null); setPrintPreview(null); }}
-                              className="absolute top-1 right-1 bg-background/90 border border-border rounded-full p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                              size="icon"
+                              variant="outline"
+                              disabled={analisandoPrint || loadingPrints}
+                              onClick={() => setPrints(prev => prev.filter(item => item.id !== print.id))}
+                              className="absolute top-1 right-1 h-7 w-7"
+                              aria-label={`Remover ${print.file.name}`}
                               title="Remover imagem"
                             >
                               <X size={12} />
-                            </button>
+                            </Button>
+                          </div>
+                          ))}
                           </div>
                           <Button
                             onClick={handleAnalisarPrint}
-                            disabled={analisandoPrint}
+                            disabled={analisandoPrint || loadingPrints}
                             variant="outline"
                             className="gap-2 w-full"
                           >
                             {analisandoPrint ? <Loader2 size={14} className="animate-spin" /> : <ScanText size={14} />}
-                            {analisandoPrint ? "Analisando print com IA..." : "Extrair demanda do print"}
+                            {analisandoPrint ? `Analisando ${printProgress}/${prints.length}...` : `Extrair demanda de ${prints.length} print(s)`}
                           </Button>
                         </div>
                       )}

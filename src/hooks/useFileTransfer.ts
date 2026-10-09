@@ -19,7 +19,7 @@ export function useFileTransfer() {
       const scope = element?.closest('[data-file-upload]');
       if (scope) return inputsIn(scope.parentElement || scope).find(input =>
         input.closest('[data-file-upload]') === scope && files.some(file => acceptsFile(file, input.accept)));
-      if (!fallback || element?.closest('input, textarea, [contenteditable="true"]')) return undefined;
+      if (!fallback) return undefined;
       const dialogs = Array.from(document.querySelectorAll('[role="dialog"]')).filter(visible);
       const root = dialogs.at(-1) || document;
       const candidates = inputsIn(root).filter(input => !input.closest('[data-file-upload-explicit]')

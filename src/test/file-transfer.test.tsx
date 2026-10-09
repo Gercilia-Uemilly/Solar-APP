@@ -44,6 +44,17 @@ describe("file transfers", () => {
     view.getByLabelText("Text").dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
   });
+  it("pastes multiple images from the description into the only compatible upload", () => {
+    const view = render(<Harness />);
+    const input = view.getByLabelText("Images").querySelector("input");
+    if (!input) throw new Error("Missing input");
+    input.multiple = true;
+    const images = [new File(["a"], "a.png", { type: "image/png" }), new File(["b"], "b.png", { type: "image/png" })];
+    fireEvent.paste(view.getByLabelText("Text"), { clipboardData: { files: images } });
+    expect(input.files?.length).toBe(2);
+    fireEvent.paste(view.getByLabelText("Text"), { clipboardData: { files: [images[0]] } });
+    expect(input.files?.length).toBe(1);
+  });
   it("does not choose arbitrarily between two compatible areas", () => {
     const view = render(<Harness />);
     const area = view.getByLabelText("Images");

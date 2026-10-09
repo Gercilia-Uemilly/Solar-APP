@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Permitir colar e arrastar arquivos em todas as áreas de envio, sem alterar permissões — exceção de Issue/PR autorizada.
+- [ ] Corrigir seleção múltipla e colagem contínua de prints na página Respostas — validar testes e prévia.
+- [x] Permitir colar e arrastar arquivos em todas as áreas de envio, sem alterar permissões — exceção de Issue/PR autorizada.
 
 - [x] Redefinição de senha corrigida com updateUserById, 2 testes passaram e função publicada — exceção de Issue/PR autorizada nesta tarefa.
 
