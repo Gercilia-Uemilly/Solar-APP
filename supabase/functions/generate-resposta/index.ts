@@ -101,6 +101,26 @@ const mascararNome = (texto: string, solicitante?: string | null): string => {
   return t;
 };
 
+// ─── Histórico do cidadão (modo contexto) ───
+// Chave de comparação de telefone: DDD + 8 últimos dígitos. Ignora o 55, o zero inicial e o 9 depois do DDD.
+const chaveTelefone = (bruto: unknown): string => {
+  let d = String(bruto ?? "").replace(/\D/g, "").replace(/^0+/, "");
+  if (d.length >= 12 && d.startsWith("55")) d = d.slice(2);
+  if (d.length !== 10 && d.length !== 11) return "";
+  return d.slice(0, 2) + d.slice(-8);
+};
+// Telefones dentro de um campo de texto livre ("(34) 99999-1234 / 3232-1234")
+const chavesTelefoneDe = (texto: string | null): string[] => {
+  const chaves: string[] = [];
+  for (const trecho of String(texto ?? "").match(/\+?\d[\d\s().-]{6,}\d/g) || []) {
+    const inteiro = chaveTelefone(trecho);
+    if (inteiro) chaves.push(inteiro);
+    else for (const parte of trecho.split(/\s+/)) { const k = chaveTelefone(parte); if (k) chaves.push(k); }
+  }
+  return chaves;
+};
+const dataBR = (iso: string | null): string => iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -130,7 +150,7 @@ serve(async (req) => {
       }
     }
 
-    const { modo: modoPedido, numero, assunto, destinatario, descricao, solicitante, bairro, local, secretaria, tipo_demanda, urgencia } = await req.json();
+    const { modo: modoPedido, telefone, numero, assunto, destinatario, descricao, solicitante, bairro, local, secretaria, tipo_demanda, urgencia } = await req.json();
 
     // modo "painel" (padrão): gera a sugestão para a tela Respostas.
     // modo "contexto": só o bot usa; devolve o material encontrado, sem chamar a IA.
@@ -224,8 +244,32 @@ serve(async (req) => {
 
       const temBase = scriptsCtx.length > 0 || baseCtx.length > 0;
 
+      // Pedidos deste cidadão: só pelo telefone que mandou a mensagem (nunca por nome ou endereço).
+      // O banco filtra pelos 4 últimos dígitos; a comparação de verdade é feita aqui, pelos dígitos.
+      const pediuHistorico = telefone !== undefined && telefone !== null && String(telefone).trim() !== "";
+      const chaveTel = chaveTelefone(telefone);
+      let historico: { numero: string | null; protocolo: string | null; assunto: string; bairro: string | null; secretaria: string | null; status: string; criado_em: string; atualizado_em: string }[] = [];
+      if (chaveTel) {
+        const candidatos = await supabaseAdmin.from("oficios")
+          .select("numero, numero_protocolo, assunto, bairro, secretaria_identificada, status, created_at, updated_at, contato_solicitante")
+          .is("deleted_at", null)
+          .ilike("contato_solicitante", `%${chaveTel.slice(-4)}%`)
+          .order("created_at", { ascending: false })
+          .limit(300);
+        historico = (candidatos.data || [])
+          .filter(o => chavesTelefoneDe(o.contato_solicitante).includes(chaveTel))
+          .slice(0, 5)
+          .map(o => ({ numero: o.numero, protocolo: o.numero_protocolo, assunto: o.assunto, bairro: o.bairro, secretaria: o.secretaria_identificada, status: o.status, criado_em: o.created_at, atualizado_em: o.updated_at }));
+      }
+      const blocoHistorico = !pediuHistorico ? "" : `═══ PEDIDOS DESTE CIDADÃO ═══
+${historico.length > 0
+  ? historico.map(h => `- ${h.numero ? `Ofício ${h.numero}` : "Ofício sem número"}${h.protocolo ? ` (protocolo ${h.protocolo})` : ""} | ${h.assunto} | bairro: ${h.bairro || "não informado"} | secretaria: ${h.secretaria || "não informada"} | status: ${h.status} | criado em ${dataBR(h.criado_em)} | atualizado em ${dataBR(h.atualizado_em)}`).join("\n")
+  : "Nenhum pedido registrado para este telefone."}
+
+`;
+
       const contexto = `
-Respostas anteriores servem só de modelo de tom. Nunca copie nomes, endereços ou números de protocolo delas.
+${blocoHistorico}Respostas anteriores servem só de modelo de tom. Nunca copie nomes, endereços ou números de protocolo delas.
 
 ═══ SCRIPTS DO GABINETE (FONTE PRIMÁRIA) ═══
 ${scriptsCtx.length > 0
@@ -254,6 +298,7 @@ ${respostasCtx.length > 0
         fontes: { scripts: scriptsCount, base_info: baseInfoCount, respostas_anteriores: respostasCount },
         melhores,
         palavras: fortes,
+        historico,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
