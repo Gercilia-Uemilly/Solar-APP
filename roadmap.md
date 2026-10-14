@@ -13,3 +13,4 @@
 
 - [x] Corrigir erros de verificação das funções (buffers binários e erros desconhecidos): verificação automática OK, 10 testes passaram e prévia abre sem erros.
 - [ ] Abrir Issue/PR desta correção — bloqueado por ausência de acesso ao GitHub.
+- [x] Sincronizar com a main do GitHub (commit 43b33f2) e publicar a função oficio-pdf-bot — código local já idêntico ao commit; função publicada e respondendo (401 sem o segredo do bot).
