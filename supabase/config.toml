@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.criar-oficio-whatsapp]
 verify_jwt = false
+
+[functions.oficio-pdf-bot]
+verify_jwt = false
