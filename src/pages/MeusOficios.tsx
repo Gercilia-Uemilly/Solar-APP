@@ -35,6 +35,7 @@ import RealPreviewDialog from "@/components/RealPreviewDialog";
 import DuplicateBadge from "@/components/DuplicateBadge";
 import { buildDuplicateMap } from "@/lib/duplicateDetection";
 import { ensureDriveConnected, getDriveAuthDescription, getDriveErrorMessage, isDriveAuthRequired } from "@/lib/driveUploadStatus";
+import { canEditOficioContent } from "@/lib/oficioPermissions";
 import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
@@ -373,8 +374,7 @@ export default function MeusOficios() {
   }, [oficios]);
 
   const canEditOrDelete = (o: OficioRow) => {
-    if (!user) return false;
-    return isAdmin || o.author_id === user.id;
+    return canEditOficioContent(user?.id, isAdmin, o.author_id);
   };
 
   const handleStatusChange = async (oficioId: string, newStatus: string) => {
