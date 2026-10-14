@@ -194,8 +194,8 @@ export default function MeusOficios() {
     setPreviewAnexoDocs([]);
     setShowPreview(true);
 
-    // Mark as being edited
-    if (user) {
+    // Somente autor/admin entra no estado de edição; demais operadores visualizam.
+    if (user && canEditOrDelete(o)) {
       const userName = profileName || user.user_metadata?.full_name || user.email || "";
       supabase.from("oficios").update({ editing_by: user.id, editing_by_name: userName, editing_since: new Date().toISOString() } as any).eq("id", o.id);
     }
@@ -1062,6 +1062,18 @@ export default function MeusOficios() {
                       <MessageSquareReply size={16} />
                     </button>
 
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleOpenPreview(o)}
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      title="Visualizar ofício"
+                      aria-label={`Visualizar ofício ${o.numero || "sem número"}`}
+                    >
+                      <Eye size={16} />
+                    </Button>
+
                     <button
                       onClick={async () => {
                         if (!o.conteudo) return;
@@ -1187,10 +1199,11 @@ export default function MeusOficios() {
 
       {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={(open) => {
-        if (!open && editedContent !== originalContent) {
+        const podeEditar = viewOficio ? canEditOrDelete(viewOficio) : false;
+        if (!open && podeEditar && editedContent !== originalContent) {
           if (!confirm("Você tem edições não salvas. Deseja sair mesmo assim?")) return;
         }
-        if (!open && viewOficio) {
+        if (!open && viewOficio && podeEditar) {
           // Clear editing status
           supabase.from("oficios").update({ editing_by: null, editing_by_name: null, editing_since: null } as any).eq("id", viewOficio.id);
         }
@@ -1212,12 +1225,16 @@ export default function MeusOficios() {
                 <span>Visualizar Ofício</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-xs ${saveStatus === "saving" ? "text-muted-foreground" : saveStatus === "saved" ? "text-green-600" : saveStatus === "error" ? "text-destructive" : "text-muted-foreground"}`}>
-                  {saveStatus === "saving" && "● Salvando..."}
-                  {saveStatus === "saved" && "✓ Salvo"}
-                  {saveStatus === "error" && "✗ Erro ao salvar"}
-                </span>
-                <Button size="sm" variant="outline" className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10" disabled={revisaoLoading} onClick={() => {
+                {viewOficio && canEditOrDelete(viewOficio) ? (
+                  <span className={`text-xs ${saveStatus === "saving" ? "text-muted-foreground" : saveStatus === "saved" ? "text-green-600" : saveStatus === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+                    {saveStatus === "saving" && "● Salvando..."}
+                    {saveStatus === "saved" && "✓ Salvo"}
+                    {saveStatus === "error" && "✗ Erro ao salvar"}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Somente visualização</span>
+                )}
+                {viewOficio && canEditOrDelete(viewOficio) && <Button size="sm" variant="outline" className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10" disabled={revisaoLoading} onClick={() => {
                   if (!viewOficio) return;
                   revisarOficio({
                     numero: viewOficio.numero || "",
@@ -1230,11 +1247,11 @@ export default function MeusOficios() {
                   });
                 }}>
                   {revisaoLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <SearchCheck size={14} className="mr-1" />} Revisar
-                </Button>
-                <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
+                </Button>}
+                {viewOficio && canEditOrDelete(viewOficio) && <Button size="sm" variant="default" onClick={() => handleSaveContent()}>
                   <Save size={14} className="mr-1" /> Salvar
-                </Button>
-                {editedContent !== originalContent && (
+                </Button>}
+                {viewOficio && canEditOrDelete(viewOficio) && editedContent !== originalContent && (
                   <Button size="sm" variant="ghost" className="text-xs" onClick={() => {
                     if (confirm("Deseja descartar todas as edições e voltar ao texto original?")) {
                       setEditedContent(originalContent);
@@ -1289,7 +1306,7 @@ export default function MeusOficios() {
           </DialogHeader>
           {viewOficio && (
             <>
-            <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />
+            {canEditOrDelete(viewOficio) && <PreviewFormatToolbar options={formatOptions} onChange={setFormatOptions} />}
             <div className="overflow-x-auto border border-border rounded-lg mt-2" style={{ maxHeight: "60vh", overflowY: "auto" }}>
               <OficioPreview
                 key={editorKey}
@@ -1304,15 +1321,15 @@ export default function MeusOficios() {
                 secretaria={(viewOficio as any).secretaria_identificada || undefined}
                 dataGeracao={viewOficio.data_geracao || undefined}
                 formatOptions={formatOptions}
-                editable
-                onContentChange={handleContentChange}
-                onNumeroChange={(val) => handleInlineFieldChange("numero", val)}
-                onAssuntoChange={(val) => handleInlineFieldChange("assunto", val)}
-                onCargoDestinatarioChange={(val) => handleInlineFieldChange("cargo_destinatario", val)}
-                onDestinatarioChange={(val) => handleInlineFieldChange("destinatario", val)}
+                editable={canEditOrDelete(viewOficio)}
+                onContentChange={canEditOrDelete(viewOficio) ? handleContentChange : undefined}
+                onNumeroChange={canEditOrDelete(viewOficio) ? (val) => handleInlineFieldChange("numero", val) : undefined}
+                onAssuntoChange={canEditOrDelete(viewOficio) ? (val) => handleInlineFieldChange("assunto", val) : undefined}
+                onCargoDestinatarioChange={canEditOrDelete(viewOficio) ? (val) => handleInlineFieldChange("cargo_destinatario", val) : undefined}
+                onDestinatarioChange={canEditOrDelete(viewOficio) ? (val) => handleInlineFieldChange("destinatario", val) : undefined}
                 onDataChange={undefined}
-                onFechamentoChange={(val) => handleInlineFieldChange("fechamento_text", val)}
-                onVocativoChange={(val) => handleInlineFieldChange("vocativo", val)}
+                onFechamentoChange={canEditOrDelete(viewOficio) ? (val) => handleInlineFieldChange("fechamento_text", val) : undefined}
+                onVocativoChange={canEditOrDelete(viewOficio) ? (val) => handleInlineFieldChange("vocativo", val) : undefined}
                 onIncreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.min(20, prev.fontSize + 1) }))}
                 onDecreaseFontSize={() => setFormatOptions((prev) => ({ ...prev, fontSize: Math.max(8, prev.fontSize - 1) }))}
                 initialConteudo={originalContent}

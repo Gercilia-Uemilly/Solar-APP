@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Permitir que operadores visualizem ofícios próprios e dos colegas sem baixar PDF, mantendo edição restrita ao autor/admin — exceção de Issue/PR autorizada.
+
 - [x] Corrigir seleção múltipla e colagem contínua de prints na página Respostas — 8 testes passaram; prévia validada com dois prints selecionados e um terceiro colado.
 - [x] Permitir colar e arrastar arquivos em todas as áreas de envio, sem alterar permissões — exceção de Issue/PR autorizada.
 
