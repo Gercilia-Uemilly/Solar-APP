@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.oficio-pdf-bot]
 verify_jwt = false
+
+[functions.avisar-oficio-revisado]
+verify_jwt = false
