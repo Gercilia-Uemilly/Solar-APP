@@ -8,6 +8,13 @@
       "when": 1792337016004,
       "tag": "0000_avisar_n8n_oficio_revisado",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792347427404,
+      "tag": "0001_avisar_n8n_via_edge_function",
+      "breakpoints": true
     }
   ]
 }
