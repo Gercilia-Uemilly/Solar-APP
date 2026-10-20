@@ -212,6 +212,275 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_history: {
+        Row: {
+          contact_id: string
+          created_at: string
+          dados: Json | null
+          descricao: string
+          id: string
+          oficio_id: string | null
+          tipo: string
+          user_id: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          dados?: Json | null
+          descricao: string
+          id?: string
+          oficio_id?: string | null
+          tipo: string
+          user_id?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          dados?: Json | null
+          descricao?: string
+          id?: string
+          oficio_id?: string | null
+          tipo?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_history_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_history_oficio_id_fkey"
+            columns: ["oficio_id"]
+            isOneToOne: false
+            referencedRelation: "oficios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_reminders: {
+        Row: {
+          avisado_em: string | null
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          feito: boolean
+          feito_em: string | null
+          id: string
+          lembrar_em: string
+          responsavel_id: string | null
+          texto: string
+        }
+        Insert: {
+          avisado_em?: string | null
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          feito?: boolean
+          feito_em?: string | null
+          id?: string
+          lembrar_em: string
+          responsavel_id?: string | null
+          texto: string
+        }
+        Update: {
+          avisado_em?: string | null
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          feito?: boolean
+          feito_em?: string | null
+          id?: string
+          lembrar_em?: string
+          responsavel_id?: string | null
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_reminders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_reminders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_reminders_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_tag_assignments: {
+        Row: {
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          tag_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          tag_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tag_assignments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tag_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tag_assignments_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "contact_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_tags: {
+        Row: {
+          cor: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          arquivado_em: string | null
+          bairro: string | null
+          codigo_jr: string | null
+          conferir_nono_digito: boolean
+          created_at: string
+          created_by: string | null
+          empresa: string | null
+          id: string
+          nome: string | null
+          observacoes: string | null
+          origem: string
+          responsavel_id: string | null
+          status_atendimento: string
+          telefone_e164: string | null
+          ultima_msg_recebida_em: string | null
+          ultima_resposta_em: string | null
+          updated_at: string
+          wa_lid: string | null
+        }
+        Insert: {
+          arquivado_em?: string | null
+          bairro?: string | null
+          codigo_jr?: string | null
+          conferir_nono_digito?: boolean
+          created_at?: string
+          created_by?: string | null
+          empresa?: string | null
+          id?: string
+          nome?: string | null
+          observacoes?: string | null
+          origem?: string
+          responsavel_id?: string | null
+          status_atendimento?: string
+          telefone_e164?: string | null
+          ultima_msg_recebida_em?: string | null
+          ultima_resposta_em?: string | null
+          updated_at?: string
+          wa_lid?: string | null
+        }
+        Update: {
+          arquivado_em?: string | null
+          bairro?: string | null
+          codigo_jr?: string | null
+          conferir_nono_digito?: boolean
+          created_at?: string
+          created_by?: string | null
+          empresa?: string | null
+          id?: string
+          nome?: string | null
+          observacoes?: string | null
+          origem?: string
+          responsavel_id?: string | null
+          status_atendimento?: string
+          telefone_e164?: string | null
+          ultima_msg_recebida_em?: string | null
+          ultima_resposta_em?: string | null
+          updated_at?: string
+          wa_lid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossie_operador: {
         Row: {
           aguardando_confirmacao: boolean
@@ -277,6 +546,97 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      import_job_errors: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          linha: number | null
+          motivo: string
+          valor: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          linha?: number | null
+          motivo: string
+          valor?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          linha?: number | null
+          motivo?: string
+          valor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_job_errors_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_jobs: {
+        Row: {
+          arquivo_nome: string | null
+          atualizados: number
+          created_at: string
+          duplicados: number
+          finished_at: string | null
+          id: string
+          ignorados: number
+          invalidos: number
+          novos: number
+          status: string
+          tipo: string
+          total_linhas: number
+          user_id: string
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          atualizados?: number
+          created_at?: string
+          duplicados?: number
+          finished_at?: string | null
+          id?: string
+          ignorados?: number
+          invalidos?: number
+          novos?: number
+          status?: string
+          tipo: string
+          total_linhas?: number
+          user_id?: string
+        }
+        Update: {
+          arquivo_nome?: string | null
+          atualizados?: number
+          created_at?: string
+          duplicados?: number
+          finished_at?: string | null
+          id?: string
+          ignorados?: number
+          invalidos?: number
+          novos?: number
+          status?: string
+          tipo?: string
+          total_linhas?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lembretes: {
         Row: {
@@ -349,6 +709,62 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: []
+      }
+      media_library: {
+        Row: {
+          arquivado_em: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          mime_type: string | null
+          pasta: string
+          storage_path: string | null
+          tamanho_bytes: number | null
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          arquivado_em?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mime_type?: string | null
+          pasta?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          tipo: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          arquivado_em?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mime_type?: string | null
+          pasta?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_library_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mensagem_reacoes: {
         Row: {
@@ -689,6 +1105,7 @@ export type Database = {
           bairro: string | null
           cargo_destinatario: string | null
           codigo_z: string | null
+          contato_id: string | null
           contato_solicitante: string | null
           conteudo: string | null
           created_at: string
@@ -743,6 +1160,7 @@ export type Database = {
           bairro?: string | null
           cargo_destinatario?: string | null
           codigo_z?: string | null
+          contato_id?: string | null
           contato_solicitante?: string | null
           conteudo?: string | null
           created_at?: string
@@ -797,6 +1215,7 @@ export type Database = {
           bairro?: string | null
           cargo_destinatario?: string | null
           codigo_z?: string | null
+          contato_id?: string | null
           contato_solicitante?: string | null
           conteudo?: string | null
           created_at?: string
@@ -839,7 +1258,15 @@ export type Database = {
           urgencia?: string | null
           versao?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "oficios_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       oficios_backup: {
         Row: {
@@ -957,34 +1384,43 @@ export type Database = {
       }
       scripts: {
         Row: {
+          atalho: string | null
           author_id: string
           categoria: string
           conteudo: string
           created_at: string
           favorito: boolean
           id: string
+          ordem: number
+          subcategoria: string
           tags: string[] | null
           titulo: string
           updated_at: string
         }
         Insert: {
+          atalho?: string | null
           author_id: string
           categoria?: string
           conteudo: string
           created_at?: string
           favorito?: boolean
           id?: string
+          ordem?: number
+          subcategoria?: string
           tags?: string[] | null
           titulo: string
           updated_at?: string
         }
         Update: {
+          atalho?: string | null
           author_id?: string
           categoria?: string
           conteudo?: string
           created_at?: string
           favorito?: boolean
           id?: string
+          ordem?: number
+          subcategoria?: string
           tags?: string[] | null
           titulo?: string
           updated_at?: string
