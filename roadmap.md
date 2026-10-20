@@ -1,7 +1,8 @@
 # Roadmap
 
-- [ ] FabZap/Júnior: apresentar SQL completo e aguardar “pode aplicar”; resolver ausência de GRANTs e criação do bucket por ferramenta permitida, sem alterar objetos existentes.
-- [ ] Após autorização: aplicar migração aditiva, conferir types e criar/testar/publicar contato-bot conforme o segundo arquivo; respeitar fluxo Issue/PR.
+- [x] FabZap/Júnior: SQL ajustado aprovado; exceção de Issue/PR autorizada somente nesta tarefa.
+- [ ] Aplicar SQL aprovado, conferir dados/types e criar bucket privado fabzap-midia sem alterar objetos existentes.
+- [ ] Criar, testar e publicar contato-bot conforme o segundo arquivo, preservando correções da equipe e datas mais recentes.
 
 - [x] Permitir que operadores visualizem ofícios próprios e dos colegas sem baixar PDF, mantendo edição restrita ao autor/admin — exceção de Issue/PR autorizada.
 

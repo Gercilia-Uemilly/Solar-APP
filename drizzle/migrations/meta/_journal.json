@@ -15,6 +15,13 @@
       "when": 1792347427404,
       "tag": "0001_avisar_n8n_via_edge_function",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792504274123,
+      "tag": "0002_fabzap_contacts_library",
+      "breakpoints": true
     }
   ]
 }
