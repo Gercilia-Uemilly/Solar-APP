@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initObservability, reportError } from "./lib/observability";
+import { isChunkLoadError, recoverFromStaleBuild } from "./lib/chunkRecovery";
 
 initObservability();
 
@@ -17,8 +18,15 @@ if ("caches" in window) {
   });
 }
 
+// Versão antiga em cache após publicação: recarrega uma vez com arquivos novos
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  void recoverFromStaleBuild();
+});
+
 // Global unhandled error catchers — prevent silent crashes
 window.addEventListener("unhandledrejection", (event) => {
+  if (isChunkLoadError(event.reason)) { void recoverFromStaleBuild(); return; }
   console.error("[Solar] Unhandled promise rejection:", event.reason);
   reportError(event.reason, { origem: "unhandledrejection" });
   // Prevent default browser error logging for known non-critical rejections
