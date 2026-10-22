@@ -116,7 +116,7 @@ export default function PoliticaPrivacidade() {
         </div>
 
         <div className="mt-12 pt-6 border-t border-border text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Solar IA — Gabinete Vereador Fabão. Todos os direitos reservados. (teste de sincronização)
+          © {new Date().getFullYear()} Solar IA — Gabinete Vereador Fabão. Todos os direitos reservados.
         </div>
       </div>
     </div>
