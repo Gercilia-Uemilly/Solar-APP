@@ -463,6 +463,58 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
+    // ── Tentativa 1: ConvertAPI (chaves em cascata) ──────────────────────────
+    // Ordem: CONVERTAPI_SECRET_3 (mais recente) → CONVERTAPI_SECRET → CONVERTAPI_SECRET_2
+    const convertApiKeys: Array<{ name: string; value: string }> = [];
+    for (const name of ["CONVERTAPI_SECRET_3", "CONVERTAPI_SECRET", "CONVERTAPI_SECRET_2"]) {
+      const value = Deno.env.get(name);
+      if (value && !convertApiKeys.some((k) => k.value === value)) {
+        convertApiKeys.push({ name, value });
+      }
+    }
+
+    for (const key of convertApiKeys) {
+      configuredProviders.push(`ConvertAPI(${key.name})`);
+      try {
+        console.log(`[convert-to-pdf] 🔑 Tentando ConvertAPI com ${key.name}`);
+        const pdfBytes = await convertWithConvertApi(docxBytes, filename, key.value);
+        console.log(`[convert-to-pdf] ✅ Sucesso com ${key.name}`);
+        return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
+      } catch (e) {
+        const msg = getErrorMessage(e);
+        providerErrors.push(`ConvertAPI(${key.name}): ${msg}`);
+        if (/4035|No conversions remaining|trial plan has expired/i.test(msg)) {
+          console.warn(`[convert-to-pdf] ⚠️ ${key.name} sem créditos (4035) — tentando próxima chave`);
+        } else {
+          console.error(`[convert-to-pdf] ❌ ${key.name} falhou (não-4035):`, msg);
+        }
+      }
+    }
+
+
+    // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
+    const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
+    // ⚠️ CloudConvert/Api2PDF realizam upload pesado dentro da edge function
+    // e frequentemente excedem o limite de CPU (WORKER_RESOURCE_LIMIT) quando
+    // o documento contém anexos. Só usamos como último recurso, e apenas se
+    // nenhum provedor "leve" (Drive/ConvertAPI) estiver configurado.
+    const heavyProvidersAllowed = configuredProviders.length === 0;
+    // CloudConvert vem antes do Google para manter a paginação idêntica ao Word.
+    if (CLOUDCONVERT_API_KEY) {
+      configuredProviders.push("CloudConvert");
+      try {
+        const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
+        return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
+      } catch (e) {
+        const msg = getErrorMessage(e);
+        providerErrors.push(`CloudConvert: ${msg}`);
+        console.error("CloudConvert failed, trying next provider:", e);
+      }
+    }
+
+    // ── Google por último: o Google Docs recalcula fontes/espaçamentos e pode
+    // jogar "Atenciosamente"/assinatura para a página 2. Só usar se os
+    // conversores fiéis ao Word (ConvertAPI/CloudConvert) falharem.
     // ── Tentativa 0: Google Drive do usuário (sem crédito pago) ──────────────
     if (supabaseUrl && serviceRoleKey) {
       try {
@@ -517,54 +569,6 @@ serve(async (req) => {
       const msg = getErrorMessage(e);
       providerErrors.push(`GoogleServiceAccountAuth: ${msg}`);
       console.error("GoogleServiceAccount token failed:", e);
-    }
-
-    // ── Tentativa 1: ConvertAPI (chaves em cascata) ──────────────────────────
-    // Ordem: CONVERTAPI_SECRET_3 (mais recente) → CONVERTAPI_SECRET → CONVERTAPI_SECRET_2
-    const convertApiKeys: Array<{ name: string; value: string }> = [];
-    for (const name of ["CONVERTAPI_SECRET_3", "CONVERTAPI_SECRET", "CONVERTAPI_SECRET_2"]) {
-      const value = Deno.env.get(name);
-      if (value && !convertApiKeys.some((k) => k.value === value)) {
-        convertApiKeys.push({ name, value });
-      }
-    }
-
-    for (const key of convertApiKeys) {
-      configuredProviders.push(`ConvertAPI(${key.name})`);
-      try {
-        console.log(`[convert-to-pdf] 🔑 Tentando ConvertAPI com ${key.name}`);
-        const pdfBytes = await convertWithConvertApi(docxBytes, filename, key.value);
-        console.log(`[convert-to-pdf] ✅ Sucesso com ${key.name}`);
-        return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
-      } catch (e) {
-        const msg = getErrorMessage(e);
-        providerErrors.push(`ConvertAPI(${key.name}): ${msg}`);
-        if (/4035|No conversions remaining|trial plan has expired/i.test(msg)) {
-          console.warn(`[convert-to-pdf] ⚠️ ${key.name} sem créditos (4035) — tentando próxima chave`);
-        } else {
-          console.error(`[convert-to-pdf] ❌ ${key.name} falhou (não-4035):`, msg);
-        }
-      }
-    }
-
-
-    // ── Tentativa 2: CloudConvert API ────────────────────────────────────────
-    const CLOUDCONVERT_API_KEY = Deno.env.get("CLOUDCONVERT_API_KEY");
-    // ⚠️ CloudConvert/Api2PDF realizam upload pesado dentro da edge function
-    // e frequentemente excedem o limite de CPU (WORKER_RESOURCE_LIMIT) quando
-    // o documento contém anexos. Só usamos como último recurso, e apenas se
-    // nenhum provedor "leve" (Drive/ConvertAPI) estiver configurado.
-    const heavyProvidersAllowed = configuredProviders.length === 0;
-    if (CLOUDCONVERT_API_KEY && heavyProvidersAllowed) {
-      configuredProviders.push("CloudConvert");
-      try {
-        const pdfBytes = await convertWithCloudConvert(docxBytes, filename, CLOUDCONVERT_API_KEY);
-        return new Response(new Uint8Array(pdfBytes).buffer, { headers: pdfHeaders });
-      } catch (e) {
-        const msg = getErrorMessage(e);
-        providerErrors.push(`CloudConvert: ${msg}`);
-        console.error("CloudConvert failed, trying next provider:", e);
-      }
     }
 
     // ── Tentativa 3: Api2PDF (LibreOffice) ───────────────────────────────────
