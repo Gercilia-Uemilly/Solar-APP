@@ -649,8 +649,18 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
   
   // Collect all inline images separately for grid layout
   const inlineImages: ParsedImageRun[] = [];
+
+  // Último parágrafo de texto do corpo: vai junto com "Atenciosamente" e a
+  // assinatura (keepNext). Assim, se o fechamento não couber na página 1, o
+  // último parágrafo desce junto e a assinatura nunca fica sozinha na página 2.
+  // Não se aplica quando há imagens no corpo, porque elas vêm depois do texto.
+  const hasBodyImages = styledParagraphs.some(({ runs }) => runs.some(r => 'image' in r));
+  let lastTextParagraphIdx = -1;
+  styledParagraphs.forEach(({ runs }, idx) => {
+    if (runs.some(r => !('image' in r))) lastTextParagraphIdx = idx;
+  });
   
-  styledParagraphs.forEach(({ runs, listReference, listLevel }) => {
+  styledParagraphs.forEach(({ runs, listReference, listLevel }, paragraphIdx) => {
     const isImageOnly = runs.length > 0 && runs.every(r => 'image' in r);
     
     if (isImageOnly) {
@@ -685,6 +695,7 @@ async function buildWordBlob(data: OficioData): Promise<Blob> {
         children,
         spacing: { before: 0, after: 0, line: lineSpacing },
         numbering: listReference ? { reference: listReference, level: listLevel || 0 } : undefined,
+        ...(!hasBodyImages && paragraphIdx === lastTextParagraphIdx ? { keepNext: true, keepLines: true } : {}),
       }));
     }
   });

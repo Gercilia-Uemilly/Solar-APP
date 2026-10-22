@@ -270,7 +270,11 @@ export async function buildOficioDocx(data: OficioDocxData): Promise<Uint8Array>
 
   const bodyParagraphs: Paragraph[] = [];
   const inlineImages: ParsedImageRun[] = [];
-  styledParagraphs.forEach(({ runs, listReference, listLevel }) => {
+  // Último parágrafo de texto vai junto com o fechamento (assinatura nunca sozinha na página 2)
+  const hasBodyImages = styledParagraphs.some(({ runs }) => runs.some((r) => "image" in r));
+  let lastTextParagraphIdx = -1;
+  styledParagraphs.forEach(({ runs }, idx) => { if (runs.some((r) => !("image" in r))) lastTextParagraphIdx = idx; });
+  styledParagraphs.forEach(({ runs, listReference, listLevel }, paragraphIdx) => {
     if (runs.length > 0 && runs.every((r) => "image" in r)) { for (const r of runs) inlineImages.push(r as ParsedImageRun); return; }
     const children: TextRun[] = [];
     for (const r of runs) {
@@ -278,7 +282,7 @@ export async function buildOficioDocx(data: OficioDocxData): Promise<Uint8Array>
       else children.push(new TextRun({ text: r.text, break: r.break, font: defaultFontName, size: defaultFontSize, bold: r.bold, italics: r.italic, underline: r.underline ? {} : undefined }));
     }
     if (children.length > 0) {
-      bodyParagraphs.push(new Paragraph({ indent: listReference ? undefined : { firstLine: 709 }, alignment: AlignmentType.JUSTIFIED, children, spacing: { before: 0, after: 0, line: lineSpacing }, numbering: listReference ? { reference: listReference, level: listLevel || 0 } : undefined }));
+      bodyParagraphs.push(new Paragraph({ indent: listReference ? undefined : { firstLine: 709 }, alignment: AlignmentType.JUSTIFIED, children, spacing: { before: 0, after: 0, line: lineSpacing }, numbering: listReference ? { reference: listReference, level: listLevel || 0 } : undefined, ...(!hasBodyImages && paragraphIdx === lastTextParagraphIdx ? { keepNext: true, keepLines: true } : {}) }));
     }
   });
   if (inlineImages.length > 0) {
