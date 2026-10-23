@@ -5,7 +5,7 @@ const WINDOW_MS = 60_000;
 
 export function isChunkLoadError(err: unknown): boolean {
   const msg = String((err as any)?.message ?? err ?? "");
-  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Loading chunk .* failed|ChunkLoadError|Unable to preload CSS/i.test(msg);
+  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Loading chunk .* failed|ChunkLoadError|Unable to preload CSS|reading .default./i.test(msg);
 }
 
 export function shouldReload(now: number, lastAt: number | null): boolean {

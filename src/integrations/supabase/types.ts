@@ -155,6 +155,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cidades: {
+        Row: {
+          canal_online: string | null
+          criado_em: string
+          id: string
+          nome: string
+          observacao: string | null
+          porta_entrada: string | null
+          prefeito: string | null
+          uf: string
+        }
+        Insert: {
+          canal_online?: string | null
+          criado_em?: string
+          id?: string
+          nome: string
+          observacao?: string | null
+          porta_entrada?: string | null
+          prefeito?: string | null
+          uf?: string
+        }
+        Update: {
+          canal_online?: string | null
+          criado_em?: string
+          id?: string
+          nome?: string
+          observacao?: string | null
+          porta_entrada?: string | null
+          prefeito?: string | null
+          uf?: string
+        }
+        Relationships: []
+      }
       clippings: {
         Row: {
           author_id: string
@@ -546,6 +579,283 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      fz_agendamentos: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          enviado_em: string | null
+          erro: string | null
+          id: string
+          linha: string | null
+          numero_linha: string | null
+          quando: string
+          status: string
+          telefone_e164: string
+          texto: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          linha?: string | null
+          numero_linha?: string | null
+          quando: string
+          status?: string
+          telefone_e164: string
+          texto: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          linha?: string | null
+          numero_linha?: string | null
+          quando?: string
+          status?: string
+          telefone_e164?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fz_agendamentos_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fz_agendamentos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fz_fila: {
+        Row: {
+          chave: string | null
+          contact_id: string | null
+          criado_em: string
+          id: string
+          linha: string | null
+          nome: string | null
+          oficio_id: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          resumo: string | null
+          telefone_e164: string | null
+          tipo: string
+        }
+        Insert: {
+          chave?: string | null
+          contact_id?: string | null
+          criado_em?: string
+          id?: string
+          linha?: string | null
+          nome?: string | null
+          oficio_id?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          resumo?: string | null
+          telefone_e164?: string | null
+          tipo: string
+        }
+        Update: {
+          chave?: string | null
+          contact_id?: string | null
+          criado_em?: string
+          id?: string
+          linha?: string | null
+          nome?: string | null
+          oficio_id?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          resumo?: string | null
+          telefone_e164?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fz_fila_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fz_fila_oficio_id_fkey"
+            columns: ["oficio_id"]
+            isOneToOne: false
+            referencedRelation: "oficios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fz_fila_resolvido_por_fkey"
+            columns: ["resolvido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fz_papeis: {
+        Row: {
+          papel: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          papel: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          papel?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fz_papeis_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fz_pastas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          ordem: number
+          tag_ids: string[]
+          telefones: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          tag_ids?: string[]
+          telefones?: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          tag_ids?: string[]
+          telefones?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fz_pastas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fz_sequencia_partes: {
+        Row: {
+          audio_id: string | null
+          id: string
+          intervalo_s: number
+          midia_id: string | null
+          ordem: number
+          sequencia_id: string
+          texto: string | null
+          tipo: string
+        }
+        Insert: {
+          audio_id?: string | null
+          id?: string
+          intervalo_s?: number
+          midia_id?: string | null
+          ordem?: number
+          sequencia_id: string
+          texto?: string | null
+          tipo: string
+        }
+        Update: {
+          audio_id?: string | null
+          id?: string
+          intervalo_s?: number
+          midia_id?: string | null
+          ordem?: number
+          sequencia_id?: string
+          texto?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fz_sequencia_partes_midia_id_fkey"
+            columns: ["midia_id"]
+            isOneToOne: false
+            referencedRelation: "media_library"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fz_sequencia_partes_sequencia_id_fkey"
+            columns: ["sequencia_id"]
+            isOneToOne: false
+            referencedRelation: "fz_sequencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fz_sequencias: {
+        Row: {
+          arquivado_em: string | null
+          atalho: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          pasta: string
+          titulo: string
+        }
+        Insert: {
+          arquivado_em?: string | null
+          atalho?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pasta?: string
+          titulo: string
+        }
+        Update: {
+          arquivado_em?: string | null
+          atalho?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pasta?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fz_sequencias_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       import_job_errors: {
         Row: {
@@ -1104,6 +1414,7 @@ export type Database = {
           author_id: string
           bairro: string | null
           cargo_destinatario: string | null
+          cidade: string
           codigo_z: string | null
           contato_id: string | null
           contato_solicitante: string | null
@@ -1117,7 +1428,11 @@ export type Database = {
           editing_by: string | null
           editing_by_name: string | null
           editing_since: string | null
+          email_enviado_em: string | null
+          email_enviado_por: string | null
+          email_id: string | null
           endereco_completo: string | null
+          esfera: string
           ia_gerada: boolean
           ia_pendente: boolean
           id: string
@@ -1131,7 +1446,10 @@ export type Database = {
           numero: string | null
           numero_protocolo: string | null
           operador_nome: string | null
+          orgao_copia_id: string | null
+          orgao_destino_id: string | null
           origem: string | null
+          prazo_retorno: string | null
           protocolado_em: string | null
           respondido_em: string | null
           resposta_cidadao: string | null
@@ -1159,6 +1477,7 @@ export type Database = {
           author_id: string
           bairro?: string | null
           cargo_destinatario?: string | null
+          cidade?: string
           codigo_z?: string | null
           contato_id?: string | null
           contato_solicitante?: string | null
@@ -1172,7 +1491,11 @@ export type Database = {
           editing_by?: string | null
           editing_by_name?: string | null
           editing_since?: string | null
+          email_enviado_em?: string | null
+          email_enviado_por?: string | null
+          email_id?: string | null
           endereco_completo?: string | null
+          esfera?: string
           ia_gerada?: boolean
           ia_pendente?: boolean
           id?: string
@@ -1186,7 +1509,10 @@ export type Database = {
           numero?: string | null
           numero_protocolo?: string | null
           operador_nome?: string | null
+          orgao_copia_id?: string | null
+          orgao_destino_id?: string | null
           origem?: string | null
+          prazo_retorno?: string | null
           protocolado_em?: string | null
           respondido_em?: string | null
           resposta_cidadao?: string | null
@@ -1214,6 +1540,7 @@ export type Database = {
           author_id?: string
           bairro?: string | null
           cargo_destinatario?: string | null
+          cidade?: string
           codigo_z?: string | null
           contato_id?: string | null
           contato_solicitante?: string | null
@@ -1227,7 +1554,11 @@ export type Database = {
           editing_by?: string | null
           editing_by_name?: string | null
           editing_since?: string | null
+          email_enviado_em?: string | null
+          email_enviado_por?: string | null
+          email_id?: string | null
           endereco_completo?: string | null
+          esfera?: string
           ia_gerada?: boolean
           ia_pendente?: boolean
           id?: string
@@ -1241,7 +1572,10 @@ export type Database = {
           numero?: string | null
           numero_protocolo?: string | null
           operador_nome?: string | null
+          orgao_copia_id?: string | null
+          orgao_destino_id?: string | null
           origem?: string | null
+          prazo_retorno?: string | null
           protocolado_em?: string | null
           respondido_em?: string | null
           resposta_cidadao?: string | null
@@ -1266,6 +1600,20 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "oficios_orgao_copia_id_fkey"
+            columns: ["orgao_copia_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oficios_orgao_destino_id_fkey"
+            columns: ["orgao_destino_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos_publicos"
+            referencedColumns: ["id"]
+          },
         ]
       }
       oficios_backup: {
@@ -1288,6 +1636,68 @@ export type Database = {
           oficio_id?: string
         }
         Relationships: []
+      }
+      orgaos_publicos: {
+        Row: {
+          assuntos: string[]
+          ativo: boolean
+          cidade_id: string | null
+          conferido_em: string | null
+          criado_em: string
+          email: string | null
+          endereco: string | null
+          esfera: string
+          fonte: string | null
+          id: string
+          nome: string
+          responsavel: string | null
+          sigla: string | null
+          situacao: string
+          telefone: string | null
+        }
+        Insert: {
+          assuntos?: string[]
+          ativo?: boolean
+          cidade_id?: string | null
+          conferido_em?: string | null
+          criado_em?: string
+          email?: string | null
+          endereco?: string | null
+          esfera?: string
+          fonte?: string | null
+          id?: string
+          nome: string
+          responsavel?: string | null
+          sigla?: string | null
+          situacao?: string
+          telefone?: string | null
+        }
+        Update: {
+          assuntos?: string[]
+          ativo?: boolean
+          cidade_id?: string | null
+          conferido_em?: string | null
+          criado_em?: string
+          email?: string | null
+          endereco?: string | null
+          esfera?: string
+          fonte?: string | null
+          id?: string
+          nome?: string
+          responsavel?: string | null
+          sigla?: string | null
+          situacao?: string
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orgaos_publicos_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       preferencias_usuario: {
         Row: {
@@ -1381,6 +1791,52 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      roteamento: {
+        Row: {
+          categoria: string
+          cidade_id: string
+          id: string
+          orgao_copia_id: string | null
+          orgao_destino_id: string | null
+        }
+        Insert: {
+          categoria: string
+          cidade_id: string
+          id?: string
+          orgao_copia_id?: string | null
+          orgao_destino_id?: string | null
+        }
+        Update: {
+          categoria?: string
+          cidade_id?: string
+          id?: string
+          orgao_copia_id?: string | null
+          orgao_destino_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roteamento_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roteamento_orgao_copia_id_fkey"
+            columns: ["orgao_copia_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roteamento_orgao_destino_id_fkey"
+            columns: ["orgao_destino_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos_publicos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scripts: {
         Row: {
