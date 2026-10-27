@@ -26,6 +26,8 @@ const STORAGE_KEY = process.env.LOVABLE_BROWSER_SUPABASE_STORAGE_KEY || "";
 async function listarOficios(): Promise<Array<{ id: string; numero: string }>> {
   const fixos = (process.env.PARITY_OFICIO_IDS || "").split(",").map((v) => v.trim()).filter(Boolean);
   if (fixos.length > 0) return fixos.map((id) => ({ id, numero: id }));
+  // Sem Supabase configurado (ex.: CI) não há ofícios para auditar: o teste é pulado.
+  if (!SUPABASE_URL) return [];
 
   const token = SESSION ? JSON.parse(SESSION).access_token : ANON;
   const url = `${SUPABASE_URL}/rest/v1/oficios?select=id,numero&conteudo=not.is.null&order=created_at.desc&limit=${AMOSTRA}`;

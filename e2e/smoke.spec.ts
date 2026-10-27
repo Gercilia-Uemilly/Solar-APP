@@ -32,6 +32,7 @@ test("respeita prefers-reduced-motion", async ({ browser }) => {
     el.remove();
     return d;
   });
-  expect(duracao).toBe("0.00001s");
+  // O Chromium pode serializar 0.00001s como "1e-05s": compara o número, não o texto.
+  expect(Number.parseFloat(duracao)).toBeLessThanOrEqual(0.00001);
   await context.close();
 });
