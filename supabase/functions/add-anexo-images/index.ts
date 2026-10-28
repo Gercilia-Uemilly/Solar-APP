@@ -416,15 +416,30 @@ function makeImageTableXml(
 ): string {
   const rows: string[] = [];
   const isGrid = images.length > 2;
-  const slotMaxHeight = isGrid ? MAX_GRID_HEIGHT : MAX_SIDE_HEIGHT;
+  // Agrupa em linhas: paisagem ocupa a linha inteira; retratos vão em pares.
+  // Evita paisagem espremida numa célula estreita ao lado de um retrato alto
+  // (causa do desalinhamento com orientações mistas).
+  const groups: { rId: string; idx: number; width: number; height: number }[][] = [];
+  if (isGrid) {
+    let pending: typeof images = [];
+    for (const img of images) {
+      if (isLandscape(img.width, img.height)) {
+        groups.push([img]);
+      } else {
+        pending.push(img);
+        if (pending.length === 2) { groups.push(pending); pending = []; }
+      }
+    }
+    if (pending.length) groups.push(pending);
+  } else {
+    for (let i = 0; i < images.length; i += 2) groups.push(images.slice(i, i + 2));
+  }
+  const fitRowHeight = Math.floor((CONTENT_HEIGHT_EMU - IMG_GAP_EMU * groups.length) / Math.max(1, groups.length));
+  const slotMaxHeight = Math.min(isGrid ? MAX_GRID_HEIGHT : MAX_SIDE_HEIGHT, fitRowHeight);
   // Altura fixa da linha (em twips) para que todos os slots tenham o MESMO tamanho visual
-  const rowHeightTwips = Math.round(slotMaxHeight / EMU_PER_TWIP);
-  for (let i = 0; i < images.length; i += 2) {
-    const pair = images.slice(i, i + 2);
-    // Linha com apenas 1 imagem (caso ímpar, ex: 3 imagens): renderiza
-    // ocupando as duas colunas (gridSpan=2) usando contain (sem corte e
-    // sem distorção) para evitar a imagem ser "esticada" no slot vazio
-    // ou jogada para outra página com proporção errada.
+  const rowHeightTwips = Math.round((slotMaxHeight + IMG_GAP_EMU) / EMU_PER_TWIP);
+  for (const pair of groups) {
+    // Linha com apenas 1 imagem: ocupa as duas colunas (gridSpan=2), contain.
     if (pair.length === 1) {
       const img = pair[0];
       const fit = containFit(img.width, img.height, CONTENT_WIDTH_EMU, slotMaxHeight);
@@ -456,7 +471,7 @@ function makeImageTableXml(
       }
 
       const maxWidth = MAX_SIDE_WIDTH;
-      const maxHeight = pair.length === 1 ? MAX_SIDE_HEIGHT : MAX_GRID_HEIGHT;
+      const maxHeight = slotMaxHeight;
       // contain: preserva imagem inteira (sem corte, sem distorção) e centralizada no slot
       const fit = containFit(img.width, img.height, maxWidth, maxHeight);
       const run = makeImageRunXml(img.rId, fit.cx, fit.cy, img.idx, A_NS, PIC_NS);
