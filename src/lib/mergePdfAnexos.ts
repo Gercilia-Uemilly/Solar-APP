@@ -115,71 +115,38 @@ function calculateSlots(
     }];
   }
 
-  if (count === 2) {
-    const landscapeCount = images.filter(i => isLandscape(i.width, i.height)).length;
-
-    if (landscapeCount === 0) {
-      // Both portrait → side by side
-      const slotW = (CONTENT_WIDTH - GAP) / 2;
-      return [
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT, alignH: "center", alignV: "top" },
-        { x: MARGIN_LEFT + slotW + GAP, y: MARGIN_BOTTOM, w: slotW, h: CONTENT_HEIGHT, alignH: "center", alignV: "top" },
-      ];
+  // Mesma regra do Word: paisagem ocupa a linha inteira; retratos em pares;
+  // todas as linhas com a mesma altura para alinhamento uniforme.
+  const rows: number[][] = [];
+  let pending: number | null = null;
+  images.forEach((img, i) => {
+    if (isLandscape(img.width, img.height)) {
+      if (pending !== null) { rows.push([pending]); pending = null; }
+      rows.push([i]);
+    } else if (pending === null) {
+      pending = i;
     } else {
-      // Both landscape or mixed → stacked vertically
-      const slotH = (CONTENT_HEIGHT - GAP) / 2;
-      return [
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH, alignH: "center", alignV: "center" },
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH, alignH: "center", alignV: "center" },
-      ];
+      rows.push([pending, i]);
+      pending = null;
     }
-  }
+  });
+  if (pending !== null) rows.push([pending]);
 
-  if (count === 3) {
-    const allLandscape = images.every(i => isLandscape(i.width, i.height));
-    if (allLandscape) {
-      // 3 landscape → stack vertically, each gets full width
-      const slotH = (CONTENT_HEIGHT - GAP * 2) / 3;
-      return [
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH * 2 + GAP * 2, w: CONTENT_WIDTH, h: slotH },
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
-        { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH },
-      ];
+  const slots: Slot[] = new Array(count);
+  const rowH = (CONTENT_HEIGHT - GAP * (rows.length - 1)) / rows.length;
+  const halfW = (CONTENT_WIDTH - GAP) / 2;
+  rows.forEach((row, r) => {
+    const y = MARGIN_BOTTOM + (rows.length - 1 - r) * (rowH + GAP);
+    if (row.length === 2) {
+      slots[row[0]] = { x: MARGIN_LEFT, y, w: halfW, h: rowH, alignH: "center", alignV: "center" };
+      slots[row[1]] = { x: MARGIN_LEFT + halfW + GAP, y, w: halfW, h: rowH, alignH: "center", alignV: "center" };
+    } else {
+      const lone = images[row[0]];
+      const w = isLandscape(lone.width, lone.height) ? CONTENT_WIDTH : halfW;
+      slots[row[0]] = { x: MARGIN_LEFT + (CONTENT_WIDTH - w) / 2, y, w, h: rowH, alignH: "center", alignV: "center" };
     }
-    const cellW = (CONTENT_WIDTH - GAP) / 2;
-    const cellH = (CONTENT_HEIGHT - GAP) / 2;
-    return [
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "center", alignV: "center" },
-      { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "center", alignV: "center" },
-      { x: MARGIN_LEFT + (CONTENT_WIDTH - cellW) / 2, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "center", alignV: "center" },
-    ];
-  }
-
-  // 4 images
-  const allLandscape = images.every(i => isLandscape(i.width, i.height));
-  if (allLandscape) {
-    // 4 landscape → stack vertically, each gets full width
-    const slotH = (CONTENT_HEIGHT - GAP * 3) / 4;
-    return [
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH * 3 + GAP * 3, w: CONTENT_WIDTH, h: slotH },
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH * 2 + GAP * 2, w: CONTENT_WIDTH, h: slotH },
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM + slotH + GAP, w: CONTENT_WIDTH, h: slotH },
-      { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: CONTENT_WIDTH, h: slotH },
-    ];
-  }
-
-  // Mixed or all portrait → 2x2 grid
-  const cellW = (CONTENT_WIDTH - GAP) / 2;
-  const cellH = (CONTENT_HEIGHT - GAP) / 2;
-  return [
-    // Cada imagem é centralizada dentro do seu slot — garante uniformidade
-    // visual independente da proporção (retrato/paisagem) e evita que imagens
-    // pequenas fiquem "coladas" nas bordas.
-    { x: MARGIN_LEFT, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "center", alignV: "center" },
-    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM + cellH + GAP, w: cellW, h: cellH, alignH: "center", alignV: "center" },
-    { x: MARGIN_LEFT, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "center", alignV: "center" },
-    { x: MARGIN_LEFT + cellW + GAP, y: MARGIN_BOTTOM, w: cellW, h: cellH, alignH: "center", alignV: "center" },
-  ];
+  });
+  return slots;
 }
 
 /**
