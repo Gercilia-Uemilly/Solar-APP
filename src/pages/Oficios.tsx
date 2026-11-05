@@ -30,6 +30,7 @@ import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
+import { useOrgaosCidade, CIDADE_PADRAO, avisosOrgao, destinatarioOrgao, vocativoOrgao, encerramentoOrgao, trocarEncerramento, categoriaDaSecretaria, type OrgaoCidade } from "@/hooks/useOrgaosCidade";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import { extractExternalOficioUrlData, extractExternalOficioFileData } from "@/lib/externalOficioText";
 import { useRespostas, uploadRespostaArquivo, fetchRespostaBlob, type OficioResposta } from "@/hooks/useRespostas";
@@ -97,6 +98,20 @@ export default function Oficios() {
   const [formTab, setFormTab] = useState("dados");
   const [fechamento, setFechamento] = useState("Atenciosamente,");
   const [vocativoCustom, setVocativoCustom] = useState("");
+  // Cérebro F2: ofício por cidade. Uberlândia continua igual (SECRETARIAS_CONFIG); outras cidades usam orgaos_publicos.
+  const [cidade, setCidade] = useState(CIDADE_PADRAO);
+  const [orgaoDestinoId, setOrgaoDestinoId] = useState<string | null>(null);
+  const { cidades, orgaos: orgaosCidade, roteamento: roteamentoCidade, loading: loadingOrgaos } = useOrgaosCidade(cidade);
+  const outraCidade = cidade !== CIDADE_PADRAO;
+  const orgaoSelecionado = useMemo(() => orgaosCidade.find(o => o.id === orgaoDestinoId) || null, [orgaosCidade, orgaoDestinoId]);
+  const aplicarOrgao = (o: OrgaoCidade) => {
+    setOrgaoDestinoId(o.id);
+    setSecretaria(o.nome);
+    const dest = destinatarioOrgao(o, cidade);
+    setDestinatario(dest);
+    setCargoDestinatario(dest);
+    setVocativoCustom(vocativoOrgao(o));
+  };
   const [userPhones, setUserPhones] = useState<string[]>([]);
   const [profileName, setProfileName] = useState<string>("");
   const [reservedAt, setReservedAt] = useState<number | null>(null);
@@ -490,7 +505,8 @@ export default function Oficios() {
 
 
   useEffect(() => {
-    if (secretaria) {
+    // outra cidade: destinatário vem do órgão escolhido (aplicarOrgao), não do SECRETARIAS_CONFIG de Uberlândia
+    if (secretaria && !outraCidade) {
       const destinatarioGerado = getDestinatario(secretaria);
       if (!cargoManualmenteEditadoRef.current) {
         setCargoDestinatario(destinatarioGerado);
@@ -499,7 +515,7 @@ export default function Oficios() {
         setDestinatario(destinatarioGerado);
       }
     }
-  }, [secretaria]);
+  }, [secretaria, outraCidade]);
 
   const getPreviewEditableSnapshot = useCallback(() => {
     const readField = (field: string) => previewRef.current
@@ -542,7 +558,9 @@ export default function Oficios() {
       }
       try {
         // Build template from description
-        const encerramentoTexto = gerarEncerramentoDinamico(secretaria, vocativoCustom || getVocativo(secretaria || ''));
+        const encerramentoTexto = outraCidade && orgaoSelecionado
+          ? encerramentoOrgao(orgaoSelecionado, cidade)
+          : gerarEncerramentoDinamico(secretaria, vocativoCustom || getVocativo(secretaria || ''));
         const conteudoFormatado = `<p>${descricao.split("\n").filter((l: string) => l.trim()).join("</p><p>")}</p><p>${encerramentoTexto}</p><p>Na certeza de contar com o vosso pronto atendimento, desde já agradeço.</p>`;
 
         const updatePayload: Record<string, any> = {
@@ -653,7 +671,10 @@ export default function Oficios() {
 
     try {
       const { data, error } = await invokeWithRetry<any>("generate-oficio", {
-        body: { assunto, destinatario, descricao, tipo: secretaria || "Solicitação", solicitante, bairro: bairro, prioridade, local: enderecoCompleto || localDemanda },
+        body: outraCidade
+          // outra cidade: a IA detecta o assunto sozinha se ainda não há órgão; a cidade vai junto no local
+          ? { assunto, destinatario, descricao, tipo: (orgaoSelecionado && secretaria) || "Solicitação", solicitante, bairro: bairro, prioridade, local: [enderecoCompleto || localDemanda, `${cidade}/MG`].filter(Boolean).join(", ") }
+          : { assunto, destinatario, descricao, tipo: secretaria || "Solicitação", solicitante, bairro: bairro, prioridade, local: enderecoCompleto || localDemanda },
         retries: 3,
         onRetry: (attempt) => {
           toast({ title: `Reconectando... (tentativa ${attempt + 1}/3)`, description: "Conexão instável detectada." });
@@ -662,7 +683,15 @@ export default function Oficios() {
       if (error) throw error;
       if (!data || (!data.oficio && !data.text)) throw new Error("Sem resposta da IA. Tente novamente.");
       setAiResult(data);
-      const oficioText = data.oficio || data.text || "";
+      let oficioText = data.oficio || data.text || "";
+      // outra cidade: órgão escolhido ou sugerido pelo roteamento (assunto que a IA achou) + encaminhamento com o nome dele
+      const orgaoFinal = !outraCidade ? null : orgaoSelecionado
+        || orgaosCidade.find(o => o.id === roteamentoCidade[categoriaDaSecretaria(resolverChaveSecretaria(data.secretaria_identificada || "")) || ""])
+        || null;
+      if (orgaoFinal) {
+        if (!orgaoSelecionado) aplicarOrgao(orgaoFinal);
+        oficioText = trocarEncerramento(oficioText, orgaoFinal, cidade);
+      }
       // Mark as manually edited so auto-save doesn't overwrite AI content
       oficioEditedManuallyRef.current = true;
       setEditedOficio(oficioText);
@@ -671,7 +700,7 @@ export default function Oficios() {
       setHistoryIndex(0);
       setEditedResposta(data.resposta_cidadao || "");
       if (data.assunto_sugerido) setAssunto(data.assunto_sugerido);
-      if (data.secretaria_identificada) {
+      if (data.secretaria_identificada && !outraCidade) {
         const chave = resolverChaveSecretaria(data.secretaria_identificada);
         if (chave) setSecretaria(chave);
         const dest = getDestinatario(chave || data.secretaria_identificada);
@@ -680,6 +709,9 @@ export default function Oficios() {
       }
       setFormTab("preview");
       toast({ title: "Ofício gerado!", description: "Revise o texto na aba Visualizar." });
+      if (outraCidade && !orgaoFinal) {
+        toast({ title: `Escolha o órgão de ${cidade}`, description: "Não achei o órgão pelo assunto. Escolha na aba Dados.", variant: "destructive" });
+      }
       // Se este ofício veio do WhatsApp/n8n marcado como ia_pendente,
       // limpa a flag agora que o texto oficial foi gerado.
       if (iaPendente && editingOficioId) {
@@ -813,7 +845,11 @@ export default function Oficios() {
     const savedSecretaria =
       resolverChaveSecretaria((o as any).secretaria_identificada || "") ||
       resolverChaveSecretaria((o as any).tipo_demanda || "");
-    setSecretaria(savedSecretaria);
+    const savedCidade = (o as any).cidade || CIDADE_PADRAO;
+    setCidade(savedCidade);
+    setOrgaoDestinoId((o as any).orgao_destino_id || null);
+    // outra cidade: o nome do órgão fica como está (não é chave do SECRETARIAS_CONFIG)
+    setSecretaria(savedCidade === CIDADE_PADRAO ? savedSecretaria : ((o as any).secretaria_identificada || ""));
     setVocativoCustom((o as any).vocativo || "");
     const content = o.conteudo || "";
     oficioEditedManuallyRef.current = false;
@@ -886,6 +922,8 @@ export default function Oficios() {
       resposta_cidadao: null,
       secretaria_identificada: secretaria || aiResult?.secretaria_identificada || null,
       tipo_demanda: secretaria || aiResult?.tipo_demanda || null,
+      cidade,
+      orgao_destino_id: outraCidade ? orgaoDestinoId : null,
       urgencia: aiResult?.urgencia || (prioridade === "Urgente" ? "urgente" : "normal"),
       linha_telefonica: linhaTelefonica || null,
       codigo_z: ["Zap", "Requerimento", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
@@ -1045,6 +1083,8 @@ export default function Oficios() {
     setAssunto("");
     setAssuntoEditedInPreview(false);
     setSecretaria("");
+    setCidade(CIDADE_PADRAO);
+    setOrgaoDestinoId(null);
     setDestinatario("");
     setCargoDestinatario("");
     setBairro("");
@@ -1114,6 +1154,8 @@ export default function Oficios() {
             conteudo: editedOficio || null,
             secretaria_identificada: secretaria || null,
             tipo_demanda: secretaria || null,
+            cidade,
+            orgao_destino_id: outraCidade ? orgaoDestinoId : null,
             urgencia: prioridade === "Urgente" ? "urgente" : "normal",
             cargo_destinatario: (previewSnapshot.cargoDestinatario || cargoDestinatario || "").replace(/^DESTINAT[AÁ]RIO:\s*/i, "").trim() || null,
             local_demanda: localDemanda || null,
@@ -1483,6 +1525,8 @@ export default function Oficios() {
         resposta_cidadao: null,
         secretaria_identificada: secretaria || null,
         tipo_demanda: secretaria || null,
+        cidade,
+        orgao_destino_id: outraCidade ? orgaoDestinoId : null,
         urgencia: prioridade === "Urgente" ? "urgente" : "normal",
         linha_telefonica: linhaTelefonica || null,
         codigo_z: ["Zap", "Requerimento", "Conecta Jovem", "Empregador", "DI"].includes(origemOficio) ? (codigoZ || null) : null,
@@ -1660,6 +1704,24 @@ export default function Oficios() {
               )}
 
               <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Cidade</label>
+                <Select value={cidade} onValueChange={(v) => {
+                  setCidade(v);
+                  setOrgaoDestinoId(null);
+                  setSecretaria("");
+                  setDestinatario("");
+                  setCargoDestinatario("");
+                  setVocativoCustom("");
+                }}>
+                  <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {cidades.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {!outraCidade ? (
+              <div>
                 <label className="text-xs font-medium text-primary mb-1 block">Secretaria <span className="text-primary/70">(preenche destinatário automaticamente)</span></label>
                 <Select value={secretaria} onValueChange={setSecretaria}>
                   <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Selecione a secretaria..." /></SelectTrigger>
@@ -1668,6 +1730,33 @@ export default function Oficios() {
                   </SelectContent>
                 </Select>
               </div>
+              ) : (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-primary mb-1 block">Órgão de {cidade} <span className="text-primary/70">(se ficar vazio, a IA sugere pelo assunto)</span></label>
+                <Select value={orgaoDestinoId || ""} onValueChange={(id) => { const o = orgaosCidade.find(x => x.id === id); if (o) aplicarOrgao(o); }} disabled={loadingOrgaos}>
+                  <SelectTrigger className="bg-card border-border">
+                    {loadingOrgaos ? <span className="flex items-center gap-2 text-muted-foreground"><Loader2 size={14} className="animate-spin" /> Carregando órgãos...</span> : <SelectValue placeholder="Selecione o órgão..." />}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orgaosCidade.map(o => <SelectItem key={o.id} value={o.id}>{o.esfera === "estadual" ? "(estadual) " : ""}{o.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {orgaoSelecionado && (
+                  <div className="text-xs text-muted-foreground space-y-1 animate-in fade-in duration-200">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      <span>E-mail: <strong className="text-foreground">{orgaoSelecionado.email || "—"}</strong></span>
+                      <span>Telefone: <strong className="text-foreground">{orgaoSelecionado.telefone || "—"}</strong></span>
+                    </div>
+                    {avisosOrgao(orgaoSelecionado).length > 0 && (
+                      <div role="status" className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-amber-700 dark:text-amber-400">
+                        <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                        <span>Atenção: {avisosOrgao(orgaoSelecionado).join(", ")}.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              )}
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Assunto *</label>
@@ -1956,7 +2045,7 @@ export default function Oficios() {
                     destinatario: destinatario || "",
                     assunto: assunto || "",
                     endereco_completo: enderecoCompleto || bairro || "",
-                    vocativo: getVocativo(secretaria || ""),
+                    vocativo: (outraCidade && vocativoCustom) || getVocativo(secretaria || ""),
                     conteudo: editedOficio || "",
                   });
                 }}>
