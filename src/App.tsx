@@ -36,6 +36,7 @@ const VerificarSMS = lazy(() => import("./pages/VerificarSMS"));
 const PainelNumeracao = lazy(() => import("./pages/PainelNumeracao"));
 const Lembretes = lazy(() => import("./pages/Lembretes"));
 const Ajuda = lazy(() => import("./pages/Ajuda"));
+const Mapa = lazy(() => import("./pages/Mapa"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const DashboardRespostas = lazy(() => import("./pages/DashboardRespostas"));
 
@@ -122,6 +123,7 @@ const AppRoutes = () => {
         <Route path="/sobre" element={<ProtectedRoute><AppLayout><Sobre /></AppLayout></ProtectedRoute>} />
         <Route path="/numeracao" element={<ProtectedRoute><AppLayout><PainelNumeracao /></AppLayout></ProtectedRoute>} />
         <Route path="/lembretes" element={<ProtectedRoute><AppLayout><Lembretes /></AppLayout></ProtectedRoute>} />
+        <Route path="/mapa" element={<ProtectedRoute><AppLayout><Mapa /></AppLayout></ProtectedRoute>} />
         <Route path="/ajuda" element={<ProtectedRoute><AppLayout><Ajuda /></AppLayout></ProtectedRoute>} />
         <Route path="/instalar" element={<ProtectedRoute><AppLayout><InstalarApp /></AppLayout></ProtectedRoute>} />
         <Route path="/lixeira" element={<ProtectedRoute><AppLayout><Lixeira /></AppLayout></ProtectedRoute>} />
