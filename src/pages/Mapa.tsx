@@ -29,7 +29,7 @@ const desde = (p: Periodo) => {
 const lerVar = (v: string) => `hsl(${getComputedStyle(document.documentElement).getPropertyValue(v).trim().split(/\s+/).join(", ")})`;
 const reduzMovimento = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-function estilo(escuro: boolean): cytoscape.Stylesheet[] {
+function estilo(escuro: boolean): cytoscape.StylesheetJsonBlock[] {
   const cores = COR_TIPO[escuro ? "escuro" : "claro"];
   const texto = lerVar("--foreground");
   const fundo = lerVar("--card");
@@ -40,7 +40,7 @@ function estilo(escuro: boolean): cytoscape.Stylesheet[] {
       "text-background-color": fundo, "text-background-opacity": 0.85, "text-background-padding": "2px",
       "border-width": 2, "border-color": fundo,
     } },
-    ...TIPOS.map(t => ({ selector: `node[tipo = "${t}"]`, style: { "background-color": cores[t], shape: FORMA_TIPO[t] } } as cytoscape.Stylesheet)),
+    ...TIPOS.map(t => ({ selector: `node[tipo = "${t}"]`, style: { "background-color": cores[t], shape: FORMA_TIPO[t] } } as cytoscape.StylesheetJsonBlock)),
     // situação do órgão: borda tracejada/pontilhada + aviso no painel (nunca só cor)
     { selector: 'node[situacao = "conferir"]', style: { "border-width": 5, "border-style": "dashed", "border-color": lerVar("--status-pending") } },
     { selector: 'node[?semEmail]', style: { "border-width": 5, "border-style": "dotted", "border-color": lerVar("--destructive") } },
