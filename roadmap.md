@@ -18,3 +18,8 @@
 - [x] Corrigir erros de verificação das funções (buffers binários e erros desconhecidos): verificação automática OK, 10 testes passaram e prévia abre sem erros.
 - [ ] Abrir Issue/PR desta correção — bloqueado por ausência de acesso ao GitHub.
 - [x] Sincronizar com a main do GitHub (commit 43b33f2) e publicar a função oficio-pdf-bot — código local já idêntico ao commit; função publicada e respondendo (401 sem o segredo do bot).
+
+- [x] Encerramento do ofício segue o destinatário (caso 1889) — função generate-oficio publicada, 4 testes.
+- [ ] Corrigir o último parágrafo dos ofícios 2286, 2292 e 1870 para bater com o destinatário.
+- [ ] Nome do arquivo dos ofícios do Jr: número + 4 últimos dígitos do telefone, sem nome da pessoa.
+- [ ] Receber nova chave do ConvertAPI (formulário seguro) e testar o PDF.

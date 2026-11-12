@@ -154,6 +154,12 @@ function buildFileName(numero: string, solicitante?: string, codigoZ?: string, c
     return `${numPart} ${zPart}`;
   }
   
+  // Ofícios do Agente JR (WhatsApp): número + 4 últimos dígitos do telefone, sem nome
+  if (origem === "whatsapp_bot") {
+    const digits = (contatoSolicitante || "").replace(/\D/g, '');
+    if (digits.length >= 4) return `${numPart} ${digits.slice(-4)}`;
+  }
+
   // Non-Z origins: standard format
   const solicitanteCode = (solicitante || "").trim().split(/\s+/)[0] || "";
   if (solicitanteCode) {
