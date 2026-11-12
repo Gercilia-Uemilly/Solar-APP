@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callGemini, toGeminiMessages } from "../_shared/gemini.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolverChaveSecretaria } from "../_shared/oficioUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -242,7 +243,10 @@ serve(async (req) => {
 
     const tipoNormalizado = typeof tipo === "string" ? tipo.trim() : "";
     const tipoValidoComoSecretaria = tipoNormalizado && !["solicitação", "reclamação", "requerimento"].includes(tipoNormalizado.toLowerCase());
-    const secretariaDetectada = (tipoValidoComoSecretaria ? tipoNormalizado : "") || detectSecretaria(textoCompleto) || "Serviços Urbanos";
+    // O destinatário informado (operador ou Agente JR) define o órgão do encerramento.
+    // Palavras-chave só entram quando o destinatário não é um órgão conhecido.
+    const secretariaDoDestinatario = resolverChaveSecretaria(typeof destinatario === "string" ? destinatario : "");
+    const secretariaDetectada = (tipoValidoComoSecretaria ? tipoNormalizado : "") || secretariaDoDestinatario || detectSecretaria(textoCompleto) || "Serviços Urbanos";
     const nomeOrgao = getNomeOrgaoForSecretaria(secretariaDetectada);
     const vocativo = getVocativoForSecretaria(secretariaDetectada);
     // "do" for masculine nouns; "da" for feminine
@@ -372,7 +376,9 @@ Gere o ofício completo com EXATAMENTE 4 parágrafos institucionais + 2 parágra
       parsed.oficio = parsed.oficio.replace(/["}\s,]+$/g, "").trim();
     }
 
-    if (!parsed.secretaria_identificada && secretariaDetectada) {
+    if (secretariaDoDestinatario) {
+      parsed.secretaria_identificada = secretariaDoDestinatario;
+    } else if (!parsed.secretaria_identificada && secretariaDetectada) {
       parsed.secretaria_identificada = secretariaDetectada;
     }
 
