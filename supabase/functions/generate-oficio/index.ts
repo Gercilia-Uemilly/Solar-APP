@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callGemini, toGeminiMessages } from "../_shared/gemini.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolverChaveSecretaria } from "../_shared/oficioUtils.ts";
+import { detectSecretaria } from "../_shared/detectSecretaria.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,20 +10,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SECRETARIA_MAP: Record<string, string[]> = {
-  "Serviços Urbanos": ["capina","roçagem","limpeza","poda","árvore","iluminação","poste","lâmpada","coleta","lixo","entulho","bueiro","calçada","praça","parque","buraco","tapa-buraco","tapa buraco","asfalto","pavimentação","recapeamento"],
-  "Infraestrutura": ["erosão","obra","ponte","viaduto","estrada"],
-  "Saúde": ["saúde","UBS","hospital","posto de saúde","médico","dengue","fumacê","vacina","ambulância","SAMU","UPA"],
-  "Trânsito e Transportes (SETTRAN)": ["trânsito","semáforo","sinalização","faixa de pedestre","lombada","quebra-mola","quebra mola","redutor de velocidade","ônibus","transporte"],
-  "Gestão Ambiental e Sustentabilidade": ["meio ambiente","ambiental","desmatamento","queimada","poluição","córrego","nascente"],
-  "Educação": ["escola","educação","creche","EMEI","EMEF","professor","ensino","merenda"],
-  "Desenvolvimento Social": ["assistência social","CRAS","CREAS","vulnerabilidade","moradia","população de rua"],
-  "Agronegócio": ["agronegócio","rural","agricultura","fazenda","zona rural","estrada rural","produtor"],
-  "DMAE": ["água","esgoto","saneamento","vazamento","falta de água","DMAE","abastecimento"],
-  "Habitação": ["habitação","moradia","conjunto habitacional","regularização fundiária","terreno"],
-  "Cultura e Turismo": ["cultura","turismo","evento","teatro","museu","patrimônio histórico"],
-  "Juventude": ["esporte","lazer","quadra","campo","ginásio","piscina","juventude"],
-};
 
 const VOCATIVO_MAP: Record<string, string> = {
   'ARESAN': 'Excelentíssimo(a) Senhor(a) Diretor(a) Presidente,',
@@ -105,16 +92,6 @@ function getNomeOrgaoForSecretaria(s: string): string {
   return normalized;
 }
 
-function detectSecretaria(text: string): string | null {
-  const lower = text.toLowerCase();
-  let best: string | null = null, bestScore = 0;
-  for (const [sec, kws] of Object.entries(SECRETARIA_MAP)) {
-    let score = 0;
-    for (const kw of kws) if (lower.includes(kw.toLowerCase())) score++;
-    if (score > bestScore) { bestScore = score; best = sec; }
-  }
-  return best;
-}
 
 function isMudancaDirecaoRua(text: string): boolean {
   const lower = (text || '').toLowerCase();
