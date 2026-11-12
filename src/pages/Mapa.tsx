@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { todasAsLinhas } from "@/lib/todasAsLinhas";
 import { useNavigate } from "react-router-dom";
 import cytoscape, { type Core, type ElementDefinition } from "cytoscape";
 import { Loader2, Search, X, ExternalLink, Users, AlertTriangle } from "lucide-react";
@@ -48,17 +49,6 @@ function estilo(escuro: boolean): cytoscape.StylesheetJsonBlock[] {
     { selector: "node:selected, node.destaque", style: { "border-width": 5, "border-style": "solid", "border-color": lerVar("--primary") } },
     { selector: "node.apagado, edge.apagado", style: { opacity: 0.25 } },
   ];
-}
-
-async function todasAsLinhas<T>(consulta: (de: number, ate: number) => PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
-  const out: T[] = [];
-  for (let de = 0; ; de += 1000) {
-    const { data, error } = await consulta(de, de + 999);
-    if (error) throw error;
-    const lote = (data || []) as T[];
-    out.push(...lote);
-    if (lote.length < 1000) return out;
-  }
 }
 
 interface Selecionado { id: string; tipo: TipoNo; label: string; ref: string; [k: string]: unknown }

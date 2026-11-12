@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { OficioRow } from "@/lib/oficioUtils";
+import { todasAsLinhas } from "@/lib/todasAsLinhas";
 
 /**
  * Shared hook for fetching oficios with Supabase Realtime sync.
@@ -15,13 +16,19 @@ export function useOficios() {
   const fetchOficios = useCallback(async () => {
     setLoading(true);
     lastFetchRef.current = Date.now();
-    const { data, error } = await supabase
-      .from("oficios")
-      .select("*")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-    if (!error && data && isMounted.current) {
-      setOficios(data as OficioRow[]);
+    try {
+      const data = await todasAsLinhas<OficioRow>((de, ate) =>
+        supabase
+          .from("oficios")
+          .select("*")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(de, ate),
+      );
+      if (isMounted.current) setOficios(data);
+    } catch (e) {
+      console.error("Erro ao carregar ofícios", e);
     }
     if (isMounted.current) setLoading(false);
   }, []);
