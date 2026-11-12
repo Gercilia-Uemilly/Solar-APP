@@ -498,7 +498,6 @@ serve(async (req) => {
     // e frequentemente excedem o limite de CPU (WORKER_RESOURCE_LIMIT) quando
     // o documento contém anexos. Só usamos como último recurso, e apenas se
     // nenhum provedor "leve" (Drive/ConvertAPI) estiver configurado.
-    const heavyProvidersAllowed = configuredProviders.length === 0;
     // CloudConvert vem antes do Google para manter a paginação idêntica ao Word.
     if (CLOUDCONVERT_API_KEY) {
       configuredProviders.push("CloudConvert");
@@ -573,7 +572,8 @@ serve(async (req) => {
 
     // ── Tentativa 3: Api2PDF (LibreOffice) ───────────────────────────────────
     const API2PDF_KEY = Deno.env.get("API2PDF_API_KEY");
-    if (API2PDF_KEY && heavyProvidersAllowed) {
+    // Último recurso: só chega aqui quando todos os outros conversores falharam.
+    if (API2PDF_KEY) {
       configuredProviders.push("Api2PDF");
       let tempUpload: { bucket: string; path: string; publicUrl: string } | null = null;
       try {
