@@ -155,6 +155,246 @@ export type Database = {
         }
         Relationships: []
       }
+      cerebro_busca: {
+        Row: {
+          atualizado_em: string
+          cidade: string | null
+          embedding: string | null
+          hash: string
+          link: string | null
+          origem: string
+          origem_id: string
+          resumo: string | null
+          situacao: string
+          texto: string
+          titulo: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          cidade?: string | null
+          embedding?: string | null
+          hash: string
+          link?: string | null
+          origem: string
+          origem_id: string
+          resumo?: string | null
+          situacao: string
+          texto: string
+          titulo?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          cidade?: string | null
+          embedding?: string | null
+          hash?: string
+          link?: string | null
+          origem?: string
+          origem_id?: string
+          resumo?: string | null
+          situacao?: string
+          texto?: string
+          titulo?: string | null
+        }
+        Relationships: []
+      }
+      cerebro_config: {
+        Row: {
+          chave: string
+          valor: string
+        }
+        Insert: {
+          chave: string
+          valor: string
+        }
+        Update: {
+          chave?: string
+          valor?: string
+        }
+        Relationships: []
+      }
+      cerebro_ligacoes: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          de_nota: string
+          id: string
+          para_id: string
+          para_tipo: string
+          tipo_ligacao: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          de_nota: string
+          id?: string
+          para_id: string
+          para_tipo: string
+          tipo_ligacao: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          de_nota?: string
+          id?: string
+          para_id?: string
+          para_tipo?: string
+          tipo_ligacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cerebro_ligacoes_de_nota_fkey"
+            columns: ["de_nota"]
+            isOneToOne: false
+            referencedRelation: "cerebro_notas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cerebro_notas: {
+        Row: {
+          atualizado_em: string
+          autor_id: string | null
+          autor_nome: string | null
+          bairro: string | null
+          cidade_id: string | null
+          conferido_em: string | null
+          criado_em: string
+          fonte: string | null
+          id: string
+          situacao: string
+          tags: string[]
+          texto: string
+          tipo: string
+          titulo: string
+          valido_ate: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          bairro?: string | null
+          cidade_id?: string | null
+          conferido_em?: string | null
+          criado_em?: string
+          fonte?: string | null
+          id?: string
+          situacao?: string
+          tags?: string[]
+          texto?: string
+          tipo: string
+          titulo: string
+          valido_ate?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          bairro?: string | null
+          cidade_id?: string | null
+          conferido_em?: string | null
+          criado_em?: string
+          fonte?: string | null
+          id?: string
+          situacao?: string
+          tags?: string[]
+          texto?: string
+          tipo?: string
+          titulo?: string
+          valido_ate?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cerebro_notas_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cerebro_sugestoes: {
+        Row: {
+          cidade: string | null
+          criado_em: string
+          decidido_em: string | null
+          decidido_por: string | null
+          fonte_link: string
+          fonte_nome: string | null
+          id: string
+          nota_id: string | null
+          status: string
+          texto: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          cidade?: string | null
+          criado_em?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          fonte_link: string
+          fonte_nome?: string | null
+          id?: string
+          nota_id?: string | null
+          status?: string
+          texto?: string
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          cidade?: string | null
+          criado_em?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          fonte_link?: string
+          fonte_nome?: string | null
+          id?: string
+          nota_id?: string | null
+          status?: string
+          texto?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cerebro_sugestoes_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "cerebro_notas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cerebro_vigia_paginas: {
+        Row: {
+          cidade: string | null
+          hash: string | null
+          mudou_seguidas: number
+          nome: string | null
+          proxima_olhada: string
+          ultima_olhada: string | null
+          url: string
+        }
+        Insert: {
+          cidade?: string | null
+          hash?: string | null
+          mudou_seguidas?: number
+          nome?: string | null
+          proxima_olhada?: string
+          ultima_olhada?: string | null
+          url: string
+        }
+        Update: {
+          cidade?: string | null
+          hash?: string | null
+          mudou_seguidas?: number
+          nome?: string | null
+          proxima_olhada?: string
+          ultima_olhada?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       cidades: {
         Row: {
           canal_online: string | null
@@ -577,6 +817,48 @@ export type Database = {
           id?: string
           url?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      fatos_fabao: {
+        Row: {
+          atualizado_em: string
+          chave: string
+          conferido_em: string | null
+          criado_em: string
+          fato: string
+          fonte: string | null
+          id: string
+          situacao: string
+          texto_junior: string
+          valido_ate: string | null
+          valido_de: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          chave: string
+          conferido_em?: string | null
+          criado_em?: string
+          fato: string
+          fonte?: string | null
+          id?: string
+          situacao?: string
+          texto_junior: string
+          valido_ate?: string | null
+          valido_de?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          chave?: string
+          conferido_em?: string | null
+          criado_em?: string
+          fato?: string
+          fonte?: string | null
+          id?: string
+          situacao?: string
+          texto_junior?: string
+          valido_ate?: string | null
+          valido_de?: string | null
         }
         Relationships: []
       }
@@ -1644,6 +1926,7 @@ export type Database = {
           cidade_id: string | null
           conferido_em: string | null
           criado_em: string
+          destinatario: string | null
           email: string | null
           endereco: string | null
           esfera: string
@@ -1654,6 +1937,8 @@ export type Database = {
           sigla: string | null
           situacao: string
           telefone: string | null
+          tratamento_situacao: string
+          vocativo: string | null
         }
         Insert: {
           assuntos?: string[]
@@ -1661,6 +1946,7 @@ export type Database = {
           cidade_id?: string | null
           conferido_em?: string | null
           criado_em?: string
+          destinatario?: string | null
           email?: string | null
           endereco?: string | null
           esfera?: string
@@ -1671,6 +1957,8 @@ export type Database = {
           sigla?: string | null
           situacao?: string
           telefone?: string | null
+          tratamento_situacao?: string
+          vocativo?: string | null
         }
         Update: {
           assuntos?: string[]
@@ -1678,6 +1966,7 @@ export type Database = {
           cidade_id?: string | null
           conferido_em?: string | null
           criado_em?: string
+          destinatario?: string | null
           email?: string | null
           endereco?: string | null
           esfera?: string
@@ -1688,6 +1977,8 @@ export type Database = {
           sigla?: string | null
           situacao?: string
           telefone?: string | null
+          tratamento_situacao?: string
+          vocativo?: string | null
         }
         Relationships: [
           {
@@ -2275,10 +2566,51 @@ export type Database = {
       }
     }
     Views: {
+      cerebro_fontes: {
+        Row: {
+          cidade: string | null
+          hash: string | null
+          link: string | null
+          origem: string | null
+          origem_id: string | null
+          resumo: string | null
+          situacao: string | null
+          texto: string | null
+          titulo: string | null
+        }
+        Relationships: []
+      }
       demanda_counts: {
         Row: {
           tipo_demanda: string | null
           total: number | null
+        }
+        Relationships: []
+      }
+      fatos_fabao_ok: {
+        Row: {
+          chave: string | null
+          conferido_em: string | null
+          fonte: string | null
+          texto_junior: string | null
+          valido_ate: string | null
+          valido_de: string | null
+        }
+        Insert: {
+          chave?: string | null
+          conferido_em?: string | null
+          fonte?: string | null
+          texto_junior?: string | null
+          valido_ate?: string | null
+          valido_de?: string | null
+        }
+        Update: {
+          chave?: string | null
+          conferido_em?: string | null
+          fonte?: string | null
+          texto_junior?: string | null
+          valido_ate?: string | null
+          valido_de?: string | null
         }
         Relationships: []
       }
@@ -2293,6 +2625,50 @@ export type Database = {
           descricao: string
           link: string
           titulo: string
+        }[]
+      }
+      cerebro_buscar: {
+        Args: {
+          p_cidade?: string
+          p_embedding: string
+          p_limite?: number
+          p_so_ok?: boolean
+        }
+        Returns: {
+          cidade: string
+          link: string
+          origem: string
+          origem_id: string
+          similaridade: number
+          situacao: string
+          texto: string
+          titulo: string
+        }[]
+      }
+      cerebro_conferir_segredo: { Args: never; Returns: undefined }
+      cerebro_gravar: { Args: { p_itens: Json }; Returns: number }
+      cerebro_pendentes: {
+        Args: { p_limite?: number }
+        Returns: {
+          cidade: string
+          hash: string
+          link: string
+          origem: string
+          origem_id: string
+          resumo: string
+          situacao: string
+          texto: string
+          titulo: string
+        }[]
+      }
+      cerebro_sugerir: { Args: { p_itens: Json }; Returns: number }
+      cerebro_vigia_gravar: { Args: { p_itens: Json }; Returns: number }
+      cerebro_vigia_lista: {
+        Args: { p_limite?: number }
+        Returns: {
+          cidade: string
+          nome: string
+          url: string
         }[]
       }
       criar_oficio_whatsapp: {
