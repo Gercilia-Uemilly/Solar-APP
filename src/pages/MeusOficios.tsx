@@ -22,6 +22,7 @@ import PreviewFormatToolbar, { defaultFormatOptions } from "@/components/Preview
 import type { FormatOptions } from "@/components/PreviewFormatToolbar";
 import { exportToWord, exportToPDF, exportToCSV, buildWordBlobForExport, buildMergedPdfBlob, buildFileName, fetchSavedImages } from "@/lib/exportOficio";
 import { type OficioRow, getVocativo, cleanNumero } from "@/lib/oficioUtils";
+import { separarPorAba } from "@/lib/oficioTabs";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import VersionHistoryDialog from "@/components/VersionHistoryDialog";
@@ -750,16 +751,7 @@ export default function MeusOficios() {
     setCurrentPage(1);
   };
 
-  const statusFinalizados = ["Protocolado", "Respondido", "Atendido", "Impresso"];
-  const { finalizados, rascunhos } = useMemo(() => {
-    const fin: OficioRow[] = [];
-    const ras: OficioRow[] = [];
-    for (const o of filtered) {
-      if (statusFinalizados.includes(o.status)) fin.push(o);
-      else ras.push(o);
-    }
-    return { finalizados: fin, rascunhos: ras };
-  }, [filtered]);
+  const { finalizados, rascunhos } = useMemo(() => separarPorAba(filtered), [filtered]);
   // Se há busca ativa, mostra todos os resultados independente da aba
   const hasBusca = search.trim().length > 0;
   const listaBase = hasBusca
