@@ -30,6 +30,7 @@ import logoCamara from "@/assets/logo-camara.png";
 import logoFabao from "@/assets/logo-fabao.png";
 import assinaturaFabao from "@/assets/assinatura-fabao-clean.png";
 import RevisaoOficioModal from "@/components/RevisaoOficioModal";
+import { faltaSecretaria, AVISO_SECRETARIA } from "@/lib/secretariaObrigatoria";
 import { useOrgaosCidade, CIDADE_PADRAO, avisosOrgao, destinatarioOrgao, vocativoOrgao, encerramentoOrgao, trocarEncerramento, categoriaDaSecretaria, type OrgaoCidade } from "@/hooks/useOrgaosCidade";
 import { useRevisaoOficio } from "@/hooks/useRevisaoOficio";
 import { extractExternalOficioUrlData, extractExternalOficioFileData } from "@/lib/externalOficioText";
@@ -658,6 +659,12 @@ export default function Oficios() {
       toast({ title: "Preencha a descrição", description: "A descrição é necessária para gerar o ofício.", variant: "destructive" });
       return;
     }
+    if (faltaSecretaria(outraCidade, secretaria)) {
+      setValidationErrors(prev => ({ ...prev, secretaria: true }));
+      setFormTab("dados");
+      toast({ ...AVISO_SECRETARIA, variant: "destructive" });
+      return;
+    }
     // Prevent double-click or stuck state
     if (isGenerating) return;
     setIsGenerating(true);
@@ -888,6 +895,7 @@ export default function Oficios() {
   const validateForm = () => {
     const errors: Record<string, boolean> = {};
     // numero is auto-reserved, no validation needed
+    if (faltaSecretaria(outraCidade, secretaria)) errors.secretaria = true;
     return errors;
   };
 
@@ -908,6 +916,7 @@ export default function Oficios() {
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setFormTab("dados");
+      if (errors.secretaria) toast({ ...AVISO_SECRETARIA, variant: "destructive" });
       return null;
     }
 
@@ -1722,13 +1731,16 @@ export default function Oficios() {
 
               {!outraCidade ? (
               <div>
-                <label className="text-xs font-medium text-primary mb-1 block">Secretaria <span className="text-primary/70">(preenche destinatário automaticamente)</span></label>
-                <Select value={secretaria} onValueChange={setSecretaria}>
-                  <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Selecione a secretaria..." /></SelectTrigger>
+                <label htmlFor="campo-secretaria" className="text-xs font-medium text-primary mb-1 block">Secretaria <span className="text-destructive">*</span> <span className="text-primary/70">(obrigatória — preenche destinatário automaticamente)</span></label>
+                <Select value={secretaria} onValueChange={(v) => { setSecretaria(v); setValidationErrors(prev => { const { secretaria: _s, ...rest } = prev; return rest; }); }}>
+                  <SelectTrigger id="campo-secretaria" aria-invalid={!!validationErrors.secretaria} className={`bg-card ${validationErrors.secretaria ? "border-destructive ring-1 ring-destructive" : "border-border"}`}><SelectValue placeholder="Selecione a secretaria..." /></SelectTrigger>
                   <SelectContent>
                     {LISTA_SECRETARIAS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                {validationErrors.secretaria && (
+                  <p role="alert" className="text-xs text-destructive mt-1 animate-in fade-in duration-200 motion-reduce:animate-none">Selecione a secretaria para continuar.</p>
+                )}
               </div>
               ) : (
               <div className="space-y-2">
@@ -1989,6 +2001,11 @@ export default function Oficios() {
                   {isGenerating ? <><Loader2 size={16} className="mr-2 animate-spin" /> Gerando...</> : <><Sparkles size={16} className="mr-2" /> Gerar Texto com IA</>}
                 </Button>
                 <Button variant="outline" onClick={async () => {
+                  if (faltaSecretaria(outraCidade, secretaria)) {
+                    setValidationErrors(prev => ({ ...prev, secretaria: true }));
+                    toast({ ...AVISO_SECRETARIA, variant: "destructive" });
+                    return;
+                  }
                   // Save description directly as template content (no AI)
                   if (descricao.trim() && !editedOficio) {
                     const nomeOrgao = secretaria ? getNomeOrgao(secretaria) : "a Secretaria";
